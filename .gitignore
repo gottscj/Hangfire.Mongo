@@ -78,6 +78,7 @@ publish
 
 # NuGet Packages Directory
 packages
+nuspecs/Net45
 
 # Windows Azure Build Output
 csx

@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
+    <metadata>
+        <id>HangFire.Mongo</id>
+        <version>0.1.0-alpha1</version>
+        <title>Hangfire MongoDB Storage</title>
+        <authors>Sergey Zwezdin</authors>
+        <owners>Sergey Zwezdin</owners>
+        <licenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</licenseUrl>
+        <projectUrl>https://github.com/sergun/Hangfire.Mongo</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</description>
+        <summary />
+        <copyright>Copyright © Sergey Zwezdin</copyright>
+        <tags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</tags>
+        <dependencies>
+            <dependency id="HangFire.Core" version="1.2.2" />
+            <dependency id="Owin" version="1.0" />
+            <dependency id="mongocsharpdriver" version="1.9.2" />
+            <dependency id="Newtonsoft.Json" version="6.0.6" />
+            <dependency id="Common.Logging" version="2.2.0" />
+            <dependency id="Common.Logging.Core" version="2.2.0" />
+        </dependencies>
+    </metadata>
+    <files>
+        <file src="Net45\Hangfire.Mongo.dll" target="lib\Hangfire.Mongo.dll" />
+        <file src="Net45\Hangfire.Mongo.pdb" target="lib\Hangfire.Mongo.pdb" />
+        <file src="Net45\Hangfire.Mongo.XML" target="lib\Hangfire.Mongo.XML" />
+    </files>
+</package>
