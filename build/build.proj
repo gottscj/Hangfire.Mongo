@@ -2,6 +2,7 @@
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
     <Import Project="versions.targets" />
+    <Import Project="helpers.tasks" />
 
     <PropertyGroup>
         <DevBuild>True</DevBuild>
@@ -34,6 +35,7 @@
     <PropertyGroup>
         <BuildDependsOn>
             CreateOutputDirs;
+            UpdateProjectsVersion;
             BuildProjects;
             BuildNugetPackages;
         </BuildDependsOn>
@@ -44,6 +46,25 @@
         <MakeDir Directories="$(ArtifactsDir)" Condition="!Exists('$(ArtifactsDir)')" />
         <MakeDir Directories="$(BinariesArtifactsDir)" Condition="!Exists('$(BinariesArtifactsDir)')" />
         <MakeDir Directories="$(NugetArtifactsDir)" Condition="!Exists('$(NugetArtifactsDir)')" />
+    </Target>
+
+    <Target Name="UpdateProjectsVersion">
+        <ItemGroup>
+            <RegexTransform Include="$(ProjectRoot)\src\**\AssemblyInfo.cs;$(ProjectRoot)\tests\**\AssemblyInfo.cs">
+                <Find>AssemblyVersion\("\d+\.\d+\.\d+(\.\d+)?"\)</Find>
+                <ReplaceWith>AssemblyVersion("$(AssemblyVersion)")</ReplaceWith>
+            </RegexTransform>
+            <RegexTransform Include="$(ProjectRoot)\src\**\AssemblyInfo.cs;$(ProjectRoot)\tests\**\AssemblyInfo.cs">
+                <Find>AssemblyFileVersion\("\d+\.\d+\.\d+(\.\d+)?"\)</Find>
+                <ReplaceWith>AssemblyVersion("$(AssemblyVersion)")</ReplaceWith>
+            </RegexTransform>
+            <RegexTransform Include="$(ProjectRoot)\src\**\AssemblyInfo.cs;$(ProjectRoot)\tests\**\AssemblyInfo.cs">
+                <Find>AssemblyInformationalVersion\("\d+\.\d+\.\d+(\.\d+)?"\)</Find>
+                <ReplaceWith>AssemblyInformationalVersion("$(PackageVersion)")</ReplaceWith>
+            </RegexTransform>
+        </ItemGroup>
+
+        <RegexTransform Items="@(RegexTransform)" />
     </Target>
 
     <Target Name="BuildProjects">
