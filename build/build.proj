@@ -56,7 +56,7 @@
             </RegexTransform>
             <RegexTransform Include="$(ProjectRoot)\src\**\AssemblyInfo.cs;$(ProjectRoot)\tests\**\AssemblyInfo.cs">
                 <Find>AssemblyFileVersion\("\d+\.\d+\.\d+(\.\d+)?"\)</Find>
-                <ReplaceWith>AssemblyVersion("$(AssemblyVersion)")</ReplaceWith>
+                <ReplaceWith>AssemblyFileVersion("$(AssemblyVersion)")</ReplaceWith>
             </RegexTransform>
             <RegexTransform Include="$(ProjectRoot)\src\**\AssemblyInfo.cs;$(ProjectRoot)\tests\**\AssemblyInfo.cs">
                 <Find>AssemblyInformationalVersion\("\d+\.\d+\.\d+(\.\d+)?"\)</Find>
