@@ -13,6 +13,11 @@
         <summary />
         <copyright>Copyright © Sergey Zwezdin</copyright>
         <tags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</tags>
+        <releaseNotes>https://github.com/sergun/Hangfire.Mongo/releases/
+
+0.1.0
+* Initial public release            
+        </releaseNotes>
         <dependencies>
             <dependency id="HangFire.Core" version="1.2.2" />
             <dependency id="Owin" version="1.0" />
