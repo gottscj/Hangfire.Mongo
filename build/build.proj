@@ -23,7 +23,6 @@
         <ArtifactsDir>$(ProjectRoot)\artifacts</ArtifactsDir>
         <BinariesArtifactsDir>$(ArtifactsDir)\bin</BinariesArtifactsDir>
         <NugetArtifactsDir>$(ArtifactsDir)\nuget</NugetArtifactsDir>
-        <NuGetToolsPath></NuGetToolsPath>
         <NuGetExePath>$(ProjectRoot)\.nuget\nuget.exe</NuGetExePath>
     </PropertyGroup>
 
@@ -34,6 +33,7 @@
 
     <PropertyGroup>
         <BuildDependsOn>
+            EnvironmentInfo;
             CreateOutputDirs;
             UpdateProjectsVersion;
             BuildProjects;
@@ -41,6 +41,14 @@
         </BuildDependsOn>
     </PropertyGroup>
 
+    <Target Name="EnvironmentInfo">
+        <Message Text="APPVEYOR = $(APPVEYOR)" />
+        <Message Text="CI = $(CI)" />
+        <Message Text="APPVEYOR_REPO_TAG = $(APPVEYOR_REPO_TAG)" />
+        <Message Text="APPVEYOR_REPO_BRANCH = $(APPVEYOR_REPO_BRANCH)" />
+        <Message Text="APPVEYOR_REPO_COMMIT = $(APPVEYOR_REPO_COMMIT)" />
+    </Target>
+    
     <Target Name="CreateOutputDirs">
         <RemoveDir Directories="$(ArtifactsDir)" Condition="Exists('$(ArtifactsDir)')" ContinueOnError="true" />
         <MakeDir Directories="$(ArtifactsDir)" Condition="!Exists('$(ArtifactsDir)')" />
