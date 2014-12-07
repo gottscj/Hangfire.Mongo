@@ -33,7 +33,6 @@
 
     <PropertyGroup>
         <BuildDependsOn>
-            EnvironmentInfo;
             CreateOutputDirs;
             UpdateProjectsVersion;
             BuildProjects;
@@ -41,15 +40,6 @@
         </BuildDependsOn>
     </PropertyGroup>
 
-    <Target Name="EnvironmentInfo">
-        <Message Text="APPVEYOR = $(APPVEYOR)" />
-        <Message Text="CI = $(CI)" />
-        <Message Text="APPVEYOR_REPO_TAG = $(APPVEYOR_REPO_TAG)" />
-        <Message Text="APPVEYOR_REPO_BRANCH = $(APPVEYOR_REPO_BRANCH)" />
-        <Message Text="APPVEYOR_REPO_TAG_NAME = $(APPVEYOR_REPO_TAG_NAME)" />
-        <Message Text="APPVEYOR_REPO_COMMIT = $(APPVEYOR_REPO_COMMIT)" />
-    </Target>
-    
     <Target Name="CreateOutputDirs">
         <RemoveDir Directories="$(ArtifactsDir)" Condition="Exists('$(ArtifactsDir)')" ContinueOnError="true" />
         <MakeDir Directories="$(ArtifactsDir)" Condition="!Exists('$(ArtifactsDir)')" />

@@ -15,7 +15,7 @@
         <tags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</tags>
         <releaseNotes>https://github.com/sergun/Hangfire.Mongo/releases/
 
-0.1.0
+0.2.0
 * Initial public release            
         </releaseNotes>
         <dependencies>
