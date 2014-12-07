@@ -14,7 +14,7 @@
         <AssemblyVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion).$(APPVEYOR_BUILD_NUMBER)</AssemblyVersion>
         <PackageVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)-dev$(APPVEYOR_BUILD_NUMBER)</PackageVersion>
 
-        <AssemblyVersion Condition="$(APPVEYOR_REPO_TAG) == 'True'">$([System.Text.RegularExpressions.Regex]::Match($(APPVEYOR_REPO_BRANCH), '\d\.\d\.\d')).$(APPVEYOR_BUILD_NUMBER)</AssemblyVersion>
+        <AssemblyVersion Condition="$(APPVEYOR_REPO_TAG) == 'True'">$([System.Text.RegularExpressions.Regex]::Match($(APPVEYOR_REPO_BRANCH), '\d+\.\d+\.\d+')).$(APPVEYOR_BUILD_NUMBER)</AssemblyVersion>
         <PackageVersion Condition="$(APPVEYOR_REPO_TAG) == 'True'">$([System.Text.RegularExpressions.Regex]::Replace($(APPVEYOR_REPO_BRANCH), '^v', '', System.Text.RegularExpressions.RegexOptions.IgnoreCase))</PackageVersion>
     </PropertyGroup>
 
@@ -67,6 +67,9 @@
                 <ReplaceWith>&lt;version&gt;$(PackageVersion)&lt;/version&gt;</ReplaceWith>
             </RegexTransform>
         </ItemGroup>
+
+        <Message Text="Assembly version is $(AssemblyVersion)" />
+        <Message Text="Package version is $(PackageVersion)" />
 
         <RegexTransform Items="@(RegexTransform)" />
     </Target>
