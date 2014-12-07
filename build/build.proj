@@ -1,14 +1,13 @@
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"
-         ToolsVersion="4.0" DefaultTargets="Build">
-
-         <Target Name="Build">
-
-            <Message Text="APPVEYOR: $(APPVEYOR)"/>
-            <Message Text="CI: $(CI)"/>
-            <Message Text="APPVEYOR_REPO_TAG: $(APPVEYOR_REPO_TAG)"/>
-            <Message Text="APPVEYOR_REPO_BRANCH: $(APPVEYOR_REPO_BRANCH)"/>
-            <Message Text="APPVEYOR_REPO_COMMIT: $(APPVEYOR_REPO_COMMIT)"/>
-
-         </Target>
-
+<?xml version="1.0" encoding="utf-16"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0" DefaultTargets="Build">
+  <Target Name="Build">
+    <Message Text="APPVEYOR: $(APPVEYOR)" />
+    <Message Text="CI: $(CI)" />
+    <Message Text="APPVEYOR_BUILD_NUMBER: $(APPVEYOR_BUILD_NUMBER)" />
+    <Message Text="APPVEYOR_BUILD_VERSION: $(APPVEYOR_BUILD_VERSION)" />
+    <Message Text="APPVEYOR_PULL_REQUEST_NUMBER: $(APPVEYOR_PULL_REQUEST_NUMBER)" />
+    <Message Text="APPVEYOR_REPO_TAG: $(APPVEYOR_REPO_TAG)" />
+    <Message Text="APPVEYOR_REPO_BRANCH: $(APPVEYOR_REPO_BRANCH)" />
+    <Message Text="APPVEYOR_REPO_COMMIT: $(APPVEYOR_REPO_COMMIT)" />
+  </Target>
 </Project>
