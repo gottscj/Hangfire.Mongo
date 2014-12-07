@@ -10,7 +10,7 @@ MongoDB support for [Hangfire](http://hangfire.io/) library. By using this libra
 To install Hangfire MongoDB Storage, run the following command in the Nuget Package Manager Console:
 
 ```
-PM> Install-Package HangFire.Mongo -Pre
+PM> Install-Package HangFire.Mongo
 ```
 
 # Usage
