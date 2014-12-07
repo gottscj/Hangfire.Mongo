@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Hangfire.Mongo</name>
+    </assembly>
+    <members>
+        <member name="M:Hangfire.Mongo.MongoBootstrapperConfigurationExtensions.UseMongoStorage(Hangfire.IBootstrapperConfiguration,System.String,System.String)">
+            <summary>
+            Configure Hangfire to use MongoDB storage
+            </summary>
+            <param name="configuration">Configuration</param>
+            <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:passwordY@host:port'</param>
+            <param name="databaseName">Name of database at Mongo server</param>
+            <returns></returns>
+        </member>
+        <member name="M:Hangfire.Mongo.MongoBootstrapperConfigurationExtensions.UseMongoStorage(Hangfire.IBootstrapperConfiguration,System.String,System.String,Hangfire.Mongo.MongoStorageOptions)">
+            <summary>
+            Configure Hangfire to use MongoDB storage
+            </summary>
+            <param name="configuration">Configuration</param>
+            <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:passwordY@host:port'</param>
+            <param name="databaseName">Name of database at Mongo server</param>
+            <param name="options">Storage options</param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>

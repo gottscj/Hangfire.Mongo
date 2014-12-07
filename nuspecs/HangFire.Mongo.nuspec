@@ -24,7 +24,6 @@
     </metadata>
     <files>
         <file src="Net45\Hangfire.Mongo.dll" target="lib\Hangfire.Mongo.dll" />
-        <file src="Net45\Hangfire.Mongo.pdb" target="lib\Hangfire.Mongo.pdb" />
         <file src="Net45\Hangfire.Mongo.XML" target="lib\Hangfire.Mongo.XML" />
     </files>
 </package>
