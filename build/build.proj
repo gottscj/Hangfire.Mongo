@@ -62,6 +62,14 @@
                 <Find>AssemblyInformationalVersion\("\d+\.\d+\.\d+(\.\d+)?"\)</Find>
                 <ReplaceWith>AssemblyInformationalVersion("$(PackageVersion)")</ReplaceWith>
             </RegexTransform>
+            <RegexTransform Include="$(ProjectRoot)\src\**\AssemblyInfo.cs;$(ProjectRoot)\tests\**\AssemblyInfo.cs">
+                <Find>AssemblyInformationalVersion\("\d+\.\d+\.\d+(\.\d+)?"\)</Find>
+                <ReplaceWith>AssemblyInformationalVersion("$(PackageVersion)")</ReplaceWith>
+            </RegexTransform>
+            <RegexTransform Include="@(Nuspecs)">
+                <Find>&lt;version&gt;.+?&lt;/version&gt;</Find>
+                <ReplaceWith>&lt;version&gt;$(PackageVersion)&lt;/version&gt;</ReplaceWith>
+            </RegexTransform>
         </ItemGroup>
 
         <RegexTransform Items="@(RegexTransform)" />
