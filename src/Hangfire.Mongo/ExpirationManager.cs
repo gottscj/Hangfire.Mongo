@@ -1,10 +1,9 @@
-﻿using Common.Logging;
+﻿using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Server;
 using System;
 using System.Threading;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Builders;
 
@@ -12,7 +11,7 @@ namespace Hangfire.Mongo
 {
 	public class ExpirationManager : IServerComponent
 	{
-		private static readonly ILog Logger = LogManager.GetLogger(typeof(ExpirationManager));
+	    private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
 
 		private readonly MongoStorage _storage;
 		private readonly TimeSpan _checkInterval;

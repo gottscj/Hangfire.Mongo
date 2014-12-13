@@ -1,4 +1,4 @@
-using Common.Logging;
+using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.MongoUtils;
@@ -11,7 +11,7 @@ namespace Hangfire.Mongo.DistributedLock
 {
 	public class MongoDistributedLock : IDisposable
 	{
-		private static readonly ILog Logger = LogManager.GetLogger(typeof(MongoDistributedLock));
+	    private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
 
 		private readonly HangfireDbContext _database;
 

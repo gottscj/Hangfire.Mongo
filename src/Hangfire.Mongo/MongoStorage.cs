@@ -1,4 +1,4 @@
-﻿using Common.Logging;
+﻿using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
