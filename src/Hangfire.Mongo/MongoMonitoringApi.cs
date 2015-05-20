@@ -10,6 +10,7 @@ using MongoDB.Driver.Builders;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MongoDB.Driver.Linq;
 using ServerDto = Hangfire.Storage.Monitoring.ServerDto;
 
 namespace Hangfire.Mongo
@@ -431,34 +432,27 @@ namespace Hangfire.Mongo
 
 		private JobList<TDto> GetJobs<TDto>(HangfireDbContext connection, int from, int count, string stateName, Func<JobDetailedDto, Job, Dictionary<string, string>, TDto> selector)
 		{
-			int start = @from + 1;
-			int end = @from + count;
-
-			var jobs = connection.Job
-				.FindAll()
-				.Reverse()
-				.Select((data, i) => new {Index = i + 1, Data = data})
-				.Where(job =>
-				{
-					var state = connection.State.FindOneById(job.Data.StateId);
-					return (state != null) && (state.Name == stateName);
-				})
-				.Where(_ => (_.Index >= start) && (_.Index <= end))
+            var jobs = connection.Job.AsQueryable()
+                .OrderByDescending(x => x.Id)
+                .Where(x => x.StateName == stateName)
+                .Skip(from)
+                .Take(count)
+                .ToList()
 				.Select(job =>
 				{
-					var state = connection.State.FindOneById(job.Data.StateId);
+					var jobState = connection.State.FindOneById(job.StateId);
 					return new JobDetailedDto
 					{
-						Id = job.Data.Id,
-						InvocationData = job.Data.InvocationData,
-						Arguments = job.Data.Arguments,
-						CreatedAt = job.Data.CreatedAt,
-						ExpireAt = job.Data.ExpireAt,
+						Id = job.Id,
+						InvocationData = job.InvocationData,
+						Arguments = job.Arguments,
+						CreatedAt = job.CreatedAt,
+						ExpireAt = job.ExpireAt,
 						FetchedAt = null,
-						StateId = job.Data.StateId,
-						StateName = job.Data.StateName,
-						StateReason = state != null ? state.Reason : null,
-						StateData = state != null ? state.Data : null
+						StateId = job.StateId,
+						StateName = job.StateName,
+						StateReason = jobState != null ? jobState.Reason : null,
+						StateData = jobState != null ? jobState.Data : null
 					};
 				})
 				.ToList();
