@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.Server;
 using Hangfire.Storage;
@@ -61,6 +62,15 @@ namespace Hangfire.Mongo.Tests
 
 			Type[] componentTypes = components.Select(x => x.GetType()).ToArray();
 			Assert.Contains(typeof(ExpirationManager), componentTypes);
+		}
+
+		[Fact]
+		public void ToString_ReturnsStorageDetails()
+		{
+			MongoStorage storage = CreateStorage();
+
+			var storageDetails = storage.ToString();
+			Assert.True(Regex.IsMatch(storageDetails, @"Port: \d+"));
 		}
 
 		private static MongoStorage CreateStorage()
