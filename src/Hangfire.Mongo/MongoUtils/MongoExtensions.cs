@@ -9,10 +9,10 @@ namespace Hangfire.Mongo.MongoUtils
 	{
 		public static DateTime GetServerTimeUtc(this MongoDatabase database)
 		{
-			return database.Eval(new EvalArgs
-			{
-				Code = new BsonJavaScript("new Date()")
-			}).ToUniversalTime();
+			return database.RunCommand("serverStatus")
+				.Response
+				.AsBsonDocument["localTime"]
+				.ToUniversalTime();
 		}
 
 		public static DateTime GetServerTimeUtc(this HangfireDbContext dbContext)
