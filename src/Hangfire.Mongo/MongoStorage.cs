@@ -1,4 +1,5 @@
-﻿using Hangfire.Logging;
+﻿using System.Text.RegularExpressions;
+using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
@@ -13,11 +14,17 @@ namespace Hangfire.Mongo
 {
 	public class MongoStorage : JobStorage
 	{
+		private readonly Regex _connectionStringRegex = new Regex(@"(?<Unneeded>(.+:(//|\\\\)(.+:.+@)?))(?<ServerName>.+):(?<Port>\d+)", RegexOptions.Compiled);
+
 		private readonly string _connectionString;
 
 		private readonly string _databaseName;
 
 		private readonly MongoStorageOptions _options;
+
+		private string _serverName;
+
+		private string _port;
 
 		public MongoStorage(string connectionString, string databaseName)
 			: this(connectionString, databaseName, new MongoStorageOptions())
@@ -42,6 +49,8 @@ namespace Hangfire.Mongo
 			Connection = new HangfireDbContext(connectionString, databaseName, options.Prefix);
 			var defaultQueueProvider = new MongoJobQueueProvider(options);
 			QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
+
+			ParseConnectionString();
 		}
 
 		public HangfireDbContext Connection { get; private set; }
@@ -84,7 +93,18 @@ namespace Hangfire.Mongo
 
 		public override string ToString()
 		{
-			return String.Format("Connection string: {0}, database name: {1}", _connectionString, _databaseName);
+			return String.Format("Server: {0} Port: {1} Database name: {2}", _serverName, _port, _databaseName);
+		}
+
+		private void ParseConnectionString()
+		{
+			var connectionStringParts = _connectionStringRegex.Match(_connectionString);
+
+			if (connectionStringParts.Groups["ServerName"].Success)
+				_serverName = connectionStringParts.Groups["ServerName"].Value;
+
+			if (connectionStringParts.Groups["Port"].Success)
+				_port = connectionStringParts.Groups["Port"].Value;
 		}
 	}
 }
