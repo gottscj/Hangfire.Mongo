@@ -5,8 +5,6 @@ Hangfire.Mongo
 
 MongoDB support for [Hangfire](http://hangfire.io/) library. By using this library you can store all jobs information in MongoDB.
 
-**Note:** This is pre-alpha version, that has not been ever tested. Please, use it with care :)
-
 # Installation
 
 To install Hangfire MongoDB Storage, run the following command in the Nuget Package Manager Console:
