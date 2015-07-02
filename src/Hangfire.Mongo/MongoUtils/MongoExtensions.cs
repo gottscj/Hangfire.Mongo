@@ -5,6 +5,7 @@ using System;
 
 namespace Hangfire.Mongo.MongoUtils
 {
+<<<<<<< HEAD
     /// <summary>
     /// Helper utilities to work with Mongo database
     /// </summary>
@@ -22,6 +23,17 @@ namespace Hangfire.Mongo.MongoUtils
                 Code = new BsonJavaScript("new Date()")
             }).ToUniversalTime();
         }
+=======
+	public static class MongoExtensions
+	{
+		public static DateTime GetServerTimeUtc(this MongoDatabase database)
+		{
+			return database.RunCommand("serverStatus")
+				.Response
+				.AsBsonDocument["localTime"]
+				.ToUniversalTime();
+		}
+>>>>>>> origin/master
 
         /// <summary>
         /// Retreives server time in UTC zone
