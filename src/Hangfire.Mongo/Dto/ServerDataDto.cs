@@ -2,12 +2,14 @@
 
 namespace Hangfire.Mongo.Dto
 {
-	internal class ServerDataDto
-	{
-		public int WorkerCount { get; set; }
+#pragma warning disable 1591
+    internal class ServerDataDto
+    {
+        public int WorkerCount { get; set; }
 
-		public string[] Queues { get; set; }
+        public string[] Queues { get; set; }
 
-		public DateTime? StartedAt { get; set; }
-	}
+        public DateTime? StartedAt { get; set; }
+    }
+#pragma warning restore 1591
 }

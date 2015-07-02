@@ -5,21 +5,23 @@ using Hangfire.Storage;
 
 namespace Hangfire.Mongo.StateHandlers
 {
-	public class FailedStateHandler : IStateHandler
-	{
-		public void Apply(ApplyStateContext context, IWriteOnlyTransaction transaction)
-		{
-			transaction.AddToSet("failed", context.JobId, JobHelper.ToTimestamp(DateTime.UtcNow));
-		}
+#pragma warning disable 1591
+    public class FailedStateHandler : IStateHandler
+    {
+        public void Apply(ApplyStateContext context, IWriteOnlyTransaction transaction)
+        {
+            transaction.AddToSet("failed", context.JobId, JobHelper.ToTimestamp(DateTime.UtcNow));
+        }
 
-		public void Unapply(ApplyStateContext context, IWriteOnlyTransaction transaction)
-		{
-			transaction.RemoveFromSet("failed", context.JobId);
-		}
+        public void Unapply(ApplyStateContext context, IWriteOnlyTransaction transaction)
+        {
+            transaction.RemoveFromSet("failed", context.JobId);
+        }
 
-		public string StateName
-		{
-			get { return FailedState.StateName; }
-		}
-	}
+        public string StateName
+        {
+            get { return FailedState.StateName; }
+        }
+    }
+#pragma warning restore 1591
 }

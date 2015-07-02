@@ -5,19 +5,32 @@ using System;
 
 namespace Hangfire.Mongo.MongoUtils
 {
-	public static class MongoExtensions
-	{
-		public static DateTime GetServerTimeUtc(this MongoDatabase database)
-		{
-			return database.Eval(new EvalArgs
-			{
-				Code = new BsonJavaScript("new Date()")
-			}).ToUniversalTime();
-		}
+    /// <summary>
+    /// Helper utilities to work with Mongo database
+    /// </summary>
+    public static class MongoExtensions
+    {
+        /// <summary>
+        /// Retreives server time in UTC zone
+        /// </summary>
+        /// <param name="database">Mongo database</param>
+        /// <returns>Server time</returns>
+        public static DateTime GetServerTimeUtc(this MongoDatabase database)
+        {
+            return database.Eval(new EvalArgs
+            {
+                Code = new BsonJavaScript("new Date()")
+            }).ToUniversalTime();
+        }
 
-		public static DateTime GetServerTimeUtc(this HangfireDbContext dbContext)
-		{
-			return GetServerTimeUtc(dbContext.Database);
-		}
-	}
+        /// <summary>
+        /// Retreives server time in UTC zone
+        /// </summary>
+        /// <param name="dbContext">Hangfire database context</param>
+        /// <returns>Server time</returns>
+        public static DateTime GetServerTimeUtc(this HangfireDbContext dbContext)
+        {
+            return GetServerTimeUtc(dbContext.Database);
+        }
+    }
 }
