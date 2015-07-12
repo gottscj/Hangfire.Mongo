@@ -14,6 +14,23 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D6825B
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{87D6A811-9D1B-460C-B76D-06DBA307136D}"
+	ProjectSection(SolutionItems) = preProject
+		..\build\build.cmd = ..\build\build.cmd
+		..\build\build.ps1 = ..\build\build.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuspecs", "nuspecs", "{BADE9085-1506-41A8-BE2D-5A5FD5BCEEAF}"
+	ProjectSection(SolutionItems) = preProject
+		..\nuspecs\HangFire.Mongo.nuspec = ..\nuspecs\HangFire.Mongo.nuspec
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "utils", "utils", "{2C95F523-2D71-4A26-895F-638A338B8BDF}"
+	ProjectSection(SolutionItems) = preProject
+		..\build\utils\msbuild.ps1 = ..\build\utils\msbuild.ps1
+		..\build\utils\version.ps1 = ..\build\utils\version.ps1
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,5 +48,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2C95F523-2D71-4A26-895F-638A338B8BDF} = {87D6A811-9D1B-460C-B76D-06DBA307136D}
 	EndGlobalSection
 EndGlobal

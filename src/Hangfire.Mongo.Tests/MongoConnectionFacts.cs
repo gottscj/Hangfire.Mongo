@@ -5,19 +5,21 @@ using System.Threading;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
+using Hangfire.Mongo.Helpers;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.Server;
 using Hangfire.Storage;
 using MongoDB.Bson;
-using MongoDB.Driver.Builders;
+using MongoDB.Driver;
 using Moq;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
 #pragma warning disable 1591
+    [Collection("Database")]
     public class MongoConnectionFacts
     {
         private readonly Mock<IPersistentJobQueue> _queue;
@@ -51,7 +53,6 @@ namespace Hangfire.Mongo.Tests
 
             Assert.Equal("queueProviders", exception.ParamName);
         }
-
 
         [Fact, CleanDatabase]
         public void FetchNextJob_DelegatesItsExecution_ToTheQueue()
@@ -139,7 +140,8 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 var createdAt = new DateTime(2012, 12, 12, 0, 0, 0, 0, DateTimeKind.Utc);
-                var jobId = connection.CreateExpiredJob(Job.FromExpression(() => SampleMethod("Hello")),
+                var jobId = connection.CreateExpiredJob(
+                    Job.FromExpression(() => SampleMethod("Hello")),
                     new Dictionary<string, string> { { "Key1", "Value1" }, { "Key2", "Value2" } },
                     createdAt,
                     TimeSpan.FromDays(1));
@@ -147,7 +149,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.NotNull(jobId);
                 Assert.NotEmpty(jobId);
 
-                var databaseJob = database.Job.FindAll().Single();
+                var databaseJob = AsyncHelper.RunSync(() => database.Job.Find(new BsonDocument()).ToListAsync()).Single();
                 Assert.Equal(jobId, databaseJob.Id.ToString());
                 Assert.Equal(createdAt, databaseJob.CreatedAt);
                 Assert.Equal(ObjectId.Empty, databaseJob.StateId);
@@ -164,7 +166,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.True(createdAt.AddDays(1).AddMinutes(-1) < databaseJob.ExpireAt);
                 Assert.True(databaseJob.ExpireAt < createdAt.AddDays(1).AddMinutes(1));
 
-                var parameters = database.JobParameter.Find(Query<JobParameterDto>.EQ(_ => _.JobId, int.Parse(jobId)))
+                var parameters = AsyncHelper.RunSync(() => database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId))).ToListAsync())
                     .ToDictionary(x => x.Name, x => x.Value);
 
                 Assert.Equal("Value1", parameters["Key1"]);
@@ -184,7 +186,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                var result = connection.GetJobData("547527b4c6b6cc26a02d021d");
+                var result = connection.GetJobData("547527");
                 Assert.Null(result);
             });
         }
@@ -204,7 +206,7 @@ namespace Hangfire.Mongo.Tests
                     StateName = "Succeeded",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(jobDto);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
 
                 var result = connection.GetJobData(jobDto.Id.ToString());
 
@@ -231,7 +233,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                var result = connection.GetStateData("547527b4c6b6cc26a02d021d");
+                var result = connection.GetStateData("547527");
                 Assert.Null(result);
             });
         }
@@ -255,16 +257,16 @@ namespace Hangfire.Mongo.Tests
                     CreatedAt = database.GetServerTimeUtc()
                 };
 
-                database.Job.Insert(jobDto);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
                 var jobId = jobDto.Id;
 
-                database.State.Insert(new StateDto
+                AsyncHelper.RunSync(() => database.State.InsertOneAsync(new StateDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     JobId = jobId,
                     Name = "old-state",
                     CreatedAt = database.GetServerTimeUtc()
-                });
+                }));
 
                 var stateDto = new StateDto
                 {
@@ -275,10 +277,10 @@ namespace Hangfire.Mongo.Tests
                     Data = JobHelper.ToJson(data),
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                database.State.Insert(stateDto);
+                AsyncHelper.RunSync(() => database.State.InsertOneAsync(stateDto));
 
                 jobDto.StateId = stateDto.Id;
-                database.Job.Save(jobDto);
+                AsyncHelper.RunSync(() => database.Job.ReplaceOneAsync(_ => _.Id == jobDto.Id, jobDto, new UpdateOptions()));
 
                 var result = connection.GetStateData(jobId.ToString());
                 Assert.NotNull(result);
@@ -302,7 +304,7 @@ namespace Hangfire.Mongo.Tests
                     StateName = "Succeeded",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(jobDto);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
                 var jobId = jobDto.Id;
 
                 var result = connection.GetJobData(jobId.ToString());
@@ -347,13 +349,13 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(jobDto);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
                 string jobId = jobDto.Id.ToString();
 
                 connection.SetJobParameter(jobId, "Name", "Value");
 
-                var parameter = database.JobParameter.FindOne(Query.And(Query<JobParameterDto>.EQ(_ => _.JobId, int.Parse(jobId)),
-                    Query<JobParameterDto>.EQ(_ => _.Name, "Name")));
+                var parameter = AsyncHelper.RunSync(() => database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)) &
+                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, "Name")).FirstOrDefaultAsync());
 
                 Assert.Equal("Value", parameter.Value);
             });
@@ -371,14 +373,14 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(jobDto);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
                 string jobId = jobDto.Id.ToString();
 
                 connection.SetJobParameter(jobId, "Name", "Value");
                 connection.SetJobParameter(jobId, "Name", "AnotherValue");
 
-                var parameter = database.JobParameter.FindOne(Query.And(Query<JobParameterDto>.EQ(_ => _.JobId, int.Parse(jobId)),
-                    Query<JobParameterDto>.EQ(_ => _.Name, "Name")));
+                var parameter = AsyncHelper.RunSync(() => database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)) &
+                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, "Name")).FirstOrDefaultAsync());
 
                 Assert.Equal("AnotherValue", parameter.Value);
             });
@@ -396,13 +398,13 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(jobDto);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
                 string jobId = jobDto.Id.ToString();
 
                 connection.SetJobParameter(jobId, "Name", null);
 
-                var parameter = database.JobParameter.FindOne(Query.And(Query<JobParameterDto>.EQ(_ => _.JobId, int.Parse(jobId)),
-                    Query<JobParameterDto>.EQ(_ => _.Name, "Name")));
+                var parameter = AsyncHelper.RunSync(() => database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)) &
+                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, "Name")).FirstOrDefaultAsync());
 
                 Assert.Equal(null, parameter.Value);
             });
@@ -454,16 +456,16 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(jobDto);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
                 string jobId = jobDto.Id.ToString();
 
-                database.JobParameter.Insert(new JobParameterDto
+                AsyncHelper.RunSync(() => database.JobParameter.InsertOneAsync(new JobParameterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     JobId = int.Parse(jobId),
                     Name = "name",
                     Value = "value"
-                });
+                }));
 
                 var value = connection.GetJobParameter(jobId, "name");
 
@@ -507,34 +509,34 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                database.Set.Insert(new SetDto
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Score = 1.0,
                     Value = "1.0"
-                });
-                database.Set.Insert(new SetDto
+                }));
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Score = -1.0,
                     Value = "-1.0"
-                });
-                database.Set.Insert(new SetDto
+                }));
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Score = -5.0,
                     Value = "-5.0"
-                });
-                database.Set.Insert(new SetDto
+                }));
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "another-key",
                     Score = -2.0,
                     Value = "-2.0"
-                });
+                }));
 
                 var result = connection.GetFirstByLowestScoreFromSet("key", -1.0, 3.0);
 
@@ -578,7 +580,7 @@ namespace Hangfire.Mongo.Tests
                 };
                 connection.AnnounceServer("server", context1);
 
-                var server = database.Server.FindAll().Single();
+                var server = AsyncHelper.RunSync(() => database.Server.Find(new BsonDocument()).ToListAsync()).Single();
                 Assert.Equal("server", server.Id);
                 Assert.True(((string)server.Data).StartsWith(
                     "{\"WorkerCount\":4,\"Queues\":[\"critical\",\"default\"],\"StartedAt\":"),
@@ -591,7 +593,7 @@ namespace Hangfire.Mongo.Tests
                     WorkerCount = 1000
                 };
                 connection.AnnounceServer("server", context2);
-                var sameServer = database.Server.FindAll().Single();
+                var sameServer = AsyncHelper.RunSync(() => database.Server.Find(new BsonDocument()).ToListAsync()).Single();
                 Assert.Equal("server", sameServer.Id);
                 Assert.Contains("1000", sameServer.Data);
             });
@@ -609,22 +611,22 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                database.Server.Insert(new ServerDto
+                AsyncHelper.RunSync(() => database.Server.InsertOneAsync(new ServerDto
                 {
                     Id = "Server1",
                     Data = "",
                     LastHeartbeat = database.GetServerTimeUtc()
-                });
-                database.Server.Insert(new ServerDto
+                }));
+                AsyncHelper.RunSync(() => database.Server.InsertOneAsync(new ServerDto
                 {
                     Id = "Server2",
                     Data = "",
                     LastHeartbeat = database.GetServerTimeUtc()
-                });
+                }));
 
                 connection.RemoveServer("Server1");
 
-                var server = database.Server.FindAll().Single();
+                var server = AsyncHelper.RunSync(() => database.Server.Find(new BsonDocument()).ToListAsync()).Single();
                 Assert.NotEqual("Server1", server.Id, StringComparer.OrdinalIgnoreCase);
             });
         }
@@ -641,26 +643,26 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                database.Server.Insert(new ServerDto
+                AsyncHelper.RunSync(() => database.Server.InsertOneAsync(new ServerDto
                 {
                     Id = "server1",
                     Data = "",
                     LastHeartbeat = new DateTime(2012, 12, 12, 12, 12, 12, DateTimeKind.Utc)
-                });
-                database.Server.Insert(new ServerDto
+                }));
+                AsyncHelper.RunSync(() => database.Server.InsertOneAsync(new ServerDto
                 {
                     Id = "server2",
                     Data = "",
                     LastHeartbeat = new DateTime(2012, 12, 12, 12, 12, 12, DateTimeKind.Utc)
-                });
+                }));
 
                 connection.Heartbeat("server1");
 
-                var servers = database.Server.FindAll()
+                var servers = AsyncHelper.RunSync(() => database.Server.Find(new BsonDocument()).ToListAsync())
                     .ToDictionary(x => x.Id, x => x.LastHeartbeat);
 
-                Assert.NotEqual(2012, servers["server1"].Year);
-                Assert.Equal(2012, servers["server2"].Year);
+                Assert.NotEqual(2012, servers["server1"].Value.Year);
+                Assert.Equal(2012, servers["server2"].Value.Year);
             });
         }
 
@@ -676,22 +678,22 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                database.Server.Insert(new ServerDto
+                AsyncHelper.RunSync(() => database.Server.InsertOneAsync(new ServerDto
                 {
                     Id = "server1",
                     Data = "",
                     LastHeartbeat = database.GetServerTimeUtc().AddDays(-1)
-                });
-                database.Server.Insert(new ServerDto
+                }));
+                AsyncHelper.RunSync(() => database.Server.InsertOneAsync(new ServerDto
                 {
                     Id = "server2",
                     Data = "",
                     LastHeartbeat = database.GetServerTimeUtc().AddHours(-12)
-                });
+                }));
 
                 connection.RemoveTimedOutServers(TimeSpan.FromHours(15));
 
-                var liveServer = database.Server.FindAll().Single();
+                var liveServer = AsyncHelper.RunSync(() => database.Server.Find(new BsonDocument()).ToListAsync()).Single();
                 Assert.Equal("server2", liveServer.Id);
             });
         }
@@ -721,27 +723,27 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.Set.Insert(new SetDto
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-set",
                     Score = 0.0,
                     Value = "1"
-                });
-                database.Set.Insert(new SetDto
+                }));
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-set",
                     Score = 0.0,
                     Value = "2"
-                });
-                database.Set.Insert(new SetDto
+                }));
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "another-set",
                     Score = 0.0,
                     Value = "3"
-                });
+                }));
 
                 // Act
                 var result = connection.GetAllItemsFromSet("some-set");
@@ -788,7 +790,7 @@ namespace Hangfire.Mongo.Tests
 							{ "Key2", "Value2" }
 						});
 
-                var result = database.Hash.Find(Query<HashDto>.EQ(_ => _.Key, "some-hash"))
+                var result = AsyncHelper.RunSync(() => database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, "some-hash")).ToListAsync())
                     .ToDictionary(x => x.Field, x => x.Value);
 
                 Assert.Equal("Value1", result["Key1"]);
@@ -819,27 +821,27 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.Hash.Insert(new HashDto
+                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-hash",
                     Field = "Key1",
                     Value = "Value1"
-                });
-                database.Hash.Insert(new HashDto
+                }));
+                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-hash",
                     Field = "Key2",
                     Value = "Value2"
-                });
-                database.Hash.Insert(new HashDto
+                }));
+                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "another-hash",
                     Field = "Key3",
                     Value = "Value3"
-                });
+                }));
 
                 // Act
                 var result = connection.GetAllEntriesFromHash("some-hash");
@@ -849,6 +851,645 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal(2, result.Count);
                 Assert.Equal("Value1", result["Key1"]);
                 Assert.Equal("Value2", result["Key2"]);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetSetCount_ThrowsAnException_WhenKeyIsNull()
+        {
+            UseConnection((database, connection) =>
+            {
+                Assert.Throws<ArgumentNullException>(
+                    () => connection.GetSetCount(null));
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetSetCount_ReturnsZero_WhenSetDoesNotExist()
+        {
+            UseConnection((database, connection) =>
+            {
+                var result = connection.GetSetCount("my-set");
+                Assert.Equal(0, result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetSetCount_ReturnsNumberOfElements_InASet()
+        {
+            UseConnection((database, connection) =>
+            {
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "set-1",
+                    Value = "value-1"
+                }));
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "set-2",
+                    Value = "value-1"
+                }));
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "set-1",
+                    Value = "value-2"
+                }));
+
+                var result = connection.GetSetCount("set-1");
+
+                Assert.Equal(2, result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetRangeFromSet_ThrowsAnException_WhenKeyIsNull()
+        {
+            UseConnection((database, connection) =>
+            {
+                Assert.Throws<ArgumentNullException>(() => connection.GetRangeFromSet(null, 0, 1));
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetRangeFromSet_ReturnsPagedElements()
+        {
+            UseConnection((database, connection) =>
+            {
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "set-1",
+                    Value = "1",
+                    Score = 0.0
+                }));
+
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "set-1",
+                    Value = "2",
+                    Score = 0.0
+                }));
+
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "set-1",
+                    Value = "3",
+                    Score = 0.0
+                }));
+
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "set-1",
+                    Value = "4",
+                    Score = 0.0
+                }));
+
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "set-2",
+                    Value = "5",
+                    Score = 0.0
+                }));
+
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "set-1",
+                    Value = "6",
+                    Score = 0.0
+                }));
+
+                var result = connection.GetRangeFromSet("set-1", 2, 3);
+
+                Assert.Equal(new[] { "3", "4" }, result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetSetTtl_ThrowsAnException_WhenKeyIsNull()
+        {
+            UseConnection((database, connection) =>
+            {
+                Assert.Throws<ArgumentNullException>(() => connection.GetSetTtl(null));
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetSetTtl_ReturnsNegativeValue_WhenSetDoesNotExist()
+        {
+            UseConnection((database, connection) =>
+            {
+                var result = connection.GetSetTtl("my-set");
+                Assert.True(result < TimeSpan.Zero);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetSetTtl_ReturnsExpirationTime_OfAGivenSet()
+        {
+            UseConnection((database, connection) =>
+            {
+                // Arrange
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "set-1",
+                    Value = "1",
+                    Score = 0.0,
+                    ExpireAt = DateTime.UtcNow.AddMinutes(60)
+                }));
+
+                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "set-2",
+                    Value = "2",
+                    Score = 0.0,
+                    ExpireAt = null
+                }));
+
+                // Act
+                var result = connection.GetSetTtl("set-1");
+
+                // Assert
+                Assert.True(TimeSpan.FromMinutes(59) < result);
+                Assert.True(result < TimeSpan.FromMinutes(61));
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetCounter_ThrowsAnException_WhenKeyIsNull()
+        {
+            UseConnection((database, connection) =>
+            {
+                Assert.Throws<ArgumentNullException>(
+                    () => connection.GetCounter(null));
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetCounter_ReturnsZero_WhenKeyDoesNotExist()
+        {
+            UseConnection((database, connection) =>
+            {
+                var result = connection.GetCounter("my-counter");
+                Assert.Equal(0, result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetCounter_ReturnsSumOfValues_InCounterTable()
+        {
+            UseConnection((database, connection) =>
+            {
+                // Arrange
+                AsyncHelper.RunSync(() => database.Counter.InsertOneAsync(new CounterDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "counter-1",
+                    Value = 1
+                }));
+                AsyncHelper.RunSync(() => database.Counter.InsertOneAsync(new CounterDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "counter-2",
+                    Value = 1
+                }));
+                AsyncHelper.RunSync(() => database.Counter.InsertOneAsync(new CounterDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "counter-1",
+                    Value = 1
+                }));
+
+                // Act
+                var result = connection.GetCounter("counter-1");
+
+                // Assert
+                Assert.Equal(2, result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetCounter_IncludesValues_FromCounterAggregateTable()
+        {
+            UseConnection((database, connection) =>
+            {
+                // Arrange
+                AsyncHelper.RunSync(() => database.AggregatedCounter.InsertOneAsync(new AggregatedCounterDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "counter-1",
+                    Value = 12
+                }));
+                AsyncHelper.RunSync(() => database.AggregatedCounter.InsertOneAsync(new AggregatedCounterDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "counter-2",
+                    Value = 15
+                }));
+
+                // Act
+                var result = connection.GetCounter("counter-1");
+
+                Assert.Equal(12, result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetHashCount_ThrowsAnException_WhenKeyIsNull()
+        {
+            UseConnection((database, connection) =>
+            {
+                Assert.Throws<ArgumentNullException>(() => connection.GetHashCount(null));
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetHashCount_ReturnsZero_WhenKeyDoesNotExist()
+        {
+            UseConnection((database, connection) =>
+            {
+                var result = connection.GetHashCount("my-hash");
+                Assert.Equal(0, result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetHashCount_ReturnsNumber_OfHashFields()
+        {
+            UseConnection((database, connection) =>
+            {
+                // Arrange
+                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "hash-1",
+                    Field = "field-1"
+                }));
+                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "hash-1",
+                    Field = "field-2"
+                }));
+                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "hash-2",
+                    Field = "field-1"
+                }));
+
+                // Act
+                var result = connection.GetHashCount("hash-1");
+
+                // Assert
+                Assert.Equal(2, result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetHashTtl_ThrowsAnException_WhenKeyIsNull()
+        {
+            UseConnection((database, connection) =>
+            {
+                Assert.Throws<ArgumentNullException>(
+                    () => connection.GetHashTtl(null));
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetHashTtl_ReturnsNegativeValue_WhenHashDoesNotExist()
+        {
+            UseConnection((database, connection) =>
+            {
+                var result = connection.GetHashTtl("my-hash");
+                Assert.True(result < TimeSpan.Zero);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetHashTtl_ReturnsExpirationTimeForHash()
+        {
+            UseConnection((database, connection) =>
+            {
+                // Arrange
+                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "hash-1",
+                    Field = "field",
+                    ExpireAt = (DateTime?)DateTime.UtcNow.AddHours(1)
+                }));
+                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "hash-2",
+                    Field = "field",
+                    ExpireAt = null
+                }));
+
+                // Act
+                var result = connection.GetHashTtl("hash-1");
+
+                // Assert
+                Assert.True(TimeSpan.FromMinutes(59) < result);
+                Assert.True(result < TimeSpan.FromMinutes(61));
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetValueFromHash_ThrowsAnException_WhenKeyIsNull()
+        {
+            UseConnection((database, connection) =>
+            {
+                var exception = Assert.Throws<ArgumentNullException>(
+                    () => connection.GetValueFromHash(null, "name"));
+
+                Assert.Equal("key", exception.ParamName);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetValueFromHash_ThrowsAnException_WhenNameIsNull()
+        {
+            UseConnection((database, connection) =>
+            {
+                var exception = Assert.Throws<ArgumentNullException>(
+                    () => connection.GetValueFromHash("key", null));
+
+                Assert.Equal("name", exception.ParamName);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetValueFromHash_ReturnsNull_WhenHashDoesNotExist()
+        {
+            UseConnection((database, connection) =>
+            {
+                var result = connection.GetValueFromHash("my-hash", "name");
+                Assert.Null(result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetValueFromHash_ReturnsValue_OfAGivenField()
+        {
+            UseConnection((database, connection) =>
+            {
+                // Arrange
+                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "hash-1",
+                    Field = "field-1",
+                    Value = "1"
+                }));
+                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "hash-1",
+                    Field = "field-2",
+                    Value = "2"
+                }));
+                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "hash-2",
+                    Field = "field-1",
+                    Value = "3"
+                }));
+
+                // Act
+                var result = connection.GetValueFromHash("hash-1", "field-1");
+
+                // Assert
+                Assert.Equal("1", result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetListCount_ThrowsAnException_WhenKeyIsNull()
+        {
+            UseConnection((database, connection) =>
+            {
+                Assert.Throws<ArgumentNullException>(
+                    () => connection.GetListCount(null));
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetListCount_ReturnsZero_WhenListDoesNotExist()
+        {
+            UseConnection((database, connection) =>
+            {
+                var result = connection.GetListCount("my-list");
+                Assert.Equal(0, result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetListCount_ReturnsTheNumberOfListElements()
+        {
+            UseConnection((database, connection) =>
+            {
+                // Arrange
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-1",
+                }));
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-1",
+                }));
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-2",
+                }));
+
+                // Act
+                var result = connection.GetListCount("list-1");
+
+                // Assert
+                Assert.Equal(2, result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetListTtl_ThrowsAnException_WhenKeyIsNull()
+        {
+            UseConnection((database, connection) =>
+            {
+                Assert.Throws<ArgumentNullException>(
+                    () => connection.GetListTtl(null));
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetListTtl_ReturnsNegativeValue_WhenListDoesNotExist()
+        {
+            UseConnection((database, connection) =>
+            {
+                var result = connection.GetListTtl("my-list");
+                Assert.True(result < TimeSpan.Zero);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetListTtl_ReturnsExpirationTimeForList()
+        {
+            UseConnection((database, connection) =>
+            {
+                // Arrange
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-1",
+                    ExpireAt = (DateTime?)DateTime.UtcNow.AddHours(1)
+                }));
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-2",
+                    ExpireAt = null
+                }));
+
+                // Act
+                var result = connection.GetListTtl("list-1");
+
+                // Assert
+                Assert.True(TimeSpan.FromMinutes(59) < result);
+                Assert.True(result < TimeSpan.FromMinutes(61));
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetRangeFromList_ThrowsAnException_WhenKeyIsNull()
+        {
+            UseConnection((database, connection) =>
+            {
+                var exception = Assert.Throws<ArgumentNullException>(
+                    () => connection.GetRangeFromList(null, 0, 1));
+
+                Assert.Equal("key", exception.ParamName);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetRangeFromList_ReturnsAnEmptyList_WhenListDoesNotExist()
+        {
+            UseConnection((database, connection) =>
+            {
+                var result = connection.GetRangeFromList("my-list", 0, 1);
+                Assert.Empty(result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetRangeFromList_ReturnsAllEntries_WithinGivenBounds()
+        {
+            UseConnection((database, connection) =>
+            {
+                // Arrange
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-1",
+                    Value = "1"
+                }));
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-2",
+                    Value = "2"
+                }));
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-1",
+                    Value = "3"
+                }));
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-1",
+                    Value = "4"
+                }));
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-1",
+                    Value = "5"
+                }));
+
+                // Act
+                var result = connection.GetRangeFromList("list-1", 1, 2);
+
+                // Assert
+                Assert.Equal(new[] { "3", "4" }, result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetAllItemsFromList_ThrowsAnException_WhenKeyIsNull()
+        {
+            UseConnection((database, connection) =>
+            {
+                Assert.Throws<ArgumentNullException>(
+                    () => connection.GetAllItemsFromList(null));
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetAllItemsFromList_ReturnsAnEmptyList_WhenListDoesNotExist()
+        {
+            UseConnection((database, connection) =>
+            {
+                var result = connection.GetAllItemsFromList("my-list");
+                Assert.Empty(result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetAllItemsFromList_ReturnsAllItems_FromAGivenList()
+        {
+            UseConnection((database, connection) =>
+            {
+                // Arrange
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-1",
+                    Value = "1"
+                }));
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-2",
+                    Value = "2"
+                }));
+                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-1",
+                    Value = "3"
+                }));
+
+                // Act
+                var result = connection.GetAllItemsFromList("list-1");
+
+                // Assert
+                Assert.Equal(new[] { "1", "3" }, result);
             });
         }
 

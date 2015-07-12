@@ -4,13 +4,15 @@ using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.Tests.Utils;
-using MongoDB.Driver.Builders;
 using Xunit;
 using Hangfire.Mongo.DistributedLock;
+using Hangfire.Mongo.Helpers;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Tests
 {
 #pragma warning disable 1591
+    [Collection("Database")]
     public class MongoDistributedLockFacts
     {
         [Fact]
@@ -41,7 +43,7 @@ namespace Hangfire.Mongo.Tests
             {
                 using (MongoDistributedLock @lock = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
                 {
-                    var locksCount = database.DistributedLock.Count(Query<DistributedLockDto>.EQ(_ => _.Resource, "resource1"));
+                    var locksCount = AsyncHelper.RunSync(() => database.DistributedLock.CountAsync(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1")));
                     Assert.Equal(1, locksCount);
                 }
             });
@@ -55,11 +57,11 @@ namespace Hangfire.Mongo.Tests
                 long locksCount;
                 using (MongoDistributedLock @lock = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
                 {
-                    locksCount = database.DistributedLock.Count(Query<DistributedLockDto>.EQ(_ => _.Resource, "resource1"));
+                    locksCount = AsyncHelper.RunSync(() => database.DistributedLock.CountAsync(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1")));
                     Assert.Equal(1, locksCount);
                 }
 
-                locksCount = database.DistributedLock.Count(Query<DistributedLockDto>.EQ(_ => _.Resource, "resource1"));
+                locksCount = AsyncHelper.RunSync(() => database.DistributedLock.CountAsync(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1")));
                 Assert.Equal(0, locksCount);
             });
         }
@@ -71,7 +73,7 @@ namespace Hangfire.Mongo.Tests
             {
                 using (MongoDistributedLock @lock1 = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
                 {
-                    var locksCount = database.DistributedLock.Count(Query<DistributedLockDto>.EQ(_ => _.Resource, "resource1"));
+                    var locksCount = AsyncHelper.RunSync(() => database.DistributedLock.CountAsync(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1")));
                     Assert.Equal(1, locksCount);
 
                     Assert.Throws<MongoDistributedLockException>(() => new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()));
@@ -96,13 +98,12 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                using (MongoDistributedLock @lock = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions() { DistributedLockLifetime = TimeSpan.FromSeconds(10) }))
+                using (MongoDistributedLock @lock = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions() { DistributedLockLifetime = TimeSpan.FromSeconds(3) }))
                 {
                     DateTime initialHeartBeat = database.GetServerTimeUtc();
-                    Thread.Sleep(TimeSpan.FromSeconds(3));
-                    Thread.Sleep(TimeSpan.FromSeconds(60));
+                    Thread.Sleep(TimeSpan.FromSeconds(5));
 
-                    DistributedLockDto lockEntry = database.DistributedLock.FindOne(Query<DistributedLockDto>.EQ(_ => _.Resource, "resource1"));
+                    DistributedLockDto lockEntry = AsyncHelper.RunSync(() => database.DistributedLock.Find(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1")).FirstOrDefaultAsync());
                     Assert.NotNull(lockEntry);
                     Assert.True(lockEntry.Heartbeat > initialHeartBeat);
                 }

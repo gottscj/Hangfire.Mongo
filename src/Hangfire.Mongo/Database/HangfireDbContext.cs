@@ -2,6 +2,8 @@
 using MongoDB.Driver;
 using System;
 using System.Linq;
+using Hangfire.Mongo.Helpers;
+using MongoDB.Bson;
 
 namespace Hangfire.Mongo.Database
 {
@@ -10,11 +12,11 @@ namespace Hangfire.Mongo.Database
     /// </summary>
     public class HangfireDbContext : IDisposable
     {
-        private const int RequiredSchemaVersion = 3;
+        private const int RequiredSchemaVersion = 4;
 
         private readonly string _prefix;
 
-        internal MongoDatabase Database { get; private set; }
+        internal IMongoDatabase Database { get; private set; }
 
         /// <summary>
         /// Constructs context with connection string and database name
@@ -27,9 +29,8 @@ namespace Hangfire.Mongo.Database
             _prefix = prefix;
 
             MongoClient client = new MongoClient(connectionString);
-            MongoServer server = client.GetServer();
 
-            Database = server.GetDatabase(databaseName);
+            Database = client.GetDatabase(databaseName);
 
             ConnectionId = Guid.NewGuid().ToString();
         }
@@ -38,7 +39,7 @@ namespace Hangfire.Mongo.Database
         /// Constructs context with existing Mongo database connection
         /// </summary>
         /// <param name="database">Database connection</param>
-        public HangfireDbContext(MongoDatabase database)
+        public HangfireDbContext(IMongoDatabase database)
         {
             Database = database;
             ConnectionId = Guid.NewGuid().ToString();
@@ -50,9 +51,20 @@ namespace Hangfire.Mongo.Database
         public string ConnectionId { get; private set; }
 
         /// <summary>
+        /// Reference to collection which contains identifiers
+        /// </summary>
+        public virtual IMongoCollection<IdentifierDto> Identifiers
+        {
+            get
+            {
+                return Database.GetCollection<IdentifierDto>(_prefix + "_identifiers");
+            }
+        }
+
+        /// <summary>
         /// Reference to collection which contains distributed locks
         /// </summary>
-        public virtual MongoCollection<DistributedLockDto> DistributedLock
+        public virtual IMongoCollection<DistributedLockDto> DistributedLock
         {
             get
             {
@@ -63,7 +75,7 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to collection which contains counters
         /// </summary>
-        public virtual MongoCollection<CounterDto> Counter
+        public virtual IMongoCollection<CounterDto> Counter
         {
             get
             {
@@ -72,9 +84,20 @@ namespace Hangfire.Mongo.Database
         }
 
         /// <summary>
+        /// Reference to collection which contains aggregated counters
+        /// </summary>
+        public virtual IMongoCollection<AggregatedCounterDto> AggregatedCounter
+        {
+            get
+            {
+                return Database.GetCollection<AggregatedCounterDto>(_prefix + ".aggregatedcounter");
+            }
+        }
+
+        /// <summary>
         /// Reference to collection which contains hashes
         /// </summary>
-        public virtual MongoCollection<HashDto> Hash
+        public virtual IMongoCollection<HashDto> Hash
         {
             get
             {
@@ -85,7 +108,7 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to collection which contains jobs
         /// </summary>
-        public virtual MongoCollection<JobDto> Job
+        public virtual IMongoCollection<JobDto> Job
         {
             get
             {
@@ -96,7 +119,7 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to collection which contains jobs parameters
         /// </summary>
-        public virtual MongoCollection<JobParameterDto> JobParameter
+        public virtual IMongoCollection<JobParameterDto> JobParameter
         {
             get
             {
@@ -107,7 +130,7 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to collection which contains jobs queues
         /// </summary>
-        public virtual MongoCollection<JobQueueDto> JobQueue
+        public virtual IMongoCollection<JobQueueDto> JobQueue
         {
             get
             {
@@ -118,7 +141,7 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to collection which contains lists
         /// </summary>
-        public virtual MongoCollection<ListDto> List
+        public virtual IMongoCollection<ListDto> List
         {
             get
             {
@@ -129,7 +152,7 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to collection which contains schemas
         /// </summary>
-        public virtual MongoCollection<SchemaDto> Schema
+        public virtual IMongoCollection<SchemaDto> Schema
         {
             get
             {
@@ -140,7 +163,7 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to collection which contains servers information
         /// </summary>
-        public virtual MongoCollection<ServerDto> Server
+        public virtual IMongoCollection<ServerDto> Server
         {
             get
             {
@@ -151,7 +174,7 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to collection which contains sets
         /// </summary>
-        public virtual MongoCollection<SetDto> Set
+        public virtual IMongoCollection<SetDto> Set
         {
             get
             {
@@ -162,7 +185,7 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to collection which contains states
         /// </summary>
-        public virtual MongoCollection<StateDto> State
+        public virtual IMongoCollection<StateDto> State
         {
             get
             {
@@ -175,21 +198,21 @@ namespace Hangfire.Mongo.Database
         /// </summary>
         public void Init()
         {
-            SchemaDto schema = Schema.FindAll().FirstOrDefault();
+            SchemaDto schema = AsyncHelper.RunSync(() => Schema.Find(new BsonDocument()).FirstOrDefaultAsync());
 
             if (schema != null)
             {
                 if (RequiredSchemaVersion > schema.Version)
                 {
-                    Schema.RemoveAll();
-                    Schema.Insert(new SchemaDto { Version = RequiredSchemaVersion });
+                    AsyncHelper.RunSync(() => Schema.DeleteManyAsync(new BsonDocument()));
+                    AsyncHelper.RunSync(() => Schema.InsertOneAsync(new SchemaDto { Version = RequiredSchemaVersion }));
                 }
                 else if (RequiredSchemaVersion < schema.Version)
                     throw new InvalidOperationException(String.Format("HangFire current database schema version {0} is newer than the configured MongoStorage schema version {1}. Please update to the latest HangFire.SqlServer NuGet package.",
                         schema.Version, RequiredSchemaVersion));
             }
             else
-                Schema.Insert(new SchemaDto { Version = RequiredSchemaVersion });
+                AsyncHelper.RunSync(() => Schema.InsertOneAsync(new SchemaDto { Version = RequiredSchemaVersion }));
         }
 
         /// <summary>

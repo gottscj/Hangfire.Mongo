@@ -1,17 +1,15 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
-using System;
 
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
-    public class ServerDto
+    public class IdentifierDto
     {
         [BsonId]
         public string Id { get; set; }
-
-        public string Data { get; set; }
-
-        public DateTime? LastHeartbeat { get; set; }
+        
+        [BsonElement("seq")]
+        public long Seq { get; set; }
     }
 #pragma warning restore 1591
 }

@@ -11,36 +11,27 @@ using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using MongoDB.Driver.Builders;
+using System.Threading.Tasks;
+using Hangfire.Mongo.Helpers;
 
 namespace Hangfire.Mongo
 {
+#pragma warning disable 1591
     /// <summary>
     /// MongoDB database connection for Hangfire
     /// </summary>
-    public class MongoConnection : IStorageConnection
+    public class MongoConnection : JobStorageConnection
     {
         private readonly HangfireDbContext _database;
         private readonly MongoStorageOptions _options;
 
         private readonly PersistentJobQueueProviderCollection _queueProviders;
 
-        /// <summary>
-        /// Constructs MongoDB connection
-        /// </summary>
-        /// <param name="database">Hangfire database context</param>
-        /// <param name="queueProviders">Set of job queue providers</param>
         public MongoConnection(HangfireDbContext database, PersistentJobQueueProviderCollection queueProviders)
             : this(database, new MongoStorageOptions(), queueProviders)
         {
         }
 
-        /// <summary>
-        /// Constructs MongoDB connection
-        /// </summary>
-        /// <param name="database">Hangfire database context</param>
-        /// <param name="options">Storage options</param>
-        /// <param name="queueProviders">Set of job queue providers</param>
         public MongoConnection(HangfireDbContext database, MongoStorageOptions options, PersistentJobQueueProviderCollection queueProviders)
         {
             if (database == null)
@@ -57,35 +48,22 @@ namespace Hangfire.Mongo
             _queueProviders = queueProviders;
         }
 
-        /// <summary>
-        /// Create transaction
-        /// </summary>
-        /// <returns>Hangfire write only transaction</returns>
-        public IWriteOnlyTransaction CreateWriteTransaction()
+        public HangfireDbContext Database
+        {
+            get { return _database;  }
+        }
+
+        public override IWriteOnlyTransaction CreateWriteTransaction()
         {
             return new MongoWriteOnlyTransaction(_database, _queueProviders);
         }
 
-        /// <summary>
-        /// Acquire distributed lock
-        /// </summary>
-        /// <param name="resource">Lock resource</param>
-        /// <param name="timeout">Lock timeout</param>
-        /// <returns></returns>
-        public IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
+        public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
         {
             return new MongoDistributedLock(String.Format("HangFire:{0}", resource), timeout, _database, _options);
         }
 
-        /// <summary>
-        /// Creates expired job
-        /// </summary>
-        /// <param name="job">Job</param>
-        /// <param name="parameters">Job parameters</param>
-        /// <param name="createdAt">Job created date</param>
-        /// <param name="expireIn">Job expiration date</param>
-        /// <returns></returns>
-        public string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt, TimeSpan expireIn)
+        public override string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt, TimeSpan expireIn)
         {
             if (job == null)
                 throw new ArgumentNullException("job");
@@ -103,33 +81,28 @@ namespace Hangfire.Mongo
                 ExpireAt = createdAt.Add(expireIn)
             };
 
-            _database.Job.Insert(jobDto);
+            AsyncHelper.RunSync(() => _database.Job.InsertOneAsync(jobDto));
 
             var jobId = jobDto.Id;
 
             if (parameters.Count > 0)
             {
-                foreach (var parameter in parameters)
-                {
-                    _database.JobParameter.Insert(new JobParameterDto
-                    {
-                        JobId = jobId,
-                        Name = parameter.Key,
-                        Value = parameter.Value
-                    });
-                }
+                Task.WaitAll(parameters
+                    .Select(parameter => _database
+                        .JobParameter
+                        .InsertOneAsync(new JobParameterDto
+                        {
+                            JobId = jobId,
+                            Name = parameter.Key,
+                            Value = parameter.Value
+                        }))
+                    .ToArray());
             }
 
             return jobId.ToString();
         }
 
-        /// <summary>
-        /// Fetches nxt job from a queue
-        /// </summary>
-        /// <param name="queues">Queues names</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Job fetched from a queue</returns>
-        public IFetchedJob FetchNextJob(string[] queues, CancellationToken cancellationToken)
+        public override IFetchedJob FetchNextJob(string[] queues, CancellationToken cancellationToken)
         {
             if (queues == null || queues.Length == 0)
                 throw new ArgumentNullException("queues");
@@ -149,13 +122,7 @@ namespace Hangfire.Mongo
             return persistentQueue.Dequeue(queues, cancellationToken);
         }
 
-        /// <summary>
-        /// Sets paramater for job
-        /// </summary>
-        /// <param name="id">Job ID</param>
-        /// <param name="name">Parameter name</param>
-        /// <param name="value">Parameter value</param>
-        public void SetJobParameter(string id, string name, string value)
+        public override void SetJobParameter(string id, string name, string value)
         {
             if (id == null)
                 throw new ArgumentNullException("id");
@@ -163,18 +130,17 @@ namespace Hangfire.Mongo
             if (name == null)
                 throw new ArgumentNullException("name");
 
-            _database.JobParameter.Update(Query.And(Query<JobParameterDto>.EQ(_ => _.JobId, int.Parse(id)), Query<JobParameterDto>.EQ(_ => _.Name, name)),
-                Update<JobParameterDto>.Set(_ => _.Value, value),
-                UpdateFlags.Upsert);
+            AsyncHelper.RunSync(() => _database.JobParameter
+                .UpdateManyAsync(
+                    Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(id)) & Builders<JobParameterDto>.Filter.Eq(_ => _.Name, name),
+                    Builders<JobParameterDto>.Update.Set(_ => _.Value, value),
+                    new UpdateOptions
+                    {
+                        IsUpsert = true
+                    }));
         }
 
-        /// <summary>
-        /// Gets job's parameter
-        /// </summary>
-        /// <param name="id">Job ID</param>
-        /// <param name="name">Parameter name</param>
-        /// <returns>Parameter value</returns>
-        public string GetJobParameter(string id, string name)
+        public override string GetJobParameter(string id, string name)
         {
             if (id == null)
                 throw new ArgumentNullException("id");
@@ -182,29 +148,27 @@ namespace Hangfire.Mongo
             if (name == null)
                 throw new ArgumentNullException("name");
 
-            var jobParameter = _database.JobParameter.FindOne(Query.And(Query<JobParameterDto>.EQ(_ => _.JobId, int.Parse(id)),
-                Query<JobParameterDto>.EQ(_ => _.Name, name)));
+            JobParameterDto jobParameter = AsyncHelper.RunSync(() => _database.JobParameter
+                .Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(id)) &
+                      Builders<JobParameterDto>.Filter.Eq(_ => _.Name, name)).FirstOrDefaultAsync());
 
             return jobParameter != null ? jobParameter.Value : null;
         }
 
-        /// <summary>
-        /// Returns job's data
-        /// </summary>
-        /// <param name="jobId">Job ID</param>
-        /// <returns>Job's data</returns>
-        public JobData GetJobData(string jobId)
+        public override JobData GetJobData(string jobId)
         {
             if (jobId == null)
                 throw new ArgumentNullException("jobId");
 
-            var jobData = _database.Job.FindOneById(int.Parse(jobId));
+            JobDto jobData = AsyncHelper.RunSync(() => _database.Job
+                    .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)))
+                    .FirstOrDefaultAsync());
 
             if (jobData == null)
                 return null;
 
             // TODO: conversion exception could be thrown.
-            var invocationData = JobHelper.FromJson<InvocationData>(jobData.InvocationData);
+            InvocationData invocationData = JobHelper.FromJson<InvocationData>(jobData.InvocationData);
             invocationData.Arguments = jobData.Arguments;
 
             Job job = null;
@@ -228,21 +192,16 @@ namespace Hangfire.Mongo
             };
         }
 
-        /// <summary>
-        /// Returns state data
-        /// </summary>
-        /// <param name="jobId">Job ID</param>
-        /// <returns>State of specified job</returns>
-        public StateData GetStateData(string jobId)
+        public override StateData GetStateData(string jobId)
         {
             if (jobId == null)
                 throw new ArgumentNullException("jobId");
 
-            JobDto job = _database.Job.FindOneById(int.Parse(jobId));
+            JobDto job = AsyncHelper.RunSync(() => _database.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId))).FirstOrDefaultAsync());
             if (job == null)
                 return null;
 
-            StateDto state = _database.State.FindOne(Query<StateDto>.EQ(_ => _.Id, job.StateId));
+            StateDto state = AsyncHelper.RunSync(() => _database.State.Find(Builders<StateDto>.Filter.Eq(_ => _.Id, job.StateId)).FirstOrDefaultAsync());
             if (state == null)
                 return null;
 
@@ -254,12 +213,7 @@ namespace Hangfire.Mongo
             };
         }
 
-        /// <summary>
-        /// Introduces server at Hangfire
-        /// </summary>
-        /// <param name="serverId">Server identifier</param>
-        /// <param name="context">Server context</param>
-        public void AnnounceServer(string serverId, ServerContext context)
+        public override void AnnounceServer(string serverId, ServerContext context)
         {
             if (serverId == null)
                 throw new ArgumentNullException("serverId");
@@ -274,71 +228,48 @@ namespace Hangfire.Mongo
                 StartedAt = _database.GetServerTimeUtc(),
             };
 
-            _database.Server.Update(Query<ServerDto>.EQ(_ => _.Id, serverId),
-                Update.Combine(Update<ServerDto>.Set(_ => _.Data, JobHelper.ToJson(data)), Update<ServerDto>.Set(_ => _.LastHeartbeat, _database.GetServerTimeUtc())),
-                UpdateFlags.Upsert);
+            _database.Server.UpdateManyAsync(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId),
+                Builders<ServerDto>.Update.Combine(Builders<ServerDto>.Update.Set(_ => _.Data, JobHelper.ToJson(data)), Builders<ServerDto>.Update.Set(_ => _.LastHeartbeat, _database.GetServerTimeUtc())),
+                new UpdateOptions { IsUpsert = true });
         }
 
-        /// <summary>
-        /// Removes server from Hangfire
-        /// </summary>
-        /// <param name="serverId">Server identifier</param>
-        public void RemoveServer(string serverId)
+        public override void RemoveServer(string serverId)
         {
             if (serverId == null)
                 throw new ArgumentNullException("serverId");
 
-            _database.Server.Remove(Query<ServerDto>.EQ(_ => _.Id, serverId));
+            AsyncHelper.RunSync(() => _database.Server.DeleteManyAsync(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId)));
         }
 
-        /// <summary>
-        /// Server heartbeat
-        /// </summary>
-        /// <param name="serverId">Server identifier</param>
-        public void Heartbeat(string serverId)
+        public override void Heartbeat(string serverId)
         {
             if (serverId == null)
                 throw new ArgumentNullException("serverId");
 
-            _database.Server.Update(Query<ServerDto>.EQ(_ => _.Id, serverId),
-                Update<ServerDto>.Set(_ => _.LastHeartbeat, _database.GetServerTimeUtc()));
+            AsyncHelper.RunSync(() => _database.Server.UpdateManyAsync(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId),
+                Builders<ServerDto>.Update.Set(_ => _.LastHeartbeat, _database.GetServerTimeUtc())));
         }
 
-        /// <summary>
-        /// Removes servers which are not responding
-        /// </summary>
-        /// <param name="timeOut">Wating timeout</param>
-        /// <returns>Amount of removed servers</returns>
-        public int RemoveTimedOutServers(TimeSpan timeOut)
+        public override int RemoveTimedOutServers(TimeSpan timeOut)
         {
             if (timeOut.Duration() != timeOut)
                 throw new ArgumentException("The `timeOut` value must be positive.", "timeOut");
 
-            return (int)_database.Server.Remove(Query<ServerDto>.LT(_ => _.LastHeartbeat, _database.GetServerTimeUtc().Add(timeOut.Negate()))).DocumentsAffected;
+            return (int)AsyncHelper.RunSync(() => _database.Server.DeleteManyAsync(Builders<ServerDto>.Filter.Lt(_ => _.LastHeartbeat, _database.GetServerTimeUtc().Add(timeOut.Negate()))))
+                    .DeletedCount;
         }
 
-        /// <summary>
-        /// Returns items from set by key
-        /// </summary>
-        /// <param name="key">Key</param>
-        /// <returns>Set</returns>
-        public HashSet<string> GetAllItemsFromSet(string key)
+        public override HashSet<string> GetAllItemsFromSet(string key)
         {
             if (key == null) throw new ArgumentNullException("key");
 
-            var result = _database.Set.Find(Query<SetDto>.EQ(_ => _.Key, key)).Select(x => x.Value);
+            IEnumerable<string> result = AsyncHelper.RunSync(() => _database.Set.Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key)).ToListAsync())
+                .Select(x => x.Value);
 
             return new HashSet<string>(result);
         }
 
-        /// <summary>
-        /// Returns item from set by key and score
-        /// </summary>
-        /// <param name="key">Key</param>
-        /// <param name="fromScore">Score starts from</param>
-        /// <param name="toScore">Score ends with</param>
-        /// <returns>Item</returns>
-        public string GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore)
+        public override string GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore)
         {
             if (key == null)
                 throw new ArgumentNullException("key");
@@ -346,22 +277,17 @@ namespace Hangfire.Mongo
             if (toScore < fromScore)
                 throw new ArgumentException("The `toScore` value must be higher or equal to the `fromScore` value.");
 
-            var set = _database.Set
-                .Find(Query.And(Query<SetDto>.EQ(_ => _.Key, key),
-                    Query.And(Query<SetDto>.GTE(_ => _.Score, fromScore), Query<SetDto>.LTE(_ => _.Score, toScore))))
-                .SetSortOrder(SortBy<SetDto>.Ascending(_ => _.Score))
-                .SetLimit(1)
-                .FirstOrDefault();
+            SetDto set = AsyncHelper.RunSync(() => _database.Set
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key) &
+                      Builders<SetDto>.Filter.Gte(_ => _.Score, fromScore) &
+                      Builders<SetDto>.Filter.Lte(_ => _.Score, toScore))
+                .Sort(Builders<SetDto>.Sort.Ascending(_ => _.Score))
+                .FirstOrDefaultAsync());
 
             return set != null ? set.Value : null;
         }
 
-        /// <summary>
-        /// Sets range in hash
-        /// </summary>
-        /// <param name="key">Key</param>
-        /// <param name="keyValuePairs">Values</param>
-        public void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
+        public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
             if (key == null)
                 throw new ArgumentNullException("key");
@@ -369,36 +295,160 @@ namespace Hangfire.Mongo
             if (keyValuePairs == null)
                 throw new ArgumentNullException("keyValuePairs");
 
+            List<Task> tasks = new List<Task>();
+
             foreach (var keyValuePair in keyValuePairs)
             {
-                _database.Hash.Update(Query.And(Query<HashDto>.EQ(_ => _.Key, key), Query<HashDto>.EQ(_ => _.Field, keyValuePair.Key)),
-                    Update<HashDto>.Set(_ => _.Value, keyValuePair.Value),
-                    UpdateFlags.Upsert);
+                tasks.Add(_database.Hash.UpdateManyAsync(Builders<HashDto>.Filter.Eq(_ => _.Key, key) & Builders<HashDto>.Filter.Eq(_ => _.Field, keyValuePair.Key),
+                    Builders<HashDto>.Update.Set(_ => _.Value, keyValuePair.Value),
+                    new UpdateOptions { IsUpsert = true }));
             }
+
+            Task.WaitAll(tasks.ToArray());
         }
 
-        /// <summary>
-        /// Returns entries from hash by key
-        /// </summary>
-        /// <param name="key">Key</param>
-        /// <returns>Selected entries</returns>
-        public Dictionary<string, string> GetAllEntriesFromHash(string key)
+        public override Dictionary<string, string> GetAllEntriesFromHash(string key)
         {
             if (key == null)
                 throw new ArgumentNullException("key");
 
-            var result = _database.Hash.Find(Query<HashDto>.EQ(_ => _.Key, key))
+            Dictionary<string, string> result = AsyncHelper.RunSync(() => _database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).ToListAsync())
                 .ToDictionary(x => x.Field, x => x.Value);
 
             return result.Count != 0 ? result : null;
         }
 
-        /// <summary>
-        /// Disposes the object
-        /// </summary>
-        public void Dispose()
+        public override long GetSetCount(string key)
         {
-            _database.Dispose();
+            if (key == null)
+                throw new ArgumentNullException("key");
+
+            return AsyncHelper.RunSync(() => _database.Set.Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key)).CountAsync());
+        }
+
+        public override List<string> GetRangeFromSet(string key, int startingFrom, int endingAt)
+        {
+            if (key == null)
+                throw new ArgumentNullException("key");
+
+            return AsyncHelper.RunSync(() => _database.Set
+                    .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
+                    .ToListAsync())
+                .Select((data, i) => new { Index = i + 1, Data = data })
+                .Where(_ => (_.Index >= startingFrom + 1) && (_.Index <= endingAt + 1))
+                .Select(x => x.Data.Value)
+                .ToList();
+        }
+
+        public override TimeSpan GetSetTtl(string key)
+        {
+            if (key == null)
+                throw new ArgumentNullException("key");
+
+            DateTime[] values = AsyncHelper.RunSync(() => _database.Set.Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key)).ToListAsync())
+                    .Where(_ => _.ExpireAt.HasValue)
+                    .Select(_ => _.ExpireAt.Value)
+                    .ToArray();
+
+            if (values.Any() == false)
+                return TimeSpan.FromSeconds(-1);
+
+            return values.Min() - DateTime.UtcNow;
+        }
+
+        public override long GetCounter(string key)
+        {
+            if (key == null)
+                throw new ArgumentNullException("key");
+
+            long[] values = AsyncHelper.RunSync(() => _database.Counter.Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, key)).ToListAsync()).Select(_ => (long)_.Value)
+                .Concat(AsyncHelper.RunSync(() => _database.AggregatedCounter.Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, key)).ToListAsync()).Select(_ => _.Value))
+                .ToArray();
+
+            return values.Any() ? values.Sum() : 0;
+        }
+
+        public override long GetHashCount(string key)
+        {
+            if (key == null)
+                throw new ArgumentNullException("key");
+
+            return AsyncHelper.RunSync(() =>
+                _database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).CountAsync());
+        }
+
+        public override TimeSpan GetHashTtl(string key)
+        {
+            if (key == null) throw new ArgumentNullException("key");
+
+            List<HashDto> hashes = AsyncHelper.RunSync(() => _database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).ToListAsync());
+            DateTime? result = hashes.Any() ? hashes.Min(x => x.ExpireAt) : null;
+
+            if (!result.HasValue)
+                return TimeSpan.FromSeconds(-1);
+
+            return result.Value - DateTime.UtcNow;
+        }
+
+        public override string GetValueFromHash(string key, string name)
+        {
+            if (key == null)
+                throw new ArgumentNullException("key");
+
+            if (name == null)
+                throw new ArgumentNullException("name");
+
+            HashDto result = AsyncHelper.RunSync(() => _database.Hash
+                .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key) & Builders<HashDto>.Filter.Eq(_ => _.Field, name))
+                .FirstOrDefaultAsync());
+
+            return result != null ? result.Value : null;
+        }
+
+        public override long GetListCount(string key)
+        {
+            if (key == null)
+                throw new ArgumentNullException("key");
+
+            return AsyncHelper.RunSync(() =>
+                _database.List.Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key)).CountAsync());
+        }
+
+        public override TimeSpan GetListTtl(string key)
+        {
+            if (key == null)
+                throw new ArgumentNullException("key");
+
+            List<ListDto> items = AsyncHelper.RunSync(() => _database.List.Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key)).ToListAsync());
+            DateTime? result = items.Any() ? items.Min(_ => _.ExpireAt) : null;
+
+            if (!result.HasValue)
+                return TimeSpan.FromSeconds(-1);
+
+            return result.Value - DateTime.UtcNow;
+        }
+
+        public override List<string> GetRangeFromList(string key, int startingFrom, int endingAt)
+        {
+            if (key == null)
+                throw new ArgumentNullException("key");
+
+            return AsyncHelper.RunSync(() => _database.List.Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key)).ToListAsync())
+                .Select((data, i) => new { Index = i + 1, Data = data })
+                .Where(_ => (_.Index >= startingFrom + 1) && (_.Index <= endingAt + 1))
+                .Select(x => x.Data.Value)
+                .ToList();
+        }
+
+        public override List<string> GetAllItemsFromList(string key)
+        {
+            if (key == null)
+                throw new ArgumentNullException("key");
+
+            return AsyncHelper.RunSync(() => _database.List.Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key)).ToListAsync())
+                .Select(_ => _.Value)
+                .ToList();
         }
     }
+#pragma warning restore 1591
 }

@@ -16,7 +16,7 @@ namespace Hangfire.Mongo.Dto
 
         public string Value { get; set; }
 
-        public DateTime ExpireAt { get; set; }
+        public DateTime? ExpireAt { get; set; }
     }
 #pragma warning restore 1591
 }

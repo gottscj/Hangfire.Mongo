@@ -3,14 +3,18 @@ using System.Data;
 using System.Linq;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
+using Hangfire.Mongo.Helpers;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.Tests.Utils;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using Moq;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
 #pragma warning disable 1591
+    [Collection("Database")]
     public class MongoFetchedJobFacts
     {
         private const string JobId = "id";
@@ -78,7 +82,7 @@ namespace Hangfire.Mongo.Tests
                 processingJob.RemoveFromQueue();
 
                 // Assert
-                var count = connection.JobQueue.Count();
+                var count = AsyncHelper.RunSync(() => connection.JobQueue.CountAsync(new BsonDocument()));
                 Assert.Equal(0, count);
             });
         }
@@ -99,7 +103,7 @@ namespace Hangfire.Mongo.Tests
                 fetchedJob.RemoveFromQueue();
 
                 // Assert
-                var count = connection.JobQueue.Count();
+                var count = AsyncHelper.RunSync(() => connection.JobQueue.CountAsync(new BsonDocument()));
                 Assert.Equal(3, count);
             });
         }
@@ -117,7 +121,7 @@ namespace Hangfire.Mongo.Tests
                 processingJob.Requeue();
 
                 // Assert
-                var record = connection.JobQueue.FindAll().Single();
+                var record = AsyncHelper.RunSync(() => connection.JobQueue.Find(new BsonDocument()).ToListAsync()).Single();
                 Assert.Null(record.FetchedAt);
             });
         }
@@ -125,17 +129,17 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Dispose_SetsFetchedAtValueToNull_IfThereWereNoCallsToComplete()
         {
-            UseConnection(sql =>
+            UseConnection(connection =>
             {
                 // Arrange
-                var id = CreateJobQueueRecord(sql, "1", "default");
-                var processingJob = new MongoFetchedJob(sql, id, "1", "default");
+                var id = CreateJobQueueRecord(connection, "1", "default");
+                var processingJob = new MongoFetchedJob(connection, id, "1", "default");
 
                 // Act
                 processingJob.Dispose();
 
                 // Assert
-                var record = sql.JobQueue.FindAll().Single();
+                var record = AsyncHelper.RunSync(() => connection.JobQueue.Find(new BsonDocument()).ToListAsync()).Single();
                 Assert.Null(record.FetchedAt);
             });
         }
@@ -149,7 +153,7 @@ namespace Hangfire.Mongo.Tests
                 FetchedAt = connection.GetServerTimeUtc()
             };
 
-            connection.JobQueue.Insert(jobQueue);
+            AsyncHelper.RunSync(() => connection.JobQueue.InsertOneAsync(jobQueue));
 
             return jobQueue.Id;
         }

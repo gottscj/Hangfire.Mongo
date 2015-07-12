@@ -93,5 +93,16 @@ namespace Hangfire.Mongo
         {
             get { return _clientId; }
         }
+
+        /// <summary>
+        /// Expiration check inteval for jobs
+        /// </summary>
+        public TimeSpan JobExpirationCheckInterval { get; set; }
+
+        /// <summary>
+        /// Counters interval
+        /// </summary>
+        public TimeSpan CountersAggregateInterval { get; set; }
+
     }
 }

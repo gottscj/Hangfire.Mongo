@@ -2,10 +2,10 @@ using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.MongoUtils;
-using MongoDB.Driver;
-using MongoDB.Driver.Builders;
+using Hangfire.Mongo.Helpers;
 using System;
 using System.Threading;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo.DistributedLock
 {
@@ -51,8 +51,9 @@ namespace Hangfire.Mongo.DistributedLock
             try
             {
                 // Remove dead locks
-                database.DistributedLock.Remove(Query.And(Query<DistributedLockDto>.EQ(_ => _.Resource, resource),
-                    Query<DistributedLockDto>.LT(_ => _.Heartbeat, database.GetServerTimeUtc().Subtract(options.DistributedLockLifetime))));
+                database.DistributedLock.DeleteManyAsync(
+                    Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, resource) &
+                    Builders<DistributedLockDto>.Filter.Lt(_ => _.Heartbeat, database.GetServerTimeUtc().Subtract(options.DistributedLockLifetime)));
 
                 // Check lock
                 DateTime lockTimeoutTime = DateTime.Now.Add(timeout);
@@ -60,10 +61,11 @@ namespace Hangfire.Mongo.DistributedLock
                 bool isFirstAttempt = true;
                 do
                 {
-                    isLockedBySomeoneElse = database
-                        .DistributedLock
-                        .FindOne(Query.And(Query<DistributedLockDto>.EQ(_ => _.Resource, resource),
-                            Query<DistributedLockDto>.NE(_ => _.ClientId, _options.ClientId))) != null;
+                    isLockedBySomeoneElse = AsyncHelper.RunSync(() =>
+                        database.DistributedLock
+                            .Find(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, resource) &
+                                  Builders<DistributedLockDto>.Filter.Ne(_ => _.ClientId, _options.ClientId))
+                            .FirstOrDefaultAsync()) != null;
 
                     if (isFirstAttempt == true)
                         isFirstAttempt = false;
@@ -75,16 +77,14 @@ namespace Hangfire.Mongo.DistributedLock
                 // Set lock
                 if (isLockedBySomeoneElse == false)
                 {
-                    database.DistributedLock.FindAndModify(new FindAndModifyArgs
-                    {
-                        Query = Query<DistributedLockDto>.EQ(_ => _.Resource, resource),
-                        Update = Update.Combine(
-                            Update<DistributedLockDto>.Set(_ => _.ClientId, _options.ClientId),
-                            Update<DistributedLockDto>.Inc(_ => _.LockCount, 1),
-                            Update<DistributedLockDto>.Set(_ => _.Heartbeat, database.GetServerTimeUtc())
-                            ),
-                        Upsert = true
-                    });
+                    AsyncHelper.RunSync(() => database.DistributedLock.FindOneAndUpdateAsync(
+                        Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, resource),
+                        Builders<DistributedLockDto>.Update.Combine(
+                            Builders<DistributedLockDto>.Update.Set(_ => _.ClientId, _options.ClientId),
+                            Builders<DistributedLockDto>.Update.Inc(_ => _.LockCount, 1),
+                            Builders<DistributedLockDto>.Update.Set(_ => _.Heartbeat, database.GetServerTimeUtc())
+                        ),
+                        new FindOneAndUpdateOptions<DistributedLockDto> { IsUpsert = true }));
 
                     StartHeartBeat();
                 }
@@ -113,8 +113,9 @@ namespace Hangfire.Mongo.DistributedLock
             {
                 try
                 {
-                    _database.DistributedLock.Update(Query.And(Query<DistributedLockDto>.EQ(_ => _.Resource, _resource), Query<DistributedLockDto>.EQ(_ => _.ClientId, _options.ClientId)),
-                                Update<DistributedLockDto>.Set(_ => _.Heartbeat, _database.GetServerTimeUtc()));
+                    AsyncHelper.RunSync(() => _database.DistributedLock.FindOneAndUpdateAsync(
+                        Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource) & Builders<DistributedLockDto>.Filter.Eq(_ => _.ClientId, _options.ClientId),
+                        Builders<DistributedLockDto>.Update.Set(_ => _.Heartbeat, _database.GetServerTimeUtc())));
                 }
                 catch (Exception ex)
                 {
@@ -134,22 +135,24 @@ namespace Hangfire.Mongo.DistributedLock
             try
             {
                 // Remove dead locks
-                _database.DistributedLock.Remove(Query.And(Query<DistributedLockDto>.EQ(_ => _.Resource, _resource),
-                    Query<DistributedLockDto>.LT(_ => _.Heartbeat, _database.GetServerTimeUtc().Subtract(_options.DistributedLockLifetime))));
+                AsyncHelper.RunSync(() => _database.DistributedLock.DeleteManyAsync(
+                    Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource) &
+                    Builders<DistributedLockDto>.Filter.Lt(_ => _.Heartbeat, _database.GetServerTimeUtc().Subtract(_options.DistributedLockLifetime))
+                    ));
 
                 // Remove resource lock
-                _database.DistributedLock.FindAndModify(new FindAndModifyArgs
-                {
-                    Query = Query.And(Query<DistributedLockDto>.EQ(_ => _.Resource, _resource),
-                        Query<DistributedLockDto>.EQ(_ => _.ClientId, _options.ClientId)),
-                    Update = Update.Combine(
-                        Update<DistributedLockDto>.Inc(_ => _.LockCount, -1),
-                        Update<DistributedLockDto>.Set(_ => _.Heartbeat, _database.GetServerTimeUtc())
-                        ),
-                    Upsert = false
-                });
+                AsyncHelper.RunSync(() => _database.DistributedLock.FindOneAndUpdateAsync(
+                    Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource) & Builders<DistributedLockDto>.Filter.Eq(_ => _.ClientId, _options.ClientId),
+                    Builders<DistributedLockDto>.Update.Combine(
+                        Builders<DistributedLockDto>.Update.Inc(_ => _.LockCount, -1),
+                        Builders<DistributedLockDto>.Update.Set(_ => _.Heartbeat, _database.GetServerTimeUtc())
+                    ),
+                    new FindOneAndUpdateOptions<DistributedLockDto> { IsUpsert = true }
+                    ));
 
-                _database.DistributedLock.Remove(Query<DistributedLockDto>.LTE(_ => _.LockCount, 0));
+                AsyncHelper.RunSync(() => _database.DistributedLock.FindOneAndDeleteAsync(
+                    Builders<DistributedLockDto>.Filter.Lte(_ => _.LockCount, 0)
+                    ));
 
                 if (_heartbeatTimer != null)
                 {

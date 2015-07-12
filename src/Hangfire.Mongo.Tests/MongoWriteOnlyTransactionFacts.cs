@@ -3,18 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
+using Hangfire.Mongo.Helpers;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.States;
 using MongoDB.Bson;
-using MongoDB.Driver.Builders;
+using MongoDB.Driver;
 using Moq;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
 #pragma warning disable 1591
+    [Collection("Database")]
     public class MongoWriteOnlyTransactionFacts
     {
         private readonly PersistentJobQueueProviderCollection _queueProviders;
@@ -56,7 +58,7 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(job);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(job));
 
                 JobDto anotherJob = new JobDto
                 {
@@ -65,7 +67,7 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(anotherJob);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(anotherJob));
 
                 var jobId = job.Id;
                 var anotherJobId = anotherJob.Id;
@@ -93,7 +95,7 @@ namespace Hangfire.Mongo.Tests
                     CreatedAt = database.GetServerTimeUtc(),
                     ExpireAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(job);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(job));
 
                 JobDto anotherJob = new JobDto
                 {
@@ -103,7 +105,7 @@ namespace Hangfire.Mongo.Tests
                     CreatedAt = database.GetServerTimeUtc(),
                     ExpireAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(anotherJob);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(anotherJob));
 
                 var jobId = job.Id;
                 var anotherJobId = anotherJob.Id;
@@ -130,7 +132,7 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(job);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(job));
 
                 JobDto anotherJob = new JobDto
                 {
@@ -139,7 +141,7 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(anotherJob);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(anotherJob));
 
                 var jobId = job.Id;
                 var anotherJobId = anotherJob.Id;
@@ -160,7 +162,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Null(anotherTestJob.StateName);
                 Assert.Equal(ObjectId.Empty, anotherTestJob.StateId);
 
-                StateDto jobState = database.State.FindAll().Single();
+                StateDto jobState = AsyncHelper.RunSync(() => database.State.Find(new BsonDocument()).ToListAsync()).Single();
                 Assert.Equal(jobId, jobState.JobId);
                 Assert.Equal("State", jobState.Name);
                 Assert.Equal("Reason", jobState.Reason);
@@ -181,7 +183,7 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                database.Job.Insert(job);
+                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(job));
 
                 var jobId = job.Id;
 
@@ -197,7 +199,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Null(testJob.StateName);
                 Assert.Equal(ObjectId.Empty, testJob.StateId);
 
-                StateDto jobState = database.State.FindAll().Single();
+                StateDto jobState = AsyncHelper.RunSync(() => database.State.Find(new BsonDocument()).ToListAsync()).Single();
                 Assert.Equal(jobId, jobState.JobId);
                 Assert.Equal("State", jobState.Name);
                 Assert.Equal("Reason", jobState.Reason);
@@ -231,7 +233,7 @@ namespace Hangfire.Mongo.Tests
             {
                 Commit(database, x => x.IncrementCounter("my-key"));
 
-                CounterDto record = database.Counter.FindAll().Single();
+                CounterDto record = AsyncHelper.RunSync(() => database.Counter.Find(new BsonDocument()).ToListAsync()).Single();
 
                 Assert.Equal("my-key", record.Key);
                 Assert.Equal(1, record.Value);
@@ -246,7 +248,7 @@ namespace Hangfire.Mongo.Tests
             {
                 Commit(database, x => x.IncrementCounter("my-key", TimeSpan.FromDays(1)));
 
-                CounterDto record = database.Counter.FindAll().Single();
+                CounterDto record = AsyncHelper.RunSync(() => database.Counter.Find(new BsonDocument()).ToListAsync()).Single();
 
                 Assert.Equal("my-key", record.Key);
                 Assert.Equal(1, record.Value);
@@ -270,7 +272,7 @@ namespace Hangfire.Mongo.Tests
                     x.IncrementCounter("my-key");
                 });
 
-                var recordCount = database.Counter.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.Counter.CountAsync(new BsonDocument()));
 
                 Assert.Equal(2, recordCount);
             });
@@ -283,7 +285,7 @@ namespace Hangfire.Mongo.Tests
             {
                 Commit(database, x => x.DecrementCounter("my-key"));
 
-                CounterDto record = database.Counter.FindAll().Single();
+                CounterDto record = AsyncHelper.RunSync(() => database.Counter.Find(new BsonDocument()).ToListAsync()).Single();
 
                 Assert.Equal("my-key", record.Key);
                 Assert.Equal(-1, record.Value);
@@ -298,7 +300,7 @@ namespace Hangfire.Mongo.Tests
             {
                 Commit(database, x => x.DecrementCounter("my-key", TimeSpan.FromDays(1)));
 
-                CounterDto record = database.Counter.FindAll().Single();
+                CounterDto record = AsyncHelper.RunSync(() => database.Counter.Find(new BsonDocument()).ToListAsync()).Single();
 
                 Assert.Equal("my-key", record.Key);
                 Assert.Equal(-1, record.Value);
@@ -322,7 +324,7 @@ namespace Hangfire.Mongo.Tests
                     x.DecrementCounter("my-key");
                 });
 
-                var recordCount = database.Counter.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.Counter.CountAsync(new BsonDocument()));
 
                 Assert.Equal(2, recordCount);
             });
@@ -335,7 +337,7 @@ namespace Hangfire.Mongo.Tests
             {
                 Commit(database, x => x.AddToSet("my-key", "my-value"));
 
-                var record = database.Set.FindAll().Single();
+                SetDto record = AsyncHelper.RunSync(() => database.Set.Find(new BsonDocument()).ToListAsync()).Single();
 
                 Assert.Equal("my-key", record.Key);
                 Assert.Equal("my-value", record.Value);
@@ -354,7 +356,7 @@ namespace Hangfire.Mongo.Tests
                     x.AddToSet("my-key", "another-value");
                 });
 
-                var recordCount = database.Set.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.Set.CountAsync(new BsonDocument()));
 
                 Assert.Equal(2, recordCount);
             });
@@ -371,7 +373,7 @@ namespace Hangfire.Mongo.Tests
                     x.AddToSet("my-key", "my-value");
                 });
 
-                var recordCount = database.Set.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.Set.CountAsync(new BsonDocument()));
 
                 Assert.Equal(1, recordCount);
             });
@@ -384,7 +386,7 @@ namespace Hangfire.Mongo.Tests
             {
                 Commit(database, x => x.AddToSet("my-key", "my-value", 3.2));
 
-                var record = database.Set.FindAll().Single();
+                SetDto record = AsyncHelper.RunSync(() => database.Set.Find(new BsonDocument()).ToListAsync()).Single();
 
                 Assert.Equal("my-key", record.Key);
                 Assert.Equal("my-value", record.Value);
@@ -403,7 +405,7 @@ namespace Hangfire.Mongo.Tests
                     x.AddToSet("my-key", "my-value", 3.2);
                 });
 
-                var record = database.Set.FindAll().Single();
+                SetDto record = AsyncHelper.RunSync(() => database.Set.Find(new BsonDocument()).ToListAsync()).Single();
 
                 Assert.Equal(3.2, record.Score, 3);
             });
@@ -420,7 +422,7 @@ namespace Hangfire.Mongo.Tests
                     x.RemoveFromSet("my-key", "my-value");
                 });
 
-                var recordCount = database.Set.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.Set.CountAsync(new BsonDocument()));
 
                 Assert.Equal(0, recordCount);
             });
@@ -437,7 +439,7 @@ namespace Hangfire.Mongo.Tests
                     x.RemoveFromSet("my-key", "different-value");
                 });
 
-                var recordCount = database.Set.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.Set.CountAsync(new BsonDocument()));
 
                 Assert.Equal(1, recordCount);
             });
@@ -454,7 +456,7 @@ namespace Hangfire.Mongo.Tests
                     x.RemoveFromSet("different-key", "my-value");
                 });
 
-                var recordCount = database.Set.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.Set.CountAsync(new BsonDocument()));
 
                 Assert.Equal(1, recordCount);
             });
@@ -467,7 +469,7 @@ namespace Hangfire.Mongo.Tests
             {
                 Commit(database, x => x.InsertToList("my-key", "my-value"));
 
-                var record = database.List.FindAll().Single();
+                ListDto record = AsyncHelper.RunSync(() => database.List.Find(new BsonDocument()).ToListAsync()).Single();
 
                 Assert.Equal("my-key", record.Key);
                 Assert.Equal("my-value", record.Value);
@@ -485,7 +487,7 @@ namespace Hangfire.Mongo.Tests
                     x.InsertToList("my-key", "my-value");
                 });
 
-                var recordCount = database.List.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.List.CountAsync(new BsonDocument()));
 
                 Assert.Equal(2, recordCount);
             });
@@ -503,7 +505,7 @@ namespace Hangfire.Mongo.Tests
                     x.RemoveFromList("my-key", "my-value");
                 });
 
-                var recordCount = database.List.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.List.CountAsync(new BsonDocument()));
 
                 Assert.Equal(0, recordCount);
             });
@@ -520,7 +522,7 @@ namespace Hangfire.Mongo.Tests
                     x.RemoveFromList("my-key", "different-value");
                 });
 
-                var recordCount = database.List.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.List.CountAsync(new BsonDocument()));
 
                 Assert.Equal(1, recordCount);
             });
@@ -537,7 +539,7 @@ namespace Hangfire.Mongo.Tests
                     x.RemoveFromList("different-key", "my-value");
                 });
 
-                var recordCount = database.List.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.List.CountAsync(new BsonDocument()));
 
                 Assert.Equal(1, recordCount);
             });
@@ -557,7 +559,7 @@ namespace Hangfire.Mongo.Tests
                     x.TrimList("my-key", 1, 2);
                 });
 
-                var records = database.List.FindAll().ToArray();
+                ListDto[] records = AsyncHelper.RunSync(() => database.List.Find(new BsonDocument()).ToListAsync()).ToArray();
 
                 Assert.Equal(2, records.Length);
                 Assert.Equal("1", records[0].Value);
@@ -568,9 +570,9 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void TrimList_RemovesRecordsToEnd_IfKeepAndingAt_GreaterThanMaxElementIndex()
         {
-            UseConnection(sql =>
+            UseConnection(database =>
             {
-                Commit(sql, x =>
+                Commit(database, x =>
                 {
                     x.InsertToList("my-key", "0");
                     x.InsertToList("my-key", "1");
@@ -578,7 +580,7 @@ namespace Hangfire.Mongo.Tests
                     x.TrimList("my-key", 1, 100);
                 });
 
-                var recordCount = sql.List.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.List.CountAsync(new BsonDocument()));
 
                 Assert.Equal(2, recordCount);
             });
@@ -595,7 +597,7 @@ namespace Hangfire.Mongo.Tests
                     x.TrimList("my-key", 1, 100);
                 });
 
-                var recordCount = database.List.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.List.CountAsync(new BsonDocument()));
 
                 Assert.Equal(0, recordCount);
             });
@@ -612,7 +614,7 @@ namespace Hangfire.Mongo.Tests
                     x.TrimList("my-key", 1, 0);
                 });
 
-                var recordCount = database.List.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.List.CountAsync(new BsonDocument()));
 
                 Assert.Equal(0, recordCount);
             });
@@ -629,7 +631,7 @@ namespace Hangfire.Mongo.Tests
                     x.TrimList("another-key", 1, 0);
                 });
 
-                var recordCount = database.List.Count();
+                var recordCount = AsyncHelper.RunSync(() => database.List.CountAsync(new BsonDocument()));
 
                 Assert.Equal(1, recordCount);
             });
@@ -670,7 +672,7 @@ namespace Hangfire.Mongo.Tests
 							{ "Key2", "Value2" }
 						}));
 
-                var result = database.Hash.Find(Query<HashDto>.EQ(_ => _.Key, "some-hash"))
+                var result = AsyncHelper.RunSync(() => database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, "some-hash")).ToListAsync())
                     .ToDictionary(x => x.Field, x => x.Value);
 
                 Assert.Equal("Value1", result["Key1"]);
@@ -704,14 +706,14 @@ namespace Hangfire.Mongo.Tests
                 Commit(database, x => x.RemoveHash("some-hash"));
 
                 // Assert
-                var count = database.Hash.Count();
+                var count = AsyncHelper.RunSync(() => database.Hash.CountAsync(new BsonDocument()));
                 Assert.Equal(0, count);
             });
         }
 
         private static dynamic GetTestJob(HangfireDbContext database, int jobId)
         {
-            return database.Job.FindOneById(jobId);
+            return AsyncHelper.RunSync(() => database.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId)).FirstOrDefaultAsync());
         }
 
         private void UseConnection(Action<HangfireDbContext> action)

@@ -1,21 +1,23 @@
 ﻿using System;
+using System.Reflection;
+using Hangfire.Mongo.Dto;
+using Hangfire.Mongo.Helpers;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
-using MongoDB.Driver.Builders;
 
 namespace Hangfire.Mongo.MongoUtils
 {
     /// <summary>
     /// Represents ID generator for Mongo database
     /// </summary>
-    public class AutoIncrementIdGenerator : IIdGenerator
+    public abstract class AutoIncrementIdGenerator : IIdGenerator
     {
         private readonly string _prefix;
 
         /// <summary>
         /// Constructs ID generator with empty prefix
         /// </summary>
-        public AutoIncrementIdGenerator()
+        protected AutoIncrementIdGenerator()
             : this(String.Empty)
         {
         }
@@ -24,7 +26,7 @@ namespace Hangfire.Mongo.MongoUtils
         /// Constructs ID generator with specified prefix
         /// </summary>
         /// <param name="prefix">Collection name prefix</param>
-        public AutoIncrementIdGenerator(string prefix)
+        protected AutoIncrementIdGenerator(string prefix)
         {
             _prefix = prefix ?? String.Empty;
         }
@@ -37,18 +39,37 @@ namespace Hangfire.Mongo.MongoUtils
         /// <returns>Generated identifier</returns>
         public object GenerateId(object container, object document)
         {
-            var idSequenceCollection = ((MongoCollection)container).Database
-                .GetCollection(_prefix + "_identifiers");
+            Type containerType = container.GetType();
+            PropertyInfo databaseProperty = containerType.GetProperty("Database");
+            PropertyInfo namespaceProperty = containerType.GetProperty("CollectionNamespace");
 
-            var query = Query.EQ("_id", ((MongoCollection)container).Name);
+            if (databaseProperty == null)
+                throw new InvalidOperationException("Unable to locate \"Database\" property.");
 
-            return (idSequenceCollection.FindAndModify(new FindAndModifyArgs
-            {
-                Query = query,
-                Update = Update.Inc("seq", 1),
-                VersionReturned = FindAndModifyDocumentVersion.Modified,
-                Upsert = true
-            }).ModifiedDocument["seq"]).AsInt32;
+            if (namespaceProperty == null)
+                throw new InvalidOperationException("Unable to locate \"CollectionNamespace\" property.");
+
+            IMongoDatabase database = databaseProperty.GetValue(container) as IMongoDatabase;
+            CollectionNamespace collectionNamespace = namespaceProperty.GetValue(container) as CollectionNamespace;
+
+            if (database == null)
+                throw new InvalidOperationException("Database reference is null.");
+
+            if (collectionNamespace == null)
+                throw new InvalidOperationException("CollectionNamespace reference is null.");
+
+            var idSequenceCollection = database.GetCollection<IdentifierDto>(_prefix + "_identifiers");
+
+            IdentifierDto result = AsyncHelper.RunSync(() => idSequenceCollection.FindOneAndUpdateAsync(
+                Builders<IdentifierDto>.Filter.Eq(_ => _.Id, collectionNamespace.CollectionName),
+                Builders<IdentifierDto>.Update.Inc(_ => _.Seq, 1),
+                new FindOneAndUpdateOptions<IdentifierDto>()
+                {
+                    IsUpsert = true,
+                    ReturnDocument = ReturnDocument.After
+                }));
+
+            return FormatNumber(result.Seq);
         }
 
         /// <summary>
@@ -60,5 +81,12 @@ namespace Hangfire.Mongo.MongoUtils
         {
             return (int)id == 0;
         }
+
+        /// <summary>
+        /// Converts sequence number into appropriate format
+        /// </summary>
+        /// <param name="input">Number</param>
+        /// <returns>Converted number</returns>
+        protected abstract object FormatNumber(long input);
     }
 }

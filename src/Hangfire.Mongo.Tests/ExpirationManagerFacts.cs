@@ -3,16 +3,16 @@ using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
-using MongoDB.Driver.Builders;
 using System;
 using System.Threading;
+using Hangfire.Mongo.Helpers;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
 #pragma warning disable 1591
+    [Collection("Database")]
     public class ExpirationManagerFacts
     {
         private readonly MongoStorage _storage;
@@ -79,13 +79,13 @@ namespace Hangfire.Mongo.Tests
             using (var connection = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.Counter.Insert(new CounterDto
+                AsyncHelper.RunSync(() => connection.Counter.InsertOneAsync(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Value = 1,
                     ExpireAt = connection.GetServerTimeUtc().AddMonths(-1)
-                });
+                }));
 
                 var manager = CreateManager();
 
@@ -93,7 +93,7 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                var count = connection.Counter.Count();
+                var count = AsyncHelper.RunSync(() => connection.Counter.CountAsync(new BsonDocument()));
                 Assert.Equal(0, count);
             }
         }
@@ -104,14 +104,14 @@ namespace Hangfire.Mongo.Tests
             using (var connection = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.Job.Insert(new JobDto
+                AsyncHelper.RunSync(() => connection.Job.InsertOneAsync(new JobDto
                 {
                     Id = 1,
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = connection.GetServerTimeUtc(),
                     ExpireAt = connection.GetServerTimeUtc().AddMonths(-1),
-                });
+                }));
 
                 var manager = CreateManager();
 
@@ -119,7 +119,7 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                var count = connection.Job.Count();
+                var count = AsyncHelper.RunSync(() => connection.Job.CountAsync(new BsonDocument()));
                 Assert.Equal(0, count);
             }
         }
@@ -130,12 +130,12 @@ namespace Hangfire.Mongo.Tests
             using (var connection = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.List.Insert(new ListDto
+                AsyncHelper.RunSync(() => connection.List.InsertOneAsync(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     ExpireAt = connection.GetServerTimeUtc().AddMonths(-1)
-                });
+                }));
 
                 var manager = CreateManager();
 
@@ -143,7 +143,7 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                var count = connection.List.Count();
+                var count = AsyncHelper.RunSync(() => connection.List.CountAsync(new BsonDocument()));
                 Assert.Equal(0, count);
             }
         }
@@ -154,14 +154,14 @@ namespace Hangfire.Mongo.Tests
             using (var connection = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.Set.Insert(new SetDto
+                AsyncHelper.RunSync(() => connection.Set.InsertOneAsync(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Score = 0,
                     Value = "",
                     ExpireAt = connection.GetServerTimeUtc().AddMonths(-1)
-                });
+                }));
 
                 var manager = CreateManager();
 
@@ -169,7 +169,7 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                var count = connection.Set.Count();
+                var count = AsyncHelper.RunSync(() => connection.Set.CountAsync(new BsonDocument()));
                 Assert.Equal(0, count);
             }
         }
@@ -180,14 +180,14 @@ namespace Hangfire.Mongo.Tests
             using (var connection = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.Hash.Insert(new HashDto
+                AsyncHelper.RunSync(() => connection.Hash.InsertOneAsync(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Field = "field",
                     Value = "",
                     ExpireAt = connection.GetServerTimeUtc().AddMonths(-1)
-                });
+                }));
 
                 var manager = CreateManager();
 
@@ -195,22 +195,47 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                var count = connection.Hash.Count();
+                var count = AsyncHelper.RunSync(() => connection.Hash.CountAsync(new BsonDocument()));
                 Assert.Equal(0, count);
             }
         }
 
 
+        [Fact, CleanDatabase]
+        public void Execute_Processes_AggregatedCounterTable()
+        {
+            using (var connection = ConnectionUtils.CreateConnection())
+            {
+                // Arrange
+                AsyncHelper.RunSync(() => connection.AggregatedCounter.InsertOneAsync(new AggregatedCounterDto
+                {
+                    Key = "key",
+                    Value = 1,
+                    ExpireAt = DateTime.UtcNow.AddMonths(-1)
+                }));
+
+                var manager = CreateManager();
+
+                // Act
+                manager.Execute(_token);
+
+                // Assert
+                Assert.Equal(0, AsyncHelper.RunSync(() => connection.Counter.Find(new BsonDocument()).CountAsync()));
+            }
+        }
+
+
+
         private static ObjectId CreateExpirationEntry(HangfireDbContext connection, DateTime? expireAt)
         {
-            var counter = new CounterDto
+            var counter = new AggregatedCounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "key",
                 Value = 1,
                 ExpireAt = expireAt
             };
-            connection.Counter.Insert(counter);
+            AsyncHelper.RunSync(() => connection.AggregatedCounter.InsertOneAsync(counter));
 
             var id = counter.Id;
 
@@ -219,7 +244,7 @@ namespace Hangfire.Mongo.Tests
 
         private static bool IsEntryExpired(HangfireDbContext connection, ObjectId entryId)
         {
-            var count = connection.Counter.Count(Query<CounterDto>.EQ(_ => _.Id, entryId));
+            var count = AsyncHelper.RunSync(() => connection.AggregatedCounter.Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Id, entryId)).CountAsync());
             return count == 0;
         }
 

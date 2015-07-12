@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
+using MongoDB.Bson;
 using MongoDB.Driver;
-using Xunit;
+using Xunit.Sdk;
 
 namespace Hangfire.Mongo.Tests.Utils
 {
@@ -11,8 +14,6 @@ namespace Hangfire.Mongo.Tests.Utils
     public class CleanDatabaseAttribute : BeforeAfterTestAttribute
     {
         private static readonly object GlobalLock = new object();
-
-        private static bool _sqlObjectInstalled;
 
         public CleanDatabaseAttribute()
         {
@@ -22,11 +23,7 @@ namespace Hangfire.Mongo.Tests.Utils
         {
             Monitor.Enter(GlobalLock);
 
-            if (_sqlObjectInstalled == false)
-            {
-                RecreateDatabaseAndInstallObjects();
-                _sqlObjectInstalled = true;
-            }
+            RecreateDatabaseAndInstallObjects();
         }
 
         public override void After(MethodInfo methodUnderTest)
@@ -38,27 +35,30 @@ namespace Hangfire.Mongo.Tests.Utils
         {
             using (HangfireDbContext context = new HangfireDbContext(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName()))
             {
-                context.Init();
-
-                MongoCollection[] collections =
-				{
-					context.DistributedLock,
-					context.Counter,
-					context.Hash,
-					context.Job,
-					context.JobParameter,
-					context.JobQueue,
-					context.List,
-					context.Server,
-					context.Set,
-					context.State
-				};
-
-                foreach (MongoCollection collection in collections)
+                try
                 {
-                    WriteConcernResult result = collection.RemoveAll();
-                    if (result.Ok == false)
-                        throw new InvalidOperationException("Unable to cleanup database.");
+                    context.Init();
+
+                    List<Task> tasks = new List<Task>();
+
+                    tasks.Add(context.Identifiers.DeleteManyAsync(new BsonDocument()));
+                    tasks.Add(context.DistributedLock.DeleteManyAsync(new BsonDocument()));
+                    tasks.Add(context.AggregatedCounter.DeleteManyAsync(new BsonDocument()));
+                    tasks.Add(context.Counter.DeleteManyAsync(new BsonDocument()));
+                    tasks.Add(context.Hash.DeleteManyAsync(new BsonDocument()));
+                    tasks.Add(context.Job.DeleteManyAsync(new BsonDocument()));
+                    tasks.Add(context.JobParameter.DeleteManyAsync(new BsonDocument()));
+                    tasks.Add(context.JobQueue.DeleteManyAsync(new BsonDocument()));
+                    tasks.Add(context.List.DeleteManyAsync(new BsonDocument()));
+                    tasks.Add(context.Server.DeleteManyAsync(new BsonDocument()));
+                    tasks.Add(context.Set.DeleteManyAsync(new BsonDocument()));
+                    tasks.Add(context.State.DeleteManyAsync(new BsonDocument()));
+
+                    Task.WaitAll(tasks.ToArray());
+                }
+                catch (MongoException ex)
+                {
+                    throw new InvalidOperationException("Unable to cleanup database.", ex);
                 }
             }
         }

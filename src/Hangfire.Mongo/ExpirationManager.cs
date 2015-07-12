@@ -3,9 +3,11 @@ using Hangfire.Mongo.Database;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Server;
 using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Threading;
+using System.Threading.Tasks;
 using MongoDB.Driver;
-using MongoDB.Driver.Builders;
 
 namespace Hangfire.Mongo
 {
@@ -50,22 +52,19 @@ namespace Hangfire.Mongo
         {
             using (HangfireDbContext connection = _storage.CreateAndOpenConnection())
             {
-                MongoCollection[] processedTables =
-				{
-					connection.Counter,
-					connection.Job,
-					connection.List,
-					connection.Set,
-					connection.Hash
-				};
-
                 DateTime now = connection.GetServerTimeUtc();
-                foreach (var table in processedTables)
-                {
-                    Logger.DebugFormat("Removing outdated records from table '{0}'...", table.Name);
 
-                    table.Remove(Query.LT("ExpireAt", now));
-                }
+                List<Task> processedTasks = new List<Task>
+                {
+                    RemoveExpiredRecord(connection.AggregatedCounter, _ => _.ExpireAt, now),
+                    RemoveExpiredRecord(connection.Counter, _ => _.ExpireAt, now),
+                    RemoveExpiredRecord(connection.Job, _ => _.ExpireAt, now),
+                    RemoveExpiredRecord(connection.List, _ => _.ExpireAt, now),
+                    RemoveExpiredRecord(connection.Set, _ => _.ExpireAt, now),
+                    RemoveExpiredRecord(connection.Hash, _ => _.ExpireAt, now)
+                };
+
+                Task.WaitAll(processedTasks.ToArray());
             }
 
             cancellationToken.WaitHandle.WaitOne(_checkInterval);
@@ -77,6 +76,14 @@ namespace Hangfire.Mongo
         public override string ToString()
         {
             return "Mongo Expiration Manager";
+        }
+
+        private static async Task<long> RemoveExpiredRecord<TEntity, TField>(IMongoCollection<TEntity> collection, Expression<Func<TEntity, TField>> expression, TField now)
+        {
+            Logger.DebugFormat("Removing outdated records from table '{0}'...", collection.CollectionNamespace.CollectionName);
+
+            DeleteResult result = await collection.DeleteManyAsync(Builders<TEntity>.Filter.Lt(expression, now));
+            return result.DeletedCount;
         }
     }
 }
