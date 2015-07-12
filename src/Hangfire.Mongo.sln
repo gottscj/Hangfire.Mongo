@@ -31,6 +31,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "utils", "utils", "{2C95F523
 		..\build\utils\version.ps1 = ..\build\utils\version.ps1
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "description", "description", "{561F7C57-4031-40D9-937C-ADA64A99E004}"
+	ProjectSection(SolutionItems) = preProject
+		..\LICENSE = ..\LICENSE
+		..\README.md = ..\README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
