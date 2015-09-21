@@ -1,67 +1,99 @@
 ﻿using System;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
+using Hangfire.Mongo.Helpers;
 using Hangfire.Storage;
 using MongoDB.Driver;
-using MongoDB.Driver.Builders;
 
 namespace Hangfire.Mongo
 {
-	public class MongoFetchedJob : IFetchedJob
-	{
-		private readonly HangfireDbContext _connection;
+    /// <summary>
+    /// Hangfire fetched job for Mongo database
+    /// </summary>
+    public class MongoFetchedJob : IFetchedJob
+    {
+        private readonly HangfireDbContext _connection;
 
-		private bool _disposed;
+        private bool _disposed;
 
-		private bool _removedFromQueue;
+        private bool _removedFromQueue;
 
-		private bool _requeued;
+        private bool _requeued;
 
-		public MongoFetchedJob(HangfireDbContext connection, int id, string jobId, string queue)
-		{
-			if (connection == null) throw new ArgumentNullException("connection");
-			if (jobId == null) throw new ArgumentNullException("jobId");
-			if (queue == null) throw new ArgumentNullException("queue");
+        /// <summary>
+        /// Constructs fetched job by database connection, identifier, job ID and queue
+        /// </summary>
+        /// <param name="connection">Database connection</param>
+        /// <param name="id">Identifier</param>
+        /// <param name="jobId">Job ID</param>
+        /// <param name="queue">Queue name</param>
+        public MongoFetchedJob(HangfireDbContext connection, int id, string jobId, string queue)
+        {
+            if (connection == null) throw new ArgumentNullException("connection");
+            if (jobId == null) throw new ArgumentNullException("jobId");
+            if (queue == null) throw new ArgumentNullException("queue");
 
-			_connection = connection;
+            _connection = connection;
 
-			Id = id;
-			JobId = jobId;
-			Queue = queue;
-		}
+            Id = id;
+            JobId = jobId;
+            Queue = queue;
+        }
 
 
-		public int Id { get; private set; }
+        /// <summary>
+        /// Identifier
+        /// </summary>
+        public int Id { get; private set; }
 
-		public string JobId { get; private set; }
+        /// <summary>
+        /// Job ID
+        /// </summary>
+        public string JobId { get; private set; }
 
-		public string Queue { get; private set; }
+        /// <summary>
+        /// Queue name
+        /// </summary>
+        public string Queue { get; private set; }
 
-		public void Dispose()
-		{
-			if (_disposed) return;
+        /// <summary>
+        /// Removes fetched job from a queue
+        /// </summary>
+        public void RemoveFromQueue()
+        {
+            AsyncHelper.RunSync(() => _connection
+                .JobQueue
+                .DeleteOneAsync(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id)));
 
-			if (!_removedFromQueue && !_requeued)
-			{
-				Requeue();
-			}
+            _removedFromQueue = true;
+        }
 
-			_disposed = true;
-		}
+        /// <summary>
+        /// Puts fetched job into a queue
+        /// </summary>
+        public void Requeue()
+        {
+            AsyncHelper.RunSync(() => _connection.JobQueue.FindOneAndUpdateAsync(
+                Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id),
+                Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null)
+                ));
 
-		public void RemoveFromQueue()
-		{
-			_connection.JobQueue.Remove(Query<JobQueueDto>.EQ(_ => _.Id, Id));
+            _requeued = true;
+        }
 
-			_removedFromQueue = true;
-		}
+        /// <summary>
+        /// Disposes the object
+        /// </summary>
+        public void Dispose()
+        {
+            if (_disposed) return;
 
-		public void Requeue()
-		{
-			_connection.JobQueue.Update(Query<JobQueueDto>.EQ(_ => _.Id, Id),
-				Update<JobQueueDto>.Set(_ => _.FetchedAt, null), UpdateFlags.None);
+            if (!_removedFromQueue && !_requeued)
+            {
+                Requeue();
+            }
 
-			_requeued = true;
-		}
-	}
+            _disposed = true;
+        }
+    }
 }

@@ -1,5 +1,4 @@
-﻿using System.Text.RegularExpressions;
-using Hangfire.Logging;
+﻿using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
@@ -12,99 +11,128 @@ using System.Collections.Generic;
 
 namespace Hangfire.Mongo
 {
-	public class MongoStorage : JobStorage
-	{
-		private readonly Regex _connectionStringRegex = new Regex(@"(?<Unneeded>(.+:(//|\\\\)(.+:.+@)?))(?<ServerName>.+):(?<Port>\d+)", RegexOptions.Compiled);
+    /// <summary>
+    /// Hangfire Job Storage implementation for Mongo database
+    /// </summary>
+    public class MongoStorage : JobStorage
+    {
+        private readonly string _connectionString;
 
-		private readonly string _connectionString;
+        private readonly string _databaseName;
 
-		private readonly string _databaseName;
+        private readonly MongoStorageOptions _options;
 
-		private readonly MongoStorageOptions _options;
+        /// <summary>
+        /// Constructs Job Storage by database connection string and name
+        /// </summary>
+        /// <param name="connectionString">MongoDB connection string</param>
+        /// <param name="databaseName">Database name</param>
+        public MongoStorage(string connectionString, string databaseName)
+            : this(connectionString, databaseName, new MongoStorageOptions())
+        {
+        }
 
-		private string _serverName;
+        /// <summary>
+        /// Constructs Job Storage by database connection string, name andoptions
+        /// </summary>
+        /// <param name="connectionString">MongoDB connection string</param>
+        /// <param name="databaseName">Database name</param>
+        /// <param name="options">Storage options</param>
+        public MongoStorage(string connectionString, string databaseName, MongoStorageOptions options)
+        {
+            if (String.IsNullOrWhiteSpace(connectionString) == true)
+                throw new ArgumentNullException("connectionString");
 
-		private string _port;
+            if (String.IsNullOrWhiteSpace(databaseName) == true)
+                throw new ArgumentNullException("databaseName");
 
-		public MongoStorage(string connectionString, string databaseName)
-			: this(connectionString, databaseName, new MongoStorageOptions())
-		{
-		}
+            if (options == null)
+                throw new ArgumentNullException("options");
 
-		public MongoStorage(string connectionString, string databaseName, MongoStorageOptions options)
-		{
-			if (String.IsNullOrWhiteSpace(connectionString) == true)
-				throw new ArgumentNullException("connectionString");
+            _connectionString = connectionString;
+            _databaseName = databaseName;
+            _options = options;
 
-			if (String.IsNullOrWhiteSpace(databaseName) == true)
-				throw new ArgumentNullException("databaseName");
+            Connection = new HangfireDbContext(connectionString, databaseName, options.Prefix);
+            var defaultQueueProvider = new MongoJobQueueProvider(options);
+            QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
+        }
 
-			if (options == null)
-				throw new ArgumentNullException("options");
+        /// <summary>
+        /// Database context
+        /// </summary>
+        public HangfireDbContext Connection { get; private set; }
 
-			_connectionString = connectionString;
-			_databaseName = databaseName;
-			_options = options;
+        /// <summary>
+        /// Queue providers collection
+        /// </summary>
+        public PersistentJobQueueProviderCollection QueueProviders { get; private set; }
 
-			Connection = new HangfireDbContext(connectionString, databaseName, options.Prefix);
-			var defaultQueueProvider = new MongoJobQueueProvider(options);
-			QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
+        /// <summary>
+        /// Returns Monitoring API object
+        /// </summary>
+        /// <returns>Monitoring API object</returns>
+        public override IMonitoringApi GetMonitoringApi()
+        {
+            return new MongoMonitoringApi(Connection, QueueProviders);
+        }
 
-			ParseConnectionString();
-		}
+        /// <summary>
+        /// Returns storage connection
+        /// </summary>
+        /// <returns>Storage connection</returns>
+        public override IStorageConnection GetConnection()
+        {
+            return new MongoConnection(Connection, _options, QueueProviders);
+        }
 
-		public HangfireDbContext Connection { get; private set; }
+        /// <summary>
+        /// Returns collection of server components
+        /// </summary>
+        /// <returns>Collection of server components</returns>
+        public override IEnumerable<IServerComponent> GetComponents()
+        {
+            yield return new ExpirationManager(this, _options.JobExpirationCheckInterval);
+            yield return new CountersAggregator(this, _options.CountersAggregateInterval);
+        }
 
-		public PersistentJobQueueProviderCollection QueueProviders { get; private set; }
+        /// <summary>
+        /// Returns collection of state handers
+        /// </summary>
+        /// <returns>Collection of state handers</returns>
+        public override IEnumerable<IStateHandler> GetStateHandlers()
+        {
+            yield return new FailedStateHandler();
+            yield return new ProcessingStateHandler();
+            yield return new SucceededStateHandler();
+            yield return new DeletedStateHandler();
+        }
 
-		public override IMonitoringApi GetMonitoringApi()
-		{
-			return new MongoMonitoringApi(Connection, QueueProviders);
-		}
+        /// <summary>
+        /// Writes storage options to log
+        /// </summary>
+        /// <param name="logger">Logger</param>
+        public override void WriteOptionsToLog(ILog logger)
+        {
+            logger.Info("Using the following options for Mongo DB job storage:");
+            logger.InfoFormat("    Prefix: {0}.", _options.Prefix);
+        }
 
-		public override IStorageConnection GetConnection()
-		{
-			return new MongoConnection(Connection, _options, QueueProviders);
-		}
+        /// <summary>
+        /// Opens connection to database
+        /// </summary>
+        /// <returns>Database context</returns>
+        public HangfireDbContext CreateAndOpenConnection()
+        {
+            return new HangfireDbContext(_connectionString, _databaseName, _options.Prefix);
+        }
 
-		public override IEnumerable<IServerComponent> GetComponents()
-		{
-			yield return new ExpirationManager(this);
-		}
-
-		public override IEnumerable<IStateHandler> GetStateHandlers()
-		{
-			yield return new FailedStateHandler();
-			yield return new ProcessingStateHandler();
-			yield return new SucceededStateHandler();
-			yield return new DeletedStateHandler();
-		}
-
-		public override void WriteOptionsToLog(ILog logger)
-		{
-			logger.Info("Using the following options for Mongo DB job storage:");
-			logger.InfoFormat("    Prefix: {0}.", _options.Prefix);
-		}
-
-		public HangfireDbContext CreateAndOpenConnection()
-		{
-			return new HangfireDbContext(_connectionString, _databaseName, _options.Prefix);
-		}
-
-		public override string ToString()
-		{
-			return String.Format("Server: {0} Port: {1} Database name: {2}", _serverName, _port, _databaseName);
-		}
-
-		private void ParseConnectionString()
-		{
-			var connectionStringParts = _connectionStringRegex.Match(_connectionString);
-
-			if (connectionStringParts.Groups["ServerName"].Success)
-				_serverName = connectionStringParts.Groups["ServerName"].Value;
-
-			if (connectionStringParts.Groups["Port"].Success)
-				_port = connectionStringParts.Groups["Port"].Value;
-		}
-	}
+        /// <summary>
+        /// Returns text representation of the object
+        /// </summary>
+        public override string ToString()
+        {
+            return String.Format("Connection string: {0}, database name: {1}", _connectionString, _databaseName);
+        }
+    }
 }

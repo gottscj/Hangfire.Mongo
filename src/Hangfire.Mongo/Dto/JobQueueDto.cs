@@ -5,15 +5,17 @@ using System;
 
 namespace Hangfire.Mongo.Dto
 {
-	public class JobQueueDto
-	{
-		[BsonId(IdGenerator = typeof(AutoIncrementIdGenerator))]
-		public int Id { get; set; }
+#pragma warning disable 1591
+    public class JobQueueDto
+    {
+        [BsonId(IdGenerator = typeof(AutoIncrementIntIdGenerator))]
+        public int Id { get; set; }
 
-		public int JobId { get; set; }
+        public int JobId { get; set; }
 
-		public string Queue { get; set; }
+        public string Queue { get; set; }
 
-		public DateTime? FetchedAt { get; set; }
-	}
+        public DateTime? FetchedAt { get; set; }
+    }
+#pragma warning restore 1591
 }

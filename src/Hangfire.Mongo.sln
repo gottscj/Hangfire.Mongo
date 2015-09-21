@@ -1,0 +1,61 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Mongo", "Hangfire.Mongo\Hangfire.Mongo.csproj", "{1FE9C86E-DB7A-4C1B-B73A-42B993D68688}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Mongo.Tests", "Hangfire.Mongo.Tests\Hangfire.Mongo.Tests.csproj", "{237F15A4-26DB-4FBD-86AF-81E87AD5762A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D6825B0A-CE39-4B21-B422-7DD7F5407BA3}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{87D6A811-9D1B-460C-B76D-06DBA307136D}"
+	ProjectSection(SolutionItems) = preProject
+		..\build\build.cmd = ..\build\build.cmd
+		..\build\build.ps1 = ..\build\build.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuspecs", "nuspecs", "{BADE9085-1506-41A8-BE2D-5A5FD5BCEEAF}"
+	ProjectSection(SolutionItems) = preProject
+		..\nuspecs\HangFire.Mongo.nuspec = ..\nuspecs\HangFire.Mongo.nuspec
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "utils", "utils", "{2C95F523-2D71-4A26-895F-638A338B8BDF}"
+	ProjectSection(SolutionItems) = preProject
+		..\build\utils\msbuild.ps1 = ..\build\utils\msbuild.ps1
+		..\build\utils\version.ps1 = ..\build\utils\version.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "description", "description", "{561F7C57-4031-40D9-937C-ADA64A99E004}"
+	ProjectSection(SolutionItems) = preProject
+		..\LICENSE = ..\LICENSE
+		..\README.md = ..\README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1FE9C86E-DB7A-4C1B-B73A-42B993D68688}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1FE9C86E-DB7A-4C1B-B73A-42B993D68688}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1FE9C86E-DB7A-4C1B-B73A-42B993D68688}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1FE9C86E-DB7A-4C1B-B73A-42B993D68688}.Release|Any CPU.Build.0 = Release|Any CPU
+		{237F15A4-26DB-4FBD-86AF-81E87AD5762A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{237F15A4-26DB-4FBD-86AF-81E87AD5762A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{237F15A4-26DB-4FBD-86AF-81E87AD5762A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{237F15A4-26DB-4FBD-86AF-81E87AD5762A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2C95F523-2D71-4A26-895F-638A338B8BDF} = {87D6A811-9D1B-460C-B76D-06DBA307136D}
+	EndGlobalSection
+EndGlobal

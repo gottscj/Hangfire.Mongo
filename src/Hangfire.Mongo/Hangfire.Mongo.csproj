@@ -9,11 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Hangfire.Mongo</RootNamespace>
     <AssemblyName>Hangfire.Mongo</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -24,7 +23,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <RunCodeAnalysis>true</RunCodeAnalysis>
-    <DocumentationFile>bin\Debug\Hangfire.Mongo.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\Hangfire.Mongo.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -33,27 +32,33 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Release\Hangfire.Mongo.XML</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>Hangfire.Mongo.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Hangfire.Core">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\HangFire.Core.1.4.2\lib\net45\Hangfire.Core.dll</HintPath>
+    <Reference Include="Hangfire.Core, Version=1.4.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Hangfire.Core.1.4.5\lib\net45\Hangfire.Core.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="MongoDB.Bson">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\mongocsharpdriver.1.10.0\lib\net35\MongoDB.Bson.dll</HintPath>
+      <HintPath>..\packages\MongoDB.Bson.2.0.1\lib\net45\MongoDB.Bson.dll</HintPath>
     </Reference>
     <Reference Include="MongoDB.Driver">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\mongocsharpdriver.1.10.0\lib\net35\MongoDB.Driver.dll</HintPath>
+      <HintPath>..\packages\MongoDB.Driver.2.0.1\lib\net45\MongoDB.Driver.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+    <Reference Include="MongoDB.Driver.Core">
+      <HintPath>..\packages\MongoDB.Driver.Core.2.0.1\lib\net45\MongoDB.Driver.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Owin">
-      <HintPath>..\..\packages\Owin.1.0\lib\net40\Owin.dll</HintPath>
+      <HintPath>..\packages\Owin.1.0\lib\net40\Owin.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -64,11 +69,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CountersAggregator.cs" />
     <Compile Include="Database\HangfireDbContext.cs" />
     <Compile Include="DistributedLock\MongoDistributedLockException.cs" />
+    <Compile Include="Dto\AggregatedCounterDto.cs" />
     <Compile Include="Dto\CounterDto.cs" />
     <Compile Include="Dto\DistributedLockDto.cs" />
     <Compile Include="Dto\HashDto.cs" />
+    <Compile Include="Dto\IdentifierDto.cs" />
     <Compile Include="Dto\JobDetailedDto.cs" />
     <Compile Include="Dto\JobDto.cs" />
     <Compile Include="Dto\JobParameterDto.cs" />
@@ -80,6 +88,7 @@
     <Compile Include="Dto\SetDto.cs" />
     <Compile Include="Dto\StateDto.cs" />
     <Compile Include="ExpirationManager.cs" />
+    <Compile Include="Helpers\AsyncHelper.cs" />
     <Compile Include="MongoBootstrapperConfigurationExtensions.cs" />
     <Compile Include="MongoConnection.cs" />
     <Compile Include="MongoFetchedJob.cs" />
@@ -87,6 +96,8 @@
     <Compile Include="MongoStorage.cs" />
     <Compile Include="MongoStorageOptions.cs" />
     <Compile Include="MongoUtils\AutoIncrementIdGenerator.cs" />
+    <Compile Include="MongoUtils\AutoIncrementIntIdGenerator.cs" />
+    <Compile Include="MongoUtils\AutoIncrementLongIdGenerator.cs" />
     <Compile Include="MongoUtils\MongoExtensions.cs" />
     <Compile Include="MongoWriteOnlyTransaction.cs" />
     <Compile Include="PersistentJobQueue\EnqueuedAndFetchedCountDto.cs" />
@@ -106,6 +117,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="Hangfire.Mongo.snk" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
