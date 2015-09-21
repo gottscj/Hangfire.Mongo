@@ -1,5 +1,4 @@
 ﻿using Hangfire.Mongo.Database;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
 
@@ -9,7 +8,7 @@ namespace Hangfire.Mongo.MongoUtils
 	{
 		public static DateTime GetServerTimeUtc(this MongoDatabase database)
 		{
-			return database.RunCommand("serverStatus")
+			return database.RunCommand("isMaster")
 				.Response
 				.AsBsonDocument["localTime"]
 				.ToUniversalTime();
