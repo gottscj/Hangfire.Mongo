@@ -2,6 +2,7 @@
 using MongoDB.Driver;
 using System;
 using Hangfire.Mongo.Helpers;
+using MongoDB.Bson;
 
 namespace Hangfire.Mongo.MongoUtils
 {
@@ -19,7 +20,7 @@ namespace Hangfire.Mongo.MongoUtils
         {
             try
             {
-                dynamic serverStatus = AsyncHelper.RunSync(() => database.RunCommandAsync<dynamic>(new BsonDocument("serverStatus", 1)));
+                dynamic serverStatus = AsyncHelper.RunSync(() => database.RunCommandAsync<dynamic>(new BsonDocument("isMaster", 1)));
                 return ((DateTime)serverStatus.localTime).ToUniversalTime();
             }
             catch (MongoException)
