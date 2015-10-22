@@ -8,6 +8,7 @@ using Hangfire.States;
 using Hangfire.Storage;
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Hangfire.Mongo
 {
@@ -17,6 +18,8 @@ namespace Hangfire.Mongo
     public class MongoStorage : JobStorage
     {
         private readonly string _connectionString;
+
+        private static readonly Regex _connectionStringCredentials = new Regex("mongodb://(.*?)@", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private readonly string _databaseName;
 
@@ -132,7 +135,10 @@ namespace Hangfire.Mongo
         /// </summary>
         public override string ToString()
         {
-            return String.Format("Connection string: {0}, database name: {1}", _connectionString, _databaseName);
+            // Obscure the username and password for display purposes
+            string obscuredConnectionString = _connectionStringCredentials.Replace(_connectionString, "mongodb://<username>:<password>@");
+            return String.Format("Connection string: {0}, database name: {1}, prefix: {2}", obscuredConnectionString, _databaseName, _options.Prefix);
+
         }
     }
 }
