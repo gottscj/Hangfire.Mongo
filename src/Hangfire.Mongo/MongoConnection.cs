@@ -263,8 +263,10 @@ namespace Hangfire.Mongo
         {
             if (key == null) throw new ArgumentNullException("key");
 
-            IEnumerable<string> result = AsyncHelper.RunSync(() => _database.Set.Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key)).ToListAsync())
-                .Select(x => x.Value);
+            IEnumerable<string> result = AsyncHelper.RunSync(() => _database.Set
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
+                .Project(dto => dto.Value)
+                .ToListAsync());
 
             return new HashSet<string>(result);
         }
@@ -277,14 +279,13 @@ namespace Hangfire.Mongo
             if (toScore < fromScore)
                 throw new ArgumentException("The `toScore` value must be higher or equal to the `fromScore` value.");
 
-            SetDto set = AsyncHelper.RunSync(() => _database.Set
+            return AsyncHelper.RunSync(() => _database.Set
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key) &
                       Builders<SetDto>.Filter.Gte(_ => _.Score, fromScore) &
                       Builders<SetDto>.Filter.Lte(_ => _.Score, toScore))
-                .Sort(Builders<SetDto>.Sort.Ascending(_ => _.Score))
+                .SortBy(_ => _.Score)
+                .Project(_ => _.Value)
                 .FirstOrDefaultAsync());
-
-            return set != null ? set.Value : null;
         }
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
@@ -312,8 +313,9 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException("key");
 
-            Dictionary<string, string> result = AsyncHelper.RunSync(() => _database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).ToListAsync())
-                .ToDictionary(x => x.Field, x => x.Value);
+            Dictionary<string, string> result = AsyncHelper.RunSync(() => _database.Hash
+                .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
+                .ToListAsync()).ToDictionary(x => x.Field, x => x.Value);
 
             return result.Count != 0 ? result : null;
         }
@@ -323,7 +325,9 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException("key");
 
-            return AsyncHelper.RunSync(() => _database.Set.Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key)).CountAsync());
+            return AsyncHelper.RunSync(() => _database.Set
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
+                .CountAsync());
         }
 
         public override List<string> GetRangeFromSet(string key, int startingFrom, int endingAt)
@@ -332,12 +336,11 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException("key");
 
             return AsyncHelper.RunSync(() => _database.Set
-                    .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
-                    .ToListAsync())
-                .Select((data, i) => new { Index = i + 1, Data = data })
-                .Where(_ => (_.Index >= startingFrom + 1) && (_.Index <= endingAt + 1))
-                .Select(x => x.Data.Value)
-                .ToList();
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
+                .Skip(startingFrom)
+                .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
+                .Project(dto => dto.Value)
+                .ToListAsync()).ToList();
         }
 
         public override TimeSpan GetSetTtl(string key)
@@ -345,10 +348,10 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException("key");
 
-            DateTime[] values = AsyncHelper.RunSync(() => _database.Set.Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key)).ToListAsync())
-                    .Where(_ => _.ExpireAt.HasValue)
-                    .Select(_ => _.ExpireAt.Value)
-                    .ToArray();
+            DateTime[] values = AsyncHelper.RunSync(() => _database.Set
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key) & Builders<SetDto>.Filter.Not(Builders<SetDto>.Filter.Eq(_ => _.ExpireAt, null)))
+                .Project(dto => dto.ExpireAt.Value)
+                .ToListAsync()).ToArray();
 
             if (values.Any() == false)
                 return TimeSpan.FromSeconds(-1);
@@ -361,9 +364,17 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException("key");
 
-            long[] values = AsyncHelper.RunSync(() => _database.Counter.Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, key)).ToListAsync()).Select(_ => (long)_.Value)
-                .Concat(AsyncHelper.RunSync(() => _database.AggregatedCounter.Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, key)).ToListAsync()).Select(_ => _.Value))
-                .ToArray();
+            List<long> counterQuery = AsyncHelper.RunSync(() => _database.Counter
+                .Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, key))
+                .Project(_ => (long)_.Value)
+                .ToListAsync());
+
+            List<long> aggregatedCounterQuery = AsyncHelper.RunSync(() => _database.AggregatedCounter
+                .Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, key))
+                .Project(_ => _.Value)
+                .ToListAsync());
+
+            long[] values = counterQuery.Concat(aggregatedCounterQuery).ToArray();
 
             return values.Any() ? values.Sum() : 0;
         }
@@ -373,16 +384,20 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException("key");
 
-            return AsyncHelper.RunSync(() =>
-                _database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).CountAsync());
+            return AsyncHelper.RunSync(() => _database.Hash
+                .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
+                .CountAsync());
         }
 
         public override TimeSpan GetHashTtl(string key)
         {
             if (key == null) throw new ArgumentNullException("key");
 
-            List<HashDto> hashes = AsyncHelper.RunSync(() => _database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).ToListAsync());
-            DateTime? result = hashes.Any() ? hashes.Min(x => x.ExpireAt) : null;
+            DateTime? result = AsyncHelper.RunSync(() => _database.Hash
+                .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
+                .SortBy(dto => dto.ExpireAt)
+                .Project(_ => _.ExpireAt)
+                .FirstOrDefaultAsync());
 
             if (!result.HasValue)
                 return TimeSpan.FromSeconds(-1);
@@ -410,8 +425,9 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException("key");
 
-            return AsyncHelper.RunSync(() =>
-                _database.List.Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key)).CountAsync());
+            return AsyncHelper.RunSync(() => _database.List
+                .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
+                .CountAsync());
         }
 
         public override TimeSpan GetListTtl(string key)
@@ -419,8 +435,11 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException("key");
 
-            List<ListDto> items = AsyncHelper.RunSync(() => _database.List.Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key)).ToListAsync());
-            DateTime? result = items.Any() ? items.Min(_ => _.ExpireAt) : null;
+            DateTime? result = AsyncHelper.RunSync(() =>_database.List
+                .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
+                .SortBy(_ => _.ExpireAt)
+                .Project(_ => _.ExpireAt)
+                .FirstOrDefaultAsync());
 
             if (!result.HasValue)
                 return TimeSpan.FromSeconds(-1);
@@ -433,11 +452,12 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException("key");
 
-            return AsyncHelper.RunSync(() => _database.List.Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key)).ToListAsync())
-                .Select((data, i) => new { Index = i + 1, Data = data })
-                .Where(_ => (_.Index >= startingFrom + 1) && (_.Index <= endingAt + 1))
-                .Select(x => x.Data.Value)
-                .ToList();
+            return AsyncHelper.RunSync(() => _database.List
+                .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
+                .Skip(startingFrom)
+                .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
+                .Project(dto => dto.Value)
+                .ToListAsync()).ToList();
         }
 
         public override List<string> GetAllItemsFromList(string key)
@@ -445,9 +465,10 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException("key");
 
-            return AsyncHelper.RunSync(() => _database.List.Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key)).ToListAsync())
-                .Select(_ => _.Value)
-                .ToList();
+            return AsyncHelper.RunSync(() => _database.List
+                .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
+                .Project(_ => _.Value)
+                .ToListAsync()).ToList();
         }
     }
 #pragma warning restore 1591
