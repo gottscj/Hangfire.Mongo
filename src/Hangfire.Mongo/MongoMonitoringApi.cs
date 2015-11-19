@@ -101,15 +101,14 @@ namespace Hangfire.Mongo
                 List<StateHistoryDto> history = AsyncHelper.RunSync(() => connection.State
                     .Find(Builders<StateDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)))
                     .Sort(Builders<StateDto>.Sort.Descending(_ => _.CreatedAt))
-                    .ToListAsync())
-                    .Select(x => new StateHistoryDto
+                    .Project(x => new StateHistoryDto
                     {
                         StateName = x.Name,
                         CreatedAt = x.CreatedAt,
                         Reason = x.Reason,
                         Data = JobHelper.FromJson<Dictionary<string, string>>(x.Data)
                     })
-                    .ToList();
+                    .ToListAsync());
 
                 return new JobDetailsDto
                 {
@@ -322,17 +321,25 @@ namespace Hangfire.Mongo
 
         private JobList<EnqueuedJobDto> EnqueuedJobs(HangfireDbContext connection, IEnumerable<int> jobIds)
         {
-            List<JobDetailedDto> jobs = AsyncHelper.RunSync(() => connection.Job
+            var jobs = AsyncHelper.RunSync(() => connection.Job
                 .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobIds))
-                .ToListAsync())
-                .Where(job =>
-                {
-                    var jobQueue = AsyncHelper.RunSync(() => connection.JobQueue.Find(Builders<JobQueueDto>.Filter.Eq(_ => _.JobId, job.Id)).FirstOrDefaultAsync());
-                    return (jobQueue != null) && (jobQueue.FetchedAt.HasValue == false);
-                })
+                .ToListAsync());
+
+            var jobIdToJobQueueMap = AsyncHelper.RunSync(() => connection.JobQueue
+                .Find(Builders<JobQueueDto>.Filter.In(_ => _.JobId, jobs.Select(job => job.Id))
+                      & Builders<JobQueueDto>.Filter.Not(Builders<JobQueueDto>.Filter.Exists(_ => _.FetchedAt)))
+                .ToListAsync()).ToDictionary(kv => kv.JobId, kv => kv);
+
+            var jobIdToStateMap = AsyncHelper.RunSync(() => connection.State
+                .Find(Builders<StateDto>.Filter.In(_ => _.Id, jobs.Select(job => job.StateId)))
+                .ToListAsync()).ToDictionary(kv => kv.JobId, kv => kv);
+
+            var jobsFiltered = jobs.Where(job => jobIdToJobQueueMap.ContainsKey(job.Id));
+
+            List<JobDetailedDto> filtered = jobsFiltered
                 .Select(job =>
                 {
-                    StateDto state = AsyncHelper.RunSync(() => connection.State.Find(Builders<StateDto>.Filter.Eq(_ => _.Id, job.StateId)).FirstOrDefaultAsync());
+                    var state = jobIdToStateMap.ContainsKey(job.Id) ? jobIdToStateMap[job.Id] : null;
                     return new JobDetailedDto
                     {
                         Id = job.Id,
@@ -350,7 +357,7 @@ namespace Hangfire.Mongo
                 .ToList();
 
             return DeserializeJobs(
-                jobs,
+                filtered,
                 (sqlJob, job, stateData) => new EnqueuedJobDto
                 {
                     Job = job,
@@ -404,34 +411,42 @@ namespace Hangfire.Mongo
         {
             var jobs = AsyncHelper.RunSync(() => connection.Job
                 .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobIds))
-                .ToListAsync())
-                .Where(job =>
-                {
-                    var jobQueue = AsyncHelper.RunSync(() => connection.JobQueue.Find(Builders<JobQueueDto>.Filter.Eq(_ => _.JobId, job.Id)).FirstOrDefaultAsync());
-                    return (jobQueue != null) && (jobQueue.FetchedAt.HasValue == false);
-                })
+                .ToListAsync());
+
+            var jobIdToJobQueueMap = AsyncHelper.RunSync(() => connection.JobQueue
+                .Find(Builders<JobQueueDto>.Filter.In(_ => _.JobId, jobs.Select(job => job.Id))
+                      & Builders<JobQueueDto>.Filter.Not(Builders<JobQueueDto>.Filter.Exists(_ => _.FetchedAt)))
+                .ToListAsync()).ToDictionary(kv => kv.JobId, kv => kv);
+
+            var jobIdToStateMap = AsyncHelper.RunSync(() => connection.State
+                .Find(Builders<StateDto>.Filter.In(_ => _.Id, jobs.Select(job => job.StateId)))
+                .ToListAsync()).ToDictionary(kv => kv.JobId, kv => kv);
+
+            var jobsFiltered = jobs.Where(job => jobIdToJobQueueMap.ContainsKey(job.Id));
+
+            var filtered = jobsFiltered
                 .Select(job =>
-                {
-                    StateDto state = AsyncHelper.RunSync(() => connection.State.Find(Builders<StateDto>.Filter.Eq(_ => _.Id, job.StateId)).FirstOrDefaultAsync());
-                    return new JobDetailedDto
                     {
-                        Id = job.Id,
-                        InvocationData = job.InvocationData,
-                        Arguments = job.Arguments,
-                        CreatedAt = job.CreatedAt,
-                        ExpireAt = job.ExpireAt,
-                        FetchedAt = null,
-                        StateId = job.StateId,
-                        StateName = job.StateName,
-                        StateReason = state != null ? state.Reason : null,
-                        StateData = state != null ? state.Data : null
-                    };
+                        var state = jobIdToStateMap.ContainsKey(job.Id) ? jobIdToStateMap[job.Id] : null;
+                        return new JobDetailedDto
+                        {
+                            Id = job.Id,
+                            InvocationData = job.InvocationData,
+                            Arguments = job.Arguments,
+                            CreatedAt = job.CreatedAt,
+                            ExpireAt = job.ExpireAt,
+                            FetchedAt = null,
+                            StateId = job.StateId,
+                            StateName = job.StateName,
+                            StateReason = state != null ? state.Reason : null,
+                            StateData = state != null ? state.Data : null
+                        };
                 })
                 .ToList();
 
-            var result = new List<KeyValuePair<string, FetchedJobDto>>(jobs.Count);
+            var result = new List<KeyValuePair<string, FetchedJobDto>>(filtered.Count);
 
-            foreach (var job in jobs)
+            foreach (var job in filtered)
             {
                 result.Add(new KeyValuePair<string, FetchedJobDto>(
                     job.Id.ToString(),
@@ -446,43 +461,52 @@ namespace Hangfire.Mongo
             return new JobList<FetchedJobDto>(result);
         }
 
-        private JobList<TDto> GetJobs<TDto>(HangfireDbContext connection, int from, int count, string stateName, Func<JobDetailedDto, Job, Dictionary<string, string>, TDto> selector)
+        private JobList<TDto> GetJobs<TDto>(HangfireDbContext connection, int @from, int count, string stateName, Func<JobDetailedDto, Job, Dictionary<string, string>, TDto> selector)
         {
-            int start = @from + 1;
-            int end = @from + count;
-
-            var jobs = AsyncHelper.RunSync(() => connection.Job
+            // only retrieve job ids
+            var jobIds = AsyncHelper.RunSync(() => connection.Job
                 .Find(new BsonDocument())
-                .ToListAsync())
-                .ToArray()
-                .Reverse()
-                .Select((data, i) => new { Index = i + 1, Data = data })
-                .Where(job =>
-                {
-                    var state = AsyncHelper.RunSync(() => connection.State.Find(Builders<StateDto>.Filter.Eq(_ => _.Id, job.Data.StateId)).FirstOrDefaultAsync());
-                    return (state != null) && (state.Name == stateName);
-                })
-                .Where(_ => (_.Index >= start) && (_.Index <= end))
+                .SortByDescending(_ => _.CreatedAt)
+                .Project(_ => new { _.Id, _.StateId })
+                .ToListAsync());
+
+            var states = AsyncHelper.RunSync(() => connection.State
+                .Find(Builders<StateDto>.Filter.In(_ => _.Id, jobIds.Select(j => j.StateId))
+                        & Builders<StateDto>.Filter.Eq(_ => _.Name, stateName))
+                .Skip(@from)
+                .Limit(count)
+                .Project(_ => new { _.JobId, _.Reason, _.Data })
+                .ToListAsync());
+
+            var jobIdToStateMap = states.ToDictionary(kv => kv.JobId, kv => kv);
+
+            // find jobs from states
+            var jobs = AsyncHelper.RunSync(() => connection.Job
+                .Find(Builders<JobDto>.Filter.In(_ => _.Id, states.Select(j => j.JobId)))
+                .ToListAsync());
+
+            var joined = jobs
                 .Select(job =>
-                {
-                    var state = AsyncHelper.RunSync(() => connection.State.Find(Builders<StateDto>.Filter.Eq(_ => _.Id, job.Data.StateId)).FirstOrDefaultAsync());
-                    return new JobDetailedDto
                     {
-                        Id = job.Data.Id,
-                        InvocationData = job.Data.InvocationData,
-                        Arguments = job.Data.Arguments,
-                        CreatedAt = job.Data.CreatedAt,
-                        ExpireAt = job.Data.ExpireAt,
-                        FetchedAt = null,
-                        StateId = job.Data.StateId,
-                        StateName = job.Data.StateName,
-                        StateReason = state != null ? state.Reason : null,
-                        StateData = state != null ? state.Data : null
-                    };
-                })
+                        var state = jobIdToStateMap[job.Id];
+
+                        return new JobDetailedDto
+                        {
+                            Id = job.Id,
+                            InvocationData = job.InvocationData,
+                            Arguments = job.Arguments,
+                            CreatedAt = job.CreatedAt,
+                            ExpireAt = job.ExpireAt,
+                            FetchedAt = null,
+                            StateId = job.StateId,
+                            StateName = job.StateName,
+                            StateReason = state != null ? state.Reason : null,
+                            StateData = state != null ? state.Data : null
+                        };
+                    })
                 .ToList();
 
-            return DeserializeJobs(jobs, selector);
+            return DeserializeJobs(joined, selector);
         }
 
         private long GetNumberOfJobsByStateName(HangfireDbContext connection, string stateName)
