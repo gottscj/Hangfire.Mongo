@@ -265,7 +265,7 @@ namespace Hangfire.Mongo
 
             IEnumerable<string> result = AsyncHelper.RunSync(() => _database.Set
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
-                .Project(dto => dto.Value)
+                .Project(_ => _.Value)
                 .ToListAsync());
 
             return new HashSet<string>(result);
@@ -456,7 +456,7 @@ namespace Hangfire.Mongo
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
-                .Project(dto => dto.Value)
+                .Project(_ => _.Value)
                 .ToListAsync());
         }
 
