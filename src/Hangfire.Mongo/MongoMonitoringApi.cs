@@ -126,11 +126,10 @@ namespace Hangfire.Mongo
             {
                 var stats = new StatisticsDto();
 
-                var countByStates = AsyncHelper.RunSync(() => connection.Job
-                    .Find(Builders<JobDto>.Filter.Ne(_ => _.StateName, null))
-                    .ToListAsync())
-                    .GroupBy(x => x.StateName)
-                    .ToDictionary(x => x.Key, x => x.Count());
+                var countByStates = AsyncHelper.RunSync(() => connection.Job.Aggregate()
+                    .Match(Builders<JobDto>.Filter.Ne(_ => _.StateName, null))
+                    .Group(dto => new { dto.StateName }, dtos => new { StateName = dtos.First().StateName, Count = dtos.Count() })
+                    .ToListAsync()).ToDictionary(kv => kv.StateName, kv => kv.Count);
 
                 Func<string, int> getCountIfExists = name => countByStates.ContainsKey(name) ? countByStates[name] : 0;
 
@@ -474,6 +473,7 @@ namespace Hangfire.Mongo
             var states = AsyncHelper.RunSync(() => connection.State
                 .Find(Builders<StateDto>.Filter.In(_ => _.Id, jobIds.Select(j => j.StateId))
                         & Builders<StateDto>.Filter.Eq(_ => _.Name, stateName))
+                .SortByDescending(_ => _.CreatedAt)
                 .Skip(@from)
                 .Limit(count)
                 .Project(_ => new { _.JobId, _.Reason, _.Data })

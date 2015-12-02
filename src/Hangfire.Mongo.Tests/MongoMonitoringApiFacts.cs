@@ -14,6 +14,7 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
+#pragma warning disable 1591
     [Collection("Database")]
     public class MongoMonitoringApiFacts
     {
@@ -37,6 +38,39 @@ namespace Hangfire.Mongo.Tests
                 .Returns(_persistentJobQueueMonitoringApi.Object);
 
             _providers = new PersistentJobQueueProviderCollection(_provider.Object);
+        }
+
+        [Fact, CleanDatabase]
+        public void GetStatistics_ReturnsZero_WhenNoJobsExist()
+        {
+            UseMonitoringApi((database, monitoringApi) =>
+            {
+                var result = monitoringApi.GetStatistics();
+                Assert.Equal(0, result.Enqueued);
+                Assert.Equal(0, result.Failed);
+                Assert.Equal(0, result.Processing);
+                Assert.Equal(0, result.Scheduled);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetStatistics_ReturnsExpectedCounts_WhenJobsExist()
+        {
+            UseMonitoringApi((database, monitoringApi) =>
+            {
+                CreateJobInState(database, 1, EnqueuedState.StateName);
+                CreateJobInState(database, 2, EnqueuedState.StateName);
+                CreateJobInState(database, 4, FailedState.StateName);
+                CreateJobInState(database, 5, ProcessingState.StateName);
+                CreateJobInState(database, 6, ScheduledState.StateName);
+                CreateJobInState(database, 7, ScheduledState.StateName);
+
+                var result = monitoringApi.GetStatistics();
+                Assert.Equal(2, result.Enqueued);
+                Assert.Equal(1, result.Failed);
+                Assert.Equal(1, result.Processing);
+                Assert.Equal(2, result.Scheduled);
+            });
         }
 
         [Fact, CleanDatabase]
@@ -268,4 +302,5 @@ namespace Hangfire.Mongo.Tests
             return jobDto;
         }
     }
+#pragma warning restore 1591
 }
