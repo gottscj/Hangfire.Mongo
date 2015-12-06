@@ -87,6 +87,7 @@
     <Compile Include="MongoDistributedLockFacts.cs" />
     <Compile Include="MongoFetchedJobFacts.cs" />
     <Compile Include="MongoJobQueueFacts.cs" />
+    <Compile Include="MongoMonitoringApiFacts.cs" />
     <Compile Include="MongoStorageFacts.cs" />
     <Compile Include="MongoStorageOptionsFacts.cs" />
     <Compile Include="MongoWriteOnlyTransactionFacts.cs" />

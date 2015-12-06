@@ -47,7 +47,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                     var job = AsyncHelper.RunSync(() => _connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueue.JobId)).FirstOrDefaultAsync());
                     return (job != null) && (AsyncHelper.RunSync(() => _connection.State.Find(Builders<StateDto>.Filter.Eq(_ => _.Id, job.StateId)).FirstOrDefaultAsync()) != null);
                 })
-                .Select(jobQueue => jobQueue.Id)
+                .Select(jobQueue => jobQueue.JobId)
                 .ToArray();
         }
 
