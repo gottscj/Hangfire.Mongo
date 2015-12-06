@@ -22,6 +22,9 @@ namespace Hangfire.Mongo
             QueuePollInterval = TimeSpan.FromSeconds(15);
             InvisibilityTimeout = TimeSpan.FromMinutes(30);
             DistributedLockLifetime = TimeSpan.FromSeconds(30);
+            JobExpirationCheckInterval = TimeSpan.FromHours(1);
+            CountersAggregateInterval = TimeSpan.FromMinutes(5);
+
 
             _clientId = Guid.NewGuid().ToString().Replace("-", String.Empty);
         }
