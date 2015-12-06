@@ -94,13 +94,13 @@ Task PrepareSources -depends InitConfiguration, CreateOutputDirs, PopulateOutput
 
 Task Clean -depends PrepareSources -description "Cleanup project source files" {
 
-	Get-ChildItem $artifacts_sources_path -Recurse -Filter "*.csproj" |  Clean-Project -config $config -platform $platform -verbosity $verbosity;
+	Get-ChildItem $artifacts_sources_path -Recurse -Filter "*.csproj" -Exclude "*.Sample*" |  Clean-Project -config $config -platform $platform -verbosity $verbosity;
 
 }
 
 Task BuildProjects -depends PrepareSources, Clean -description "Build project files and populates bin folder with all required binarines" {
 
-	Get-ChildItem $artifacts_sources_path -Recurse -Filter "*.csproj" | Build-Project -config $config -platform $platform -outputPath $artifacts_bin_path -verbosity $verbosity;
+	Get-ChildItem $artifacts_sources_path -Recurse -Filter "*.csproj" -Exclude "*.Sample*" | Build-Project -config $config -platform $platform -outputPath $artifacts_bin_path -verbosity $verbosity;
 
 }
 

@@ -53,6 +53,10 @@ namespace Hangfire.Mongo
             Execute(context.CancellationToken);
         }
 
+        /// <summary>
+        /// Run expiration manager to remove outdated records
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token</param>
         public void Execute(CancellationToken cancellationToken)
         {
             using (HangfireDbContext connection = _storage.CreateAndOpenConnection())
