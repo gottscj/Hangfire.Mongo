@@ -14,6 +14,12 @@
         <copyright>Copyright © Sergey Zwezdin</copyright>
         <tags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</tags>
         <releaseNotes>https://github.com/sergun/Hangfire.Mongo/releases/
+0.2.3
+* Hangfire version updated to 1.5.3
+* MongoDB.Driver version updated to 2.1.1
+* CPU utilization issue fixed
+* Paging logic updated for dashboard
+
 0.2.2
 * Hangfire version updated to 1.4.3
 * Obsolete mongocsharpdriver replaced with MongoDB.Driver
@@ -25,8 +31,8 @@
 * Initial public release
         </releaseNotes>
         <dependencies>
-            <dependency id="HangFire.Core" version="1.4.3" />
-            <dependency id="MongoDB.Driver" version="2.0.1" />
+            <dependency id="HangFire.Core" version="1.5.3" />
+            <dependency id="MongoDB.Driver" version="2.1.1" />
         </dependencies>
     </metadata>
     <files>
