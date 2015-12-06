@@ -16,7 +16,7 @@ namespace Hangfire.Mongo
     /// <summary>
     /// Represents Counter collection aggregator for Mongo database
     /// </summary>
-    public class CountersAggregator : IServerComponent
+    public class CountersAggregator : IBackgroundProcess, IServerComponent
     {
         private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
 
@@ -38,6 +38,15 @@ namespace Hangfire.Mongo
 
             _storage = storage;
             _interval = interval;
+        }
+
+        /// <summary>
+        /// Runs aggregator
+        /// </summary>
+        /// <param name="context">Background processing context</param>
+        public void Execute(BackgroundProcessContext context)
+        {
+            Execute(context.CancellationToken);
         }
 
         /// <summary>
@@ -73,7 +82,7 @@ namespace Hangfire.Mongo
                         {
                             AsyncHelper.RunSync(() => database.AggregatedCounter.UpdateOneAsync(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key),
                                 Builders<AggregatedCounterDto>.Update.Combine(
-                                Builders<AggregatedCounterDto>.Update.Inc(_=>_.Value, item.Value),
+                                Builders<AggregatedCounterDto>.Update.Inc(_ => _.Value, item.Value),
                                 Builders<AggregatedCounterDto>.Update.Set(_ => _.ExpireAt, item.ExpireAt > aggregatedItem.ExpireAt ? item.ExpireAt : aggregatedItem.ExpireAt))));
                         }
                         else

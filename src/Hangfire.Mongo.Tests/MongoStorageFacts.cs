@@ -59,7 +59,7 @@ namespace Hangfire.Mongo.Tests
         {
             MongoStorage storage = CreateStorage();
 
-            IEnumerable<IServerComponent> components = storage.GetComponents();
+            var components = storage.GetComponents();
 
             Type[] componentTypes = components.Select(x => x.GetType()).ToArray();
             Assert.Contains(typeof(ExpirationManager), componentTypes);

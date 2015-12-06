@@ -14,7 +14,7 @@ namespace Hangfire.Mongo
     /// <summary>
     /// Represents Hangfire expiration manager for Mongo database
     /// </summary>
-    public class ExpirationManager : IServerComponent
+    public class ExpirationManager : IBackgroundProcess, IServerComponent
     {
         private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
 
@@ -47,7 +47,12 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Run expiration manager to remove outdated records
         /// </summary>
-        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="context">Background processing context</param>
+        public void Execute(BackgroundProcessContext context)
+        {
+            Execute(context.CancellationToken);
+        }
+
         public void Execute(CancellationToken cancellationToken)
         {
             using (HangfireDbContext connection = _storage.CreateAndOpenConnection())

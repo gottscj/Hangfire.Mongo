@@ -161,7 +161,7 @@ namespace Hangfire.Mongo.Tests
                 var job = invocationData.Deserialize();
                 Assert.Equal(typeof(MongoConnectionFacts), job.Type);
                 Assert.Equal("SampleMethod", job.Method.Name);
-                Assert.Equal("\"Hello\"", job.Arguments[0]);
+                Assert.Equal("Hello", job.Args[0]);
 
                 Assert.True(createdAt.AddDays(1).AddMinutes(-1) < databaseJob.ExpireAt);
                 Assert.True(databaseJob.ExpireAt < createdAt.AddDays(1).AddMinutes(1));
@@ -213,7 +213,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.NotNull(result);
                 Assert.NotNull(result.Job);
                 Assert.Equal("Succeeded", result.State);
-                Assert.Equal("\"Arguments\"", result.Job.Arguments[0]);
+                Assert.Equal("Arguments", result.Job.Args[0]);
                 Assert.Null(result.LoadException);
                 Assert.True(database.GetServerTimeUtc().AddMinutes(-1) < result.CreatedAt);
                 Assert.True(result.CreatedAt < DateTime.UtcNow.AddMinutes(1));

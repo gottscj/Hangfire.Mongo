@@ -24,10 +24,13 @@ namespace Hangfire.Mongo.Sample.Controllers
             return RedirectToAction("Index");
         }
 
-        public ActionResult Delayed()
+        public ActionResult Delayed(int id)
         {
-            BackgroundJob.Schedule(() => Console.WriteLine("Delayed Hangfire task started!"),
-                                   TimeSpan.FromMinutes(1));
+            for (int i = 0; i < id; i++)
+            {
+                BackgroundJob.Schedule(() => Console.WriteLine("Delayed Hangfire task started!"),
+                                       TimeSpan.FromMinutes(1));
+            }
 
             return RedirectToAction("Index");
         }

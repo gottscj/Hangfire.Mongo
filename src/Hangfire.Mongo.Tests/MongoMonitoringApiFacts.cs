@@ -94,7 +94,7 @@ namespace Hangfire.Mongo.Tests
 
                 Assert.NotNull(result);
                 Assert.NotNull(result.Job);
-                Assert.Equal("\"Arguments\"", result.Job.Arguments[0]);
+                Assert.Equal("Arguments", result.Job.Args[0]);
                 Assert.True(database.GetServerTimeUtc().AddMinutes(-1) < result.CreatedAt);
                 Assert.True(result.CreatedAt < DateTime.UtcNow.AddMinutes(1));
             });
