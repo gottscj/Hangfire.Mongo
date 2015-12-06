@@ -456,12 +456,12 @@ namespace Hangfire.Mongo
                 .ToListAsync())
                 .ToArray()
                 .Reverse()
-                .Select((data, i) => new { Index = i + 1, Data = data })
                 .Where(job =>
                 {
-                    var state = AsyncHelper.RunSync(() => connection.State.Find(Builders<StateDto>.Filter.Eq(_ => _.Id, job.Data.StateId)).FirstOrDefaultAsync());
+                    var state = AsyncHelper.RunSync(() => connection.State.Find(Builders<StateDto>.Filter.Eq(_ => _.Id, job.StateId)).FirstOrDefaultAsync());
                     return (state != null) && (state.Name == stateName);
                 })
+                .Select((data, i) => new { Index = i + 1, Data = data })
                 .Where(_ => (_.Index >= start) && (_.Index <= end))
                 .Select(job =>
                 {
