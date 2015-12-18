@@ -32,16 +32,13 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
         public IEnumerable<int> GetEnqueuedJobIds(string queue, int @from, int perPage)
         {
-            int start = @from + 1;
-            int end = from + perPage;
-
             return AsyncHelper.RunSync(() => _connection.JobQueue.Find(
                         Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
                         Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)
-                    ).ToListAsync())
-                .Select((data, i) => new { Index = i + 1, Data = data })
-                .Where(_ => (_.Index >= start) && (_.Index <= end))
-                .Select(x => x.Data)
+                    )
+                    .Skip(@from)
+                    .Limit(perPage)
+                    .ToListAsync())
                 .Where(jobQueue =>
                 {
                     var job = AsyncHelper.RunSync(() => _connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueue.JobId)).FirstOrDefaultAsync());
@@ -53,14 +50,11 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
         public IEnumerable<int> GetFetchedJobIds(string queue, int @from, int perPage)
         {
-            int start = @from + 1;
-            int end = from + perPage;
-
             return AsyncHelper.RunSync(() => _connection.JobQueue
-                .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null)).ToListAsync())
-                .Select((data, i) => new { Index = i + 1, Data = data })
-                .Where(_ => (_.Index >= start) && (_.Index <= end))
-                .Select(x => x.Data)
+                .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null))
+                .Skip(@from)
+                .Limit(perPage)
+                .ToListAsync())
                 .Where(jobQueue => AsyncHelper.RunSync(() => _connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueue.JobId)).FirstOrDefaultAsync()) != null)
                 .Select(jobQueue => jobQueue.Id)
                 .ToArray();
