@@ -24,45 +24,41 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
         public IEnumerable<string> GetQueues()
         {
-            return AsyncHelper.RunSync(() => _connection.JobQueue.Find(new BsonDocument()).ToListAsync())
-                .Select(x => x.Queue)
-                .Distinct()
-                .ToList();
+            return AsyncHelper.RunSync(() => _connection.JobQueue
+                .Find(new BsonDocument())
+                .Project(_ => _.Queue)
+                .ToListAsync()).Distinct().ToList();
         }
 
         public IEnumerable<int> GetEnqueuedJobIds(string queue, int @from, int perPage)
         {
-            int start = @from + 1;
-            int end = from + perPage;
-
-            return AsyncHelper.RunSync(() => _connection.JobQueue.Find(
-                        Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
-                        Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)
-                    ).ToListAsync())
-                .Select((data, i) => new { Index = i + 1, Data = data })
-                .Where(_ => (_.Index >= start) && (_.Index <= end))
-                .Select(x => x.Data)
-                .Where(jobQueue =>
+            return AsyncHelper.RunSync(() => _connection.JobQueue
+                .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null))
+                .Skip(@from)
+                .Limit(perPage)
+                .Project(_ => _.JobId)
+                .ToListAsync())
+                .Where(jobQueueJobId =>
                 {
-                    var job = AsyncHelper.RunSync(() => _connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueue.JobId)).FirstOrDefaultAsync());
+                    var job = AsyncHelper.RunSync(() => _connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueueJobId)).FirstOrDefaultAsync());
                     return (job != null) && (AsyncHelper.RunSync(() => _connection.State.Find(Builders<StateDto>.Filter.Eq(_ => _.Id, job.StateId)).FirstOrDefaultAsync()) != null);
                 })
-                .Select(jobQueue => jobQueue.JobId)
                 .ToArray();
         }
 
         public IEnumerable<int> GetFetchedJobIds(string queue, int @from, int perPage)
         {
-            int start = @from + 1;
-            int end = from + perPage;
-
             return AsyncHelper.RunSync(() => _connection.JobQueue
-                .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null)).ToListAsync())
-                .Select((data, i) => new { Index = i + 1, Data = data })
-                .Where(_ => (_.Index >= start) && (_.Index <= end))
-                .Select(x => x.Data)
-                .Where(jobQueue => AsyncHelper.RunSync(() => _connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueue.JobId)).FirstOrDefaultAsync()) != null)
-                .Select(jobQueue => jobQueue.Id)
+                .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null))
+                .Skip(@from)
+                .Limit(perPage)
+                .Project(_ => _.JobId)
+                .ToListAsync())
+                .Where(jobQueueJobId =>
+                {
+                    var job = AsyncHelper.RunSync(() => _connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueueJobId)).FirstOrDefaultAsync());
+                    return job != null;
+                })
                 .ToArray();
         }
 
