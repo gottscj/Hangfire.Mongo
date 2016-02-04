@@ -9,6 +9,7 @@ using Hangfire.Storage;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo
 {
@@ -36,7 +37,7 @@ namespace Hangfire.Mongo
         }
 
         /// <summary>
-        /// Constructs Job Storage by database connection string, name andoptions
+        /// Constructs Job Storage by database connection string, name and options
         /// </summary>
         /// <param name="connectionString">MongoDB connection string</param>
         /// <param name="databaseName">Database name</param>
@@ -60,6 +61,41 @@ namespace Hangfire.Mongo
             var defaultQueueProvider = new MongoJobQueueProvider(options);
             QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }
+
+		/// <summary>
+		/// Constructs Job Storage by Mongo client settings and name
+		/// </summary>
+		/// <param name="mongoClientSettings">Client settings for MongoDB</param>
+		/// <param name="databaseName">Database name</param>
+		public MongoStorage(MongoClientSettings mongoClientSettings, string databaseName)
+			: this(mongoClientSettings, databaseName, new MongoStorageOptions())
+		{
+		}
+
+		/// <summary>
+		/// Constructs Job Storage by Mongo client settings, name and options
+		/// </summary>
+		/// <param name="mongoClientSettings">Client settings for MongoDB</param>
+		/// <param name="databaseName">Database name</param>
+		/// <param name="options">Storage options</param>
+		public MongoStorage(MongoClientSettings mongoClientSettings, string databaseName, MongoStorageOptions options)
+		{
+			if (mongoClientSettings == null)
+				throw new ArgumentNullException("mongoClientSettings");
+
+			if (String.IsNullOrWhiteSpace(databaseName) == true)
+				throw new ArgumentNullException("databaseName");
+
+			if (options == null)
+				throw new ArgumentNullException("options");
+
+			_databaseName = databaseName;
+			_options = options;
+
+			Connection = new HangfireDbContext(mongoClientSettings, databaseName, options.Prefix);
+			var defaultQueueProvider = new MongoJobQueueProvider(options);
+			QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
+		}
 
         /// <summary>
         /// Database context
