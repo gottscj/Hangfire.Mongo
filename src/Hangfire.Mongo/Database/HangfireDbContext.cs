@@ -1,8 +1,6 @@
 ﻿using Hangfire.Mongo.Dto;
 using MongoDB.Driver;
 using System;
-using System.Linq;
-using Hangfire.Mongo.Helpers;
 using MongoDB.Bson;
 
 namespace Hangfire.Mongo.Database
@@ -198,21 +196,21 @@ namespace Hangfire.Mongo.Database
         /// </summary>
         public void Init()
         {
-            SchemaDto schema = AsyncHelper.RunSync(() => Schema.Find(new BsonDocument()).FirstOrDefaultAsync());
+            SchemaDto schema = Schema.Find(new BsonDocument()).FirstOrDefault();
 
             if (schema != null)
             {
                 if (RequiredSchemaVersion > schema.Version)
                 {
-                    AsyncHelper.RunSync(() => Schema.DeleteManyAsync(new BsonDocument()));
-                    AsyncHelper.RunSync(() => Schema.InsertOneAsync(new SchemaDto { Version = RequiredSchemaVersion }));
+                    Schema.DeleteMany(new BsonDocument());
+                    Schema.InsertOne(new SchemaDto { Version = RequiredSchemaVersion });
                 }
                 else if (RequiredSchemaVersion < schema.Version)
                     throw new InvalidOperationException(String.Format("HangFire current database schema version {0} is newer than the configured MongoStorage schema version {1}. Please update to the latest HangFire.SqlServer NuGet package.",
                         schema.Version, RequiredSchemaVersion));
             }
             else
-                AsyncHelper.RunSync(() => Schema.InsertOneAsync(new SchemaDto { Version = RequiredSchemaVersion }));
+                Schema.InsertOne(new SchemaDto { Version = RequiredSchemaVersion });
         }
 
         /// <summary>

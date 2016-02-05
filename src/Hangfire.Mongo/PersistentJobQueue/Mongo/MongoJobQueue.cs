@@ -1,7 +1,6 @@
 using Hangfire.Annotations;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Helpers;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Storage;
 using MongoDB.Driver;
@@ -42,10 +41,10 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
             JobQueueDto fetchedJob;
 
             var fetchConditions = new[]
-			{
-				Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null),
-				Builders<JobQueueDto>.Filter.Lt(_ => _.FetchedAt, _connection.GetServerTimeUtc().AddSeconds(_options.InvisibilityTimeout.Negate().TotalSeconds))
-			};
+            {
+                Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null),
+                Builders<JobQueueDto>.Filter.Lt(_ => _.FetchedAt, _connection.GetServerTimeUtc().AddSeconds(_options.InvisibilityTimeout.Negate().TotalSeconds))
+            };
             var currentQueryIndex = 0;
 
             do
@@ -53,8 +52,8 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 cancellationToken.ThrowIfCancellationRequested();
 
                 FilterDefinition<JobQueueDto> fetchCondition = fetchConditions[currentQueryIndex];
-                fetchedJob = AsyncHelper.RunSync(() =>
-                    _connection.JobQueue.FindOneAndUpdateAsync(
+                fetchedJob = 
+                    _connection.JobQueue.FindOneAndUpdate(
                         fetchCondition & Builders<JobQueueDto>.Filter.In(_ => _.Queue, queues),
                         Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, _connection.GetServerTimeUtc()),
                         new FindOneAndUpdateOptions<JobQueueDto>
@@ -62,8 +61,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                             IsUpsert = false,
                             ReturnDocument = ReturnDocument.After
                         },
-                        cancellationToken
-                        ));
+                        cancellationToken);
 
                 if (fetchedJob == null)
                 {
@@ -83,13 +81,13 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
         public void Enqueue(string queue, string jobId)
         {
-            AsyncHelper.RunSync(() => _connection
+            _connection
                 .JobQueue
-                .InsertOneAsync(new JobQueueDto
+                .InsertOne(new JobQueueDto
                 {
                     JobId = int.Parse(jobId),
                     Queue = queue
-                }));
+                });
         }
     }
 #pragma warning restore 1591

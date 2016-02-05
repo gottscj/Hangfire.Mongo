@@ -1,7 +1,6 @@
 ﻿using Hangfire.Mongo.Database;
 using MongoDB.Driver;
 using System;
-using Hangfire.Mongo.Helpers;
 using MongoDB.Bson;
 
 namespace Hangfire.Mongo.MongoUtils
@@ -12,7 +11,7 @@ namespace Hangfire.Mongo.MongoUtils
     public static class MongoExtensions
     {
         /// <summary>
-        /// Retreives server time in UTC zone
+        /// Retrieves server time in UTC zone
         /// </summary>
         /// <param name="database">Mongo database</param>
         /// <returns>Server time</returns>
@@ -20,7 +19,7 @@ namespace Hangfire.Mongo.MongoUtils
         {
             try
             {
-                dynamic serverStatus = AsyncHelper.RunSync(() => database.RunCommandAsync<dynamic>(new BsonDocument("isMaster", 1)));
+                dynamic serverStatus = database.RunCommand<dynamic>(new BsonDocument("isMaster", 1));
                 return ((DateTime)serverStatus.localTime).ToUniversalTime();
             }
             catch (MongoException)
@@ -30,7 +29,7 @@ namespace Hangfire.Mongo.MongoUtils
         }
 
         /// <summary>
-        /// Retreives server time in UTC zone
+        /// Retrieves server time in UTC zone
         /// </summary>
         /// <param name="dbContext">Hangfire database context</param>
         /// <returns>Server time</returns>

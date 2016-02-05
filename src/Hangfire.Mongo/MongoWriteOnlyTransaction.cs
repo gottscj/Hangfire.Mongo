@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Linq;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Helpers;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.States;
@@ -18,7 +16,7 @@ namespace Hangfire.Mongo
 #pragma warning disable 1591
     public class MongoWriteOnlyTransaction : IWriteOnlyTransaction
     {
-        private readonly Queue<Func<HangfireDbContext, Task>> _commandQueue = new Queue<Func<HangfireDbContext, Task>>();
+        private readonly Queue<Action<HangfireDbContext>> _commandQueue = new Queue<Action<HangfireDbContext>>();
 
         private readonly HangfireDbContext _connection;
 
@@ -42,13 +40,13 @@ namespace Hangfire.Mongo
 
         public void ExpireJob(string jobId, TimeSpan expireIn)
         {
-            QueueCommand(x => x.Job.UpdateManyAsync(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)),
+            QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)),
                 Builders<JobDto>.Update.Set(_ => _.ExpireAt, _connection.GetServerTimeUtc().Add(expireIn))));
         }
 
         public void PersistJob(string jobId)
         {
-            QueueCommand(x => x.Job.UpdateManyAsync(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)),
+            QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)),
                 Builders<JobDto>.Update.Set(_ => _.ExpireAt, null)));
         }
 
@@ -56,8 +54,6 @@ namespace Hangfire.Mongo
         {
             QueueCommand(x =>
             {
-                List<Task> tasks = new List<Task>();
-
                 StateDto stateDto = new StateDto
                 {
                     Id = ObjectId.GenerateNewId(),
@@ -67,22 +63,20 @@ namespace Hangfire.Mongo
                     CreatedAt = _connection.GetServerTimeUtc(),
                     Data = JobHelper.ToJson(state.SerializeData())
                 };
-                tasks.Add(x.State.InsertOneAsync(stateDto));
+                x.State.InsertOne(stateDto);
 
-                tasks.Add(x.Job.UpdateManyAsync(
+                x.Job.UpdateMany(
                     Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)),
-                    Builders<JobDto>.Update.Set(_ => _.StateId, stateDto.Id)));
+                    Builders<JobDto>.Update.Set(_ => _.StateId, stateDto.Id));
 
-                tasks.Add(x.Job.UpdateManyAsync(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)),
-                    Builders<JobDto>.Update.Set(_ => _.StateName, state.Name)));
-
-                return Task.WhenAll(tasks.ToArray());
+                x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)),
+                    Builders<JobDto>.Update.Set(_ => _.StateName, state.Name));
             });
         }
 
         public void AddJobState(string jobId, IState state)
         {
-            QueueCommand(x => x.State.InsertOneAsync(new StateDto
+            QueueCommand(x => x.State.InsertOne(new StateDto
             {
                 Id = ObjectId.GenerateNewId(),
                 JobId = int.Parse(jobId),
@@ -101,13 +95,12 @@ namespace Hangfire.Mongo
             QueueCommand(_ =>
             {
                 persistentQueue.Enqueue(queue, jobId);
-                return Task.FromResult(0);
             });
         }
 
         public void IncrementCounter(string key)
         {
-            QueueCommand(x => x.Counter.InsertOneAsync(new CounterDto
+            QueueCommand(x => x.Counter.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = key,
@@ -117,7 +110,7 @@ namespace Hangfire.Mongo
 
         public void IncrementCounter(string key, TimeSpan expireIn)
         {
-            QueueCommand(x => x.Counter.InsertOneAsync(new CounterDto
+            QueueCommand(x => x.Counter.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = key,
@@ -128,7 +121,7 @@ namespace Hangfire.Mongo
 
         public void DecrementCounter(string key)
         {
-            QueueCommand(x => x.Counter.InsertOneAsync(new CounterDto
+            QueueCommand(x => x.Counter.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = key,
@@ -138,7 +131,7 @@ namespace Hangfire.Mongo
 
         public void DecrementCounter(string key, TimeSpan expireIn)
         {
-            QueueCommand(x => x.Counter.InsertOneAsync(new CounterDto
+            QueueCommand(x => x.Counter.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = key,
@@ -154,7 +147,7 @@ namespace Hangfire.Mongo
 
         public void AddToSet(string key, string value, double score)
         {
-            QueueCommand(x => x.Set.UpdateManyAsync(Builders<SetDto>.Filter.Eq(_ => _.Key, key) & Builders<SetDto>.Filter.Eq(_ => _.Value, value),
+            QueueCommand(x => x.Set.UpdateMany(Builders<SetDto>.Filter.Eq(_ => _.Key, key) & Builders<SetDto>.Filter.Eq(_ => _.Value, value),
                 Builders<SetDto>.Update.Set(_ => _.Score, score),
                 new UpdateOptions
                 {
@@ -164,14 +157,14 @@ namespace Hangfire.Mongo
 
         public void RemoveFromSet(string key, string value)
         {
-            QueueCommand(x => x.Set.DeleteManyAsync(
+            QueueCommand(x => x.Set.DeleteMany(
                 Builders<SetDto>.Filter.Eq(_ => _.Key, key) &
                 Builders<SetDto>.Filter.Eq(_ => _.Value, value)));
         }
 
         public void InsertToList(string key, string value)
         {
-            QueueCommand(x => x.List.InsertOneAsync(new ListDto
+            QueueCommand(x => x.List.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = key,
@@ -181,7 +174,7 @@ namespace Hangfire.Mongo
 
         public void RemoveFromList(string key, string value)
         {
-            QueueCommand(x => x.List.DeleteManyAsync(
+            QueueCommand(x => x.List.DeleteMany(
                 Builders<ListDto>.Filter.Eq(_ => _.Key, key) &
                 Builders<ListDto>.Filter.Eq(_ => _.Value, value)));
         }
@@ -193,19 +186,19 @@ namespace Hangfire.Mongo
                 int start = keepStartingFrom + 1;
                 int end = keepEndingAt + 1;
 
-                ObjectId[] items = ((IEnumerable<ListDto>)AsyncHelper.RunSync(() =>
+                ObjectId[] items = ((IEnumerable<ListDto>)
                         x.List
                         .Find(new BsonDocument())
                         .Project(Builders<ListDto>.Projection.Include(_ => _.Key))
                         .Project(_ => _)
-                        .ToListAsync()))
+                        .ToList())
                     .Reverse()
                     .Select((data, i) => new { Index = i + 1, Data = data.Id })
                     .Where(_ => ((_.Index >= start) && (_.Index <= end)) == false)
                     .Select(_ => _.Data)
                     .ToArray();
 
-                return x.List.DeleteManyAsync(Builders<ListDto>.Filter.Eq(_ => _.Key, key) & Builders<ListDto>.Filter.In(_ => _.Id, items));
+                x.List.DeleteMany(Builders<ListDto>.Filter.Eq(_ => _.Key, key) & Builders<ListDto>.Filter.In(_ => _.Id, items));
             });
         }
 
@@ -221,7 +214,7 @@ namespace Hangfire.Mongo
             {
                 var pair = keyValuePair;
 
-                QueueCommand(x => x.Hash.UpdateManyAsync(
+                QueueCommand(x => x.Hash.UpdateMany(
                     Builders<HashDto>.Filter.Eq(_ => _.Key, key) & Builders<HashDto>.Filter.Eq(_ => _.Field, pair.Key),
                     Builders<HashDto>.Update.Set(_ => _.Value, pair.Value),
                     new UpdateOptions
@@ -236,22 +229,18 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException("key");
 
-            QueueCommand(x => x.Hash.DeleteManyAsync(Builders<HashDto>.Filter.Eq(_ => _.Key, key)));
+            QueueCommand(x => x.Hash.DeleteMany(Builders<HashDto>.Filter.Eq(_ => _.Key, key)));
         }
 
         public void Commit()
         {
-            List<Task> tasks = new List<Task>();
-
-            foreach (Func<HangfireDbContext, Task> command in _commandQueue)
+            foreach (Action<HangfireDbContext> command in _commandQueue)
             {
-                tasks.Add(command(_connection));
+                command(_connection);
             }
-
-            Task.WaitAll(tasks.ToArray());
         }
 
-        private void QueueCommand(Func<HangfireDbContext, Task> action)
+        private void QueueCommand(Action<HangfireDbContext> action)
         {
             _commandQueue.Enqueue(action);
         }

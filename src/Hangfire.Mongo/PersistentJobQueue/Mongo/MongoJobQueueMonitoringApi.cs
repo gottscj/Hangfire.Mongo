@@ -1,6 +1,5 @@
 ﻿using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,10 +23,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
         public IEnumerable<string> GetQueues()
         {
-            return AsyncHelper.RunSync(() => _connection.JobQueue.Find(new BsonDocument()).ToListAsync())
-                .Select(x => x.Queue)
-                .Distinct()
-                .ToList();
+            return _connection.JobQueue.Find(new BsonDocument()).ToList().Select(x => x.Queue).Distinct().ToList();
         }
 
         public IEnumerable<int> GetEnqueuedJobIds(string queue, int @from, int perPage)
@@ -35,17 +31,17 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
             int start = @from + 1;
             int end = from + perPage;
 
-            return AsyncHelper.RunSync(() => _connection.JobQueue.Find(
+            return _connection.JobQueue.Find(
                         Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
                         Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)
-                    ).ToListAsync())
+                    ).ToList()
                 .Select((data, i) => new { Index = i + 1, Data = data })
                 .Where(_ => (_.Index >= start) && (_.Index <= end))
                 .Select(x => x.Data)
                 .Where(jobQueue =>
                 {
-                    var job = AsyncHelper.RunSync(() => _connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueue.JobId)).FirstOrDefaultAsync());
-                    return (job != null) && (AsyncHelper.RunSync(() => _connection.State.Find(Builders<StateDto>.Filter.Eq(_ => _.Id, job.StateId)).FirstOrDefaultAsync()) != null);
+                    var job = _connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueue.JobId)).FirstOrDefault();
+                    return (job != null) && (_connection.State.Find(Builders<StateDto>.Filter.Eq(_ => _.Id, job.StateId)).FirstOrDefault() != null);
                 })
                 .Select(jobQueue => jobQueue.JobId)
                 .ToArray();
@@ -56,25 +52,23 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
             int start = @from + 1;
             int end = from + perPage;
 
-            return AsyncHelper.RunSync(() => _connection.JobQueue
-                .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null)).ToListAsync())
+            return _connection.JobQueue
+                .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null)).ToList()
                 .Select((data, i) => new { Index = i + 1, Data = data })
                 .Where(_ => (_.Index >= start) && (_.Index <= end))
                 .Select(x => x.Data)
-                .Where(jobQueue => AsyncHelper.RunSync(() => _connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueue.JobId)).FirstOrDefaultAsync()) != null)
+                .Where(jobQueue => _connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueue.JobId)).FirstOrDefault() != null)
                 .Select(jobQueue => jobQueue.Id)
                 .ToArray();
         }
 
         public EnqueuedAndFetchedCountDto GetEnqueuedAndFetchedCount(string queue)
         {
-            int enqueuedCount = (int)AsyncHelper.RunSync(() =>
-                _connection.JobQueue.CountAsync(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
-                                                Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)));
+            int enqueuedCount = (int)_connection.JobQueue.Count(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
+                                                                Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null));
 
-            int fetchedCount = (int)AsyncHelper.RunSync(() =>
-                _connection.JobQueue.CountAsync(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
-                                                Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null)));
+            int fetchedCount = (int)_connection.JobQueue.Count(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
+                                                               Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null));
 
             return new EnqueuedAndFetchedCountDto
             {
