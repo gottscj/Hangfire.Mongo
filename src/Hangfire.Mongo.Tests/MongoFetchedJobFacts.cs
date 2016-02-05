@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Data;
-using System.Linq;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Helpers;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Moq;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests
@@ -82,7 +78,7 @@ namespace Hangfire.Mongo.Tests
                 processingJob.RemoveFromQueue();
 
                 // Assert
-                var count = AsyncHelper.RunSync(() => connection.JobQueue.CountAsync(new BsonDocument()));
+                var count = connection.JobQueue.Count(new BsonDocument());
                 Assert.Equal(0, count);
             });
         }
@@ -103,7 +99,7 @@ namespace Hangfire.Mongo.Tests
                 fetchedJob.RemoveFromQueue();
 
                 // Assert
-                var count = AsyncHelper.RunSync(() => connection.JobQueue.CountAsync(new BsonDocument()));
+                var count = connection.JobQueue.Count(new BsonDocument());
                 Assert.Equal(3, count);
             });
         }
@@ -121,7 +117,7 @@ namespace Hangfire.Mongo.Tests
                 processingJob.Requeue();
 
                 // Assert
-                var record = AsyncHelper.RunSync(() => connection.JobQueue.Find(new BsonDocument()).ToListAsync()).Single();
+                var record = connection.JobQueue.Find(new BsonDocument()).Single();
                 Assert.Null(record.FetchedAt);
             });
         }
@@ -139,7 +135,7 @@ namespace Hangfire.Mongo.Tests
                 processingJob.Dispose();
 
                 // Assert
-                var record = AsyncHelper.RunSync(() => connection.JobQueue.Find(new BsonDocument()).ToListAsync()).Single();
+                var record = connection.JobQueue.Find(new BsonDocument()).Single();
                 Assert.Null(record.FetchedAt);
             });
         }
@@ -153,7 +149,7 @@ namespace Hangfire.Mongo.Tests
                 FetchedAt = connection.GetServerTimeUtc()
             };
 
-            AsyncHelper.RunSync(() => connection.JobQueue.InsertOneAsync(jobQueue));
+            connection.JobQueue.InsertOne(jobQueue);
 
             return jobQueue.Id;
         }

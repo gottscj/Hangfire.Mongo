@@ -1,7 +1,6 @@
 ﻿using System;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Helpers;
 using Hangfire.Storage;
 using MongoDB.Driver;
 
@@ -61,9 +60,7 @@ namespace Hangfire.Mongo
         /// </summary>
         public void RemoveFromQueue()
         {
-            AsyncHelper.RunSync(() => _connection
-                .JobQueue
-                .DeleteOneAsync(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id)));
+            _connection.JobQueue.DeleteOne(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id));
 
             _removedFromQueue = true;
         }
@@ -73,10 +70,9 @@ namespace Hangfire.Mongo
         /// </summary>
         public void Requeue()
         {
-            AsyncHelper.RunSync(() => _connection.JobQueue.FindOneAndUpdateAsync(
+            _connection.JobQueue.FindOneAndUpdate(
                 Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id),
-                Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null)
-                ));
+                Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null));
 
             _requeued = true;
         }

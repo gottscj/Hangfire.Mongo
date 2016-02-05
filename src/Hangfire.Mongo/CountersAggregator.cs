@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Helpers;
 using Hangfire.Server;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -65,7 +62,7 @@ namespace Hangfire.Mongo
                 {
                     HangfireDbContext database = storageConnection.Database;
 
-                    CounterDto[] recordsToAggregate = AsyncHelper.RunSync(() => database.Counter.Find(new BsonDocument()).Limit(NumberOfRecordsInSinglePass).ToListAsync()).ToArray();
+                    var recordsToAggregate = database.Counter.Find(new BsonDocument()).Limit(NumberOfRecordsInSinglePass).ToList();
                     var recordsToMerge = recordsToAggregate
                         .GroupBy(_ => _.Key).Select(_ => new
                         {
@@ -77,28 +74,30 @@ namespace Hangfire.Mongo
 
                     foreach (var item in recordsToMerge)
                     {
-                        AggregatedCounterDto aggregatedItem = AsyncHelper.RunSync(() => database.AggregatedCounter.Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key)).FirstOrDefaultAsync());
+                        AggregatedCounterDto aggregatedItem =
+                            database.AggregatedCounter.Find(
+                                Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key)).FirstOrDefault();
                         if (aggregatedItem != null)
                         {
-                            AsyncHelper.RunSync(() => database.AggregatedCounter.UpdateOneAsync(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key),
+                            database.AggregatedCounter.UpdateOne(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key),
                                 Builders<AggregatedCounterDto>.Update.Combine(
                                 Builders<AggregatedCounterDto>.Update.Inc(_ => _.Value, item.Value),
-                                Builders<AggregatedCounterDto>.Update.Set(_ => _.ExpireAt, item.ExpireAt > aggregatedItem.ExpireAt ? item.ExpireAt : aggregatedItem.ExpireAt))));
+                                Builders<AggregatedCounterDto>.Update.Set(_ => _.ExpireAt, item.ExpireAt > aggregatedItem.ExpireAt ? item.ExpireAt : aggregatedItem.ExpireAt)));
                         }
                         else
                         {
-                            AsyncHelper.RunSync(() => database.AggregatedCounter.InsertOneAsync(new AggregatedCounterDto
+                            database.AggregatedCounter.InsertOne(new AggregatedCounterDto
                             {
                                 Id = ObjectId.GenerateNewId(),
                                 Key = item.Key,
                                 Value = item.Value,
                                 ExpireAt = item.ExpireAt
-                            }));
+                            });
                         }
                     }
 
-                    removedCount = AsyncHelper.RunSync(() => database.Counter.DeleteManyAsync(Builders<CounterDto>.Filter.In(
-                                _ => _.Id, recordsToAggregate.Select(_ => _.Id)))).DeletedCount;
+                    removedCount = database.Counter.DeleteMany(Builders<CounterDto>.Filter.In(
+                                _ => _.Id, recordsToAggregate.Select(_ => _.Id))).DeletedCount;
                 }
 
                 if (removedCount >= NumberOfRecordsInSinglePass)

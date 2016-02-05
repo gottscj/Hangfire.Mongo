@@ -5,7 +5,6 @@ using System.Threading;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Helpers;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
@@ -149,7 +148,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.NotNull(jobId);
                 Assert.NotEmpty(jobId);
 
-                var databaseJob = AsyncHelper.RunSync(() => database.Job.Find(new BsonDocument()).ToListAsync()).Single();
+                var databaseJob = database.Job.Find(new BsonDocument()).Single();
                 Assert.Equal(jobId, databaseJob.Id.ToString());
                 Assert.Equal(createdAt, databaseJob.CreatedAt);
                 Assert.Equal(ObjectId.Empty, databaseJob.StateId);
@@ -166,7 +165,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.True(createdAt.AddDays(1).AddMinutes(-1) < databaseJob.ExpireAt);
                 Assert.True(databaseJob.ExpireAt < createdAt.AddDays(1).AddMinutes(1));
 
-                var parameters = AsyncHelper.RunSync(() => database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId))).ToListAsync())
+                var parameters = database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId))).ToList()
                     .ToDictionary(x => x.Name, x => x.Value);
 
                 Assert.Equal("Value1", parameters["Key1"]);
@@ -206,7 +205,7 @@ namespace Hangfire.Mongo.Tests
                     StateName = "Succeeded",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
+                database.Job.InsertOne(jobDto);
 
                 var result = connection.GetJobData(jobDto.Id.ToString());
 
@@ -244,9 +243,9 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 var data = new Dictionary<string, string>
-						{
-							{ "Key", "Value" }
-						};
+                {
+                    { "Key", "Value" }
+                };
 
                 var jobDto = new JobDto
                 {
@@ -257,16 +256,16 @@ namespace Hangfire.Mongo.Tests
                     CreatedAt = database.GetServerTimeUtc()
                 };
 
-                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
+                database.Job.InsertOne(jobDto);
                 var jobId = jobDto.Id;
 
-                AsyncHelper.RunSync(() => database.State.InsertOneAsync(new StateDto
+                database.State.InsertOne(new StateDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     JobId = jobId,
                     Name = "old-state",
                     CreatedAt = database.GetServerTimeUtc()
-                }));
+                });
 
                 var stateDto = new StateDto
                 {
@@ -277,10 +276,10 @@ namespace Hangfire.Mongo.Tests
                     Data = JobHelper.ToJson(data),
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => database.State.InsertOneAsync(stateDto));
+                database.State.InsertOne(stateDto);
 
                 jobDto.StateId = stateDto.Id;
-                AsyncHelper.RunSync(() => database.Job.ReplaceOneAsync(_ => _.Id == jobDto.Id, jobDto, new UpdateOptions()));
+                database.Job.ReplaceOne(_ => _.Id == jobDto.Id, jobDto, new UpdateOptions());
 
                 var result = connection.GetStateData(jobId.ToString());
                 Assert.NotNull(result);
@@ -304,7 +303,7 @@ namespace Hangfire.Mongo.Tests
                     StateName = "Succeeded",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
+                database.Job.InsertOne(jobDto);
                 var jobId = jobDto.Id;
 
                 var result = connection.GetJobData(jobId.ToString());
@@ -349,13 +348,13 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
+                database.Job.InsertOne(jobDto);
                 string jobId = jobDto.Id.ToString();
 
                 connection.SetJobParameter(jobId, "Name", "Value");
 
-                var parameter = AsyncHelper.RunSync(() => database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)) &
-                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, "Name")).FirstOrDefaultAsync());
+                var parameter = database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)) &
+                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, "Name")).FirstOrDefault();
 
                 Assert.Equal("Value", parameter.Value);
             });
@@ -373,14 +372,14 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
+                database.Job.InsertOne(jobDto);
                 string jobId = jobDto.Id.ToString();
 
                 connection.SetJobParameter(jobId, "Name", "Value");
                 connection.SetJobParameter(jobId, "Name", "AnotherValue");
 
-                var parameter = AsyncHelper.RunSync(() => database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)) &
-                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, "Name")).FirstOrDefaultAsync());
+                var parameter = database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)) &
+                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, "Name")).FirstOrDefault();
 
                 Assert.Equal("AnotherValue", parameter.Value);
             });
@@ -398,13 +397,13 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
+                database.Job.InsertOne(jobDto);
                 string jobId = jobDto.Id.ToString();
 
                 connection.SetJobParameter(jobId, "Name", null);
 
-                var parameter = AsyncHelper.RunSync(() => database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)) &
-                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, "Name")).FirstOrDefaultAsync());
+                var parameter = database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)) &
+                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, "Name")).FirstOrDefault();
 
                 Assert.Equal(null, parameter.Value);
             });
@@ -456,16 +455,16 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = database.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => database.Job.InsertOneAsync(jobDto));
+                database.Job.InsertOne(jobDto);
                 string jobId = jobDto.Id.ToString();
 
-                AsyncHelper.RunSync(() => database.JobParameter.InsertOneAsync(new JobParameterDto
+                database.JobParameter.InsertOne(new JobParameterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     JobId = int.Parse(jobId),
                     Name = "name",
                     Value = "value"
-                }));
+                });
 
                 var value = connection.GetJobParameter(jobId, "name");
 
@@ -509,34 +508,34 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Score = 1.0,
                     Value = "1.0"
-                }));
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                });
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Score = -1.0,
                     Value = "-1.0"
-                }));
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                });
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Score = -5.0,
                     Value = "-5.0"
-                }));
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                });
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "another-key",
                     Score = -2.0,
                     Value = "-2.0"
-                }));
+                });
 
                 var result = connection.GetFirstByLowestScoreFromSet("key", -1.0, 3.0);
 
@@ -580,7 +579,7 @@ namespace Hangfire.Mongo.Tests
                 };
                 connection.AnnounceServer("server", context1);
 
-                var server = AsyncHelper.RunSync(() => database.Server.Find(new BsonDocument()).ToListAsync()).Single();
+                var server = database.Server.Find(new BsonDocument()).Single();
                 Assert.Equal("server", server.Id);
                 Assert.True(((string)server.Data).StartsWith(
                     "{\"WorkerCount\":4,\"Queues\":[\"critical\",\"default\"],\"StartedAt\":"),
@@ -593,7 +592,7 @@ namespace Hangfire.Mongo.Tests
                     WorkerCount = 1000
                 };
                 connection.AnnounceServer("server", context2);
-                var sameServer = AsyncHelper.RunSync(() => database.Server.Find(new BsonDocument()).ToListAsync()).Single();
+                var sameServer = database.Server.Find(new BsonDocument()).Single();
                 Assert.Equal("server", sameServer.Id);
                 Assert.Contains("1000", sameServer.Data);
             });
@@ -611,22 +610,22 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                AsyncHelper.RunSync(() => database.Server.InsertOneAsync(new ServerDto
+                database.Server.InsertOne(new ServerDto
                 {
                     Id = "Server1",
                     Data = "",
                     LastHeartbeat = database.GetServerTimeUtc()
-                }));
-                AsyncHelper.RunSync(() => database.Server.InsertOneAsync(new ServerDto
+                });
+                database.Server.InsertOne(new ServerDto
                 {
                     Id = "Server2",
                     Data = "",
                     LastHeartbeat = database.GetServerTimeUtc()
-                }));
+                });
 
                 connection.RemoveServer("Server1");
 
-                var server = AsyncHelper.RunSync(() => database.Server.Find(new BsonDocument()).ToListAsync()).Single();
+                var server = database.Server.Find(new BsonDocument()).Single();
                 Assert.NotEqual("Server1", server.Id, StringComparer.OrdinalIgnoreCase);
             });
         }
@@ -643,22 +642,22 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                AsyncHelper.RunSync(() => database.Server.InsertOneAsync(new ServerDto
+                database.Server.InsertOne(new ServerDto
                 {
                     Id = "server1",
                     Data = "",
                     LastHeartbeat = new DateTime(2012, 12, 12, 12, 12, 12, DateTimeKind.Utc)
-                }));
-                AsyncHelper.RunSync(() => database.Server.InsertOneAsync(new ServerDto
+                });
+                database.Server.InsertOne(new ServerDto
                 {
                     Id = "server2",
                     Data = "",
                     LastHeartbeat = new DateTime(2012, 12, 12, 12, 12, 12, DateTimeKind.Utc)
-                }));
+                });
 
                 connection.Heartbeat("server1");
 
-                var servers = AsyncHelper.RunSync(() => database.Server.Find(new BsonDocument()).ToListAsync())
+                var servers = database.Server.Find(new BsonDocument()).ToList()
                     .ToDictionary(x => x.Id, x => x.LastHeartbeat);
 
                 Assert.NotEqual(2012, servers["server1"].Value.Year);
@@ -678,22 +677,22 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                AsyncHelper.RunSync(() => database.Server.InsertOneAsync(new ServerDto
+                database.Server.InsertOne(new ServerDto
                 {
                     Id = "server1",
                     Data = "",
                     LastHeartbeat = database.GetServerTimeUtc().AddDays(-1)
-                }));
-                AsyncHelper.RunSync(() => database.Server.InsertOneAsync(new ServerDto
+                });
+                database.Server.InsertOne(new ServerDto
                 {
                     Id = "server2",
                     Data = "",
                     LastHeartbeat = database.GetServerTimeUtc().AddHours(-12)
-                }));
+                });
 
                 connection.RemoveTimedOutServers(TimeSpan.FromHours(15));
 
-                var liveServer = AsyncHelper.RunSync(() => database.Server.Find(new BsonDocument()).ToListAsync()).Single();
+                var liveServer = database.Server.Find(new BsonDocument()).Single();
                 Assert.Equal("server2", liveServer.Id);
             });
         }
@@ -723,27 +722,27 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-set",
                     Score = 0.0,
                     Value = "1"
-                }));
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                });
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-set",
                     Score = 0.0,
                     Value = "2"
-                }));
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                });
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "another-set",
                     Score = 0.0,
                     Value = "3"
-                }));
+                });
 
                 // Act
                 var result = connection.GetAllItemsFromSet("some-set");
@@ -785,12 +784,12 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 connection.SetRangeInHash("some-hash", new Dictionary<string, string>
-						{
-							{ "Key1", "Value1" },
-							{ "Key2", "Value2" }
-						});
+                {
+                    { "Key1", "Value1" },
+                    { "Key2", "Value2" }
+                });
 
-                var result = AsyncHelper.RunSync(() => database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, "some-hash")).ToListAsync())
+                var result = database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, "some-hash")).ToList()
                     .ToDictionary(x => x.Field, x => x.Value);
 
                 Assert.Equal("Value1", result["Key1"]);
@@ -821,27 +820,27 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                database.Hash.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-hash",
                     Field = "Key1",
                     Value = "Value1"
-                }));
-                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                });
+                database.Hash.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-hash",
                     Field = "Key2",
                     Value = "Value2"
-                }));
-                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                });
+                database.Hash.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "another-hash",
                     Field = "Key3",
                     Value = "Value3"
-                }));
+                });
 
                 // Act
                 var result = connection.GetAllEntriesFromHash("some-hash");
@@ -879,24 +878,24 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
                     Value = "value-1"
-                }));
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                });
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-2",
                     Value = "value-1"
-                }));
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                });
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
                     Value = "value-2"
-                }));
+                });
 
                 var result = connection.GetSetCount("set-1");
 
@@ -918,53 +917,53 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
                     Value = "1",
                     Score = 0.0
-                }));
+                });
 
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
                     Value = "2",
                     Score = 0.0
-                }));
+                });
 
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
                     Value = "3",
                     Score = 0.0
-                }));
+                });
 
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
                     Value = "4",
                     Score = 0.0
-                }));
+                });
 
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-2",
                     Value = "5",
                     Score = 0.0
-                }));
+                });
 
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
                     Value = "6",
                     Score = 0.0
-                }));
+                });
 
                 var result = connection.GetRangeFromSet("set-1", 2, 3);
 
@@ -997,23 +996,23 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
                     Value = "1",
                     Score = 0.0,
                     ExpireAt = DateTime.UtcNow.AddMinutes(60)
-                }));
+                });
 
-                AsyncHelper.RunSync(() => database.Set.InsertOneAsync(new SetDto
+                database.Set.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-2",
                     Value = "2",
                     Score = 0.0,
                     ExpireAt = null
-                }));
+                });
 
                 // Act
                 var result = connection.GetSetTtl("set-1");
@@ -1050,24 +1049,24 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                AsyncHelper.RunSync(() => database.Counter.InsertOneAsync(new CounterDto
+                database.Counter.InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-1",
                     Value = 1
-                }));
-                AsyncHelper.RunSync(() => database.Counter.InsertOneAsync(new CounterDto
+                });
+                database.Counter.InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-2",
                     Value = 1
-                }));
-                AsyncHelper.RunSync(() => database.Counter.InsertOneAsync(new CounterDto
+                });
+                database.Counter.InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-1",
                     Value = 1
-                }));
+                });
 
                 // Act
                 var result = connection.GetCounter("counter-1");
@@ -1083,18 +1082,18 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                AsyncHelper.RunSync(() => database.AggregatedCounter.InsertOneAsync(new AggregatedCounterDto
+                database.AggregatedCounter.InsertOne(new AggregatedCounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-1",
                     Value = 12
-                }));
-                AsyncHelper.RunSync(() => database.AggregatedCounter.InsertOneAsync(new AggregatedCounterDto
+                });
+                database.AggregatedCounter.InsertOne(new AggregatedCounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-2",
                     Value = 15
-                }));
+                });
 
                 // Act
                 var result = connection.GetCounter("counter-1");
@@ -1128,24 +1127,24 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                database.Hash.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
                     Field = "field-1"
-                }));
-                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                });
+                database.Hash.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
                     Field = "field-2"
-                }));
-                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                });
+                database.Hash.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-2",
                     Field = "field-1"
-                }));
+                });
 
                 // Act
                 var result = connection.GetHashCount("hash-1");
@@ -1181,20 +1180,20 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                database.Hash.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
                     Field = "field",
                     ExpireAt = (DateTime?)DateTime.UtcNow.AddHours(1)
-                }));
-                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                });
+                database.Hash.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-2",
                     Field = "field",
                     ExpireAt = null
-                }));
+                });
 
                 // Act
                 var result = connection.GetHashTtl("hash-1");
@@ -1245,27 +1244,27 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                database.Hash.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
                     Field = "field-1",
                     Value = "1"
-                }));
-                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                });
+                database.Hash.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
                     Field = "field-2",
                     Value = "2"
-                }));
-                AsyncHelper.RunSync(() => database.Hash.InsertOneAsync(new HashDto
+                });
+                database.Hash.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-2",
                     Field = "field-1",
                     Value = "3"
-                }));
+                });
 
                 // Act
                 var result = connection.GetValueFromHash("hash-1", "field-1");
@@ -1301,21 +1300,21 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
-                }));
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                });
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
-                }));
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                });
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-2",
-                }));
+                });
 
                 // Act
                 var result = connection.GetListCount("list-1");
@@ -1351,18 +1350,18 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                     ExpireAt = (DateTime?)DateTime.UtcNow.AddHours(1)
-                }));
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                });
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-2",
                     ExpireAt = null
-                }));
+                });
 
                 // Act
                 var result = connection.GetListTtl("list-1");
@@ -1401,36 +1400,36 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                     Value = "1"
-                }));
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                });
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-2",
                     Value = "2"
-                }));
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                });
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                     Value = "3"
-                }));
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                });
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                     Value = "4"
-                }));
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                });
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                     Value = "5"
-                }));
+                });
 
                 // Act
                 var result = connection.GetRangeFromList("list-1", 1, 2);
@@ -1466,24 +1465,24 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                     Value = "1"
-                }));
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                });
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-2",
                     Value = "2"
-                }));
-                AsyncHelper.RunSync(() => database.List.InsertOneAsync(new ListDto
+                });
+                database.List.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                     Value = "3"
-                }));
+                });
 
                 // Act
                 var result = connection.GetAllItemsFromList("list-1");

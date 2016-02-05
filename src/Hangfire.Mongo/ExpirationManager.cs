@@ -3,10 +3,8 @@ using Hangfire.Mongo.Database;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Server;
 using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading;
-using System.Threading.Tasks;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -63,17 +61,12 @@ namespace Hangfire.Mongo
             {
                 DateTime now = connection.GetServerTimeUtc();
 
-                List<Task> processedTasks = new List<Task>
-                {
-                    RemoveExpiredRecord(connection.AggregatedCounter, _ => _.ExpireAt, now),
-                    RemoveExpiredRecord(connection.Counter, _ => _.ExpireAt, now),
-                    RemoveExpiredRecord(connection.Job, _ => _.ExpireAt, now),
-                    RemoveExpiredRecord(connection.List, _ => _.ExpireAt, now),
-                    RemoveExpiredRecord(connection.Set, _ => _.ExpireAt, now),
-                    RemoveExpiredRecord(connection.Hash, _ => _.ExpireAt, now)
-                };
-
-                Task.WaitAll(processedTasks.ToArray());
+                RemoveExpiredRecord(connection.AggregatedCounter, _ => _.ExpireAt, now);
+                RemoveExpiredRecord(connection.Counter, _ => _.ExpireAt, now);
+                RemoveExpiredRecord(connection.Job, _ => _.ExpireAt, now);
+                RemoveExpiredRecord(connection.List, _ => _.ExpireAt, now);
+                RemoveExpiredRecord(connection.Set, _ => _.ExpireAt, now);
+                RemoveExpiredRecord(connection.Hash, _ => _.ExpireAt, now);
             }
 
             cancellationToken.WaitHandle.WaitOne(_checkInterval);
@@ -87,11 +80,11 @@ namespace Hangfire.Mongo
             return "Mongo Expiration Manager";
         }
 
-        private static async Task<long> RemoveExpiredRecord<TEntity, TField>(IMongoCollection<TEntity> collection, Expression<Func<TEntity, TField>> expression, TField now)
+        private static long RemoveExpiredRecord<TEntity, TField>(IMongoCollection<TEntity> collection, Expression<Func<TEntity, TField>> expression, TField now)
         {
             Logger.DebugFormat("Removing outdated records from table '{0}'...", collection.CollectionNamespace.CollectionName);
 
-            DeleteResult result = await collection.DeleteManyAsync(Builders<TEntity>.Filter.Lt(expression, now));
+            DeleteResult result = collection.DeleteMany(Builders<TEntity>.Filter.Lt(expression, now));
             return result.DeletedCount;
         }
     }

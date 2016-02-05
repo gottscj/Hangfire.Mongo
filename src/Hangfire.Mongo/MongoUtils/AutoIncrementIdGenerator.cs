@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Reflection;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Helpers;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
@@ -60,14 +59,14 @@ namespace Hangfire.Mongo.MongoUtils
 
             var idSequenceCollection = database.GetCollection<IdentifierDto>(_prefix + "_identifiers");
 
-            IdentifierDto result = AsyncHelper.RunSync(() => idSequenceCollection.FindOneAndUpdateAsync(
+            IdentifierDto result = idSequenceCollection.FindOneAndUpdate(
                 Builders<IdentifierDto>.Filter.Eq(_ => _.Id, collectionNamespace.CollectionName),
                 Builders<IdentifierDto>.Update.Inc(_ => _.Seq, 1),
-                new FindOneAndUpdateOptions<IdentifierDto>()
+                new FindOneAndUpdateOptions<IdentifierDto>
                 {
                     IsUpsert = true,
                     ReturnDocument = ReturnDocument.After
-                }));
+                });
 
             return FormatNumber(result.Seq);
         }
