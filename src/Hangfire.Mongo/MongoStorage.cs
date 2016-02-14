@@ -24,6 +24,8 @@ namespace Hangfire.Mongo
 
         private readonly string _databaseName;
 
+	    private readonly MongoClientSettings _mongoClientSettings;
+
         private readonly MongoStorageOptions _options;
 
         /// <summary>
@@ -89,6 +91,7 @@ namespace Hangfire.Mongo
 			if (options == null)
 				throw new ArgumentNullException("options");
 
+			_mongoClientSettings = mongoClientSettings;
 			_databaseName = databaseName;
 			_options = options;
 
@@ -163,16 +166,24 @@ namespace Hangfire.Mongo
         /// <returns>Database context</returns>
         public HangfireDbContext CreateAndOpenConnection()
         {
-            return new HangfireDbContext(_connectionString, _databaseName, _options.Prefix);
+	        return this._connectionString != null ? new HangfireDbContext(this._connectionString, this._databaseName, this._options.Prefix) : new HangfireDbContext(this._mongoClientSettings, this._databaseName, this._options.Prefix);
         }
 
-        /// <summary>
+	    /// <summary>
         /// Returns text representation of the object
         /// </summary>
         public override string ToString()
         {
             // Obscure the username and password for display purposes
-            string obscuredConnectionString = _connectionStringCredentials.Replace(_connectionString, "mongodb://<username>:<password>@");
+			string obscuredConnectionString = "mongodb://";
+	        if (_connectionString != null)
+	        {
+				obscuredConnectionString = _connectionStringCredentials.Replace(_connectionString, "mongodb://<username>:<password>@");
+	        }
+	        else if (_mongoClientSettings != null && _mongoClientSettings.Server != null)
+	        {
+		        obscuredConnectionString = string.Format("mongodb://<username>:<password>@{0}:{1}", _mongoClientSettings.Server.Host, _mongoClientSettings.Server.Port);
+	        }
             return String.Format("Connection string: {0}, database name: {1}, prefix: {2}", obscuredConnectionString, _databaseName, _options.Prefix);
 
         }
