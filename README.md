@@ -71,7 +71,6 @@ public void Configuration(IAppBuilder app)
 }
 ```
 
-
 License
 -------
 
