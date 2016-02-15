@@ -52,6 +52,26 @@ public void Configuration(IAppBuilder app)
 }
 ```
 
+## Custom Mongo DB settings
+
+To use custom Mongo DB connection settings you can use `MongoClientSettings` object from Mongo DB driver package.
+In this case just use it instead of passing connection string when you configure your storage.
+
+```csharp
+public void Configuration(IAppBuilder app)
+{
+    GlobalConfiguration.Configuration.UseMongoStorage(new MongoClientSettings()
+            {
+                // ...
+                IPv6 = true
+            }, "ApplicationDatabase");
+
+    app.UseHangfireServer();
+    app.UseHangfireDashboard();
+}
+```
+
+
 License
 -------
 
