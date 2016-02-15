@@ -26,7 +26,11 @@ namespace Hangfire.Mongo.MongoUtils
             catch (MongoException)
             {
                 return DateTime.UtcNow;
-            }
+			}
+			catch (FormatException)
+			{
+				return DateTime.UtcNow;
+			}
         }
 
         /// <summary>
