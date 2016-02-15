@@ -1,6 +1,7 @@
 ﻿using Hangfire.Mongo.Database;
 using MongoDB.Driver;
 using System;
+using System.Collections.Generic;
 using Hangfire.Mongo.Helpers;
 using MongoDB.Bson;
 
@@ -18,15 +19,14 @@ namespace Hangfire.Mongo.MongoUtils
         /// <returns>Server time</returns>
         public static DateTime GetServerTimeUtc(this IMongoDatabase database)
         {
-            try
-            {
-                dynamic serverStatus = AsyncHelper.RunSync(() => database.RunCommandAsync<dynamic>(new BsonDocument("isMaster", 1)));
-                return ((DateTime)serverStatus.localTime).ToUniversalTime();
-            }
-            catch (MongoException)
-            {
-                return DateTime.UtcNow;
-            }
+			dynamic serverStatus = AsyncHelper.RunSync(() => database.RunCommandAsync<dynamic>(new BsonDocument("isMaster", 1)));
+	        object localTime;
+			if (((IDictionary<string, object>)serverStatus).TryGetValue("localTime", out localTime))
+			{
+				return ((DateTime)localTime).ToUniversalTime();
+			}
+
+			return DateTime.UtcNow;
         }
 
         /// <summary>
@@ -38,5 +38,5 @@ namespace Hangfire.Mongo.MongoUtils
         {
             return GetServerTimeUtc(dbContext.Database);
         }
-    }
+	}
 }

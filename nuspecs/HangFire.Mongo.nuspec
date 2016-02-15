@@ -36,7 +36,7 @@
         </dependencies>
     </metadata>
     <files>
-        <file src="Net45\Hangfire.Mongo\Hangfire.Mongo.dll" target="lib\Hangfire.Mongo.dll" />
-        <file src="Net45\Hangfire.Mongo\Hangfire.Mongo.XML" target="lib\Hangfire.Mongo.XML" />
+        <file src="Net45\Hangfire.Mongo\Hangfire.Mongo.dll" target="lib\net45" />
+        <file src="Net45\Hangfire.Mongo\Hangfire.Mongo.XML" target="lib\net45" />
     </files>
 </package>
