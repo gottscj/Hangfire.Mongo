@@ -40,15 +40,16 @@ namespace Hangfire.Mongo
             get { return _queuePollInterval; }
             set
             {
-                var message = $"The QueuePollInterval property value should be positive. Given: {value}.";
+                var message = String.Format("The QueuePollInterval property value should be positive. Given: {0}.",
+	                value);
 
                 if (value == TimeSpan.Zero)
                 {
-                    throw new ArgumentException(message, nameof(value));
+                    throw new ArgumentException(message, "value");
                 }
                 if (value != value.Duration())
                 {
-                    throw new ArgumentException(message, nameof(value));
+                    throw new ArgumentException(message, "value");
                 }
 
                 _queuePollInterval = value;
@@ -68,15 +69,16 @@ namespace Hangfire.Mongo
             get { return _distributedLockLifetime; }
             set
             {
-                var message = $"The DistributedLockLifetime property value should be positive. Given: {value}.";
+                var message = String.Format(
+	                "The DistributedLockLifetime property value should be positive. Given: {0}.", value);
 
                 if (value == TimeSpan.Zero)
                 {
-                    throw new ArgumentException(message, nameof(value));
+                    throw new ArgumentException(message, "value");
                 }
                 if (value != value.Duration())
                 {
-                    throw new ArgumentException(message, nameof(value));
+                    throw new ArgumentException(message, "value");
                 }
 
                 _distributedLockLifetime = value;
@@ -86,7 +88,7 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Cleint identifier
         /// </summary>
-        public string ClientId { get; }
+        public string ClientId { get; private set; }
 
 	    /// <summary>
         /// Expiration check inteval for jobs

@@ -9,7 +9,7 @@ namespace Hangfire.Mongo
     /// <summary>
     /// Hangfire fetched job for Mongo database
     /// </summary>
-    public class MongoFetchedJob : IFetchedJob
+    public sealed class MongoFetchedJob : IFetchedJob
     {
         private readonly HangfireDbContext _connection;
 
@@ -28,9 +28,9 @@ namespace Hangfire.Mongo
         /// <param name="queue">Queue name</param>
         public MongoFetchedJob(HangfireDbContext connection, int id, string jobId, string queue)
         {
-            if (connection == null) throw new ArgumentNullException(nameof(connection));
-            if (jobId == null) throw new ArgumentNullException(nameof(jobId));
-            if (queue == null) throw new ArgumentNullException(nameof(queue));
+            if (connection == null) throw new ArgumentNullException("connection");
+            if (jobId == null) throw new ArgumentNullException("jobId");
+            if (queue == null) throw new ArgumentNullException("queue");
 
             _connection = connection;
 
@@ -43,12 +43,12 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Identifier
         /// </summary>
-        public int Id { get; }
+        public int Id { get; private set; }
 
         /// <summary>
         /// Job ID
         /// </summary>
-        public string JobId { get; }
+        public string JobId { get; private set; }
 
         /// <summary>
         /// Queue name

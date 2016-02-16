@@ -349,8 +349,8 @@ namespace Hangfire.Mongo
                         FetchedAt = null,
                         StateId = job.StateId,
                         StateName = job.StateName,
-                        StateReason = state?.Reason,
-                        StateData = state?.Data
+                        StateReason = state != null ? state.Reason : null,
+                        StateData = state != null ? state.Data : null
                     };
                 })
                 .ToList();
@@ -438,8 +438,8 @@ namespace Hangfire.Mongo
                         FetchedAt = null,
                         StateId = job.StateId,
                         StateName = job.StateName,
-                        StateReason = state?.Reason,
-                        StateData = state?.Data
+                        StateReason = state != null ? state.Reason : null,
+                        StateData = state != null ? state.Data : null
                     };
                 })
                 .ToList();
@@ -500,8 +500,8 @@ namespace Hangfire.Mongo
                         FetchedAt = null,
                         StateId = job.StateId,
                         StateName = job.StateName,
-                        StateReason = state?.Reason,
-                        StateData = state?.Data
+                        StateReason = state != null ? state.Reason : null,
+                        StateData = state != null ? state.Data : null
                     };
                 })
                 .ToList();
@@ -528,7 +528,7 @@ namespace Hangfire.Mongo
             }
 
             var stringDates = dates.Select(x => x.ToString("yyyy-MM-dd")).ToList();
-            var keys = stringDates.Select(x => $"stats:{type}:{x}").ToList();
+            var keys = stringDates.Select(x => String.Format("stats:{0}:{1}", type, x)).ToList();
 
             var valuesMap = connection.AggregatedCounter
                 .Find(Builders<AggregatedCounterDto>.Filter.In(_ => _.Key, keys))
@@ -561,7 +561,7 @@ namespace Hangfire.Mongo
                 endDate = endDate.AddHours(-1);
             }
 
-            var keys = dates.Select(x => $"stats:{type}:{x.ToString("yyyy-MM-dd-HH")}").ToList();
+            var keys = dates.Select(x => String.Format("stats:{0}:{1}", type, x.ToString("yyyy-MM-dd-HH"))).ToList();
 
             var valuesMap = connection.Counter.Find(Builders<CounterDto>.Filter.In(_ => _.Key, keys))
                 .ToList()

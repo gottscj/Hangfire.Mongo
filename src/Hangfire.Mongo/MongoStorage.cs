@@ -44,13 +44,13 @@ namespace Hangfire.Mongo
         public MongoStorage(string connectionString, string databaseName, MongoStorageOptions options)
         {
             if (string.IsNullOrWhiteSpace(connectionString))
-                throw new ArgumentNullException(nameof(connectionString));
+                throw new ArgumentNullException("connectionString");
 
             if (string.IsNullOrWhiteSpace(databaseName))
-                throw new ArgumentNullException(nameof(databaseName));
+                throw new ArgumentNullException("databaseName");
 
             if (options == null)
-                throw new ArgumentNullException(nameof(options));
+                throw new ArgumentNullException("options");
 
             _connectionString = connectionString;
             _databaseName = databaseName;
@@ -64,12 +64,12 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Database context
         /// </summary>
-        public HangfireDbContext Connection { get; }
+        public HangfireDbContext Connection { get; private set; }
 
         /// <summary>
         /// Queue providers collection
         /// </summary>
-        public PersistentJobQueueProviderCollection QueueProviders { get; }
+        public PersistentJobQueueProviderCollection QueueProviders { get; private set; }
 
         /// <summary>
         /// Returns Monitoring API object
@@ -138,7 +138,8 @@ namespace Hangfire.Mongo
             // Obscure the username and password for display purposes
             var obscuredConnectionString = ConnectionStringCredentials.Replace(_connectionString, "mongodb://<username>:<password>@");
             return
-	            $"Connection string: {obscuredConnectionString}, database name: {_databaseName}, prefix: {_options.Prefix}";
+	            String.Format("Connection string: {0}, database name: {1}, prefix: {2}", obscuredConnectionString,
+		            _databaseName, _options.Prefix);
         }
     }
 }

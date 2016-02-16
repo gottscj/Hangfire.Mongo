@@ -15,7 +15,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
         public MongoJobQueueMonitoringApi(HangfireDbContext connection)
         {
             if (connection == null)
-                throw new ArgumentNullException(nameof(connection));
+                throw new ArgumentNullException("connection");
 
             _connection = connection;
         }

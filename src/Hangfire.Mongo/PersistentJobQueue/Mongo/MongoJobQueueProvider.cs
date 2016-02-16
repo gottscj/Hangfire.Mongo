@@ -11,7 +11,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
         public MongoJobQueueProvider(MongoStorageOptions options)
         {
             if (options == null)
-                throw new ArgumentNullException(nameof(options));
+                throw new ArgumentNullException("options");
 
             _options = options;
         }

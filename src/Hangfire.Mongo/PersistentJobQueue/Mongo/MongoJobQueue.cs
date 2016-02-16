@@ -10,7 +10,8 @@ using MongoDB.Driver;
 
 namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 {
-    public class MongoJobQueue : IPersistentJobQueue
+#pragma warning disable 1591
+	public class MongoJobQueue : IPersistentJobQueue
     {
         private readonly MongoStorageOptions _options;
 
@@ -19,10 +20,10 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
         public MongoJobQueue(HangfireDbContext connection, MongoStorageOptions options)
         {
             if (options == null)
-                throw new ArgumentNullException(nameof(options));
+                throw new ArgumentNullException("options");
 
             if (connection == null)
-                throw new ArgumentNullException(nameof(connection));
+                throw new ArgumentNullException("connection");
 
             _options = options;
             _connection = connection;
@@ -32,10 +33,10 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
         public IFetchedJob Dequeue(string[] queues, CancellationToken cancellationToken)
         {
             if (queues == null)
-                throw new ArgumentNullException(nameof(queues));
+                throw new ArgumentNullException("queues");
 
             if (queues.Length == 0)
-                throw new ArgumentException("Queue array must be non-empty.", nameof(queues));
+                throw new ArgumentException("Queue array must be non-empty.", "queues");
 
             JobQueueDto fetchedJob;
 
@@ -87,4 +88,5 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 });
         }
     }
+#pragma warning disable 1591
 }

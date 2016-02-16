@@ -36,7 +36,7 @@ namespace Hangfire.Mongo
 		public ExpirationManager(MongoStorage storage, TimeSpan checkInterval)
 		{
 			if (storage == null)
-				throw new ArgumentNullException(nameof(storage));
+				throw new ArgumentNullException("storage");
 
 			_storage = storage;
 			_checkInterval = checkInterval;

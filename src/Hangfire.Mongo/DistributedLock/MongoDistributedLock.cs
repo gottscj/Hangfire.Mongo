@@ -11,7 +11,7 @@ namespace Hangfire.Mongo.DistributedLock
     /// <summary>
     /// Represents distibuted lock implementation for MongoDB
     /// </summary>
-    public class MongoDistributedLock : IDisposable
+    public sealed class MongoDistributedLock : IDisposable
     {
         private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
 
@@ -25,23 +25,24 @@ namespace Hangfire.Mongo.DistributedLock
 
         private bool _completed;
 
-        /// <summary>
-        /// Creates MongoDB distributed lock
-        /// </summary>
-        /// <param name="resource">Lock resource</param>
-        /// <param name="timeout">Lock timeout</param>
-        /// <param name="database">Lock database</param>
-        /// <param name="options">Database options</param>
-        public MongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext database, MongoStorageOptions options)
+	    /// <summary>
+	    /// Creates MongoDB distributed lock
+	    /// </summary>
+	    /// <param name="resource">Lock resource</param>
+	    /// <param name="timeout">Lock timeout</param>
+	    /// <param name="database">Lock database</param>
+	    /// <param name="options">Database options</param>
+	    /// <exception cref="MongoDistributedLockException"></exception>
+	    public MongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext database, MongoStorageOptions options)
         {
             if (String.IsNullOrEmpty(resource))
-                throw new ArgumentNullException(nameof(resource));
+                throw new ArgumentNullException("resource");
 
             if (database == null)
-                throw new ArgumentNullException(nameof(database));
+                throw new ArgumentNullException("database");
 
             if (options == null)
-                throw new ArgumentNullException(nameof(options));
+                throw new ArgumentNullException("options");
 
             _resource = resource;
             _database = database;
@@ -89,7 +90,8 @@ namespace Hangfire.Mongo.DistributedLock
                 else
                 {
                     throw new MongoDistributedLockException(
-	                    $"Could not place a lock on the resource '{_resource}': {"The lock request timed out"}.");
+	                    String.Format("Could not place a lock on the resource '{0}': {1}.", _resource,
+		                    "The lock request timed out"));
                 }
             }
             catch (Exception ex)
@@ -98,7 +100,8 @@ namespace Hangfire.Mongo.DistributedLock
                     throw;
                 else
                     throw new MongoDistributedLockException(
-	                    $"Could not place a lock on the resource '{_resource}': {"Check inner exception for details"}.", ex);
+	                    String.Format("Could not place a lock on the resource '{0}': {1}.", _resource,
+		                    "Check inner exception for details"), ex);
             }
         }
 
@@ -124,10 +127,11 @@ namespace Hangfire.Mongo.DistributedLock
             }, null, timerInterval, timerInterval);
         }
 
-        /// <summary>
-        /// Disposes the object
-        /// </summary>
-        public void Dispose()
+	    /// <summary>
+	    /// Disposes the object
+	    /// </summary>
+	    /// <exception cref="MongoDistributedLockException"></exception>
+	    public void Dispose()
         {
             if (_completed)
                 return;
@@ -160,7 +164,8 @@ namespace Hangfire.Mongo.DistributedLock
             catch (Exception ex)
             {
                 throw new MongoDistributedLockException(
-	                $"Could not release a lock on the resource '{_resource}': {"Check inner exception for details"}.", ex);
+	                String.Format("Could not release a lock on the resource '{0}': {1}.", _resource,
+		                "Check inner exception for details"), ex);
             }
         }
     }

@@ -17,7 +17,10 @@ namespace Hangfire.Mongo.StateHandlers
             transaction.RemoveFromList("succeeded", context.BackgroundJob.Id);
         }
 
-        public string StateName => SucceededState.StateName;
+        public string StateName
+        {
+	        get { return SucceededState.StateName; }
+        }
     }
 #pragma warning restore 1591
 }

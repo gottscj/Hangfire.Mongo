@@ -14,7 +14,7 @@ using MongoDB.Driver;
 namespace Hangfire.Mongo
 {
 #pragma warning disable 1591
-    public class MongoWriteOnlyTransaction : IWriteOnlyTransaction
+    public sealed class MongoWriteOnlyTransaction : IWriteOnlyTransaction
     {
         private readonly Queue<Action<HangfireDbContext>> _commandQueue = new Queue<Action<HangfireDbContext>>();
 
@@ -25,10 +25,10 @@ namespace Hangfire.Mongo
         public MongoWriteOnlyTransaction(HangfireDbContext connection, PersistentJobQueueProviderCollection queueProviders)
         {
             if (connection == null)
-                throw new ArgumentNullException(nameof(connection));
+                throw new ArgumentNullException("connection");
 
             if (queueProviders == null)
-                throw new ArgumentNullException(nameof(queueProviders));
+                throw new ArgumentNullException("queueProviders");
 
             _connection = connection;
             _queueProviders = queueProviders;
@@ -204,10 +204,10 @@ namespace Hangfire.Mongo
         public void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
             if (key == null)
-                throw new ArgumentNullException(nameof(key));
+                throw new ArgumentNullException("key");
 
             if (keyValuePairs == null)
-                throw new ArgumentNullException(nameof(keyValuePairs));
+                throw new ArgumentNullException("keyValuePairs");
 
             foreach (var keyValuePair in keyValuePairs)
             {
@@ -226,7 +226,7 @@ namespace Hangfire.Mongo
         public void RemoveHash(string key)
         {
             if (key == null)
-                throw new ArgumentNullException(nameof(key));
+                throw new ArgumentNullException("key");
 
             QueueCommand(x => x.Hash.DeleteMany(Builders<HashDto>.Filter.Eq(_ => _.Key, key)));
         }
