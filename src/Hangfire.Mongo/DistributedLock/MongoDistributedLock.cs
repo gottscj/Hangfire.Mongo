@@ -127,11 +127,12 @@ namespace Hangfire.Mongo.DistributedLock
             }, null, timerInterval, timerInterval);
         }
 
-	    /// <summary>
-	    /// Disposes the object
-	    /// </summary>
-	    /// <exception cref="MongoDistributedLockException"></exception>
-	    public void Dispose()
+		/// <summary>
+		/// Disposes the object
+		/// </summary>
+		/// <exception cref="MongoDistributedLockException"></exception>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
+		public void Dispose()
         {
             if (_completed)
                 return;

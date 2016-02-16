@@ -5,10 +5,11 @@ using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Database
 {
-    /// <summary>
-    /// Represents Mongo database context for Hangfire
-    /// </summary>
-    public class HangfireDbContext : IDisposable
+	/// <summary>
+	/// Represents Mongo database context for Hangfire
+	/// </summary>
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1063:ImplementIDisposableCorrectly")]
+	public class HangfireDbContext : IDisposable
     {
         private const int RequiredSchemaVersion = 4;
 
@@ -178,10 +179,12 @@ namespace Hangfire.Mongo.Database
             }
         }
 
-        /// <summary>
-        /// Disposes the object
-        /// </summary>
-        public void Dispose()
+		/// <summary>
+		/// Disposes the object
+		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1063:ImplementIDisposableCorrectly", 
+			Justification="Dispose should only implement finalizer if owning an unmanaged resource")]
+		public void Dispose()
         {
         }
     }
