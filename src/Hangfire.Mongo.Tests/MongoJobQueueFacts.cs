@@ -6,7 +6,6 @@ using Hangfire.Mongo.Tests.Utils;
 using System;
 using System.Linq;
 using System.Threading;
-using Hangfire.Mongo.Helpers;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Xunit;
@@ -105,7 +104,7 @@ namespace Hangfire.Mongo.Tests
                     Queue = "default"
                 };
 
-                AsyncHelper.RunSync(() => connection.JobQueue.InsertOneAsync(jobQueue));
+                connection.JobQueue.InsertOne(jobQueue);
 
                 var id = jobQueue.Id;
                 var queue = CreateJobQueue(connection);
@@ -132,14 +131,14 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = connection.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => connection.Job.InsertOneAsync(job));
+                connection.Job.InsertOne(job);
 
                 var jobQueue = new JobQueueDto
                 {
                     JobId = job.Id,
                     Queue = "default"
                 };
-                AsyncHelper.RunSync(() => connection.JobQueue.InsertOneAsync(jobQueue));
+                connection.JobQueue.InsertOne(jobQueue);
 
                 var queue = CreateJobQueue(connection);
 
@@ -149,7 +148,7 @@ namespace Hangfire.Mongo.Tests
                 // Assert
                 Assert.NotNull(payload);
 
-                var fetchedAt = AsyncHelper.RunSync(() => connection.JobQueue.Find(Builders<JobQueueDto>.Filter.Eq(_ => _.JobId, int.Parse(payload.JobId))).FirstOrDefaultAsync()).FetchedAt;
+                var fetchedAt = connection.JobQueue.Find(Builders<JobQueueDto>.Filter.Eq(_ => _.JobId, int.Parse(payload.JobId))).FirstOrDefault().FetchedAt;
 
                 Assert.NotNull(fetchedAt);
                 Assert.True(fetchedAt > DateTime.UtcNow.AddMinutes(-1));
@@ -168,7 +167,7 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = connection.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => connection.Job.InsertOneAsync(job));
+                connection.Job.InsertOne(job);
 
                 var jobQueue = new JobQueueDto
                 {
@@ -176,7 +175,7 @@ namespace Hangfire.Mongo.Tests
                     Queue = "default",
                     FetchedAt = connection.GetServerTimeUtc().AddDays(-1)
                 };
-                AsyncHelper.RunSync(() => connection.JobQueue.InsertOneAsync(jobQueue));
+                connection.JobQueue.InsertOne(jobQueue);
 
                 var queue = CreateJobQueue(connection);
 
@@ -200,7 +199,7 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = connection.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => connection.Job.InsertOneAsync(job1));
+                connection.Job.InsertOne(job1);
 
                 var job2 = new JobDto
                 {
@@ -208,19 +207,19 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = connection.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => connection.Job.InsertOneAsync(job2));
+                connection.Job.InsertOne(job2);
 
-                AsyncHelper.RunSync(() => connection.JobQueue.InsertOneAsync(new JobQueueDto
+                connection.JobQueue.InsertOne(new JobQueueDto
                 {
                     JobId = job1.Id,
                     Queue = "default"
-                }));
+                });
 
-                AsyncHelper.RunSync(() => connection.JobQueue.InsertOneAsync(new JobQueueDto
+                connection.JobQueue.InsertOne(new JobQueueDto
                 {
                     JobId = job2.Id,
                     Queue = "default"
-                }));
+                });
 
                 var queue = CreateJobQueue(connection);
 
@@ -228,7 +227,7 @@ namespace Hangfire.Mongo.Tests
                 var payload = queue.Dequeue(DefaultQueues, CreateTimingOutCancellationToken());
 
                 // Assert
-                var otherJobFetchedAt = AsyncHelper.RunSync(() => connection.JobQueue.Find(Builders<JobQueueDto>.Filter.Ne(_ => _.JobId, int.Parse(payload.JobId))).FirstOrDefaultAsync()).FetchedAt;
+                var otherJobFetchedAt = connection.JobQueue.Find(Builders<JobQueueDto>.Filter.Ne(_ => _.JobId, int.Parse(payload.JobId))).FirstOrDefault().FetchedAt;
 
                 Assert.Null(otherJobFetchedAt);
             });
@@ -245,13 +244,13 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = connection.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => connection.Job.InsertOneAsync(job1));
+                connection.Job.InsertOne(job1);
 
-                AsyncHelper.RunSync(() => connection.JobQueue.InsertOneAsync(new JobQueueDto
+                connection.JobQueue.InsertOne(new JobQueueDto
                 {
                     JobId = job1.Id,
                     Queue = "critical"
-                }));
+                });
 
 
                 var queue = CreateJobQueue(connection);
@@ -271,7 +270,7 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = connection.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => connection.Job.InsertOneAsync(job1));
+                connection.Job.InsertOne(job1);
 
                 var job2 = new JobDto
                 {
@@ -279,19 +278,19 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = connection.GetServerTimeUtc()
                 };
-                AsyncHelper.RunSync(() => connection.Job.InsertOneAsync(job2));
+                connection.Job.InsertOne(job2);
 
-                AsyncHelper.RunSync(() => connection.JobQueue.InsertOneAsync(new JobQueueDto
+                connection.JobQueue.InsertOne(new JobQueueDto
                 {
                     JobId = job1.Id,
                     Queue = "critical"
-                }));
+                });
 
-                AsyncHelper.RunSync(() => connection.JobQueue.InsertOneAsync(new JobQueueDto
+                connection.JobQueue.InsertOne(new JobQueueDto
                 {
                     JobId = job2.Id,
                     Queue = "default"
-                }));
+                });
 
                 var queue = CreateJobQueue(connection);
 
@@ -320,7 +319,7 @@ namespace Hangfire.Mongo.Tests
 
                 queue.Enqueue("default", "1");
 
-                var record = AsyncHelper.RunSync(() => connection.JobQueue.Find(new BsonDocument()).ToListAsync()).Single();
+                var record = connection.JobQueue.Find(new BsonDocument()).ToList().Single();
                 Assert.Equal("1", record.JobId.ToString());
                 Assert.Equal("default", record.Queue);
                 Assert.Null(record.FetchedAt);

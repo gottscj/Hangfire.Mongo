@@ -1,4 +1,7 @@
-﻿using Hangfire.Logging;
+﻿using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
@@ -6,9 +9,6 @@ using Hangfire.Mongo.StateHandlers;
 using Hangfire.Server;
 using Hangfire.States;
 using Hangfire.Storage;
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 namespace Hangfire.Mongo
 {
@@ -19,7 +19,7 @@ namespace Hangfire.Mongo
     {
         private readonly string _connectionString;
 
-        private static readonly Regex _connectionStringCredentials = new Regex("mongodb://(.*?)@", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static readonly Regex ConnectionStringCredentials = new Regex("mongodb://(.*?)@", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private readonly string _databaseName;
 
@@ -43,14 +43,14 @@ namespace Hangfire.Mongo
         /// <param name="options">Storage options</param>
         public MongoStorage(string connectionString, string databaseName, MongoStorageOptions options)
         {
-            if (String.IsNullOrWhiteSpace(connectionString) == true)
-                throw new ArgumentNullException("connectionString");
+            if (string.IsNullOrWhiteSpace(connectionString))
+                throw new ArgumentNullException(nameof(connectionString));
 
-            if (String.IsNullOrWhiteSpace(databaseName) == true)
-                throw new ArgumentNullException("databaseName");
+            if (string.IsNullOrWhiteSpace(databaseName))
+                throw new ArgumentNullException(nameof(databaseName));
 
             if (options == null)
-                throw new ArgumentNullException("options");
+                throw new ArgumentNullException(nameof(options));
 
             _connectionString = connectionString;
             _databaseName = databaseName;
@@ -64,12 +64,12 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Database context
         /// </summary>
-        public HangfireDbContext Connection { get; private set; }
+        public HangfireDbContext Connection { get; }
 
         /// <summary>
         /// Queue providers collection
         /// </summary>
-        public PersistentJobQueueProviderCollection QueueProviders { get; private set; }
+        public PersistentJobQueueProviderCollection QueueProviders { get; }
 
         /// <summary>
         /// Returns Monitoring API object
@@ -136,9 +136,9 @@ namespace Hangfire.Mongo
         public override string ToString()
         {
             // Obscure the username and password for display purposes
-            string obscuredConnectionString = _connectionStringCredentials.Replace(_connectionString, "mongodb://<username>:<password>@");
-            return String.Format("Connection string: {0}, database name: {1}, prefix: {2}", obscuredConnectionString, _databaseName, _options.Prefix);
-
+            var obscuredConnectionString = ConnectionStringCredentials.Replace(_connectionString, "mongodb://<username>:<password>@");
+            return
+	            $"Connection string: {obscuredConnectionString}, database name: {_databaseName}, prefix: {_options.Prefix}";
         }
     }
 }

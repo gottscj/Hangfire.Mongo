@@ -7,9 +7,7 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoStorageOptions
     {
-        private readonly string _clientId = null;
-
-        private TimeSpan _queuePollInterval;
+	    private TimeSpan _queuePollInterval;
 
         private TimeSpan _distributedLockLifetime;
 
@@ -26,7 +24,7 @@ namespace Hangfire.Mongo
             CountersAggregateInterval = TimeSpan.FromMinutes(5);
 
 
-            _clientId = Guid.NewGuid().ToString().Replace("-", String.Empty);
+            ClientId = Guid.NewGuid().ToString().Replace("-", String.Empty);
         }
 
         /// <summary>
@@ -42,17 +40,15 @@ namespace Hangfire.Mongo
             get { return _queuePollInterval; }
             set
             {
-                var message = String.Format(
-                    "The QueuePollInterval property value should be positive. Given: {0}.",
-                    value);
+                var message = $"The QueuePollInterval property value should be positive. Given: {value}.";
 
                 if (value == TimeSpan.Zero)
                 {
-                    throw new ArgumentException(message, "value");
+                    throw new ArgumentException(message, nameof(value));
                 }
                 if (value != value.Duration())
                 {
-                    throw new ArgumentException(message, "value");
+                    throw new ArgumentException(message, nameof(value));
                 }
 
                 _queuePollInterval = value;
@@ -72,17 +68,15 @@ namespace Hangfire.Mongo
             get { return _distributedLockLifetime; }
             set
             {
-                var message = String.Format(
-                    "The DistributedLockLifetime property value should be positive. Given: {0}.",
-                    value);
+                var message = $"The DistributedLockLifetime property value should be positive. Given: {value}.";
 
                 if (value == TimeSpan.Zero)
                 {
-                    throw new ArgumentException(message, "value");
+                    throw new ArgumentException(message, nameof(value));
                 }
                 if (value != value.Duration())
                 {
-                    throw new ArgumentException(message, "value");
+                    throw new ArgumentException(message, nameof(value));
                 }
 
                 _distributedLockLifetime = value;
@@ -92,12 +86,9 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Cleint identifier
         /// </summary>
-        public string ClientId
-        {
-            get { return _clientId; }
-        }
+        public string ClientId { get; }
 
-        /// <summary>
+	    /// <summary>
         /// Expiration check inteval for jobs
         /// </summary>
         public TimeSpan JobExpirationCheckInterval { get; set; }

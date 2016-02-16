@@ -1,5 +1,4 @@
-﻿using System.Data;
-using Hangfire.Mongo.Database;
+﻿using Hangfire.Mongo.Database;
 
 namespace Hangfire.Mongo.PersistentJobQueue
 {

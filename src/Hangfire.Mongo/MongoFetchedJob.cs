@@ -1,7 +1,6 @@
 ﻿using System;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Helpers;
 using Hangfire.Storage;
 using MongoDB.Driver;
 
@@ -29,9 +28,9 @@ namespace Hangfire.Mongo
         /// <param name="queue">Queue name</param>
         public MongoFetchedJob(HangfireDbContext connection, int id, string jobId, string queue)
         {
-            if (connection == null) throw new ArgumentNullException("connection");
-            if (jobId == null) throw new ArgumentNullException("jobId");
-            if (queue == null) throw new ArgumentNullException("queue");
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+            if (jobId == null) throw new ArgumentNullException(nameof(jobId));
+            if (queue == null) throw new ArgumentNullException(nameof(queue));
 
             _connection = connection;
 
@@ -44,12 +43,12 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Identifier
         /// </summary>
-        public int Id { get; private set; }
+        public int Id { get; }
 
         /// <summary>
         /// Job ID
         /// </summary>
-        public string JobId { get; private set; }
+        public string JobId { get; }
 
         /// <summary>
         /// Queue name
@@ -61,9 +60,9 @@ namespace Hangfire.Mongo
         /// </summary>
         public void RemoveFromQueue()
         {
-            AsyncHelper.RunSync(() => _connection
+             _connection
                 .JobQueue
-                .DeleteOneAsync(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id)));
+                .DeleteOne(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id));
 
             _removedFromQueue = true;
         }
@@ -73,10 +72,9 @@ namespace Hangfire.Mongo
         /// </summary>
         public void Requeue()
         {
-            AsyncHelper.RunSync(() => _connection.JobQueue.FindOneAndUpdateAsync(
-                Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id),
-                Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null)
-                ));
+	        _connection.JobQueue.FindOneAndUpdate(
+		        Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id),
+		        Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null));
 
             _requeued = true;
         }

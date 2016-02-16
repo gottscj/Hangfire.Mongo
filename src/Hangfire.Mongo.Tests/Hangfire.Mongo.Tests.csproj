@@ -88,7 +88,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AsyncHelperFacts.cs" />
     <Compile Include="CountersAggregatorFacts.cs" />
     <Compile Include="ExpirationManagerFacts.cs" />
     <Compile Include="MongoConnectionFacts.cs" />

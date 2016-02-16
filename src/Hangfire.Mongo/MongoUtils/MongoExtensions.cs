@@ -1,9 +1,8 @@
-﻿using Hangfire.Mongo.Database;
-using MongoDB.Driver;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using Hangfire.Mongo.Helpers;
+using Hangfire.Mongo.Database;
 using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo.MongoUtils
 {
@@ -12,24 +11,23 @@ namespace Hangfire.Mongo.MongoUtils
     /// </summary>
     public static class MongoExtensions
     {
-        /// <summary>
-        /// Retreives server time in UTC zone
-        /// </summary>
-        /// <param name="database">Mongo database</param>
-        /// <returns>Server time</returns>
-        public static DateTime GetServerTimeUtc(this IMongoDatabase database)
-        {
-			dynamic serverStatus = AsyncHelper.RunSync(() => database.RunCommandAsync<dynamic>(new BsonDocument("isMaster", 1)));
-	        object localTime;
-			if (((IDictionary<string, object>)serverStatus).TryGetValue("localTime", out localTime))
-			{
-				return ((DateTime)localTime).ToUniversalTime();
-			}
+	    /// <summary>
+	    /// Retreives server time in UTC zone
+	    /// </summary>
+	    /// <param name="database">Mongo database</param>
+	    /// <returns>Server time</returns>
+	    public static DateTime GetServerTimeUtc(this IMongoDatabase database)
+	    {
+		    dynamic serverStatus = database.RunCommand<dynamic>(new BsonDocument("isMaster", 1));
+		    object localTime;
+		    if (((IDictionary<string, object>) serverStatus).TryGetValue("localTime", out localTime))
+		    {
+			    return ((DateTime) localTime).ToUniversalTime();
+		    }
+		    return DateTime.UtcNow;
+	    }
 
-			return DateTime.UtcNow;
-        }
-
-        /// <summary>
+	    /// <summary>
         /// Retreives server time in UTC zone
         /// </summary>
         /// <param name="dbContext">Hangfire database context</param>
@@ -38,5 +36,5 @@ namespace Hangfire.Mongo.MongoUtils
         {
             return GetServerTimeUtc(dbContext.Database);
         }
-	}
+    }
 }

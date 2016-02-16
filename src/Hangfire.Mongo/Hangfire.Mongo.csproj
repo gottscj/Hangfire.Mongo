@@ -92,7 +92,6 @@
     <Compile Include="Dto\SetDto.cs" />
     <Compile Include="Dto\StateDto.cs" />
     <Compile Include="ExpirationManager.cs" />
-    <Compile Include="Helpers\AsyncHelper.cs" />
     <Compile Include="MongoBootstrapperConfigurationExtensions.cs" />
     <Compile Include="MongoConnection.cs" />
     <Compile Include="MongoFetchedJob.cs" />
