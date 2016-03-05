@@ -19,14 +19,20 @@ namespace Hangfire.Mongo.MongoUtils
         /// <returns>Server time</returns>
         public static DateTime GetServerTimeUtc(this IMongoDatabase database)
         {
-			dynamic serverStatus = AsyncHelper.RunSync(() => database.RunCommandAsync<dynamic>(new BsonDocument("isMaster", 1)));
-	        object localTime;
-			if (((IDictionary<string, object>)serverStatus).TryGetValue("localTime", out localTime))
+	        try
+	        {
+				dynamic serverStatus = AsyncHelper.RunSync(() => database.RunCommandAsync<dynamic>(new BsonDocument("isMaster", 1)));
+				object localTime;
+				if (((IDictionary<string, object>)serverStatus).TryGetValue("localTime", out localTime))
+				{
+					return ((DateTime)localTime).ToUniversalTime();
+				}
+				return DateTime.UtcNow;
+	        }
+	        catch (FormatException)
 			{
-				return ((DateTime)localTime).ToUniversalTime();
-			}
-
-			return DateTime.UtcNow;
+				return DateTime.UtcNow;
+	        }
         }
 
         /// <summary>
