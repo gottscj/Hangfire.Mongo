@@ -14,6 +14,9 @@
         <copyright>Copyright © Sergey Zwezdin</copyright>
         <tags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</tags>
         <releaseNotes>https://github.com/sergun/Hangfire.Mongo/releases/
+0.2.5
+* MongoDB time format exception workaround
+
 0.2.4
 * MongoDB.Driver updated to 2.2.3
 * Added support of MongoClientSettings
