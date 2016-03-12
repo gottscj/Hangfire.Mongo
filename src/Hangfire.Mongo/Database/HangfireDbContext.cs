@@ -34,6 +34,23 @@ namespace Hangfire.Mongo.Database
             ConnectionId = Guid.NewGuid().ToString();
         }
 
+		/// <summary>
+		/// Constructs context with Mongo client settings and database name
+		/// </summary>
+		/// <param name="mongoClientSettings">Client settings for MongoDB</param>
+		/// <param name="databaseName">Database name</param>
+		/// <param name="prefix">Collections prefix</param>
+		public HangfireDbContext(MongoClientSettings mongoClientSettings, string databaseName, string prefix = "hangfire")
+		{
+			_prefix = prefix;
+
+			MongoClient client = new MongoClient(mongoClientSettings);
+
+			Database = client.GetDatabase(databaseName);
+
+			ConnectionId = Guid.NewGuid().ToString();
+		}
+
         /// <summary>
         /// Constructs context with existing Mongo database connection
         /// </summary>

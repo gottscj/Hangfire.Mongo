@@ -1,16 +1,16 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Hangfire.Mongo.net45")]
-[assembly: AssemblyDescription("Hangfire MongoDB Storage. https://github.com/gottscj/Hangfire.Mongo")]
+[assembly: AssemblyTitle("Hangfire.Mongo")]
+[assembly: AssemblyDescription("Hangfire MongoDB Storage. https://github.com/sergun/Hangfire.Mongo")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Hangfire.Mongo.net45")]
-[assembly: AssemblyCopyright("Copyright © 2014 Sergey Zwezdin")]
+[assembly: AssemblyProduct("Hangfire.Mongo")]
+[assembly: AssemblyCopyright("Copyright © 2014-2016 Sergey Zwezdin")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -32,7 +32,7 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.3.0")]
-[assembly: AssemblyInformationalVersion("0.3.0")]
-[assembly: AssemblyFileVersion("0.3.0")]
+[assembly: AssemblyVersion("0.2.5")]
+[assembly: AssemblyInformationalVersion("0.2.5")]
+[assembly: AssemblyFileVersion("0.2.5")]
 [assembly: InternalsVisibleTo("Hangfire.Mongo.Tests")]
