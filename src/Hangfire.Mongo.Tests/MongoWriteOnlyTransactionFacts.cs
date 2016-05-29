@@ -710,9 +710,204 @@ namespace Hangfire.Mongo.Tests
             });
         }
 
+        [Fact, CleanDatabase]
+        public void ExpireSet_SetsSetExpirationData()
+        {
+            UseConnection(database =>
+            {
+                var set1 = new SetDto {Key="Set1", Value = "value1"};
+                database.Set.InsertOne(set1);
+
+                var set2 = new SetDto { Key = "Set2", Value = "value2" };
+                database.Set.InsertOne(set2);
+
+                Commit(database, x => x.ExpireSet(set1.Key, TimeSpan.FromDays(1)));
+
+                var testSet1 = GetTestSet(database, set1.Key).FirstOrDefault();
+                Assert.True(database.GetServerTimeUtc().AddMinutes(-1) < testSet1.ExpireAt && testSet1.ExpireAt <= database.GetServerTimeUtc().AddDays(1));
+
+                var testSet2 = GetTestSet(database, set2.Key).FirstOrDefault();
+                Assert.Null(testSet2.ExpireAt);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void ExpireList_SetsListExpirationData()
+        {
+            UseConnection(database =>
+            {
+                var list1 = new ListDto { Key = "List1", Value = "value1" };
+                database.List.InsertOne(list1);
+
+                var list2 = new ListDto { Key = "List2", Value = "value2" };
+                database.List.InsertOne(list2);
+
+                Commit(database, x => x.ExpireList(list1.Key, TimeSpan.FromDays(1)));
+
+                var testList1 = GetTestList(database, list1.Key);
+                Assert.True(database.GetServerTimeUtc().AddMinutes(-1) < testList1.ExpireAt && testList1.ExpireAt <= database.GetServerTimeUtc().AddDays(1));
+
+                var testList2 = GetTestList(database, list2.Key);
+                Assert.Null(testList2.ExpireAt);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void ExpireHash_SetsHashExpirationData()
+        {
+            UseConnection(database =>
+            {
+                var hash1 = new HashDto { Key = "Hash1", Value = "value1" };
+                database.Hash.InsertOne(hash1);
+
+                var hash2 = new HashDto { Key = "Hash2", Value = "value2" };
+                database.Hash.InsertOne(hash2);
+
+                Commit(database, x => x.ExpireHash(hash1.Key, TimeSpan.FromDays(1)));
+
+                var testHash1 = GetTestHash(database, hash1.Key);
+                Assert.True(database.GetServerTimeUtc().AddMinutes(-1) < testHash1.ExpireAt && testHash1.ExpireAt <= database.GetServerTimeUtc().AddDays(1));
+
+                var testHash2 = GetTestHash(database, hash2.Key);
+                Assert.Null(testHash2.ExpireAt);
+            });
+        }
+
+
+        [Fact, CleanDatabase]
+        public void PersistSet_ClearsTheSetExpirationData()
+        {
+            UseConnection(database =>
+            {
+                var set1 = new SetDto { Key = "Set1", Value = "value1", ExpireAt = database.GetServerTimeUtc() };
+                database.Set.InsertOne(set1);
+
+                var set2 = new SetDto { Key = "Set2", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                database.Set.InsertOne(set2);
+
+                Commit(database, x => x.PersistSet(set1.Key));
+
+                var testSet1 = GetTestSet(database, set1.Key).First();
+                Assert.Null(testSet1.ExpireAt);
+
+                var testSet2 = GetTestSet(database, set2.Key).First();
+                Assert.NotNull(testSet2.ExpireAt);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void PersistList_ClearsTheListExpirationData()
+        {
+            UseConnection(database =>
+            {
+                var list1 = new ListDto { Key = "List1", Value = "value1", ExpireAt = database.GetServerTimeUtc() };
+                database.List.InsertOne(list1);
+
+                var list2 = new ListDto { Key = "List2", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                database.List.InsertOne(list2);
+
+                Commit(database, x => x.PersistList(list1.Key));
+
+                var testList1 = GetTestList(database, list1.Key);
+                Assert.Null(testList1.ExpireAt);
+
+                var testList2 = GetTestList(database, list2.Key);
+                Assert.NotNull(testList2.ExpireAt);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void PersistHash_ClearsTheHashExpirationData()
+        {
+            UseConnection(database =>
+            {
+                var hash1 = new HashDto { Key = "Hash1", Value = "value1", ExpireAt = database.GetServerTimeUtc() };
+                database.Hash.InsertOne(hash1);
+
+                var hash2 = new HashDto { Key = "Hash2", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                database.Hash.InsertOne(hash2);
+
+                Commit(database, x => x.PersistHash(hash1.Key));
+
+                var testHash1 = GetTestHash(database, hash1.Key);
+                Assert.Null(testHash1.ExpireAt);
+
+                var testHash2 = GetTestHash(database, hash2.Key);
+                Assert.NotNull(testHash2.ExpireAt);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void AddRangeToSet_AddToExistingSetData()
+        {
+            UseConnection(database =>
+            {
+                var set1Val1 = new SetDto { Key = "Set1", Value = "value1", ExpireAt = database.GetServerTimeUtc() };
+                database.Set.InsertOne(set1Val1);
+
+                var set1Val2 = new SetDto { Key = "Set1", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                database.Set.InsertOne(set1Val2);
+
+                var set2 = new SetDto { Key = "Set2", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                database.Set.InsertOne(set2);
+
+                var values = new string[] {"test1", "test2", "test3"};
+                Commit(database, x => x.AddRangeToSet(set1Val1.Key, values));
+
+                var testSet1 = GetTestSet(database, set1Val1.Key);
+                Assert.NotNull(testSet1);
+                Assert.Equal(5, testSet1.Count);
+
+                var testSet2 = GetTestSet(database, set2.Key);
+                Assert.NotNull(testSet2);
+                Assert.Equal(1, testSet2.Count);
+            });
+        }
+
+
+        [Fact, CleanDatabase]
+        public void RemoveSet_ClearsTheSetData()
+        {
+            UseConnection(database =>
+            {
+                var set1Val1 = new SetDto { Key = "Set1", Value = "value1", ExpireAt = database.GetServerTimeUtc() };
+                database.Set.InsertOne(set1Val1);
+
+                var set1Val2 = new SetDto { Key = "Set1", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                database.Set.InsertOne(set1Val2);
+
+                var set2 = new SetDto { Key = "Set2", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                database.Set.InsertOne(set2);
+
+                Commit(database, x => x.RemoveSet(set1Val1.Key));
+
+                var testSet1 = GetTestSet(database, set1Val1.Key);
+                Assert.Equal(0, testSet1.Count);
+
+                var testSet2 = GetTestSet(database, set2.Key);
+                Assert.Equal(1, testSet2.Count);
+            });
+        }
+
+
         private static dynamic GetTestJob(HangfireDbContext database, int jobId)
         {
             return database.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId)).FirstOrDefault();
+        }
+
+        private static IList<SetDto> GetTestSet(HangfireDbContext database, string key)
+        {
+            return database.Set.Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key)).ToList();
+        }
+
+        private static dynamic GetTestList(HangfireDbContext database, string key)
+        {
+            return database.List.Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key)).FirstOrDefault();
+        }
+
+        private static dynamic GetTestHash(HangfireDbContext database, string key)
+        {
+            return database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).FirstOrDefault();
         }
 
         private void UseConnection(Action<HangfireDbContext> action)
