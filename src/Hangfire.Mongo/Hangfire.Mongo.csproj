@@ -24,7 +24,8 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <RunCodeAnalysis>true</RunCodeAnalysis>
-    <DocumentationFile>bin\Debug\Hangfire.Mongo.xml</DocumentationFile>
+    <DocumentationFile>bin\Debug\Hangfire.Mongo.XML</DocumentationFile>
+    <LangVersion>5</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -92,7 +93,6 @@
     <Compile Include="Dto\SetDto.cs" />
     <Compile Include="Dto\StateDto.cs" />
     <Compile Include="ExpirationManager.cs" />
-    <Compile Include="Helpers\AsyncHelper.cs" />
     <Compile Include="MongoBootstrapperConfigurationExtensions.cs" />
     <Compile Include="MongoConnection.cs" />
     <Compile Include="MongoFetchedJob.cs" />

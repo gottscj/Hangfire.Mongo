@@ -1,4 +1,7 @@
-﻿using Hangfire.Logging;
+﻿using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
@@ -6,9 +9,6 @@ using Hangfire.Mongo.StateHandlers;
 using Hangfire.Server;
 using Hangfire.States;
 using Hangfire.Storage;
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -20,7 +20,7 @@ namespace Hangfire.Mongo
     {
         private readonly string _connectionString;
 
-        private static readonly Regex _connectionStringCredentials = new Regex("mongodb://(.*?)@", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static readonly Regex ConnectionStringCredentials = new Regex("mongodb://(.*?)@", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private readonly string _databaseName;
 
@@ -46,10 +46,10 @@ namespace Hangfire.Mongo
         /// <param name="options">Storage options</param>
         public MongoStorage(string connectionString, string databaseName, MongoStorageOptions options)
         {
-            if (String.IsNullOrWhiteSpace(connectionString) == true)
+            if (string.IsNullOrWhiteSpace(connectionString))
                 throw new ArgumentNullException("connectionString");
 
-            if (String.IsNullOrWhiteSpace(databaseName) == true)
+            if (string.IsNullOrWhiteSpace(databaseName))
                 throw new ArgumentNullException("databaseName");
 
             if (options == null)
@@ -178,14 +178,14 @@ namespace Hangfire.Mongo
 			string obscuredConnectionString = "mongodb://";
 	        if (_connectionString != null)
 	        {
-				obscuredConnectionString = _connectionStringCredentials.Replace(_connectionString, "mongodb://<username>:<password>@");
+				obscuredConnectionString = ConnectionStringCredentials.Replace(_connectionString, "mongodb://<username>:<password>@");
 	        }
 	        else if (_mongoClientSettings != null && _mongoClientSettings.Server != null)
 	        {
 		        obscuredConnectionString = string.Format("mongodb://<username>:<password>@{0}:{1}", _mongoClientSettings.Server.Host, _mongoClientSettings.Server.Port);
 	        }
             return String.Format("Connection string: {0}, database name: {1}, prefix: {2}", obscuredConnectionString, _databaseName, _options.Prefix);
-
+			
         }
     }
 }

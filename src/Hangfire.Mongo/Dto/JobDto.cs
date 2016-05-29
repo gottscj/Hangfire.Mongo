@@ -1,7 +1,7 @@
-﻿using Hangfire.Mongo.MongoUtils;
+﻿using System;
+using Hangfire.Mongo.MongoUtils;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using System;
 
 namespace Hangfire.Mongo.Dto
 {

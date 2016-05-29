@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using Hangfire.Mongo.Tests.Utils;
-using Hangfire.Server;
 using Hangfire.Storage;
 using Xunit;
 

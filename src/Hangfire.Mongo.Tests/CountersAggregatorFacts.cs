@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Helpers;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using Xunit;
@@ -21,12 +20,12 @@ namespace Hangfire.Mongo.Tests
                 using (var database = ConnectionUtils.CreateConnection())
                 {
                     // Arrange
-                    AsyncHelper.RunSync(() => database.Counter.InsertOneAsync(new CounterDto
+                    database.Counter.InsertOne(new CounterDto
                     {
                         Key = "key",
                         Value = 1,
                         ExpireAt = DateTime.UtcNow.AddHours(1)
-                    }));
+                    });
 
                     var aggregator = new CountersAggregator(storage, TimeSpan.Zero);
                     var cts = new CancellationTokenSource();
@@ -36,7 +35,7 @@ namespace Hangfire.Mongo.Tests
                     aggregator.Execute(cts.Token);
 
                     // Assert
-                    Assert.Equal(1, AsyncHelper.RunSync(() => database.AggregatedCounter.CountAsync(new BsonDocument())));
+                    Assert.Equal(1, database.AggregatedCounter.Count(new BsonDocument()));
                 }
             }
         }

@@ -1,5 +1,5 @@
-﻿using MongoDB.Bson;
-using System;
+﻿using System;
+using MongoDB.Bson;
 
 namespace Hangfire.Mongo.Dto
 {

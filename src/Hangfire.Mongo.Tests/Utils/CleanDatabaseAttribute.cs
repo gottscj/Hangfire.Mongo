@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -38,23 +36,20 @@ namespace Hangfire.Mongo.Tests.Utils
                 try
                 {
                     context.Init();
-
-                    List<Task> tasks = new List<Task>();
-
-                    tasks.Add(context.Identifiers.DeleteManyAsync(new BsonDocument()));
-                    tasks.Add(context.DistributedLock.DeleteManyAsync(new BsonDocument()));
-                    tasks.Add(context.AggregatedCounter.DeleteManyAsync(new BsonDocument()));
-                    tasks.Add(context.Counter.DeleteManyAsync(new BsonDocument()));
-                    tasks.Add(context.Hash.DeleteManyAsync(new BsonDocument()));
-                    tasks.Add(context.Job.DeleteManyAsync(new BsonDocument()));
-                    tasks.Add(context.JobParameter.DeleteManyAsync(new BsonDocument()));
-                    tasks.Add(context.JobQueue.DeleteManyAsync(new BsonDocument()));
-                    tasks.Add(context.List.DeleteManyAsync(new BsonDocument()));
-                    tasks.Add(context.Server.DeleteManyAsync(new BsonDocument()));
-                    tasks.Add(context.Set.DeleteManyAsync(new BsonDocument()));
-                    tasks.Add(context.State.DeleteManyAsync(new BsonDocument()));
-
-                    Task.WaitAll(tasks.ToArray());
+					
+                    context.Identifiers.DeleteMany(new BsonDocument());
+                    context.DistributedLock.DeleteMany(new BsonDocument());
+                    context.AggregatedCounter.DeleteMany(new BsonDocument());
+                    context.Counter.DeleteMany(new BsonDocument());
+                    context.Hash.DeleteMany(new BsonDocument());
+                    context.Job.DeleteMany(new BsonDocument());
+                    context.JobParameter.DeleteMany(new BsonDocument());
+                    context.JobQueue.DeleteMany(new BsonDocument());
+                    context.List.DeleteMany(new BsonDocument());
+                    context.Server.DeleteMany(new BsonDocument());
+                    context.Set.DeleteMany(new BsonDocument());
+                    context.State.DeleteMany(new BsonDocument());
+					
                 }
                 catch (MongoException ex)
                 {
