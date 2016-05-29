@@ -266,7 +266,7 @@ namespace Hangfire.Mongo.Tests
             {
                 CreatedAt = database.GetServerTimeUtc(),
                 Data = stateName == EnqueuedState.StateName
-                           ? string.Format(" {{ 'EnqueuedAt': '{0}' }}", database.GetServerTimeUtc())
+                           ? string.Format(" {{ 'EnqueuedAt': '{0}' }}", database.GetServerTimeUtc().ToString("o"))
                            : "{}",
                 JobId = jobId
             };
