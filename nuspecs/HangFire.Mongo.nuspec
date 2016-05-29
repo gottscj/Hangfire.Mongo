@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
     <metadata>
-        <id>HangFire.Mongo</id>
+        <id>Hangfire.Mongo</id>
         <version>1.0.0</version>
         <title>Hangfire MongoDB Storage</title>
         <authors>Sergey Zwezdin</authors>
@@ -39,8 +39,8 @@
 * Initial public release
         </releaseNotes>
         <dependencies>
-            <dependency id="HangFire.Core" version="1.5.3" />
-            <dependency id="MongoDB.Driver" version="2.2.3" />
+            <dependency id="Hangfire.Core" version="1.5.3" />
+            <dependency id="MongoDB.Driver" version="2.1.1" />
         </dependencies>
     </metadata>
     <files>
