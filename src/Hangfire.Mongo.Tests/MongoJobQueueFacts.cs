@@ -260,36 +260,36 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact, CleanDatabase]
-        public void Dequeue_ShouldFetchJobs_FromMultipleQueues()
+        public void Dequeue_ShouldFetchJobs_FromMultipleQueuesBasedOnQueuePriority()
         {
             UseConnection(connection =>
             {
-                var job1 = new JobDto
+                var criticalJob = new JobDto
                 {
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = connection.GetServerTimeUtc()
                 };
-                connection.Job.InsertOne(job1);
+                connection.Job.InsertOne(criticalJob);
 
-                var job2 = new JobDto
+                var defaultJob = new JobDto
                 {
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = connection.GetServerTimeUtc()
                 };
-                connection.Job.InsertOne(job2);
+                connection.Job.InsertOne(defaultJob);
 
                 connection.JobQueue.InsertOne(new JobQueueDto
                 {
-                    JobId = job1.Id,
-                    Queue = "critical"
+                    JobId = defaultJob.Id,
+                    Queue = "default"
                 });
 
                 connection.JobQueue.InsertOne(new JobQueueDto
                 {
-                    JobId = job2.Id,
-                    Queue = "default"
+                    JobId = criticalJob.Id,
+                    Queue = "critical"
                 });
 
                 var queue = CreateJobQueue(connection);
