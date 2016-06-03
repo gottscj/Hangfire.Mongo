@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Xunit;
 
@@ -11,7 +10,7 @@ using Xunit;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Hangfire.Mongo.Tests")]
-[assembly: AssemblyCopyright("Copyright © 2014 Sergey Zwezdin")]
+[assembly: AssemblyCopyright("Copyright © 2014-2016 Sergey Zwezdin")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

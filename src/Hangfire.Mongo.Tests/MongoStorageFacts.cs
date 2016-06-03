@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using Hangfire.Mongo.Tests.Utils;
-using Hangfire.Server;
 using Hangfire.Storage;
 using Xunit;
 
@@ -13,9 +11,9 @@ namespace Hangfire.Mongo.Tests
     public class MongoStorageFacts
     {
         [Fact]
-        public void Ctor_ThrowsAnException_WhenConnectionStringIsNull()
+        public void Ctor_ThrowsAnException_WhenConnectionStringIsEmpty()
         {
-            var exception = Assert.Throws<ArgumentNullException>(() => new MongoStorage(null, "database"));
+            var exception = Assert.Throws<ArgumentNullException>(() => new MongoStorage("", "database"));
 
             Assert.Equal("connectionString", exception.ParamName);
         }

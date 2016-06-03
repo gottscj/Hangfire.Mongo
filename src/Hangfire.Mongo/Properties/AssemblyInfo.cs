@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Hangfire.Mongo")]
-[assembly: AssemblyCopyright("Copyright © 2014 Sergey Zwezdin")]
+[assembly: AssemblyCopyright("Copyright © 2014-2016 Sergey Zwezdin")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -32,7 +32,7 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.2.3")]
-[assembly: AssemblyInformationalVersion("0.2.3")]
-[assembly: AssemblyFileVersion("0.2.3")]
+[assembly: AssemblyVersion("0.2.6")]
+[assembly: AssemblyInformationalVersion("0.2.6")]
+[assembly: AssemblyFileVersion("0.2.6")]
 [assembly: InternalsVisibleTo("Hangfire.Mongo.Tests")]

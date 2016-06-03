@@ -1,5 +1,5 @@
-﻿using Hangfire.Mongo.Database;
-using System;
+﻿using System;
+using Hangfire.Mongo.Database;
 
 namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 {
