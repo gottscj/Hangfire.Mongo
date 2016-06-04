@@ -38,7 +38,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
             if (queues.Length == 0)
                 throw new ArgumentException("Queue array must be non-empty.", "queues");
 
-            JobQueueDto fetchedJob;
+            JobQueueDto fetchedJob = null;
 
             var fetchConditions = new[]
 			{
@@ -52,14 +52,22 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 cancellationToken.ThrowIfCancellationRequested();
 
                 FilterDefinition<JobQueueDto> fetchCondition = fetchConditions[currentQueryIndex];
-                fetchedJob = _connection.JobQueue.FindOneAndUpdate(
-                        fetchCondition & Builders<JobQueueDto>.Filter.In(_ => _.Queue, queues),
-                        Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, _connection.GetServerTimeUtc()),
-                        new FindOneAndUpdateOptions<JobQueueDto>
-                        {
-                            IsUpsert = false,
-                            ReturnDocument = ReturnDocument.After
-                        }, cancellationToken);
+
+                foreach (var queue in queues)
+                {
+                    fetchedJob = _connection.JobQueue.FindOneAndUpdate(
+                            fetchCondition & Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue),
+                            Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, _connection.GetServerTimeUtc()),
+                            new FindOneAndUpdateOptions<JobQueueDto>
+                            {
+                                IsUpsert = false,
+                                ReturnDocument = ReturnDocument.After
+                            }, cancellationToken);
+                    if (fetchedJob != null)
+                    {
+                        break;
+                    }
+                }
 
                 if (fetchedJob == null)
                 {
