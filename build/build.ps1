@@ -19,6 +19,9 @@ Properties {
 
 	$nuget_exe_path = "$build_path\.nuget\nuget.exe";
 
+	# Supported frameworks
+	$target_frameworks = "net45", "netstandard1.6";
+	
 	# Version
 	# Version gathered from Github tag (if it's presented); otherwise it reads from AssemblyInfo.cs file.
 	# Assembly version populated into $assemblyVersion property (looks as 1.0.0.1)
@@ -35,6 +38,7 @@ Properties {
 
 Include "utils\version.ps1";
 Include "utils\msbuild.ps1";
+Include "utils\dotnet.ps1";
 
 ## Build Enviroment
 
@@ -72,7 +76,7 @@ Task InitConfiguration -depends ValidateConfig, GetProjectVersion -description "
 Task CreateOutputDirs -depends InitConfiguration -description "Creates all necessary folders in ""Artifacts"" folder" {
 
 	if (Test-Path $artifacts_path) {
-		Remove-Item -Recurse -Force $artifacts_path;
+		Remove-Item $artifacts_path -Recurse -Force;
 	}
 
 	New-Item $artifacts_path -Type Directory;
@@ -102,25 +106,29 @@ Task PrepareSources -depends InitConfiguration, CreateOutputDirs, PopulateOutput
 
 Task Clean -depends PrepareSources -description "Cleanup project source files" {
 
-	Get-ChildItem $artifacts_sources_path -Recurse -Filter "*.csproj" -Exclude "*.Sample*" |  Clean-Project -config $config -platform $platform -verbosity $verbosity;
+	Get-ChildItem $artifacts_sources_path -Recurse -Filter "*.csproj" | Where-Object { $_.DirectoryName -NotLike "*.Sample" } | Clean-Project -config $configuration -platform $platform -verbosity $verbosity;
 
+	Get-ChildItem $artifacts_sources_path -Recurse -Include "project.json" | Where-Object { $_.DirectoryName -NotLike "*.Sample" } | Clean-Project-Dotnet -config $configuration -verbosity $verbosity;
+	
 }
 
 Task BuildProjects -depends PrepareSources, Clean -description "Build project files and populates bin folder with all required binarines" {
 
-	Get-ChildItem $artifacts_sources_path -Recurse -Filter "*.csproj" -Exclude "*.Sample*" | Build-Project -config $config -platform $platform -outputPath $artifacts_bin_path -verbosity $verbosity;
+	Get-ChildItem $artifacts_sources_path -Recurse -Filter "*.csproj" | Where-Object { $_.DirectoryName -NotLike "*.Sample" } | Build-Project -config $configuration -platform $platform -outputPath "$artifacts_bin_path\net45" -verbosity $verbosity;
 
+	Get-ChildItem $artifacts_sources_path -Recurse -Include "project.json" | Where-Object { $_.DirectoryName -NotLike "*.Sample" } | Build-Project-Dotnet -config $configuration -outputPath $artifacts_bin_path -verbosity $verbosity;
+	
 }
 
 Task BuildNugetPackages -depends BuildProjects -description "Build nuget packages" {
 
-	$artifacts_nuget_path_net45 = "$artifacts_nuget_path\Net45";
+	foreach ($framework in $target_frameworks) {
+		if (!(Test-Path "$artifacts_nuget_path\$framework\")) {
+			New-Item "$artifacts_nuget_path\$framework\" -Type Directory;
+		}
 
-	if (!(Test-Path $artifacts_nuget_path_net45)) {
-		New-Item $artifacts_nuget_path_net45 -Type Directory;
+		Copy-Item "$artifacts_bin_path\$framework\*" "$artifacts_nuget_path\$framework\" -Recurse;
 	}
-
-	Copy-Item "$artifacts_bin_path\*" $artifacts_nuget_path_net45 -Recurse -Force;
 
 	$nuspecs = Get-ChildItem $artifacts_nuget_path -Filter "*.nuspec";
 
