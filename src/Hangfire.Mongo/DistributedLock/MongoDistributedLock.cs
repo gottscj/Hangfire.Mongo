@@ -44,7 +44,7 @@ namespace Hangfire.Mongo.DistributedLock
         /// <param name="database">Lock database</param>
         /// <param name="options">Database options</param>
         /// <exception cref="DistributedLockTimeoutException">Thrown if lock is not acuired within the timeout</exception>
-        /// <exception cref="MongoDistributedLockException">Thrown if other mongo specific issue prevented the lock to be aquired</exception>
+        /// <exception cref="MongoDistributedLockException">Thrown if other mongo specific issue prevented the lock to be acquired</exception>
         public MongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext database, MongoStorageOptions options)
         {
             if (string.IsNullOrEmpty(resource))
@@ -129,24 +129,24 @@ namespace Hangfire.Mongo.DistributedLock
         {
             try
             {
-                // If result is null, then it means we aquired the lock
-                bool isLockAquired = false;
+                // If result is null, then it means we acquired the lock
+                bool isLockAcquired = false;
                 DateTime now = DateTime.Now;
                 DateTime lockTimeoutTime = now.Add(timeout);
 
-                while (!isLockAquired && (lockTimeoutTime >= now))
+                while (!isLockAcquired && (lockTimeoutTime >= now))
                 {
-                    // Aquire the lock if it does not exist - Notice: ReturnDocument.Before
+                    // Acquire the lock if it does not exist - Notice: ReturnDocument.Before
                     DistributedLockDto result = _database.DistributedLock.FindOneAndUpdate(
                         Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource),
                         Builders<DistributedLockDto>.Update.Combine(
                             Builders<DistributedLockDto>.Update.SetOnInsert(_ => _.Heartbeat, _database.GetServerTimeUtc())),
                         new FindOneAndUpdateOptions<DistributedLockDto> { IsUpsert = true, ReturnDocument = ReturnDocument.Before });
 
-                    // If result is null, then it means we aquired the lock
+                    // If result is null, then it means we acquired the lock
                     if (result == null)
                     {
-                        isLockAquired = true;
+                        isLockAcquired = true;
                     }
                     else
                     {
@@ -155,7 +155,7 @@ namespace Hangfire.Mongo.DistributedLock
                     }
                 }
 
-                if (!isLockAquired)
+                if (!isLockAcquired)
                 {
                     throw new DistributedLockTimeoutException(
                         string.Format("Could not place a lock on the resource '{0}': {1}.", _resource,
