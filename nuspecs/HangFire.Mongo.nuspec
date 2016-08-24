@@ -43,15 +43,15 @@
 * Initial public release
         </releaseNotes>
         <dependencies>
-			<dependency id="Hangfire.Core" version="1.6.0" />
-			<dependency id="MongoDB.Driver" version="2.3.0-beta1" />
+            <dependency id="Hangfire.Core" version="1.6.0" />
+            <dependency id="MongoDB.Driver" version="2.3.0-beta1" />
         </dependencies>
     </metadata>
     <files>
         <file src="net45\Hangfire.Mongo\Hangfire.Mongo.dll" target="lib\net45" />
         <file src="net45\Hangfire.Mongo\Hangfire.Mongo.xml" target="lib\net45" />
-		
-		<file src="netstandard1.6\Hangfire.Mongo\Hangfire.Mongo.dll" target="lib\netstandard1.6" />
+        
+        <file src="netstandard1.6\Hangfire.Mongo\Hangfire.Mongo.dll" target="lib\netstandard1.6" />
         <file src="netstandard1.6\Hangfire.Mongo\Hangfire.Mongo.xml" target="lib\netstandard1.6" />
     </files>
 </package>
