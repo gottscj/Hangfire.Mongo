@@ -14,7 +14,7 @@ namespace Hangfire.Mongo
 	/// </summary>
 	public class ExpirationManager : IBackgroundProcess, IServerComponent
 	{
-		private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
+		private static readonly ILog Logger = LogProvider.For<ExpirationManager>();
 
 		private readonly MongoStorage _storage;
 		private readonly TimeSpan _checkInterval;

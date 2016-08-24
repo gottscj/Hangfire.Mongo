@@ -38,7 +38,7 @@ namespace Hangfire.Mongo.MongoUtils
         /// <returns>Generated identifier</returns>
         public object GenerateId(object container, object document)
         {
-            Type containerType = container.GetType();
+            TypeInfo containerType = container.GetType().GetTypeInfo();
             PropertyInfo databaseProperty = containerType.GetProperty("Database");
             PropertyInfo namespaceProperty = containerType.GetProperty("CollectionNamespace");
 

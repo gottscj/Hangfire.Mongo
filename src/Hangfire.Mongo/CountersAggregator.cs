@@ -16,7 +16,7 @@ namespace Hangfire.Mongo
     /// </summary>
     public class CountersAggregator : IBackgroundProcess, IServerComponent
     {
-        private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
+        private static readonly ILog Logger = LogProvider.For<CountersAggregator>();
 
         private const int NumberOfRecordsInSinglePass = 1000;
         private static readonly TimeSpan DelayBetweenPasses = TimeSpan.FromMilliseconds(500);

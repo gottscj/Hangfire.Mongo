@@ -13,7 +13,7 @@ namespace Hangfire.Mongo.DistributedLock
     /// </summary>
     public sealed class MongoDistributedLock : IDisposable
     {
-        private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
+        private static readonly ILog Logger = LogProvider.For<MongoDistributedLock>();
 
         private readonly HangfireDbContext _database;
 
