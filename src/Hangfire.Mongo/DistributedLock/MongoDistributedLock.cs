@@ -61,15 +61,31 @@ namespace Hangfire.Mongo.DistributedLock
                 bool isFirstAttempt = true;
                 do
                 {
-                    isLockedBySomeoneElse = database.DistributedLock
-                            .Find(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, resource) &
-                                  Builders<DistributedLockDto>.Filter.Ne(_ => _.ClientId, _options.ClientId))
-                            .FirstOrDefault() != null;
 
                     if (isFirstAttempt)
                         isFirstAttempt = false;
                     else
                         Thread.Sleep((int)timeout.TotalMilliseconds / 10);
+                        
+                    isLockedBySomeoneElse = database.DistributedLock
+                            .Find(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, resource) &
+                                  Builders<DistributedLockDto>.Filter.Ne(_ => _.ClientId, _options.ClientId))
+                            .FirstOrDefault() != null;
+                            
+                    
+                    if (!isLockedBySomeoneElse)
+                    {
+                        var tryLock =
+                            database.DistributedLock.UpdateOne(
+                                Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, resource),
+                                Builders<DistributedLockDto>.Update.Combine(
+                                    Builders<DistributedLockDto>.Update.Set(_ => _.Resource, resource)));
+
+                        if (tryLock.MatchedCount != 0)
+                        {
+                            isLockedBySomeoneElse = true;
+                        }
+                    }
                 }
                 while (isLockedBySomeoneElse && (lockTimeoutTime >= DateTime.Now));
 
