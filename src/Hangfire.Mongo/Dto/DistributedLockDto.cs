@@ -12,10 +12,6 @@ namespace Hangfire.Mongo.Dto
 
         public string Resource { get; set; }
 
-        public string ClientId { get; set; }
-
-        public int LockCount { get; set; }
-
         public DateTime Heartbeat { get; set; }
     }
 #pragma warning restore 1591
