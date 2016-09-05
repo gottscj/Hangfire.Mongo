@@ -17,26 +17,23 @@ namespace Hangfire.Mongo.Tests
             var storage = new MongoStorage(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName());
             using (var connection = (MongoConnection)storage.GetConnection())
             {
-                using (var database = ConnectionUtils.CreateConnection())
+                // Arrange
+                connection.Database.Counter.InsertOne(new CounterDto
                 {
-                    // Arrange
-                    database.Counter.InsertOne(new CounterDto
-                    {
-                        Key = "key",
-                        Value = 1,
-                        ExpireAt = DateTime.UtcNow.AddHours(1)
-                    });
+                    Key = "key",
+                    Value = 1,
+                    ExpireAt = DateTime.UtcNow.AddHours(1)
+                });
 
-                    var aggregator = new CountersAggregator(storage, TimeSpan.Zero);
-                    var cts = new CancellationTokenSource();
-                    cts.Cancel();
+                var aggregator = new CountersAggregator(storage, TimeSpan.Zero);
+                var cts = new CancellationTokenSource();
+                cts.Cancel();
 
-                    // Act
-                    aggregator.Execute(cts.Token);
+                // Act
+                aggregator.Execute(cts.Token);
 
-                    // Assert
-                    Assert.Equal(1, database.AggregatedCounter.Count(new BsonDocument()));
-                }
+                // Assert
+                Assert.Equal(1, connection.Database.AggregatedCounter.Count(new BsonDocument()));
             }
         }
     }

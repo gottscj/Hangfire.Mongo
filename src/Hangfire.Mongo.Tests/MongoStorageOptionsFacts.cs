@@ -56,8 +56,10 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Set_QueuePollInterval_SetsTheValue()
         {
-            var options = new MongoStorageOptions();
-            options.QueuePollInterval = TimeSpan.FromSeconds(1);
+            var options = new MongoStorageOptions
+            {
+                QueuePollInterval = TimeSpan.FromSeconds(1)
+            };
             Assert.Equal(TimeSpan.FromSeconds(1), options.QueuePollInterval);
         }
     }

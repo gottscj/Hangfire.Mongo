@@ -32,7 +32,7 @@ namespace Hangfire.Mongo
         public CountersAggregator(MongoStorage storage, TimeSpan interval)
         {
             if (storage == null)
-                throw new ArgumentNullException("storage");
+                throw new ArgumentNullException(nameof(storage));
 
             _storage = storage;
             _interval = interval;

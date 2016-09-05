@@ -15,7 +15,7 @@ namespace Hangfire.Mongo.Database
 
         private readonly string _prefix;
 
-        internal IMongoDatabase Database { get; private set; }
+        internal IMongoDatabase Database { get; }
 
         /// <summary>
         /// Constructs context with connection string and database name
@@ -44,7 +44,7 @@ namespace Hangfire.Mongo.Database
         {
             _prefix = prefix;
 
-            MongoClient client = new MongoClient(mongoClientSettings);
+            var client = new MongoClient(mongoClientSettings);
 
             Database = client.GetDatabase(databaseName);
 
@@ -69,106 +69,67 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to collection which contains identifiers
         /// </summary>
-        public virtual IMongoCollection<IdentifierDto> Identifiers
-        {
-            get { return Database.GetCollection<IdentifierDto>(_prefix + "_identifiers"); }
-        }
+        public virtual IMongoCollection<IdentifierDto> Identifiers => Database.GetCollection<IdentifierDto>(_prefix + "_identifiers");
 
         /// <summary>
         /// Reference to collection which contains distributed locks
         /// </summary>
-        public virtual IMongoCollection<DistributedLockDto> DistributedLock
-        {
-            get { return Database.GetCollection<DistributedLockDto>(_prefix + ".locks"); }
-        }
+        public virtual IMongoCollection<DistributedLockDto> DistributedLock => Database.GetCollection<DistributedLockDto>(_prefix + ".locks");
 
         /// <summary>
         /// Reference to collection which contains counters
         /// </summary>
-        public virtual IMongoCollection<CounterDto> Counter
-        {
-            get { return Database.GetCollection<CounterDto>(_prefix + ".counter"); }
-        }
+        public virtual IMongoCollection<CounterDto> Counter => Database.GetCollection<CounterDto>(_prefix + ".counter");
 
         /// <summary>
         /// Reference to collection which contains aggregated counters
         /// </summary>
-        public virtual IMongoCollection<AggregatedCounterDto> AggregatedCounter
-        {
-            get { return Database.GetCollection<AggregatedCounterDto>(_prefix + ".aggregatedcounter"); }
-        }
+        public virtual IMongoCollection<AggregatedCounterDto> AggregatedCounter => Database.GetCollection<AggregatedCounterDto>(_prefix + ".aggregatedcounter");
 
         /// <summary>
         /// Reference to collection which contains hashes
         /// </summary>
-        public virtual IMongoCollection<HashDto> Hash
-        {
-            get { return Database.GetCollection<HashDto>(_prefix + ".hash"); }
-        }
+        public virtual IMongoCollection<HashDto> Hash => Database.GetCollection<HashDto>(_prefix + ".hash");
 
         /// <summary>
         /// Reference to collection which contains jobs
         /// </summary>
-        public virtual IMongoCollection<JobDto> Job
-        {
-            get { return Database.GetCollection<JobDto>(_prefix + ".job"); }
-        }
+        public virtual IMongoCollection<JobDto> Job => Database.GetCollection<JobDto>(_prefix + ".job");
 
         /// <summary>
         /// Reference to collection which contains jobs parameters
         /// </summary>
-        public virtual IMongoCollection<JobParameterDto> JobParameter
-        {
-            get { return Database.GetCollection<JobParameterDto>(_prefix + ".jobParameter"); }
-        }
+        public virtual IMongoCollection<JobParameterDto> JobParameter => Database.GetCollection<JobParameterDto>(_prefix + ".jobParameter");
 
         /// <summary>
         /// Reference to collection which contains jobs queues
         /// </summary>
-        public virtual IMongoCollection<JobQueueDto> JobQueue
-        {
-            get { return Database.GetCollection<JobQueueDto>(_prefix + ".jobQueue"); }
-        }
+        public virtual IMongoCollection<JobQueueDto> JobQueue => Database.GetCollection<JobQueueDto>(_prefix + ".jobQueue");
 
         /// <summary>
         /// Reference to collection which contains lists
         /// </summary>
-        public virtual IMongoCollection<ListDto> List
-        {
-            get { return Database.GetCollection<ListDto>(_prefix + ".list"); }
-        }
+        public virtual IMongoCollection<ListDto> List => Database.GetCollection<ListDto>(_prefix + ".list");
 
         /// <summary>
         /// Reference to collection which contains schemas
         /// </summary>
-        public virtual IMongoCollection<SchemaDto> Schema
-        {
-            get { return Database.GetCollection<SchemaDto>(_prefix + ".schema"); }
-        }
+        public virtual IMongoCollection<SchemaDto> Schema => Database.GetCollection<SchemaDto>(_prefix + ".schema");
 
         /// <summary>
         /// Reference to collection which contains servers information
         /// </summary>
-        public virtual IMongoCollection<ServerDto> Server
-        {
-            get { return Database.GetCollection<ServerDto>(_prefix + ".server"); }
-        }
+        public virtual IMongoCollection<ServerDto> Server => Database.GetCollection<ServerDto>(_prefix + ".server");
 
         /// <summary>
         /// Reference to collection which contains sets
         /// </summary>
-        public virtual IMongoCollection<SetDto> Set
-        {
-            get { return Database.GetCollection<SetDto>(_prefix + ".set"); }
-        }
+        public virtual IMongoCollection<SetDto> Set => Database.GetCollection<SetDto>(_prefix + ".set");
 
         /// <summary>
         /// Reference to collection which contains states
         /// </summary>
-        public virtual IMongoCollection<StateDto> State
-        {
-            get { return Database.GetCollection<StateDto>(_prefix + ".state"); }
-        }
+        public virtual IMongoCollection<StateDto> State => Database.GetCollection<StateDto>(_prefix + ".state");
 
         /// <summary>
         /// Initializes intial collections schema for Hangfire
@@ -185,10 +146,7 @@ namespace Hangfire.Mongo.Database
                     Schema.InsertOne(new SchemaDto { Version = RequiredSchemaVersion });
                 }
                 else if (RequiredSchemaVersion < schema.Version)
-                    throw new InvalidOperationException(
-                        String.Format(
-                            "HangFire current database schema version {0} is newer than the configured MongoStorage schema version {1}. Please update to the latest HangFire.SqlServer NuGet package.",
-                            schema.Version, RequiredSchemaVersion));
+                    throw new InvalidOperationException($"HangFire current database schema version {schema.Version} is newer than the configured MongoStorage schema version {RequiredSchemaVersion}. Please update to the latest HangFire.SqlServer NuGet package.");
             }
             else
             {
