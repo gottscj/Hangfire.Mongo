@@ -7,6 +7,8 @@ using Hangfire.Mongo.Tests.Utils;
 using Xunit;
 using Hangfire.Mongo.DistributedLock;
 using MongoDB.Driver;
+using System.Threading.Tasks;
+using Hangfire.Storage;
 
 namespace Hangfire.Mongo.Tests
 {
@@ -66,6 +68,25 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact, CleanDatabase]
+        public void Ctor_AquireLockWithinSameThread_WhenResourceIsLocked()
+        {
+            UseConnection(database =>
+            {
+                using (MongoDistributedLock @lock1 = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
+                {
+                    var locksCount = database.DistributedLock.Count(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
+                    Assert.Equal(1, locksCount);
+
+                    using (MongoDistributedLock @lock2 = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
+                    {
+                        locksCount = database.DistributedLock.Count(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
+                        Assert.Equal(1, locksCount);
+                    }
+                }
+            });
+        }
+
+        [Fact, CleanDatabase]
         public void Ctor_ThrowsAnException_WhenResourceIsLocked()
         {
             UseConnection(database =>
@@ -75,7 +96,10 @@ namespace Hangfire.Mongo.Tests
                     var locksCount = database.DistributedLock.Count(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
                     Assert.Equal(1, locksCount);
 
-                    Assert.Throws<MongoDistributedLockException>(() => new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()));
+                    Task.Run(() =>
+                    {
+                        Assert.Throws<DistributedLockTimeoutException>(() => new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()));
+                    }).Wait();
                 }
             });
         }
