@@ -2,7 +2,7 @@
 using Microsoft.Owin;
 using Owin;
 
-[assembly:OwinStartup(typeof (Startup))]
+[assembly: OwinStartup(typeof(Startup))]
 namespace Hangfire.Mongo.Sample
 {
     public partial class Startup

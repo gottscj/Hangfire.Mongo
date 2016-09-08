@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.Tests.Utils;
-using Xunit;
-using Hangfire.Mongo.DistributedLock;
-using MongoDB.Driver;
-using System.Threading.Tasks;
 using Hangfire.Storage;
+using MongoDB.Driver;
+using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
@@ -68,7 +68,7 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact, CleanDatabase]
-        public void Ctor_AquireLockWithinSameThread_WhenResourceIsLocked()
+        public void Ctor_AcquireLockWithinSameThread_WhenResourceIsLocked()
         {
             UseConnection(database =>
             {

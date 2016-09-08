@@ -233,10 +233,10 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
-	        foreach (var action in _commandQueue)
-	        {
-		        action.Invoke(_connection);
-	        }
+            foreach (var action in _commandQueue)
+            {
+                action.Invoke(_connection);
+            }
         }
 
         private void QueueCommand(Action<HangfireDbContext> action)

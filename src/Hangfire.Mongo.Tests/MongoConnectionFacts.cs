@@ -243,9 +243,9 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 var data = new Dictionary<string, string>
-						{
-							{ "Key", "Value" }
-						};
+                        {
+                            { "Key", "Value" }
+                        };
 
                 var jobDto = new JobDto
                 {
@@ -784,10 +784,10 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 connection.SetRangeInHash("some-hash", new Dictionary<string, string>
-						{
-							{ "Key1", "Value1" },
-							{ "Key2", "Value2" }
-						});
+                        {
+                            { "Key1", "Value1" },
+                            { "Key2", "Value2" }
+                        });
 
                 var result = database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, "some-hash")).ToList()
                     .ToDictionary(x => x.Field, x => x.Value);

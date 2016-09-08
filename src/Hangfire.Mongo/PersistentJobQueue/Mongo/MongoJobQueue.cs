@@ -11,7 +11,7 @@ using MongoDB.Driver;
 namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 {
 #pragma warning disable 1591
-	public class MongoJobQueue : IPersistentJobQueue
+    public class MongoJobQueue : IPersistentJobQueue
     {
         private readonly MongoStorageOptions _options;
 
@@ -41,10 +41,10 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
             JobQueueDto fetchedJob = null;
 
             var fetchConditions = new[]
-			{
-				Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null),
-				Builders<JobQueueDto>.Filter.Lt(_ => _.FetchedAt, _connection.GetServerTimeUtc().AddSeconds(_options.InvisibilityTimeout.Negate().TotalSeconds))
-			};
+            {
+                Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null),
+                Builders<JobQueueDto>.Filter.Lt(_ => _.FetchedAt, _connection.GetServerTimeUtc().AddSeconds(_options.InvisibilityTimeout.Negate().TotalSeconds))
+            };
             var currentQueryIndex = 0;
 
             do

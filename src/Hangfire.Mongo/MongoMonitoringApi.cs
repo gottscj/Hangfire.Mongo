@@ -323,7 +323,7 @@ namespace Hangfire.Mongo
                 .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobIds))
                 .ToList();
 
-            Dictionary <int, JobQueueDto> jobIdToJobQueueMap = connection.JobQueue
+            Dictionary<int, JobQueueDto> jobIdToJobQueueMap = connection.JobQueue
                 .Find(Builders<JobQueueDto>.Filter.In(_ => _.JobId, jobs.Select(job => job.Id))
                       & (Builders<JobQueueDto>.Filter.Not(Builders<JobQueueDto>.Filter.Exists(_ => _.FetchedAt))
                       | Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)))
@@ -570,7 +570,7 @@ namespace Hangfire.Mongo
 
             foreach (var key in keys.Where(key => !valuesMap.ContainsKey(key)))
             {
-	            valuesMap.Add(key, 0);
+                valuesMap.Add(key, 0);
             }
 
             var result = new Dictionary<DateTime, long>();

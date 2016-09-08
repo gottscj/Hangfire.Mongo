@@ -1,5 +1,4 @@
-﻿using MongoDB.Driver;
-using Owin;
+﻿using Owin;
 
 namespace Hangfire.Mongo.Sample
 {

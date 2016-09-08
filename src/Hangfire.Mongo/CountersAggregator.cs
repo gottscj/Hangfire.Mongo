@@ -64,9 +64,9 @@ namespace Hangfire.Mongo
                     HangfireDbContext database = storageConnection.Database;
 
                     List<CounterDto> recordsToAggregate = database
-						.Counter.Find(new BsonDocument())
-						.Limit(NumberOfRecordsInSinglePass)
-						.ToList();
+                        .Counter.Find(new BsonDocument())
+                        .Limit(NumberOfRecordsInSinglePass)
+                        .ToList();
 
                     var recordsToMerge = recordsToAggregate
                         .GroupBy(_ => _.Key).Select(_ => new
@@ -79,9 +79,9 @@ namespace Hangfire.Mongo
                     foreach (var item in recordsToMerge)
                     {
                         AggregatedCounterDto aggregatedItem = database
-							.AggregatedCounter
-							.Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key))
-							.FirstOrDefault();
+                            .AggregatedCounter
+                            .Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key))
+                            .FirstOrDefault();
                         if (aggregatedItem != null)
                         {
                             database.AggregatedCounter.UpdateOne(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key),
@@ -91,7 +91,7 @@ namespace Hangfire.Mongo
                         }
                         else
                         {
-                           database.AggregatedCounter.InsertOne(new AggregatedCounterDto
+                            database.AggregatedCounter.InsertOne(new AggregatedCounterDto
                             {
                                 Id = ObjectId.GenerateNewId(),
                                 Key = item.Key,
@@ -102,9 +102,9 @@ namespace Hangfire.Mongo
                     }
 
                     removedCount = database
-						.Counter
-						.DeleteMany(Builders<CounterDto>.Filter.In(_ => _.Id, recordsToAggregate.Select(_ => _.Id)))
-						.DeletedCount;
+                        .Counter
+                        .DeleteMany(Builders<CounterDto>.Filter.In(_ => _.Id, recordsToAggregate.Select(_ => _.Id)))
+                        .DeletedCount;
                 }
 
                 if (removedCount >= NumberOfRecordsInSinglePass)

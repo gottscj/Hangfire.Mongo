@@ -19,7 +19,7 @@ namespace Hangfire.Mongo.StateHandlers
 
         public string StateName
         {
-	        get { return SucceededState.StateName; }
+            get { return SucceededState.StateName; }
         }
     }
 #pragma warning restore 1591

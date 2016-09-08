@@ -7,7 +7,7 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoStorageOptions
     {
-	    private TimeSpan _queuePollInterval;
+        private TimeSpan _queuePollInterval;
 
         private TimeSpan _distributedLockLifetime;
 
@@ -41,7 +41,7 @@ namespace Hangfire.Mongo
             set
             {
                 var message = String.Format("The QueuePollInterval property value should be positive. Given: {0}.",
-	                value);
+                    value);
 
                 if (value == TimeSpan.Zero)
                 {
@@ -70,7 +70,7 @@ namespace Hangfire.Mongo
             set
             {
                 var message = String.Format(
-	                "The DistributedLockLifetime property value should be positive. Given: {0}.", value);
+                    "The DistributedLockLifetime property value should be positive. Given: {0}.", value);
 
                 if (value == TimeSpan.Zero)
                 {
@@ -90,7 +90,7 @@ namespace Hangfire.Mongo
         /// </summary>
         public string ClientId { get; private set; }
 
-	    /// <summary>
+        /// <summary>
         /// Expiration check inteval for jobs
         /// </summary>
         public TimeSpan JobExpirationCheckInterval { get; set; }

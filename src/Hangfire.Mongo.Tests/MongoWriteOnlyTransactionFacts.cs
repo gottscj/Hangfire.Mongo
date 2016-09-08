@@ -666,10 +666,10 @@ namespace Hangfire.Mongo.Tests
             UseConnection(database =>
             {
                 Commit(database, x => x.SetRangeInHash("some-hash", new Dictionary<string, string>
-						{
-							{ "Key1", "Value1" },
-							{ "Key2", "Value2" }
-						}));
+                        {
+                            { "Key1", "Value1" },
+                            { "Key2", "Value2" }
+                        }));
 
                 var result = database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, "some-hash")).ToList()
                     .ToDictionary(x => x.Field, x => x.Value);
@@ -696,10 +696,10 @@ namespace Hangfire.Mongo.Tests
             {
                 // Arrange
                 Commit(database, x => x.SetRangeInHash("some-hash", new Dictionary<string, string>
-						{
-							{ "Key1", "Value1" },
-							{ "Key2", "Value2" }
-						}));
+                        {
+                            { "Key1", "Value1" },
+                            { "Key2", "Value2" }
+                        }));
 
                 // Act
                 Commit(database, x => x.RemoveHash("some-hash"));
@@ -715,7 +715,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var set1 = new SetDto {Key="Set1", Value = "value1"};
+                var set1 = new SetDto { Key = "Set1", Value = "value1" };
                 database.Set.InsertOne(set1);
 
                 var set2 = new SetDto { Key = "Set2", Value = "value2" };
@@ -851,7 +851,7 @@ namespace Hangfire.Mongo.Tests
                 var set2 = new SetDto { Key = "Set2", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
                 database.Set.InsertOne(set2);
 
-                var values = new string[] {"test1", "test2", "test3"};
+                var values = new string[] { "test1", "test2", "test3" };
                 Commit(database, x => x.AddRangeToSet(set1Val1.Key, values));
 
                 var testSet1 = GetTestSet(database, set1Val1.Key);

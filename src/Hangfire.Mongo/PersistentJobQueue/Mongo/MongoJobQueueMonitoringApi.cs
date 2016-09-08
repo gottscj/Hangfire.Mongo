@@ -72,6 +72,6 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 FetchedCount = fetchedCount
             };
         }
-		
+
     }
 }

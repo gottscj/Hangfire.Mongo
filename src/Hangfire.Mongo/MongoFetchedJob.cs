@@ -60,9 +60,9 @@ namespace Hangfire.Mongo
         /// </summary>
         public void RemoveFromQueue()
         {
-             _connection
-                .JobQueue
-                .DeleteOne(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id));
+            _connection
+               .JobQueue
+               .DeleteOne(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id));
 
             _removedFromQueue = true;
         }
@@ -72,9 +72,9 @@ namespace Hangfire.Mongo
         /// </summary>
         public void Requeue()
         {
-	        _connection.JobQueue.FindOneAndUpdate(
-		        Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id),
-		        Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null));
+            _connection.JobQueue.FindOneAndUpdate(
+                Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id),
+                Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null));
 
             _requeued = true;
         }
