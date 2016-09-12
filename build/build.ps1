@@ -36,6 +36,14 @@ Properties {
 Include "utils\version.ps1";
 Include "utils\msbuild.ps1";
 
+## Build Enviroment
+
+task MsBuild -description "Validates the correct MSBuild version is present" {
+	$output = &msbuild /version 2>&1
+	assert ($output -like "*14.0*") "MSBuild version 14 required: $output;"
+}
+
+
 ## Configuration initialization
 
 Task ValidateConfig -description "Validates configuration" {
@@ -106,12 +114,13 @@ Task BuildProjects -depends PrepareSources, Clean -description "Build project fi
 
 Task BuildNugetPackages -depends BuildProjects -description "Build nuget packages" {
 
-	if (!(Test-Path "$artifacts_nuget_path\Net45\")) {
-		New-Item "$artifacts_nuget_path\Net45\" -Type Directory;
+	$artifacts_nuget_path_net45 = "$artifacts_nuget_path\Net45";
+
+	if (!(Test-Path $artifacts_nuget_path_net45)) {
+		New-Item $artifacts_nuget_path_net45 -Type Directory;
 	}
 
-	Copy-Item "$artifacts_bin_path\*" "$artifacts_nuget_path\Net45\" -Recurse;
-
+	Copy-Item "$artifacts_bin_path\*" $artifacts_nuget_path_net45 -Recurse -Force;
 
 	$nuspecs = Get-ChildItem $artifacts_nuget_path -Filter "*.nuspec";
 
@@ -127,4 +136,6 @@ Task Build -depends PrepareSources, Clean, BuildProjects, BuildNugetPackages -de
 
 ## Default
 
-Task Default -depends InitConfiguration, PrepareSources, Build;
+Framework "4.6"
+
+Task Default -depends MsBuild, InitConfiguration, PrepareSources, Build;

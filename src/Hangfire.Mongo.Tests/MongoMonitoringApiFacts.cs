@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
@@ -106,7 +107,7 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobIds = new List<int>();
 
-                this._persistentJobQueueMonitoringApi.Setup(x => x
+                _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
 
@@ -124,7 +125,7 @@ namespace Hangfire.Mongo.Tests
                 var unfetchedJob = CreateJobInState(database, 1, EnqueuedState.StateName);
 
                 var jobIds = new List<int> { unfetchedJob.Id };
-                this._persistentJobQueueMonitoringApi.Setup(x => x
+                _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
 
@@ -142,7 +143,7 @@ namespace Hangfire.Mongo.Tests
                 var fetchedJob = CreateJobInState(database, 1, FetchedStateName);
 
                 var jobIds = new List<int> { fetchedJob.Id };
-                this._persistentJobQueueMonitoringApi.Setup(x => x
+                _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
 
@@ -162,7 +163,7 @@ namespace Hangfire.Mongo.Tests
                 var fetchedJob = CreateJobInState(database, 3, FetchedStateName);
 
                 var jobIds = new List<int> { unfetchedJob.Id, unfetchedJob2.Id, fetchedJob.Id };
-                this._persistentJobQueueMonitoringApi.Setup(x => x
+                _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
 
@@ -179,7 +180,7 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobIds = new List<int>();
 
-                this._persistentJobQueueMonitoringApi.Setup(x => x
+                _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetFetchedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
 
@@ -197,7 +198,7 @@ namespace Hangfire.Mongo.Tests
                 var fetchedJob = CreateJobInState(database, 1, FetchedStateName);
 
                 var jobIds = new List<int> { fetchedJob.Id };
-                this._persistentJobQueueMonitoringApi.Setup(x => x
+                _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetFetchedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
 
@@ -215,7 +216,7 @@ namespace Hangfire.Mongo.Tests
                 var unfetchedJob = CreateJobInState(database, 1, EnqueuedState.StateName);
 
                 var jobIds = new List<int> { unfetchedJob.Id };
-                this._persistentJobQueueMonitoringApi.Setup(x => x
+                _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetFetchedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
 
@@ -235,7 +236,7 @@ namespace Hangfire.Mongo.Tests
                 var unfetchedJob = CreateJobInState(database, 3, EnqueuedState.StateName);
 
                 var jobIds = new List<int> { fetchedJob.Id, fetchedJob2.Id, unfetchedJob.Id };
-                this._persistentJobQueueMonitoringApi.Setup(x => x
+                _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetFetchedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
 
@@ -247,6 +248,7 @@ namespace Hangfire.Mongo.Tests
 
         public static void SampleMethod(string arg)
         {
+            Debug.WriteLine(arg);
         }
 
         private void UseMonitoringApi(Action<HangfireDbContext, MongoMonitoringApi> action)
@@ -265,9 +267,8 @@ namespace Hangfire.Mongo.Tests
             var jobState = new StateDto
             {
                 CreatedAt = database.GetServerTimeUtc(),
-                Data = stateName == EnqueuedState.StateName
-                           ? string.Format(" {{ 'EnqueuedAt': '{0}' }}", database.GetServerTimeUtc().ToString("o"))
-                           : "{}",
+                Data = stateName == EnqueuedState.StateName ? $" {{ 'EnqueuedAt': '{database.GetServerTimeUtc():o}' }}"
+                    : "{}",
                 JobId = jobId
             };
             database.State.InsertOne(jobState);

@@ -42,7 +42,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                using (MongoDistributedLock @lock = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
+                using (new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
                 {
                     var locksCount = database.DistributedLock.Count(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
                     Assert.Equal(1, locksCount);
@@ -56,7 +56,7 @@ namespace Hangfire.Mongo.Tests
             UseConnection(database =>
             {
                 long locksCount;
-                using (MongoDistributedLock @lock = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
+                using (new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
                 {
                     locksCount = database.DistributedLock.Count(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
                     Assert.Equal(1, locksCount);
@@ -72,12 +72,12 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                using (MongoDistributedLock @lock1 = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
+                using (new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
                 {
                     var locksCount = database.DistributedLock.Count(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
                     Assert.Equal(1, locksCount);
 
-                    using (MongoDistributedLock @lock2 = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
+                    using (new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
                     {
                         locksCount = database.DistributedLock.Count(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
                         Assert.Equal(1, locksCount);
@@ -91,7 +91,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                using (MongoDistributedLock @lock1 = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
+                using (new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions()))
                 {
                     var locksCount = database.DistributedLock.Count(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
                     Assert.Equal(1, locksCount);
@@ -121,7 +121,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                using (MongoDistributedLock @lock = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions() { DistributedLockLifetime = TimeSpan.FromSeconds(3) }))
+                using (new MongoDistributedLock("resource1", TimeSpan.FromSeconds(1), database, new MongoStorageOptions() { DistributedLockLifetime = TimeSpan.FromSeconds(3) }))
                 {
                     DateTime initialHeartBeat = database.GetServerTimeUtc();
                     Thread.Sleep(TimeSpan.FromSeconds(5));

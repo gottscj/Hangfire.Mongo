@@ -4,7 +4,7 @@ using Hangfire.Mongo.Database;
 namespace Hangfire.Mongo.Tests.Utils
 {
 #pragma warning disable 1591
-    public class ConnectionUtils
+    public static class ConnectionUtils
     {
         private const string DatabaseVariable = "Hangfire_Mongo_DatabaseName";
         private const string ConnectionStringTemplateVariable = "Hangfire_Mongo_ConnectionStringTemplate";
@@ -19,7 +19,7 @@ namespace Hangfire.Mongo.Tests.Utils
 
         public static string GetConnectionString()
         {
-            return String.Format(GetConnectionStringTemplate(), GetDatabaseName());
+            return string.Format(GetConnectionStringTemplate(), GetDatabaseName());
         }
 
         private static string GetConnectionStringTemplate()
@@ -29,7 +29,7 @@ namespace Hangfire.Mongo.Tests.Utils
 
         public static HangfireDbContext CreateConnection()
         {
-            HangfireDbContext connection = new HangfireDbContext(GetConnectionString(), GetDatabaseName());
+            var connection = new HangfireDbContext(GetConnectionString(), GetDatabaseName());
             return connection;
         }
     }

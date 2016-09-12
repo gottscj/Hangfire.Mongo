@@ -20,7 +20,7 @@ namespace Hangfire.Mongo
             string connectionString,
             string databaseName)
         {
-            MongoStorage storage = new MongoStorage(connectionString, databaseName, new MongoStorageOptions());
+            var storage = new MongoStorage(connectionString, databaseName, new MongoStorageOptions());
 
             configuration.UseStorage(storage);
 
@@ -41,7 +41,7 @@ namespace Hangfire.Mongo
             string databaseName,
             MongoStorageOptions options)
         {
-            MongoStorage storage = new MongoStorage(connectionString, databaseName, options);
+            var storage = new MongoStorage(connectionString, databaseName, options);
 
             configuration.UseStorage(storage);
 
@@ -60,7 +60,7 @@ namespace Hangfire.Mongo
             MongoClientSettings mongoClientSettings,
             string databaseName)
         {
-            MongoStorage storage = new MongoStorage(mongoClientSettings, databaseName);
+            var storage = new MongoStorage(mongoClientSettings, databaseName);
 
             configuration.UseStorage(storage);
 
@@ -81,7 +81,7 @@ namespace Hangfire.Mongo
             string databaseName,
             MongoStorageOptions options)
         {
-            MongoStorage storage = new MongoStorage(mongoClientSettings, databaseName, options);
+            var storage = new MongoStorage(mongoClientSettings, databaseName, options);
 
             configuration.UseStorage(storage);
 
@@ -99,7 +99,7 @@ namespace Hangfire.Mongo
             string connectionString,
             string databaseName)
         {
-            MongoStorage storage = new MongoStorage(connectionString, databaseName, new MongoStorageOptions());
+            var storage = new MongoStorage(connectionString, databaseName, new MongoStorageOptions());
 
             configuration.UseStorage(storage);
 
@@ -119,7 +119,7 @@ namespace Hangfire.Mongo
             string databaseName,
             MongoStorageOptions options)
         {
-            MongoStorage storage = new MongoStorage(connectionString, databaseName, options);
+            var storage = new MongoStorage(connectionString, databaseName, options);
 
             configuration.UseStorage(storage);
 
@@ -137,7 +137,7 @@ namespace Hangfire.Mongo
             MongoClientSettings mongoClientSettings,
             string databaseName)
         {
-            MongoStorage storage = new MongoStorage(mongoClientSettings, databaseName, new MongoStorageOptions());
+            var storage = new MongoStorage(mongoClientSettings, databaseName, new MongoStorageOptions());
 
             configuration.UseStorage(storage);
 
@@ -157,7 +157,7 @@ namespace Hangfire.Mongo
             string databaseName,
             MongoStorageOptions options)
         {
-            MongoStorage storage = new MongoStorage(mongoClientSettings, databaseName, options);
+            var storage = new MongoStorage(mongoClientSettings, databaseName, options);
 
             configuration.UseStorage(storage);
 

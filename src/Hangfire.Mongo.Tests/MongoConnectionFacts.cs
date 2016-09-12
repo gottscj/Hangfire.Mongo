@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Hangfire.Common;
@@ -154,7 +155,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal(ObjectId.Empty, databaseJob.StateId);
                 Assert.Equal(null, databaseJob.StateName);
 
-                var invocationData = JobHelper.FromJson<InvocationData>((string)databaseJob.InvocationData);
+                var invocationData = JobHelper.FromJson<InvocationData>(databaseJob.InvocationData);
                 invocationData.Arguments = databaseJob.Arguments;
 
                 var job = invocationData.Deserialize();
@@ -581,7 +582,7 @@ namespace Hangfire.Mongo.Tests
 
                 var server = database.Server.Find(new BsonDocument()).Single();
                 Assert.Equal("server", server.Id);
-                Assert.True(((string)server.Data).StartsWith(
+                Assert.True(server.Data.StartsWith(
                     "{\"WorkerCount\":4,\"Queues\":[\"critical\",\"default\"],\"StartedAt\":"),
                     server.Data);
                 Assert.NotNull(server.LastHeartbeat);
@@ -1185,7 +1186,7 @@ namespace Hangfire.Mongo.Tests
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
                     Field = "field",
-                    ExpireAt = (DateTime?)DateTime.UtcNow.AddHours(1)
+                    ExpireAt = DateTime.UtcNow.AddHours(1)
                 });
                 database.Hash.InsertOne(new HashDto
                 {
@@ -1354,7 +1355,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
-                    ExpireAt = (DateTime?)DateTime.UtcNow.AddHours(1)
+                    ExpireAt = DateTime.UtcNow.AddHours(1)
                 });
                 database.List.InsertOne(new ListDto
                 {
@@ -1505,6 +1506,7 @@ namespace Hangfire.Mongo.Tests
 
         public static void SampleMethod(string arg)
         {
+            Debug.WriteLine(arg);
         }
     }
 #pragma warning restore 1591

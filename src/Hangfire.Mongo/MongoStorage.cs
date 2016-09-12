@@ -47,13 +47,13 @@ namespace Hangfire.Mongo
         public MongoStorage(string connectionString, string databaseName, MongoStorageOptions options)
         {
             if (string.IsNullOrWhiteSpace(connectionString))
-                throw new ArgumentNullException("connectionString");
+                throw new ArgumentNullException(nameof(connectionString));
 
             if (string.IsNullOrWhiteSpace(databaseName))
-                throw new ArgumentNullException("databaseName");
+                throw new ArgumentNullException(nameof(databaseName));
 
             if (options == null)
-                throw new ArgumentNullException("options");
+                throw new ArgumentNullException(nameof(options));
 
             _connectionString = connectionString;
             _databaseName = databaseName;
@@ -83,13 +83,13 @@ namespace Hangfire.Mongo
         public MongoStorage(MongoClientSettings mongoClientSettings, string databaseName, MongoStorageOptions options)
         {
             if (mongoClientSettings == null)
-                throw new ArgumentNullException("mongoClientSettings");
+                throw new ArgumentNullException(nameof(mongoClientSettings));
 
-            if (String.IsNullOrWhiteSpace(databaseName) == true)
-                throw new ArgumentNullException("databaseName");
+            if (string.IsNullOrWhiteSpace(databaseName))
+                throw new ArgumentNullException(nameof(databaseName));
 
             if (options == null)
-                throw new ArgumentNullException("options");
+                throw new ArgumentNullException(nameof(options));
 
             _mongoClientSettings = mongoClientSettings;
             _databaseName = databaseName;
@@ -103,12 +103,12 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Database context
         /// </summary>
-        public HangfireDbContext Connection { get; private set; }
+        public HangfireDbContext Connection { get; }
 
         /// <summary>
         /// Queue providers collection
         /// </summary>
-        public PersistentJobQueueProviderCollection QueueProviders { get; private set; }
+        public PersistentJobQueueProviderCollection QueueProviders { get; }
 
         /// <summary>
         /// Returns Monitoring API object
@@ -166,7 +166,7 @@ namespace Hangfire.Mongo
         /// <returns>Database context</returns>
         public HangfireDbContext CreateAndOpenConnection()
         {
-            return this._connectionString != null ? new HangfireDbContext(this._connectionString, this._databaseName, this._options.Prefix) : new HangfireDbContext(this._mongoClientSettings, this._databaseName, this._options.Prefix);
+            return _connectionString != null ? new HangfireDbContext(_connectionString, _databaseName, _options.Prefix) : new HangfireDbContext(_mongoClientSettings, _databaseName, _options.Prefix);
         }
 
         /// <summary>
@@ -182,9 +182,9 @@ namespace Hangfire.Mongo
             }
             else if (_mongoClientSettings != null && _mongoClientSettings.Server != null)
             {
-                obscuredConnectionString = string.Format("mongodb://<username>:<password>@{0}:{1}", _mongoClientSettings.Server.Host, _mongoClientSettings.Server.Port);
+                obscuredConnectionString = $"mongodb://<username>:<password>@{_mongoClientSettings.Server.Host}:{_mongoClientSettings.Server.Port}";
             }
-            return String.Format("Connection string: {0}, database name: {1}, prefix: {2}", obscuredConnectionString, _databaseName, _options.Prefix);
+            return $"Connection string: {obscuredConnectionString}, database name: {_databaseName}, prefix: {_options.Prefix}";
 
         }
     }

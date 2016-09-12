@@ -159,7 +159,7 @@ namespace Hangfire.Mongo
             });
         }
 
-        public JobList<EnqueuedJobDto> EnqueuedJobs(string queue, int @from, int perPage)
+        public JobList<EnqueuedJobDto> EnqueuedJobs(string queue, int from, int perPage)
         {
             return UseConnection(connection =>
             {
@@ -170,7 +170,7 @@ namespace Hangfire.Mongo
             });
         }
 
-        public JobList<FetchedJobDto> FetchedJobs(string queue, int @from, int perPage)
+        public JobList<FetchedJobDto> FetchedJobs(string queue, int from, int perPage)
         {
             return UseConnection(connection =>
             {
@@ -181,7 +181,7 @@ namespace Hangfire.Mongo
             });
         }
 
-        public JobList<ProcessingJobDto> ProcessingJobs(int @from, int count)
+        public JobList<ProcessingJobDto> ProcessingJobs(int from, int count)
         {
             return UseConnection(connection => GetJobs(
                 connection,
@@ -195,7 +195,7 @@ namespace Hangfire.Mongo
                 }));
         }
 
-        public JobList<ScheduledJobDto> ScheduledJobs(int @from, int count)
+        public JobList<ScheduledJobDto> ScheduledJobs(int from, int count)
         {
             return UseConnection(connection => GetJobs(connection, from, count, ScheduledState.StateName,
                 (sqlJob, job, stateData) => new ScheduledJobDto
@@ -206,7 +206,7 @@ namespace Hangfire.Mongo
                 }));
         }
 
-        public JobList<SucceededJobDto> SucceededJobs(int @from, int count)
+        public JobList<SucceededJobDto> SucceededJobs(int from, int count)
         {
             return UseConnection(connection => GetJobs(connection, from, count, SucceededState.StateName,
                 (sqlJob, job, stateData) => new SucceededJobDto
@@ -220,7 +220,7 @@ namespace Hangfire.Mongo
                 }));
         }
 
-        public JobList<FailedJobDto> FailedJobs(int @from, int count)
+        public JobList<FailedJobDto> FailedJobs(int from, int count)
         {
             return UseConnection(connection => GetJobs(connection, from, count, FailedState.StateName,
                 (sqlJob, job, stateData) => new FailedJobDto
@@ -234,7 +234,7 @@ namespace Hangfire.Mongo
                 }));
         }
 
-        public JobList<DeletedJobDto> DeletedJobs(int @from, int count)
+        public JobList<DeletedJobDto> DeletedJobs(int from, int count)
         {
             return UseConnection(connection => GetJobs(connection, from, count, DeletedState.StateName,
                 (sqlJob, job, stateData) => new DeletedJobDto
@@ -349,8 +349,8 @@ namespace Hangfire.Mongo
                         FetchedAt = null,
                         StateId = job.StateId,
                         StateName = job.StateName,
-                        StateReason = state != null ? state.Reason : null,
-                        StateData = state != null ? state.Data : null
+                        StateReason = state?.Reason,
+                        StateData = state?.Data
                     };
                 })
                 .ToList();
@@ -438,8 +438,8 @@ namespace Hangfire.Mongo
                         FetchedAt = null,
                         StateId = job.StateId,
                         StateName = job.StateName,
-                        StateReason = state != null ? state.Reason : null,
-                        StateData = state != null ? state.Data : null
+                        StateReason = state?.Reason,
+                        StateData = state?.Data
                     };
                 })
                 .ToList();
@@ -461,7 +461,7 @@ namespace Hangfire.Mongo
             return new JobList<FetchedJobDto>(result);
         }
 
-        private JobList<TDto> GetJobs<TDto>(HangfireDbContext connection, int @from, int count, string stateName, Func<JobDetailedDto, Job, Dictionary<string, string>, TDto> selector)
+        private JobList<TDto> GetJobs<TDto>(HangfireDbContext connection, int from, int count, string stateName, Func<JobDetailedDto, Job, Dictionary<string, string>, TDto> selector)
         {
             // only retrieve job ids
             var jobIds = connection.Job
@@ -473,7 +473,7 @@ namespace Hangfire.Mongo
                 .Find(Builders<StateDto>.Filter.In(_ => _.Id, jobIds.Select(j => j.StateId))
                         & Builders<StateDto>.Filter.Eq(_ => _.Name, stateName))
                 .SortByDescending(_ => _.CreatedAt)
-                .Skip(@from)
+                .Skip(from)
                 .Limit(count)
                 .Project(_ => new { _.JobId, _.Reason, _.Data })
                 .ToList();
@@ -500,8 +500,8 @@ namespace Hangfire.Mongo
                         FetchedAt = null,
                         StateId = job.StateId,
                         StateName = job.StateName,
-                        StateReason = state != null ? state.Reason : null,
-                        StateData = state != null ? state.Data : null
+                        StateReason = state?.Reason,
+                        StateData = state?.Data
                     };
                 })
                 .ToList();
@@ -528,7 +528,7 @@ namespace Hangfire.Mongo
             }
 
             var stringDates = dates.Select(x => x.ToString("yyyy-MM-dd")).ToList();
-            var keys = stringDates.Select(x => String.Format("stats:{0}:{1}", type, x)).ToList();
+            var keys = stringDates.Select(x => $"stats:{type}:{x}").ToList();
 
             var valuesMap = connection.AggregatedCounter
                 .Find(Builders<AggregatedCounterDto>.Filter.In(_ => _.Key, keys))
@@ -561,7 +561,7 @@ namespace Hangfire.Mongo
                 endDate = endDate.AddHours(-1);
             }
 
-            var keys = dates.Select(x => String.Format("stats:{0}:{1}", type, x.ToString("yyyy-MM-dd-HH"))).ToList();
+            var keys = dates.Select(x => $"stats:{type}:{x:yyyy-MM-dd-HH}").ToList();
 
             var valuesMap = connection.Counter.Find(Builders<CounterDto>.Filter.In(_ => _.Key, keys))
                 .ToList()

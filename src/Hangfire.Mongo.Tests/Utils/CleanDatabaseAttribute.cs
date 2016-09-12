@@ -13,10 +13,6 @@ namespace Hangfire.Mongo.Tests.Utils
     {
         private static readonly object GlobalLock = new object();
 
-        public CleanDatabaseAttribute()
-        {
-        }
-
         public override void Before(MethodInfo methodUnderTest)
         {
             Monitor.Enter(GlobalLock);

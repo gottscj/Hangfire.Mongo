@@ -24,7 +24,7 @@ namespace Hangfire.Mongo
             CountersAggregateInterval = TimeSpan.FromMinutes(5);
 
 
-            ClientId = Guid.NewGuid().ToString().Replace("-", String.Empty);
+            ClientId = Guid.NewGuid().ToString().Replace("-", string.Empty);
         }
 
         /// <summary>
@@ -40,16 +40,15 @@ namespace Hangfire.Mongo
             get { return _queuePollInterval; }
             set
             {
-                var message = String.Format("The QueuePollInterval property value should be positive. Given: {0}.",
-                    value);
+                var message = $"The QueuePollInterval property value should be positive. Given: {value}.";
 
                 if (value == TimeSpan.Zero)
                 {
-                    throw new ArgumentException(message, "value");
+                    throw new ArgumentException(message, nameof(value));
                 }
                 if (value != value.Duration())
                 {
-                    throw new ArgumentException(message, "value");
+                    throw new ArgumentException(message, nameof(value));
                 }
 
                 _queuePollInterval = value;
@@ -69,16 +68,15 @@ namespace Hangfire.Mongo
             get { return _distributedLockLifetime; }
             set
             {
-                var message = String.Format(
-                    "The DistributedLockLifetime property value should be positive. Given: {0}.", value);
+                var message = $"The DistributedLockLifetime property value should be positive. Given: {value}.";
 
                 if (value == TimeSpan.Zero)
                 {
-                    throw new ArgumentException(message, "value");
+                    throw new ArgumentException(message, nameof(value));
                 }
                 if (value != value.Duration())
                 {
-                    throw new ArgumentException(message, "value");
+                    throw new ArgumentException(message, nameof(value));
                 }
 
                 _distributedLockLifetime = value;

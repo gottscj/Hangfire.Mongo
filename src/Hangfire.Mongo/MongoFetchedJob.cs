@@ -28,9 +28,9 @@ namespace Hangfire.Mongo
         /// <param name="queue">Queue name</param>
         public MongoFetchedJob(HangfireDbContext connection, int id, string jobId, string queue)
         {
-            if (connection == null) throw new ArgumentNullException("connection");
-            if (jobId == null) throw new ArgumentNullException("jobId");
-            if (queue == null) throw new ArgumentNullException("queue");
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+            if (jobId == null) throw new ArgumentNullException(nameof(jobId));
+            if (queue == null) throw new ArgumentNullException(nameof(queue));
 
             _connection = connection;
 

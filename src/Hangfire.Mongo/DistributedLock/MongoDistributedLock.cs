@@ -49,19 +49,19 @@ namespace Hangfire.Mongo.DistributedLock
         {
             if (string.IsNullOrEmpty(resource))
             {
-                throw new ArgumentNullException("resource");
+                throw new ArgumentNullException(nameof(resource));
             }
             if (timeout.TotalSeconds > int.MaxValue)
             {
-                throw new ArgumentException(string.Format("The timeout specified is too large. Please supply a timeout equal to or less than {0} seconds", int.MaxValue), "timeout");
+                throw new ArgumentException($"The timeout specified is too large. Please supply a timeout equal to or less than {int.MaxValue} seconds", nameof(timeout));
             }
             if (database == null)
             {
-                throw new ArgumentNullException("database");
+                throw new ArgumentNullException(nameof(database));
             }
             if (options == null)
             {
-                throw new ArgumentNullException("options");
+                throw new ArgumentNullException(nameof(options));
             }
 
             _resource = resource;
@@ -157,9 +157,7 @@ namespace Hangfire.Mongo.DistributedLock
 
                 if (!isLockAcquired)
                 {
-                    throw new DistributedLockTimeoutException(
-                        string.Format("Could not place a lock on the resource '{0}': {1}.", _resource,
-                            "The lock request timed out"));
+                    throw new DistributedLockTimeoutException($"Could not place a lock on the resource \'{_resource}\': The lock request timed out.");
                 }
             }
             catch (DistributedLockTimeoutException)
@@ -168,9 +166,7 @@ namespace Hangfire.Mongo.DistributedLock
             }
             catch (Exception ex)
             {
-                throw new MongoDistributedLockException(
-                    string.Format("Could not place a lock on the resource '{0}': {1}.", _resource,
-                        "Check inner exception for details"), ex);
+                throw new MongoDistributedLockException($"Could not place a lock on the resource \'{_resource}\': Check inner exception for details.", ex);
             }
         }
 
@@ -189,9 +185,7 @@ namespace Hangfire.Mongo.DistributedLock
             }
             catch (Exception ex)
             {
-                throw new MongoDistributedLockException(
-                    string.Format("Could not release a lock on the resource '{0}': {1}.", _resource,
-                        "Check inner exception for details"), ex);
+                throw new MongoDistributedLockException($"Could not release a lock on the resource \'{_resource}\': Check inner exception for details.", ex);
             }
         }
 

@@ -20,10 +20,10 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
         public MongoJobQueue(HangfireDbContext connection, MongoStorageOptions options)
         {
             if (options == null)
-                throw new ArgumentNullException("options");
+                throw new ArgumentNullException(nameof(options));
 
             if (connection == null)
-                throw new ArgumentNullException("connection");
+                throw new ArgumentNullException(nameof(connection));
 
             _options = options;
             _connection = connection;
@@ -33,10 +33,10 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
         public IFetchedJob Dequeue(string[] queues, CancellationToken cancellationToken)
         {
             if (queues == null)
-                throw new ArgumentNullException("queues");
+                throw new ArgumentNullException(nameof(queues));
 
             if (queues.Length == 0)
-                throw new ArgumentException("Queue array must be non-empty.", "queues");
+                throw new ArgumentException("Queue array must be non-empty.", nameof(queues));
 
             JobQueueDto fetchedJob = null;
 
