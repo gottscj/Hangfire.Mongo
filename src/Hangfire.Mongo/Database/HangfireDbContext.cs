@@ -27,7 +27,7 @@ namespace Hangfire.Mongo.Database
         {
             _prefix = prefix;
 
-            MongoClient client = new MongoClient(connectionString);
+            var client = new MongoClient(connectionString);
 
             Database = client.GetDatabase(databaseName);
 

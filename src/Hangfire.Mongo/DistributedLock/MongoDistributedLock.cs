@@ -35,6 +35,8 @@ namespace Hangfire.Mongo.DistributedLock
 
         private readonly object _lockObject = new object();
 
+        private string EventWaitHandleName => $@"{GetType().FullName}.{_resource}";
+
 
         /// <summary>
         /// Creates MongoDB distributed lock
@@ -130,18 +132,21 @@ namespace Hangfire.Mongo.DistributedLock
             try
             {
                 // If result is null, then it means we acquired the lock
-                bool isLockAcquired = false;
-                DateTime now = DateTime.Now;
-                DateTime lockTimeoutTime = now.Add(timeout);
+                var isLockAcquired = false;
+                var now = DateTime.Now;
+                var lockTimeoutTime = now.Add(timeout);
 
                 while (!isLockAcquired && (lockTimeoutTime >= now))
                 {
                     // Acquire the lock if it does not exist - Notice: ReturnDocument.Before
-                    DistributedLockDto result = _database.DistributedLock.FindOneAndUpdate(
-                        Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource),
-                        Builders<DistributedLockDto>.Update.Combine(
-                            Builders<DistributedLockDto>.Update.SetOnInsert(_ => _.Heartbeat, _database.GetServerTimeUtc())),
-                        new FindOneAndUpdateOptions<DistributedLockDto> { IsUpsert = true, ReturnDocument = ReturnDocument.Before });
+                    var filter = Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource);
+                    var update = Builders<DistributedLockDto>.Update.SetOnInsert(_ => _.ExpireAt, _database.GetServerTimeUtc().Add(_options.DistributedLockLifetime));
+                    var options = new FindOneAndUpdateOptions<DistributedLockDto>
+                    {
+                        IsUpsert = true,
+                        ReturnDocument = ReturnDocument.Before
+                    };
+                    var result = _database.DistributedLock.FindOneAndUpdate(filter, update, options);
 
                     // If result is null, then it means we acquired the lock
                     if (result == null)
@@ -150,7 +155,11 @@ namespace Hangfire.Mongo.DistributedLock
                     }
                     else
                     {
-                        Thread.Sleep((int)timeout.TotalMilliseconds / 10);
+                        // Wait on the event. This allows us to be "woken" up sooner rather than later.
+                        // We wait in chunks as we need to "wake-up" from time to time and poll mongo,
+                        // in case that the lock was acquired on another machine or instance.
+                        var eventWaitHandle = new EventWaitHandle(false, EventResetMode.AutoReset, EventWaitHandleName);
+                        eventWaitHandle.WaitOne((int)timeout.TotalMilliseconds / 10);
                         now = DateTime.Now;
                     }
                 }
@@ -182,6 +191,11 @@ namespace Hangfire.Mongo.DistributedLock
                 // Remove resource lock
                 _database.DistributedLock.DeleteOne(
                     Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource));
+                EventWaitHandle eventWaitHandler;
+                if (EventWaitHandle.TryOpenExisting(EventWaitHandleName, out eventWaitHandler))
+                {
+                    eventWaitHandler.Set();
+                }
             }
             catch (Exception ex)
             {
@@ -197,7 +211,7 @@ namespace Hangfire.Mongo.DistributedLock
                 // Delete expired locks
                 _database.DistributedLock.DeleteOne(
                     Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource) &
-                    Builders<DistributedLockDto>.Filter.Lt(_ => _.Heartbeat, _database.GetServerTimeUtc().Subtract(_options.DistributedLockLifetime)));
+                    Builders<DistributedLockDto>.Filter.Lt(_ => _.ExpireAt, _database.GetServerTimeUtc()));
             }
             catch (Exception ex)
             {
@@ -220,9 +234,9 @@ namespace Hangfire.Mongo.DistributedLock
                 {
                     try
                     {
-                        _database.DistributedLock
-                            .FindOneAndUpdate(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource),
-                                Builders<DistributedLockDto>.Update.Set(_ => _.Heartbeat, _database.GetServerTimeUtc()));
+                        var filter = Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource);
+                        var update = Builders<DistributedLockDto>.Update.Set(_ => _.ExpireAt, _database.GetServerTimeUtc().Add(_options.DistributedLockLifetime));
+                        _database.DistributedLock.FindOneAndUpdate(filter, update);
                     }
                     catch (Exception ex)
                     {
