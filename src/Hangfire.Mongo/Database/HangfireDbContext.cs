@@ -161,7 +161,7 @@ namespace Hangfire.Mongo.Database
 
         private void CreateJobIndexes()
         {
-            // create for jobid on state, jobParameter, jobQueue
+            // Create for jobid on state, jobParameter, jobQueue
             State.CreateDescendingIndex(p => p.JobId);
             JobParameter.CreateDescendingIndex(p => p.JobId);
             JobQueue.CreateDescendingIndex(p => p.JobId);

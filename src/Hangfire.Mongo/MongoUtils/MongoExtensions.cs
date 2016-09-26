@@ -48,12 +48,10 @@ namespace Hangfire.Mongo.MongoUtils
         /// <typeparam name="TDocument"></typeparam>
         public static void CreateAscendingIndex<TDocument>(this IMongoCollection<TDocument> collection, Expression<Func<TDocument, object>> field, string name = null)
         {
-            var exp = field.Body as UnaryExpression;
-            var memberExp = exp?.Operand as MemberExpression;
             var builder = new IndexKeysDefinitionBuilder<TDocument>();
             var options = new CreateIndexOptions<TDocument>
             {
-                Name = name ?? memberExp?.Member.Name
+                Name = name ?? field.GetFieldName()
             };
             collection.Indexes.CreateOne(builder.Ascending(field), options);
         }
@@ -68,15 +66,32 @@ namespace Hangfire.Mongo.MongoUtils
         /// <typeparam name="TDocument"></typeparam>
         public static void CreateDescendingIndex<TDocument>(this IMongoCollection<TDocument> collection, Expression<Func<TDocument, object>> field, string name = null)
         {
-            var exp = field.Body as UnaryExpression;
-            var memberExp = exp?.Operand as MemberExpression;
             var builder = new IndexKeysDefinitionBuilder<TDocument>();
             var options = new CreateIndexOptions<TDocument>
             {
-                Name = name ?? memberExp?.Member.Name
+                Name = name ?? field.GetFieldName()
             };
 
             collection.Indexes.CreateOne(builder.Descending(field), options);
         }
+
+
+        /// <summary>
+        /// Try to extract the field name from the expression.
+        /// </summary>
+        /// <typeparam name="TDocument"></typeparam>
+        /// <param name="field">
+        /// The expression to extract from.
+        /// </param>
+        /// <returns>
+        /// On success the field name, else null
+        /// </returns>
+        private static string GetFieldName<TDocument>(this Expression<Func<TDocument, object>> field)
+        {
+            var exp = field.Body as UnaryExpression;
+            var memberExp = exp?.Operand as MemberExpression;
+            return memberExp?.Member.Name;
+        }
+
     }
 }
