@@ -1,5 +1,6 @@
 ﻿using System;
 using Hangfire.Mongo.Dto;
+using Hangfire.Mongo.MongoUtils;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -11,7 +12,7 @@ namespace Hangfire.Mongo.Database
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1063:ImplementIDisposableCorrectly")]
     public class HangfireDbContext : IDisposable
     {
-        private const int RequiredSchemaVersion = 4;
+        private const int RequiredSchemaVersion = 5;
 
         private readonly string _prefix;
 
@@ -136,8 +137,7 @@ namespace Hangfire.Mongo.Database
         /// </summary>
         public void Init()
         {
-            SchemaDto schema = Schema.Find(new BsonDocument()).FirstOrDefault();
-
+            var schema = Schema.Find(new BsonDocument()).FirstOrDefault();
             if (schema != null)
             {
                 if (RequiredSchemaVersion > schema.Version)
@@ -146,13 +146,27 @@ namespace Hangfire.Mongo.Database
                     Schema.InsertOne(new SchemaDto { Version = RequiredSchemaVersion });
                 }
                 else if (RequiredSchemaVersion < schema.Version)
-                    throw new InvalidOperationException($"HangFire current database schema version {schema.Version} is newer than the configured MongoStorage schema version {RequiredSchemaVersion}. Please update to the latest HangFire.SqlServer NuGet package.");
+                {
+                    throw new InvalidOperationException($"HangFire current database schema version {schema.Version} is newer than the configured MongoStorage schema version {RequiredSchemaVersion}. Please update to the latest HangFire.Mongo NuGet package.");
+                }
             }
             else
             {
                 Schema.InsertOne(new SchemaDto { Version = RequiredSchemaVersion });
             }
+
+            CreateJobIndexes();
         }
+
+
+        private void CreateJobIndexes()
+        {
+            // Create for jobid on state, jobParameter, jobQueue
+            State.CreateDescendingIndex(p => p.JobId);
+            JobParameter.CreateDescendingIndex(p => p.JobId);
+            JobQueue.CreateDescendingIndex(p => p.JobId);
+        }
+
 
         /// <summary>
         /// Disposes the object
