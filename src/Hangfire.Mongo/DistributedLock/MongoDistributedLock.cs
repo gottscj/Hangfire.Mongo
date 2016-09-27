@@ -16,7 +16,7 @@ namespace Hangfire.Mongo.DistributedLock
     public sealed class MongoDistributedLock : IDisposable
     {
 
-        private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
+        private static readonly ILog Logger = LogProvider.For<MongoDistributedLock>();
 
         private static readonly ThreadLocal<Dictionary<string, int>> AcquiredLocks
                     = new ThreadLocal<Dictionary<string, int>>(() => new Dictionary<string, int>());

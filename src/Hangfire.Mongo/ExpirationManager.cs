@@ -9,12 +9,12 @@ using MongoDB.Driver;
 
 namespace Hangfire.Mongo
 {
-    /// <summary>
-    /// Represents Hangfire expiration manager for Mongo database
-    /// </summary>
-    public class ExpirationManager : IBackgroundProcess, IServerComponent
-    {
-        private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
+	/// <summary>
+	/// Represents Hangfire expiration manager for Mongo database
+	/// </summary>
+	public class ExpirationManager : IBackgroundProcess, IServerComponent
+	{
+		private static readonly ILog Logger = LogProvider.For<ExpirationManager>();
 
         private readonly MongoStorage _storage;
         private readonly TimeSpan _checkInterval;

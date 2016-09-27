@@ -1,0 +1,17 @@
+﻿{
+  "dependencies": {
+    "NETStandard.Library": "1.6.0",
+    "Hangfire.Mongo": { "target": "project" },
+    "Moq": "4.6.36-*",
+    "xunit": "2.2.0-*"
+  },
+  
+  "buildOptions": {
+    "warningsAsErrors": true,
+    "nowarn": [ "CS0618" ]
+  },
+  
+  "frameworks": {
+	"net451": {}
+  }
+}
