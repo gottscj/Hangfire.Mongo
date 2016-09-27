@@ -5,7 +5,7 @@ namespace Hangfire.Mongo.DistributedLock
     /// <summary>
     /// Represents exceptions for distributed lock implementation for MongoDB
     /// </summary>
-#if !NETSTANDARD1_6
+#if !NETSTANDARD1_5
     [Serializable]
 #endif
     public class MongoDistributedLockException : Exception
