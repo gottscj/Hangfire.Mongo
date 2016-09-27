@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Hangfire.Common;
@@ -154,7 +155,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal(ObjectId.Empty, databaseJob.StateId);
                 Assert.Equal(null, databaseJob.StateName);
 
-                var invocationData = JobHelper.FromJson<InvocationData>((string)databaseJob.InvocationData);
+                var invocationData = JobHelper.FromJson<InvocationData>(databaseJob.InvocationData);
                 invocationData.Arguments = databaseJob.Arguments;
 
                 var job = invocationData.Deserialize();
@@ -243,9 +244,9 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 var data = new Dictionary<string, string>
-						{
-							{ "Key", "Value" }
-						};
+                        {
+                            { "Key", "Value" }
+                        };
 
                 var jobDto = new JobDto
                 {
@@ -581,7 +582,7 @@ namespace Hangfire.Mongo.Tests
 
                 var server = database.Server.Find(new BsonDocument()).Single();
                 Assert.Equal("server", server.Id);
-                Assert.True(((string)server.Data).StartsWith(
+                Assert.True(server.Data.StartsWith(
                     "{\"WorkerCount\":4,\"Queues\":[\"critical\",\"default\"],\"StartedAt\":"),
                     server.Data);
                 Assert.NotNull(server.LastHeartbeat);
@@ -784,10 +785,10 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 connection.SetRangeInHash("some-hash", new Dictionary<string, string>
-						{
-							{ "Key1", "Value1" },
-							{ "Key2", "Value2" }
-						});
+                        {
+                            { "Key1", "Value1" },
+                            { "Key2", "Value2" }
+                        });
 
                 var result = database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, "some-hash")).ToList()
                     .ToDictionary(x => x.Field, x => x.Value);
@@ -1185,7 +1186,7 @@ namespace Hangfire.Mongo.Tests
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
                     Field = "field",
-                    ExpireAt = (DateTime?)DateTime.UtcNow.AddHours(1)
+                    ExpireAt = DateTime.UtcNow.AddHours(1)
                 });
                 database.Hash.InsertOne(new HashDto
                 {
@@ -1354,7 +1355,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
-                    ExpireAt = (DateTime?)DateTime.UtcNow.AddHours(1)
+                    ExpireAt = DateTime.UtcNow.AddHours(1)
                 });
                 database.List.InsertOne(new ListDto
                 {
@@ -1505,6 +1506,7 @@ namespace Hangfire.Mongo.Tests
 
         public static void SampleMethod(string arg)
         {
+            Debug.WriteLine(arg);
         }
     }
 #pragma warning restore 1591

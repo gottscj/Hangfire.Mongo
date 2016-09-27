@@ -11,7 +11,7 @@ using MongoDB.Driver;
 namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 {
 #pragma warning disable 1591
-	public class MongoJobQueue : IPersistentJobQueue
+    public class MongoJobQueue : IPersistentJobQueue
     {
         private readonly MongoStorageOptions _options;
 
@@ -20,10 +20,10 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
         public MongoJobQueue(HangfireDbContext connection, MongoStorageOptions options)
         {
             if (options == null)
-                throw new ArgumentNullException("options");
+                throw new ArgumentNullException(nameof(options));
 
             if (connection == null)
-                throw new ArgumentNullException("connection");
+                throw new ArgumentNullException(nameof(connection));
 
             _options = options;
             _connection = connection;
@@ -33,18 +33,18 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
         public IFetchedJob Dequeue(string[] queues, CancellationToken cancellationToken)
         {
             if (queues == null)
-                throw new ArgumentNullException("queues");
+                throw new ArgumentNullException(nameof(queues));
 
             if (queues.Length == 0)
-                throw new ArgumentException("Queue array must be non-empty.", "queues");
+                throw new ArgumentException("Queue array must be non-empty.", nameof(queues));
 
             JobQueueDto fetchedJob = null;
 
             var fetchConditions = new[]
-			{
-				Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null),
-				Builders<JobQueueDto>.Filter.Lt(_ => _.FetchedAt, _connection.GetServerTimeUtc().AddSeconds(_options.InvisibilityTimeout.Negate().TotalSeconds))
-			};
+            {
+                Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null),
+                Builders<JobQueueDto>.Filter.Lt(_ => _.FetchedAt, _connection.GetServerTimeUtc().AddSeconds(_options.InvisibilityTimeout.Negate().TotalSeconds))
+            };
             var currentQueryIndex = 0;
 
             do

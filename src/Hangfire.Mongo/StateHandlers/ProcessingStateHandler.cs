@@ -18,10 +18,7 @@ namespace Hangfire.Mongo.StateHandlers
             transaction.RemoveFromSet("processing", context.BackgroundJob.Id);
         }
 
-        public string StateName
-        {
-	        get { return ProcessingState.StateName; }
-        }
+        public string StateName => ProcessingState.StateName;
     }
 #pragma warning restore 1591
 }

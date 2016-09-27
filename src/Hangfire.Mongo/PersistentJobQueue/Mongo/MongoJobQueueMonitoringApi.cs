@@ -15,7 +15,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
         public MongoJobQueueMonitoringApi(HangfireDbContext connection)
         {
             if (connection == null)
-                throw new ArgumentNullException("connection");
+                throw new ArgumentNullException(nameof(connection));
 
             _connection = connection;
         }
@@ -28,11 +28,11 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 .ToList().Distinct().ToList();
         }
 
-        public IEnumerable<int> GetEnqueuedJobIds(string queue, int @from, int perPage)
+        public IEnumerable<int> GetEnqueuedJobIds(string queue, int from, int perPage)
         {
             return _connection.JobQueue
                 .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null))
-                .Skip(@from)
+                .Skip(from)
                 .Limit(perPage)
                 .Project(_ => _.JobId)
                 .ToList()
@@ -43,11 +43,11 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 }).ToArray();
         }
 
-        public IEnumerable<int> GetFetchedJobIds(string queue, int @from, int perPage)
+        public IEnumerable<int> GetFetchedJobIds(string queue, int from, int perPage)
         {
             return _connection.JobQueue
                 .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null))
-                .Skip(@from)
+                .Skip(from)
                 .Limit(perPage)
                 .Project(_ => _.JobId)
                 .ToList()
@@ -72,6 +72,6 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 FetchedCount = fetchedCount
             };
         }
-		
+
     }
 }

@@ -15,7 +15,7 @@ namespace Hangfire.Mongo.PersistentJobQueue
 
         public PersistentJobQueueProviderCollection(IPersistentJobQueueProvider defaultProvider)
         {
-            if (defaultProvider == null) throw new ArgumentNullException("defaultProvider");
+            if (defaultProvider == null) throw new ArgumentNullException(nameof(defaultProvider));
 
             _defaultProvider = defaultProvider;
 
@@ -25,9 +25,9 @@ namespace Hangfire.Mongo.PersistentJobQueue
         public void Add(IPersistentJobQueueProvider provider, IEnumerable<string> queues)
         {
             if (provider == null)
-                throw new ArgumentNullException("provider");
+                throw new ArgumentNullException(nameof(provider));
             if (queues == null)
-                throw new ArgumentNullException("queues");
+                throw new ArgumentNullException(nameof(queues));
 
             _providers.Add(provider);
 

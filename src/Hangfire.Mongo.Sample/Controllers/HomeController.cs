@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Web;
 using System.Web.Mvc;
 
 namespace Hangfire.Mongo.Sample.Controllers
@@ -18,7 +15,7 @@ namespace Hangfire.Mongo.Sample.Controllers
         {
             for (int i = 0; i < id; i++)
             {
-                BackgroundJob.Enqueue(() => Debug.WriteLine("Hangfire task started."));
+                BackgroundJob.Enqueue(() => Debug.WriteLine("Hangfire fire-and-forget task started."));
             }
 
             return RedirectToAction("Index");
@@ -28,7 +25,7 @@ namespace Hangfire.Mongo.Sample.Controllers
         {
             for (int i = 0; i < id; i++)
             {
-                BackgroundJob.Schedule(() => Console.WriteLine("Delayed Hangfire task started!"),
+                BackgroundJob.Schedule(() => Console.WriteLine("Hangfire delayed task started!"),
                                        TimeSpan.FromMinutes(1));
             }
 
@@ -37,7 +34,7 @@ namespace Hangfire.Mongo.Sample.Controllers
 
         public ActionResult Recurring()
         {
-            RecurringJob.AddOrUpdate(() => Console.WriteLine("Recurring Hangfire task started!"),
+            RecurringJob.AddOrUpdate(() => Console.WriteLine("Hangfire recurring task started!"),
                                      Cron.Minutely);
 
             return RedirectToAction("Index");

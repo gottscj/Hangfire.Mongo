@@ -71,6 +71,13 @@ public void Configuration(IAppBuilder app)
 }
 ```
 
+Contrubutors
+------------
+
+* Sergey Zwezdin ([@sergeyzwezdin](https://github.com/sergeyzwezdin))
+* Martin Løbger ([@marloe](https://github.com/marloe))
+* Jonas Larsen Gottshau ([@gottscj](https://github.com/gottscj))
+
 License
 -------
 

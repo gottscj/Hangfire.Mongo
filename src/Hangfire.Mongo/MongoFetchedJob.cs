@@ -28,9 +28,9 @@ namespace Hangfire.Mongo
         /// <param name="queue">Queue name</param>
         public MongoFetchedJob(HangfireDbContext connection, int id, string jobId, string queue)
         {
-            if (connection == null) throw new ArgumentNullException("connection");
-            if (jobId == null) throw new ArgumentNullException("jobId");
-            if (queue == null) throw new ArgumentNullException("queue");
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+            if (jobId == null) throw new ArgumentNullException(nameof(jobId));
+            if (queue == null) throw new ArgumentNullException(nameof(queue));
 
             _connection = connection;
 
@@ -60,9 +60,9 @@ namespace Hangfire.Mongo
         /// </summary>
         public void RemoveFromQueue()
         {
-             _connection
-                .JobQueue
-                .DeleteOne(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id));
+            _connection
+               .JobQueue
+               .DeleteOne(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id));
 
             _removedFromQueue = true;
         }
@@ -72,9 +72,9 @@ namespace Hangfire.Mongo
         /// </summary>
         public void Requeue()
         {
-	        _connection.JobQueue.FindOneAndUpdate(
-		        Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id),
-		        Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null));
+            _connection.JobQueue.FindOneAndUpdate(
+                Builders<JobQueueDto>.Filter.Eq(_ => _.Id, Id),
+                Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null));
 
             _requeued = true;
         }

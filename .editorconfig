@@ -1,5 +1,25 @@
+# EditorConfig is awesome: http://EditorConfig.org
+# Download Visual Studio plugin @ https://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328
+
+; Top-most EditorConfig file
 root = true
 
+; Windows-style newlines
+[*]
+end_of_line = LFCR
+
+; 4-column space indentation
 [*.cs]
 indent_style = space
 indent_size = 4
+
+; 2-column space indentation
+[*.js]
+indent_style = space
+indent_size = 2
+
+; 2-column space indentation
+[*.{xml,nuspec}]
+indent_style = space
+indent_size = 2
+

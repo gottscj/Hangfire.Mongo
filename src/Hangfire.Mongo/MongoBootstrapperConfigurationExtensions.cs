@@ -8,7 +8,7 @@ namespace Hangfire.Mongo
     /// </summary>
     public static class MongoBootstrapperConfigurationExtensions
     {
-	
+
 #if !NETSTANDARD1_5
 
         /// <summary>
@@ -23,7 +23,7 @@ namespace Hangfire.Mongo
             string connectionString,
             string databaseName)
         {
-            MongoStorage storage = new MongoStorage(connectionString, databaseName, new MongoStorageOptions());
+            var storage = new MongoStorage(connectionString, databaseName, new MongoStorageOptions());
 
             configuration.UseStorage(storage);
 
@@ -44,53 +44,53 @@ namespace Hangfire.Mongo
             string databaseName,
             MongoStorageOptions options)
         {
-            MongoStorage storage = new MongoStorage(connectionString, databaseName, options);
+            var storage = new MongoStorage(connectionString, databaseName, options);
 
             configuration.UseStorage(storage);
 
             return storage;
         }
 
-		/// <summary>
-		/// Configure Hangfire to use MongoDB storage
-		/// </summary>
-		/// <param name="configuration">Configuration</param>
-		/// <param name="mongoClientSettings">Client settings for Mongo</param>
-		/// <param name="databaseName">Name of database at Mongo server</param>
-		/// <returns></returns>
-		[Obsolete("Please use `GlobalConfiguration.UseStorage` instead. Will be removed in Hangfire version 2.0.0.")]
-		public static MongoStorage UseMongoStorage(this IBootstrapperConfiguration configuration,
-			MongoClientSettings mongoClientSettings,
-			string databaseName)
-		{
-			MongoStorage storage = new MongoStorage(mongoClientSettings, databaseName);
+        /// <summary>
+        /// Configure Hangfire to use MongoDB storage
+        /// </summary>
+        /// <param name="configuration">Configuration</param>
+        /// <param name="mongoClientSettings">Client settings for Mongo</param>
+        /// <param name="databaseName">Name of database at Mongo server</param>
+        /// <returns></returns>
+        [Obsolete("Please use `GlobalConfiguration.UseStorage` instead. Will be removed in Hangfire version 2.0.0.")]
+        public static MongoStorage UseMongoStorage(this IBootstrapperConfiguration configuration,
+            MongoClientSettings mongoClientSettings,
+            string databaseName)
+        {
+            var storage = new MongoStorage(mongoClientSettings, databaseName);
 
-			configuration.UseStorage(storage);
+            configuration.UseStorage(storage);
 
-			return storage;
-		}
+            return storage;
+        }
 
-		/// <summary>
-		/// Configure Hangfire to use MongoDB storage
-		/// </summary>
-		/// <param name="configuration">Configuration</param>
-		/// <param name="mongoClientSettings">Client settings for Mongo</param>
-		/// <param name="databaseName">Name of database at Mongo server</param>
-		/// <param name="options">Storage options</param>
-		/// <returns></returns>
-		[Obsolete("Please use `GlobalConfiguration.UseStorage` instead. Will be removed in Hangfire version 2.0.0.")]
-		public static MongoStorage UseMongoStorage(this IBootstrapperConfiguration configuration,
-			MongoClientSettings mongoClientSettings,
-			string databaseName,
-			MongoStorageOptions options)
-		{
-			MongoStorage storage = new MongoStorage(mongoClientSettings, databaseName, options);
+        /// <summary>
+        /// Configure Hangfire to use MongoDB storage
+        /// </summary>
+        /// <param name="configuration">Configuration</param>
+        /// <param name="mongoClientSettings">Client settings for Mongo</param>
+        /// <param name="databaseName">Name of database at Mongo server</param>
+        /// <param name="options">Storage options</param>
+        /// <returns></returns>
+        [Obsolete("Please use `GlobalConfiguration.UseStorage` instead. Will be removed in Hangfire version 2.0.0.")]
+        public static MongoStorage UseMongoStorage(this IBootstrapperConfiguration configuration,
+            MongoClientSettings mongoClientSettings,
+            string databaseName,
+            MongoStorageOptions options)
+        {
+            var storage = new MongoStorage(mongoClientSettings, databaseName, options);
 
-			configuration.UseStorage(storage);
+            configuration.UseStorage(storage);
 
-			return storage;
-		}
-		
+            return storage;
+        }
+
 #endif
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace Hangfire.Mongo
             string connectionString,
             string databaseName)
         {
-            MongoStorage storage = new MongoStorage(connectionString, databaseName, new MongoStorageOptions());
+            var storage = new MongoStorage(connectionString, databaseName, new MongoStorageOptions());
 
             configuration.UseStorage(storage);
 
@@ -124,49 +124,49 @@ namespace Hangfire.Mongo
             string databaseName,
             MongoStorageOptions options)
         {
-            MongoStorage storage = new MongoStorage(connectionString, databaseName, options);
+            var storage = new MongoStorage(connectionString, databaseName, options);
 
             configuration.UseStorage(storage);
 
             return storage;
         }
 
-		/// <summary>
-		/// Configure Hangfire to use MongoDB storage
-		/// </summary>
-		/// <param name="configuration">Configuration</param>
-		/// <param name="mongoClientSettings">Client settings for Mongo</param>
-		/// <param name="databaseName">Name of database at Mongo server</param>
-		/// <returns></returns>
-		public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
-			MongoClientSettings mongoClientSettings,
-			string databaseName)
-		{
-			MongoStorage storage = new MongoStorage(mongoClientSettings, databaseName, new MongoStorageOptions());
+        /// <summary>
+        /// Configure Hangfire to use MongoDB storage
+        /// </summary>
+        /// <param name="configuration">Configuration</param>
+        /// <param name="mongoClientSettings">Client settings for Mongo</param>
+        /// <param name="databaseName">Name of database at Mongo server</param>
+        /// <returns></returns>
+        public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
+            MongoClientSettings mongoClientSettings,
+            string databaseName)
+        {
+            var storage = new MongoStorage(mongoClientSettings, databaseName, new MongoStorageOptions());
 
-			configuration.UseStorage(storage);
+            configuration.UseStorage(storage);
 
-			return storage;
-		}
+            return storage;
+        }
 
-		/// <summary>
-		/// Configure Hangfire to use MongoDB storage
-		/// </summary>
-		/// <param name="configuration">Configuration</param>
-		/// <param name="mongoClientSettings">Client settings for Mongo</param>
-		/// <param name="databaseName">Name of database at Mongo server</param>
-		/// <param name="options">Storage options</param>
-		/// <returns></returns>
-		public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
-			MongoClientSettings mongoClientSettings,
-			string databaseName,
-			MongoStorageOptions options)
-		{
-			MongoStorage storage = new MongoStorage(mongoClientSettings, databaseName, options);
+        /// <summary>
+        /// Configure Hangfire to use MongoDB storage
+        /// </summary>
+        /// <param name="configuration">Configuration</param>
+        /// <param name="mongoClientSettings">Client settings for Mongo</param>
+        /// <param name="databaseName">Name of database at Mongo server</param>
+        /// <param name="options">Storage options</param>
+        /// <returns></returns>
+        public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
+            MongoClientSettings mongoClientSettings,
+            string databaseName,
+            MongoStorageOptions options)
+        {
+            var storage = new MongoStorage(mongoClientSettings, databaseName, options);
 
-			configuration.UseStorage(storage);
+            configuration.UseStorage(storage);
 
-			return storage;
-		}
+            return storage;
+        }
     }
 }

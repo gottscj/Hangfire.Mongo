@@ -40,6 +40,14 @@ Include "utils\version.ps1";
 Include "utils\msbuild.ps1";
 Include "utils\dotnet.ps1";
 
+## Build Enviroment
+
+task MsBuild -description "Validates the correct MSBuild version is present" {
+	$output = &msbuild /version 2>&1
+	assert ($output -like "*14.0*") "MSBuild version 14 required: $output;"
+}
+
+
 ## Configuration initialization
 
 Task ValidateConfig -description "Validates configuration" {
@@ -136,4 +144,6 @@ Task Build -depends PrepareSources, Clean, BuildProjects, BuildNugetPackages -de
 
 ## Default
 
-Task Default -depends InitConfiguration, PrepareSources, Build;
+Framework "4.6"
+
+Task Default -depends MsBuild, InitConfiguration, PrepareSources, Build;

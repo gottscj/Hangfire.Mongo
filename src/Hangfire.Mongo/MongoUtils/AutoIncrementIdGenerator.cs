@@ -17,7 +17,7 @@ namespace Hangfire.Mongo.MongoUtils
         /// Constructs ID generator with empty prefix
         /// </summary>
         protected AutoIncrementIdGenerator()
-            : this(String.Empty)
+            : this(string.Empty)
         {
         }
 
@@ -27,7 +27,7 @@ namespace Hangfire.Mongo.MongoUtils
         /// <param name="prefix">Collection name prefix</param>
         protected AutoIncrementIdGenerator(string prefix)
         {
-            _prefix = prefix ?? String.Empty;
+            _prefix = prefix ?? string.Empty;
         }
 
         /// <summary>

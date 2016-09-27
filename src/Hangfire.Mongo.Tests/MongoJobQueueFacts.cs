@@ -1,11 +1,11 @@
-﻿using Hangfire.Mongo.Database;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
 using Hangfire.Mongo.Tests.Utils;
-using System;
-using System.Linq;
-using System.Threading;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Xunit;

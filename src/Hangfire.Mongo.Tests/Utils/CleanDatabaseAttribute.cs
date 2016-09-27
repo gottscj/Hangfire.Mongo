@@ -13,10 +13,6 @@ namespace Hangfire.Mongo.Tests.Utils
     {
         private static readonly object GlobalLock = new object();
 
-        public CleanDatabaseAttribute()
-        {
-        }
-
         public override void Before(MethodInfo methodUnderTest)
         {
             Monitor.Enter(GlobalLock);
@@ -36,7 +32,7 @@ namespace Hangfire.Mongo.Tests.Utils
                 try
                 {
                     context.Init();
-					
+
                     context.Identifiers.DeleteMany(new BsonDocument());
                     context.DistributedLock.DeleteMany(new BsonDocument());
                     context.AggregatedCounter.DeleteMany(new BsonDocument());
@@ -49,7 +45,7 @@ namespace Hangfire.Mongo.Tests.Utils
                     context.Server.DeleteMany(new BsonDocument());
                     context.Set.DeleteMany(new BsonDocument());
                     context.State.DeleteMany(new BsonDocument());
-					
+
                 }
                 catch (MongoException ex)
                 {

@@ -12,7 +12,7 @@ namespace Hangfire.Mongo.MongoUtils
         /// <returns>Converted number</returns>
         protected override object FormatNumber(long input)
         {
-            return (int) input;
+            return (int)input;
         }
     }
 }
