@@ -9,7 +9,7 @@ namespace Hangfire.Mongo
     public static class MongoBootstrapperConfigurationExtensions
     {
 	
-#if !NETSTANDARD1_6
+#if !NETSTANDARD1_5
 
         /// <summary>
         /// Configure Hangfire to use MongoDB storage

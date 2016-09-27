@@ -20,7 +20,7 @@ Properties {
 	$nuget_exe_path = "$build_path\.nuget\nuget.exe";
 
 	# Supported frameworks
-	$target_frameworks = "net45", "netstandard1.6";
+	$target_frameworks = "net45", "netstandard1.5";
 	
 	# Version
 	# Version gathered from Github tag (if it's presented); otherwise it reads from AssemblyInfo.cs file.
