@@ -73,7 +73,7 @@ function Build-Project-Dotnet {
 		}
 		
 		exec {
-			dotnet restore $project.DirectoryName
+			dotnet restore $project
 		}
 		
 		foreach ($framework in $buildFrameworks) {
@@ -92,7 +92,7 @@ function Build-Project-Dotnet {
 			}
 			
 			exec {
-				dotnet build $project.DirectoryName --configuration $config --framework $framework --output "$outputPath\$framework\$binaryName"
+				dotnet build $project --configuration $config --framework $framework --output "$outputPath\$framework\$binaryName"
 			}
 		}
 
