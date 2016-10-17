@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 using Hangfire.Mongo.Database;
 using MongoDB.Bson;
@@ -19,13 +18,11 @@ namespace Hangfire.Mongo.MongoUtils
         /// <returns>Server time</returns>
         public static DateTime GetServerTimeUtc(this IMongoDatabase database)
         {
-            dynamic serverStatus = database.RunCommand<dynamic>(new BsonDocument("isMaster", 1));
-            object localTime;
-            if (((IDictionary<string, object>)serverStatus).TryGetValue("localTime", out localTime))
-            {
-                return ((DateTime)localTime).ToUniversalTime();
-            }
-            return DateTime.UtcNow;
+            var serverStatus = database.RunCommand<BsonDocument>(new BsonDocument("isMaster", 1));
+            BsonValue localTime;
+	        return serverStatus.TryGetValue("localTime", out localTime)
+		        ? ((DateTime) localTime).ToUniversalTime()
+		        : DateTime.UtcNow;
         }
 
         /// <summary>
