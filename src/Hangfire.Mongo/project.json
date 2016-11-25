@@ -1,13 +1,15 @@
 ﻿{
   "dependencies": {
-    "Hangfire.Core": "1.6.0",
+    "Hangfire.Core": "1.6.7",
     "MongoDB.Driver": "2.3.0"
   },
 
   "buildOptions": {
     "warningsAsErrors": true,
-    "nowarn": [ "CS0618" ],
-    "xmlDoc": true
+    "xmlDoc": true,
+    "nowarn": [
+      "CS0618"
+    ]
   },
 
   "frameworks": {
