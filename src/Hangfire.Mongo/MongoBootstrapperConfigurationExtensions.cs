@@ -8,7 +8,7 @@ namespace Hangfire.Mongo
     /// </summary>
     public static class MongoBootstrapperConfigurationExtensions
     {
-	
+
 #if !NETSTANDARD1_5
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace Hangfire.Mongo
 
             return storage;
         }
-		
+
 #endif
 
         /// <summary>
