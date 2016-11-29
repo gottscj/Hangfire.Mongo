@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
   <metadata>
     <id>Hangfire.Mongo</id>
-    <version>0.2.8</version>
+    <version>0.3.0</version>
     <title>Hangfire MongoDB Storage</title>
     <owners>Sergey Zwezdin</owners>
     <authors>Sergey Zwezdin, Martin Lobger, Jonas Larsen Gottshau</authors>
@@ -14,6 +14,11 @@
     <copyright>Copyright 2016 © Sergey Zwezdin</copyright>
     <tags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</tags>
     <releaseNotes>
+      0.3.0
+      * Added .net starndard 1.5 support
+      * Hangfire version updated to 1.6.7
+      * MongoDB.Driver version updated to 2.3.0
+
       0.2.8
       * Fixed issues with distributed lock
       * Adding index for jobid on state, jobParameter, jobQueue for better performance
@@ -51,7 +56,7 @@
       * Initial public release
     </releaseNotes>
     <dependencies>
-      <dependency id="Hangfire.Core" version="1.6.6" />
+      <dependency id="Hangfire.Core" version="1.6.7" />
       <dependency id="MongoDB.Driver" version="2.3.0" />
     </dependencies>
   </metadata>
