@@ -20,9 +20,9 @@ namespace Hangfire.Mongo.MongoUtils
         {
             var serverStatus = database.RunCommand<BsonDocument>(new BsonDocument("isMaster", 1));
             BsonValue localTime;
-	        return serverStatus.TryGetValue("localTime", out localTime)
-		        ? ((DateTime) localTime).ToUniversalTime()
-		        : DateTime.UtcNow;
+            return serverStatus.TryGetValue("localTime", out localTime)
+                ? ((DateTime)localTime).ToUniversalTime()
+                : DateTime.UtcNow;
         }
 
         /// <summary>

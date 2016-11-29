@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Mongo", "Hangfire.Mongo\Hangfire.Mongo.csproj", "{1FE9C86E-DB7A-4C1B-B73A-42B993D68688}"
 EndProject
@@ -27,6 +27,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuspecs", "nuspecs", "{BADE
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "utils", "utils", "{2C95F523-2D71-4A26-895F-638A338B8BDF}"
 	ProjectSection(SolutionItems) = preProject
+		..\build\utils\dotnet.ps1 = ..\build\utils\dotnet.ps1
 		..\build\utils\msbuild.ps1 = ..\build\utils\msbuild.ps1
 		..\build\utils\version.ps1 = ..\build\utils\version.ps1
 	EndProjectSection

@@ -1,5 +1,5 @@
-<?xml version="1.0"?>
-<package >
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
   <metadata>
     <id>Hangfire.Mongo</id>
     <version>0.2.8</version>
@@ -51,7 +51,7 @@
       * Initial public release
     </releaseNotes>
     <dependencies>
-      <dependency id="Hangfire.Core" version="1.6.5" />
+      <dependency id="Hangfire.Core" version="1.6.6" />
       <dependency id="MongoDB.Driver" version="2.3.0" />
     </dependencies>
   </metadata>
