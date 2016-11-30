@@ -76,7 +76,7 @@ Contrubutors
 
 * Sergey Zwezdin ([@sergeyzwezdin](https://github.com/sergeyzwezdin))
 * Martin Løbger ([@marloe](https://github.com/marloe))
-* Jonas Larsen Gottshau ([@gottscj](https://github.com/gottscj))
+* Jonas Gottschau ([@gottscj](https://github.com/gottscj))
 
 License
 -------

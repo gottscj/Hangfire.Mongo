@@ -2,10 +2,10 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
   <metadata>
     <id>Hangfire.Mongo</id>
-    <version>0.3.0</version>
+    <version>0.3.1</version>
     <title>Hangfire MongoDB Storage</title>
     <owners>Sergey Zwezdin</owners>
-    <authors>Sergey Zwezdin, Martin Lobger, Jonas Larsen Gottshau</authors>
+    <authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</authors>
     <licenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -14,8 +14,13 @@
     <copyright>Copyright 2016 © Sergey Zwezdin</copyright>
     <tags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</tags>
     <releaseNotes>
+      0.3.1
+      * Now with .NET Starndard 1.5 included in the NuGet
+      * Correcting a few spelling errors
+      * Included .pdb files in Nuget
+
       0.3.0
-      * Added .net starndard 1.5 support
+      * Added .NET Starndard 1.5 support
       * Hangfire version updated to 1.6.7
       * MongoDB.Driver version updated to 2.3.0
 
@@ -56,12 +61,25 @@
       * Initial public release
     </releaseNotes>
     <dependencies>
-      <dependency id="Hangfire.Core" version="1.6.7" />
-      <dependency id="MongoDB.Driver" version="2.3.0" />
+      <group targetFramework="net45">
+        <dependency id="Hangfire.Core" version="1.6.7" />
+        <dependency id="MongoDB.Driver" version="2.3.0" />
+      </group>
+      <group targetFramework="netstandard1.5">
+        <dependency id="Microsoft.NETCore.Portable.Compatibility" version="1.0.1" />
+        <dependency id="NETStandard.Library" version="1.6.0" />
+        <dependency id="Hangfire.Core" version="1.6.7" />
+        <dependency id="MongoDB.Driver" version="2.3.0" />
+      </group>
     </dependencies>
   </metadata>
   <files>
     <file src="Net45\Hangfire.Mongo\Hangfire.Mongo.dll" target="lib\net45" />
-    <file src="Net45\Hangfire.Mongo\Hangfire.Mongo.XML" target="lib\net45" />
+    <file src="Net45\Hangfire.Mongo\Hangfire.Mongo.xml" target="lib\net45" />
+    <file src="Net45\Hangfire.Mongo\Hangfire.Mongo.pdb" target="lib\net45" />
+
+    <file src="netstandard1.5\Hangfire.Mongo\Hangfire.Mongo.dll" target="lib\netstandard1.5" />
+    <file src="netstandard1.5\Hangfire.Mongo\Hangfire.Mongo.xml" target="lib\netstandard1.5" />
+    <file src="netstandard1.5\Hangfire.Mongo\Hangfire.Mongo.pdb" target="lib\netstandard1.5" />
   </files>
 </package>
