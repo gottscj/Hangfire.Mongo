@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -18,7 +19,7 @@ namespace Hangfire.Mongo.Dto
 
         public DateTime CreatedAt { get; set; }
 
-        public string Data { get; set; }
+        public Dictionary<string, string> Data { get; set; }
     }
 #pragma warning restore 1591
 }

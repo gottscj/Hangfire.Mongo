@@ -11,6 +11,7 @@ using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Server;
 using Hangfire.Storage;
 using MongoDB.Driver;
+using Newtonsoft.Json;
 
 namespace Hangfire.Mongo
 {
@@ -215,8 +216,8 @@ namespace Hangfire.Mongo
             {
                 Name = state.Name,
                 Reason = state.Reason,
-                Data = JobHelper.FromJson<Dictionary<string, string>>(state.Data)
-            };
+                Data = state.Data
+			};
         }
 
         public override void AnnounceServer(string serverId, ServerContext context)

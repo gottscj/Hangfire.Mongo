@@ -10,6 +10,7 @@ using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Newtonsoft.Json;
 
 namespace Hangfire.Mongo
 {
@@ -61,8 +62,8 @@ namespace Hangfire.Mongo
                     Name = state.Name,
                     Reason = state.Reason,
                     CreatedAt = _connection.GetServerTimeUtc(),
-                    Data = JobHelper.ToJson(state.SerializeData())
-                };
+                    Data = state.SerializeData()
+				};
                 x.State.InsertOne(stateDto);
 
                 x.Job.UpdateMany(
@@ -83,8 +84,8 @@ namespace Hangfire.Mongo
                 Name = state.Name,
                 Reason = state.Reason,
                 CreatedAt = _connection.GetServerTimeUtc(),
-                Data = JobHelper.ToJson(state.SerializeData())
-            }));
+                Data = state.SerializeData()
+			}));
         }
 
         public override void AddToQueue(string queue, string jobId)
