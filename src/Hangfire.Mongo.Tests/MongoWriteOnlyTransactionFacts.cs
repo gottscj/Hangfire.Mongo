@@ -144,12 +144,12 @@ namespace Hangfire.Mongo.Tests
 
                 var jobId = job.Id;
                 var anotherJobId = anotherJob.Id;
+	            var serializedData = new Dictionary<string, string> {{"Name", "Value"}};
 
-                var state = new Mock<IState>();
+				var state = new Mock<IState>();
                 state.Setup(x => x.Name).Returns("State");
                 state.Setup(x => x.Reason).Returns("Reason");
-                state.Setup(x => x.SerializeData())
-                    .Returns(new Dictionary<string, string> { { "Name", "Value" } });
+                state.Setup(x => x.SerializeData()).Returns(serializedData);
 
                 Commit(database, x => x.SetJobState(jobId.ToString(), state.Object));
 
@@ -166,7 +166,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal("State", jobState.Name);
                 Assert.Equal("Reason", jobState.Reason);
                 Assert.NotNull(jobState.CreatedAt);
-                Assert.Equal("{\"Name\":\"Value\"}", jobState.Data);
+                Assert.Equal(serializedData, jobState.Data);
             });
         }
 
@@ -185,12 +185,12 @@ namespace Hangfire.Mongo.Tests
                 database.Job.InsertOne(job);
 
                 var jobId = job.Id;
+	            var serializedData = new Dictionary<string, string> {{"Name", "Value"}};
 
-                var state = new Mock<IState>();
+				var state = new Mock<IState>();
                 state.Setup(x => x.Name).Returns("State");
                 state.Setup(x => x.Reason).Returns("Reason");
-                state.Setup(x => x.SerializeData())
-                    .Returns(new Dictionary<string, string> { { "Name", "Value" } });
+                state.Setup(x => x.SerializeData()).Returns(serializedData);
 
                 Commit(database, x => x.AddJobState(jobId.ToString(), state.Object));
 
@@ -203,7 +203,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal("State", jobState.Name);
                 Assert.Equal("Reason", jobState.Reason);
                 Assert.NotNull(jobState.CreatedAt);
-                Assert.Equal("{\"Name\":\"Value\"}", jobState.Data);
+                Assert.Equal(serializedData, jobState.Data);
             });
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MongoDB.Bson;
 
 namespace Hangfire.Mongo.Dto
@@ -24,7 +25,7 @@ namespace Hangfire.Mongo.Dto
 
         public string StateReason { get; set; }
 
-        public string StateData { get; set; }
+        public Dictionary<string, string> StateData { get; set; }
     }
 #pragma warning restore 1591
 }
