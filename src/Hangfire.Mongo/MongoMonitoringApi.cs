@@ -105,8 +105,8 @@ namespace Hangfire.Mongo
                         StateName = x.Name,
                         CreatedAt = x.CreatedAt,
                         Reason = x.Reason,
-                        Data = JobHelper.FromJson<Dictionary<string, string>>(x.Data)
-                    })
+                        Data = x.Data
+					})
                     .ToList();
 
                 return new JobDetailsDto
@@ -373,7 +373,7 @@ namespace Hangfire.Mongo
 
             foreach (var job in jobs)
             {
-                var stateData = JobHelper.FromJson<Dictionary<string, string>>(job.StateData);
+                var stateData = job.StateData;
                 var dto = selector(job, DeserializeJob(job.InvocationData, job.Arguments), stateData);
 
                 result.Add(new KeyValuePair<string, TDto>(

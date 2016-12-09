@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.MongoUtils;
@@ -61,8 +60,8 @@ namespace Hangfire.Mongo
                     Name = state.Name,
                     Reason = state.Reason,
                     CreatedAt = _connection.GetServerTimeUtc(),
-                    Data = JobHelper.ToJson(state.SerializeData())
-                };
+                    Data = state.SerializeData()
+				};
                 x.State.InsertOne(stateDto);
 
                 x.Job.UpdateMany(
@@ -83,8 +82,8 @@ namespace Hangfire.Mongo
                 Name = state.Name,
                 Reason = state.Reason,
                 CreatedAt = _connection.GetServerTimeUtc(),
-                Data = JobHelper.ToJson(state.SerializeData())
-            }));
+                Data = state.SerializeData()
+			}));
         }
 
         public override void AddToQueue(string queue, string jobId)
