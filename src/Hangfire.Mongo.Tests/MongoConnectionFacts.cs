@@ -14,7 +14,6 @@ using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Moq;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests

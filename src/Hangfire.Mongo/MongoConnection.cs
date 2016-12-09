@@ -11,7 +11,6 @@ using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Server;
 using Hangfire.Storage;
 using MongoDB.Driver;
-using Newtonsoft.Json;
 
 namespace Hangfire.Mongo
 {
