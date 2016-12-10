@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": ".NET Core Launch (console)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceRoot}/Hangfire.Mongo.Sample.NETCore/bin/Debug/netcoreapp1.0/Hangfire.Mongo.Sample.NETCore.dll",
+            "args": [],
+            "cwd": "${workspaceRoot}/Hangfire.Mongo.Sample.NETCore",
+            "externalConsole": true,
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": ".NET Core Attach",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command.pickProcess}"
+        }
+    ]
+}

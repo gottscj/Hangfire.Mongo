@@ -1,0 +1,6 @@
+{
+    "projects":[
+        "Hangfire.Mongo",
+        "Hangfire.Mongo.Sample.NETCore"
+    ]
+} 

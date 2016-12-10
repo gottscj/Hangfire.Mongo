@@ -1,4 +1,6 @@
 ﻿{
+  "version": "0.3.1-*",
+
   "dependencies": {
     "Hangfire.Core": "1.6.7",
     "MongoDB.Driver": "2.3.0"
