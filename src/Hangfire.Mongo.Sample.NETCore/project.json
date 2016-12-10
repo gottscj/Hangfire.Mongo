@@ -1,11 +1,11 @@
 {
-  "version": "0.3.1-*",
+  "version": "0.3.2-*",
   "buildOptions": {
     "debugType": "portable",
     "emitEntryPoint": true
   },
   "dependencies": {
-    "Hangfire.Mongo": "0.3.1"
+    "Hangfire.Mongo": "0.3.2"
   },
   "frameworks": {
     "netcoreapp1.0": {

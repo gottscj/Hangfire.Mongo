@@ -10,7 +10,7 @@ using Xunit;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Hangfire.Mongo.Tests")]
-[assembly: AssemblyCopyright("Copyright © 2014-2016 Sergey Zwezdin, Martin Loebger, Jonas Gottschau")]
+[assembly: AssemblyCopyright("Copyright © 2014-2016 Sergey Zwezdin, Martin Lobger, Jonas Gottschau")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -34,6 +34,6 @@ using Xunit;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.3.1")]
-[assembly: AssemblyInformationalVersion("0.3.1")]
-[assembly: AssemblyFileVersion("0.3.1")]
+[assembly: AssemblyVersion("0.3.2")]
+[assembly: AssemblyFileVersion("0.3.2")]
+[assembly: AssemblyInformationalVersion("0.3.2")]

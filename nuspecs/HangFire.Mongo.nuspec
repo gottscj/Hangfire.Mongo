@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
   <metadata>
     <id>Hangfire.Mongo</id>
-    <version>0.3.1</version>
+    <version>0.3.2</version>
     <title>Hangfire MongoDB Storage</title>
     <owners>Sergey Zwezdin</owners>
     <authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</authors>
@@ -14,6 +14,10 @@
     <copyright>Copyright 2016 © Sergey Zwezdin</copyright>
     <tags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</tags>
     <releaseNotes>
+      0.3.2
+      * Fixed support on UNIX systems
+      * Better handling for non Pascal Case json serialization
+
       0.3.1
       * Now with .NET Starndard 1.5 included in the NuGet
       * Correcting a few spelling errors
