@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -181,12 +182,12 @@ namespace Hangfire.Mongo
             {
                 obscuredConnectionString = ConnectionStringCredentials.Replace(_connectionString, "mongodb://<username>:<password>@");
             }
-            else if (_mongoClientSettings != null && _mongoClientSettings.Server != null)
+            else if (_mongoClientSettings != null && _mongoClientSettings.Servers != null)
             {
-                obscuredConnectionString = $"mongodb://<username>:<password>@{_mongoClientSettings.Server.Host}:{_mongoClientSettings.Server.Port}";
+	            var servers = string.Join(",", _mongoClientSettings.Servers.Select(s => $"{s.Host}:{s.Port}"));
+                obscuredConnectionString = $"mongodb://<username>:<password>@{servers}";
             }
             return $"Connection string: {obscuredConnectionString}, database name: {_databaseName}, prefix: {_options.Prefix}";
-
         }
     }
 }
