@@ -42,9 +42,13 @@ Include "utils\dotnet.ps1";
 
 ## Build Enviroment
 
+task SetEnvironment -description "Sets the environment for VS2015 compilation" {
+  Exec { & $env:VS140COMNTOOLS\vsvars32.bat }
+}
+
 task MsBuild -description "Validates the correct MSBuild version is present" {
 	$output = &msbuild /version 2>&1
-	assert ($output -like "*14.0*") "MSBuild version 14 required: $output;"
+	assert ($output -like "*15.0*") "MSBuild version 15 required: $output;"
 }
 
 
@@ -146,4 +150,4 @@ Task Build -depends PrepareSources, Clean, BuildProjects, BuildNugetPackages -de
 
 Framework "4.6"
 
-Task Default -depends MsBuild, InitConfiguration, PrepareSources, Build;
+Task Default -depends SetEnvironment, MsBuild, InitConfiguration, PrepareSources, Build;
