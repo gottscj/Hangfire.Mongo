@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <VersionPrefix>0.3.2</VersionPrefix>
+    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <DebugType>portable</DebugType>
+    <AssemblyName>Hangfire.Mongo.Sample.NETCore</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <PackageId>Hangfire.Mongo.Sample.NETCore</PackageId>
+    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
+    <RuntimeFrameworkVersion>1.0.4</RuntimeFrameworkVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hangfire.Mongo\Hangfire.Mongo.csproj" />
+  </ItemGroup>
+
+</Project>
