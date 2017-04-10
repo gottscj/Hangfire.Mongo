@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Hangfire.Mongo")]
-[assembly: AssemblyDescription("Hangfire MongoDB Storage. https://github.com/sergun/Hangfire.Mongo")]
+[assembly: AssemblyDescription("MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Hangfire.Mongo")]

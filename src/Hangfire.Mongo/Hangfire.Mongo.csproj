@@ -1,31 +1,91 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <VersionPrefix>0.3.2</VersionPrefix>
-    <TargetFrameworks>netstandard1.5;net45</TargetFrameworks>
-    <NoWarn>$(NoWarn);CS0618</NoWarn>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <AssemblyName>Hangfire.Mongo</AssemblyName>
-    <PackageId>Hangfire.Mongo</PackageId>
-    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
-  </PropertyGroup>
+	<PropertyGroup>
+		<VersionPrefix>0.3.2</VersionPrefix>
+		<TargetFrameworks>netstandard1.5;net45</TargetFrameworks>
+		<NoWarn>$(NoWarn);CS0618</NoWarn>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<AssemblyName>Hangfire.Mongo</AssemblyName>
+		<PackageId>Hangfire.Mongo</PackageId>
+		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+		<GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+		<GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+		<GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+		<GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+		<GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Copyright>Copyright 2016 © Sergey Zwezdin</Copyright>
+		<title>Hangfire MongoDB Storage</title>
+		<owners>Sergey Zwezdin</owners>
+		<Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
+		<PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
+		<PackageReleaseNotes>
+			0.3.2
+			* Fixed support on UNIX systems
+			* Better handling for non Pascal Case json serialization
 
-  <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
+			0.3.1
+			* Now with .NET Starndard 1.5 included in the NuGet
+			* Correcting a few spelling errors
+			* Included .pdb files in Nuget
 
-  <ItemGroup>
-    <PackageReference Include="Hangfire.Core" Version="1.6.12" />
-    <PackageReference Include="MongoDB.Driver" Version="2.3.0" />
-  </ItemGroup>
+			0.3.0
+			* Added .NET Starndard 1.5 support
+			* Hangfire version updated to 1.6.7
+			* MongoDB.Driver version updated to 2.3.0
+
+			0.2.8
+			* Fixed issues with distributed lock
+			* Adding index for jobid on state, jobParameter, jobQueue for better performance
+			* Updated to target latest Hangfire.Core and Mongo.Driver
+
+			0.2.7
+			* Changed Queue priority added
+
+			0.2.6
+			* Hangfire version updated to 1.5.6
+			* Code refactoring
+
+			0.2.5
+			* MongoDB time format exception workaround
+
+			0.2.4
+			* MongoDB.Driver updated to 2.2.3
+			* Added support of MongoClientSettings
+			* Target version changed to 4.5
+
+			0.2.3
+			* Hangfire version updated to 1.5.3
+			* MongoDB.Driver version updated to 2.1.1
+			* CPU utilization issue fixed
+			* Paging logic updated for dashboard
+
+			0.2.2
+			* Hangfire version updated to 1.4.3
+			* Obsolete mongocsharpdriver replaced with MongoDB.Driver
+
+			0.2.1
+			* Support for Hangfire 1.3.0 added
+
+			0.2.0
+			* Initial public release
+		</PackageReleaseNotes>
+		<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>
+		<PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
+		<Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="App.config" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Hangfire.Core" Version="1.6.12" />
+		<PackageReference Include="MongoDB.Driver" Version="2.3.0" />
+	</ItemGroup>
 
 </Project>

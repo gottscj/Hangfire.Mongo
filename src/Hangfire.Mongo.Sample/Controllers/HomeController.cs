@@ -15,7 +15,7 @@ namespace Hangfire.Mongo.Sample.Controllers
         {
             for (int i = 0; i < id; i++)
             {
-                BackgroundJob.Enqueue(() => Debug.WriteLine("Hangfire fire-and-forget task started."));
+                BackgroundJob.Enqueue(() => PrintToDebug("Hangfire fire-and-forget task started."));
             }
 
             return RedirectToAction("Index");
@@ -25,7 +25,7 @@ namespace Hangfire.Mongo.Sample.Controllers
         {
             for (int i = 0; i < id; i++)
             {
-                BackgroundJob.Schedule(() => Debug.WriteLine("Hangfire delayed task started!"), TimeSpan.FromMinutes(1));
+                BackgroundJob.Schedule(() => PrintToDebug("Hangfire delayed task started!"), TimeSpan.FromMinutes(1));
             }
 
             return RedirectToAction("Index");
@@ -33,9 +33,13 @@ namespace Hangfire.Mongo.Sample.Controllers
 
         public ActionResult Recurring()
         {
-            RecurringJob.AddOrUpdate(() => Debug.WriteLine("Hangfire recurring task started!"), Cron.Minutely);
+            RecurringJob.AddOrUpdate(() => PrintToDebug("Hangfire recurring task started!"), Cron.Minutely);
 
             return RedirectToAction("Index");
+        }
+        private static void PrintToDebug(string message)
+        {
+            Debug.WriteLine(message);
         }
     }
 }
