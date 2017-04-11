@@ -21,6 +21,9 @@ set build_output="%artifacts_sources_path%\Hangfire.Mongo\bin\Release"
 set build_number=%APPVEYOR_BUILD_NUMBER%
 set build_tag=%APPVEYOR_REPO_TAG%
 
+echo build_number=%build_number%
+echo build_tag=%build_tag%
+
 if %build_number%=="" (
 	echo AppVeyor APPVEYOR_BUILD_NUMBER vas not found!
 	set build_number=0.3.2.227
