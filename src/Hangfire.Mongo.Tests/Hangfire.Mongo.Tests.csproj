@@ -68,7 +68,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Hangfire.Mongo\Hangfire.Mongo.csproj">
-      <Project>{1fe9c86e-db7a-4c1b-b73a-42b993d68688}</Project>
+      <Project>{fe0e1801-6cf8-443a-b244-cd49f7a7e722}</Project>
       <Name>Hangfire.Mongo</Name>
     </ProjectReference>
   </ItemGroup>
