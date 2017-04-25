@@ -54,6 +54,7 @@
     <Compile Include="MongoWriteOnlyTransactionFacts.cs" />
     <Compile Include="PersistentJobQueue\Mongo\MongoJobQueueMonitoringApiFacts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StateDtoDataFieldSerializerFacts.cs" />
     <Compile Include="Utils\CleanDatabaseAttribute.cs" />
     <Compile Include="Utils\ConnectionUtils.cs" />
   </ItemGroup>
