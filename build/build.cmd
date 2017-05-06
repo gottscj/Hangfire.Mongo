@@ -1,4 +1,5 @@
-@echo off
+echo msbuild path = %msbuild%
+echo source path = %sources_path%@echo off
 
 set community_msbuild=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe
 set proofessional_msbuild=C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\Bin\MSBuild.exe
@@ -27,6 +28,8 @@ if %msbuild% == "" (
 	echo No MSBuild found.
 	exit /B 1
 )
+echo msbuild path = %msbuild%
+echo source path = %sources_path%
 
 rem BUILD
 echo delete and create artifacts folders
