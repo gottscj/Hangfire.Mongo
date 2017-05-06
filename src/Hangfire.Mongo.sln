@@ -10,11 +10,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{87D6A811
 		..\build\build.cmd = ..\build\build.cmd
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuspecs", "nuspecs", "{BADE9085-1506-41A8-BE2D-5A5FD5BCEEAF}"
-	ProjectSection(SolutionItems) = preProject
-		..\nuspecs\HangFire.Mongo.nuspec = ..\nuspecs\HangFire.Mongo.nuspec
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "description", "description", "{561F7C57-4031-40D9-937C-ADA64A99E004}"
 	ProjectSection(SolutionItems) = preProject
 		..\LICENSE = ..\LICENSE

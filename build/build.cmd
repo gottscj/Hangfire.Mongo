@@ -29,7 +29,25 @@ if %msbuild% == "" (
 	exit /B 1
 )
 
+if "%APPVEYOR_REPO_TAG%"=="true" goto deploy
+
+:build
 rem BUILD
+echo Restoring NuGet packages...
+%nuget% restore %sources_path%\Hangfire.Mongo.sln
+
+echo build project using selected MSBuild
+%msbuild% %sources_path%\Hangfire.Mongo.sln /t:Rebuild /p:Configuration="Release"
+
+if errorlevel 1 (
+	echo Build failed.
+	exit /B 1
+)
+
+exit /B 0
+
+:deploy
+rem DEPLOY
 echo delete and create artifacts folders
 rmdir artifacts /s /q
 
