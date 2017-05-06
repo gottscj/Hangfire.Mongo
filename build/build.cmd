@@ -1,5 +1,4 @@
-echo msbuild path = %msbuild%
-echo source path = %sources_path%@echo off
+@echo off
 
 set community_msbuild=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe
 set proofessional_msbuild=C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\Bin\MSBuild.exe
@@ -19,6 +18,7 @@ set artifacts_bin_path="%cd%\artifacts\bin"
 set artifacts_nuget_path="%cd%\artifacts\nuget"
 set sources_path="%cd%\src"
 set build_output="%artifacts_sources_path%\Hangfire.Mongo\bin\Release"
+set nuget="%sources_path%\.nuget\NuGet.exe"
 
 echo build number : %APPVEYOR_BUILD_NUMBER%
 echo build tag    : %APPVEYOR_REPO_TAG%
@@ -28,8 +28,6 @@ if %msbuild% == "" (
 	echo No MSBuild found.
 	exit /B 1
 )
-echo msbuild path = %msbuild%
-echo source path = %sources_path%
 
 rem BUILD
 echo delete and create artifacts folders
@@ -41,6 +39,9 @@ mkdir %artifacts_sources_path%
 
 echo copying source files to artifacts folder
 xcopy /e /v /q /f %sources_path% %artifacts_sources_path%
+
+echo Restoring NuGet packages...
+%nuget% restore %artifacts_sources_path%\Hangfire.Mongo\Hangfire.Mongo.csproj
 
 echo build project using selected MSBuild
 %msbuild% %artifacts_sources_path%\Hangfire.Mongo\Hangfire.Mongo.csproj /t:Rebuild /t:pack /p:Configuration="Release"
