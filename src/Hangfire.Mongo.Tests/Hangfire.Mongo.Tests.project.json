@@ -3,7 +3,7 @@
     "Hangfire.Core": "1.6.12",
     "MongoDB.Driver": "2.3.0",
     "Moq": "4.7.8",
-    "Newtonsoft.Json": "10.0.2",
+    "Newtonsoft.Json": "5.0.1",
     "xunit": "2.2.0",
     "xunit.runner.visualstudio": "2.2.0"
   },
