@@ -46,6 +46,11 @@ echo Restoring NuGet packages...
 echo build project using selected MSBuild
 %msbuild% %artifacts_sources_path%\Hangfire.Mongo\Hangfire.Mongo.csproj /t:Rebuild /t:pack /p:Configuration="Release"
 
+if errorlevel 1 (
+	echo Build failed.
+	exit /B 1
+)
+
 echo copying build output to bin artifacts folder
 xcopy /e /v /q /f %build_output% %artifacts_bin_path%
 
