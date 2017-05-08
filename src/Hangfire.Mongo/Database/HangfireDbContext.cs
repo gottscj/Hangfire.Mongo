@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Reflection;
+using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.MongoUtils;
 using MongoDB.Bson;
@@ -12,7 +14,7 @@ namespace Hangfire.Mongo.Database
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1063:ImplementIDisposableCorrectly")]
     public class HangfireDbContext : IDisposable
     {
-        private const int RequiredSchemaVersion = 5;
+        private const int RequiredSchemaVersion = 6;
 
         private readonly string _prefix;
 
@@ -96,12 +98,7 @@ namespace Hangfire.Mongo.Database
         /// Reference to collection which contains jobs
         /// </summary>
         public virtual IMongoCollection<JobDto> Job => Database.GetCollection<JobDto>(_prefix + ".job");
-
-        /// <summary>
-        /// Reference to collection which contains jobs parameters
-        /// </summary>
-        public virtual IMongoCollection<JobParameterDto> JobParameter => Database.GetCollection<JobParameterDto>(_prefix + ".jobParameter");
-
+        
         /// <summary>
         /// Reference to collection which contains jobs queues
         /// </summary>
@@ -126,44 +123,47 @@ namespace Hangfire.Mongo.Database
         /// Reference to collection which contains sets
         /// </summary>
         public virtual IMongoCollection<SetDto> Set => Database.GetCollection<SetDto>(_prefix + ".set");
-
-        /// <summary>
-        /// Reference to collection which contains states
-        /// </summary>
-        public virtual IMongoCollection<StateDto> State => Database.GetCollection<StateDto>(_prefix + ".state");
-
+        
         /// <summary>
         /// Initializes intial collections schema for Hangfire
         /// </summary>
-        public void Init()
+        public void Init(MongoStorageOptions options)
         {
-            var schema = Schema.Find(new BsonDocument()).FirstOrDefault();
-            if (schema != null)
+            using (new MongoDistributedLock(nameof(Init), TimeSpan.FromSeconds(1), this, options))
             {
-                if (RequiredSchemaVersion > schema.Version)
+                var schema = Schema.Find(new BsonDocument()).FirstOrDefault();
+                if (schema != null)
                 {
-                    Schema.DeleteMany(new BsonDocument());
-                    Schema.InsertOne(new SchemaDto { Version = RequiredSchemaVersion });
+                    if (RequiredSchemaVersion > schema.Version)
+                    {
+                        var version = Assembly.GetEntryAssembly().GetName().Version;
+                        throw new InvalidOperationException(
+                            $"Hangfire.Mongo version: {version}, introduces breaking changes. Please drop your data base\n" +
+                            "You can use mongo shell\n" +
+                            "mongo                      //to start the mongodb shell\n" +
+                            "show dbs                   //to list existing databases\n" +
+                            "use <dbname>               //the <dbname> is the database you'd like to drop\n" +
+                            "db                         //should show <dbname> just to be sure I'm working with the right database\n" +
+                            "db.dropDatabase()          //will delete the database & return { \"dropped\": \" < dbname > \", \"ok\" : 1 }\");");
+                    }
+                    if (RequiredSchemaVersion < schema.Version)
+                    {
+                        throw new InvalidOperationException(
+                            $"HangFire current database schema version {schema.Version} is newer than the configured MongoStorage schema version {RequiredSchemaVersion}. Please update to the latest HangFire.Mongo NuGet package.");
+                    }
                 }
-                else if (RequiredSchemaVersion < schema.Version)
+                else
                 {
-                    throw new InvalidOperationException($"HangFire current database schema version {schema.Version} is newer than the configured MongoStorage schema version {RequiredSchemaVersion}. Please update to the latest HangFire.Mongo NuGet package.");
+                    Schema.InsertOne(new SchemaDto {Version = RequiredSchemaVersion});
                 }
             }
-            else
-            {
-                Schema.InsertOne(new SchemaDto { Version = RequiredSchemaVersion });
-            }
-
             CreateJobIndexes();
         }
 
 
         private void CreateJobIndexes()
         {
-            // Create for jobid on state, jobParameter, jobQueue
-            State.CreateDescendingIndex(p => p.JobId);
-            JobParameter.CreateDescendingIndex(p => p.JobId);
+            // Create for jobid jobQueue
             JobQueue.CreateDescendingIndex(p => p.JobId);
         }
 

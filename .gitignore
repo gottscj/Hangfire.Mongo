@@ -38,6 +38,14 @@ x64/
 *.vssscc
 .builds
 
+# NuGet V3 artifacts
+*-packages.config
+*.nuget.props
+*.nuget.targets
+project.lock.json
+msbuild.binlog
+*.project.lock.json
+
 # Visual C++ cache files
 ipch/
 *.aps

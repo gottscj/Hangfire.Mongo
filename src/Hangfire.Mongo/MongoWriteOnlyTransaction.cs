@@ -53,37 +53,36 @@ namespace Hangfire.Mongo
         {
             QueueCommand(x =>
             {
-                StateDto stateDto = new StateDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    JobId = int.Parse(jobId),
-                    Name = state.Name,
-                    Reason = state.Reason,
-                    CreatedAt = _connection.GetServerTimeUtc(),
-                    Data = state.SerializeData()
-				};
-                x.State.InsertOne(stateDto);
+                var update = Builders<JobDto>
+                    .Update
+                    .Set(j => j.StateName, state.Name)
+                    .Push(j => j.StateHistory, new StateDto
+                    {
+                        Name = state.Name,
+                        Reason = state.Reason,
+                        CreatedAt = x.GetServerTimeUtc(),
+                        Data = state.SerializeData()
+                    });
 
-                x.Job.UpdateMany(
-                    Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)),
-                    Builders<JobDto>.Update.Set(_ => _.StateId, stateDto.Id));
-
-                x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)),
-                    Builders<JobDto>.Update.Set(_ => _.StateName, state.Name));
+                x.Job.UpdateOne(j => j.Id == int.Parse(jobId), update);
             });
         }
 
         public override void AddJobState(string jobId, IState state)
         {
-            QueueCommand(x => x.State.InsertOne(new StateDto
+            QueueCommand(x =>
             {
-                Id = ObjectId.GenerateNewId(),
-                JobId = int.Parse(jobId),
-                Name = state.Name,
-                Reason = state.Reason,
-                CreatedAt = _connection.GetServerTimeUtc(),
-                Data = state.SerializeData()
-			}));
+                var update = Builders<JobDto>.Update
+                    .Push(j => j.StateHistory, new StateDto
+                    {
+                        Name = state.Name,
+                        Reason = state.Reason,
+                        CreatedAt = x.GetServerTimeUtc(),
+                        Data = state.SerializeData()
+                    });
+
+                x.Job.UpdateOne(j => j.Id == int.Parse(jobId), update);
+            });
         }
 
         public override void AddToQueue(string queue, string jobId)

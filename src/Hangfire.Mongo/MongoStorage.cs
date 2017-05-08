@@ -61,7 +61,7 @@ namespace Hangfire.Mongo
             _options = options;
 
             Connection = new HangfireDbContext(connectionString, databaseName, options.Prefix);
-            Connection.Init();
+            Connection.Init(_options);
             var defaultQueueProvider = new MongoJobQueueProvider(options);
             QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }

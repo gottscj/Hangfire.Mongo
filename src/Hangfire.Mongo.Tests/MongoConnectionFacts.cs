@@ -152,7 +152,6 @@ namespace Hangfire.Mongo.Tests
                 var databaseJob = database.Job.Find(new BsonDocument()).ToList().Single();
                 Assert.Equal(jobId, databaseJob.Id.ToString());
                 Assert.Equal(createdAt, databaseJob.CreatedAt);
-                Assert.Equal(ObjectId.Empty, databaseJob.StateId);
                 Assert.Equal(null, databaseJob.StateName);
 
                 var invocationData = JobHelper.FromJson<InvocationData>(databaseJob.InvocationData);
@@ -166,8 +165,13 @@ namespace Hangfire.Mongo.Tests
                 Assert.True(createdAt.AddDays(1).AddMinutes(-1) < databaseJob.ExpireAt);
                 Assert.True(databaseJob.ExpireAt < createdAt.AddDays(1).AddMinutes(1));
 
-                var parameters = database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId))).ToList()
-                    .ToDictionary(x => x.Name, x => x.Value);
+                var parameters = database
+                    .Job
+                    .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)))
+                    .Project(j => j.Parameters)
+                    .ToList()
+                    .SelectMany(j => j)
+                    .ToDictionary(p => p.Key, x => x.Value);
 
                 Assert.Equal("Value1", parameters["Key1"]);
                 Assert.Equal("Value2", parameters["Key2"]);
@@ -248,40 +252,37 @@ namespace Hangfire.Mongo.Tests
                             { "Key", "Value" }
                         };
 
+                var state = new StateDto
+                {
+                    Name = "old-state",
+                    CreatedAt = database.GetServerTimeUtc()
+                };
                 var jobDto = new JobDto
                 {
                     Id = 1,
                     InvocationData = "",
                     Arguments = "",
                     StateName = "",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = database.GetServerTimeUtc(),
+                    StateHistory = new [] {state}
                 };
 
                 database.Job.InsertOne(jobDto);
                 var jobId = jobDto.Id;
 
-                database.State.InsertOne(new StateDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    JobId = jobId,
-                    Name = "old-state",
-                    CreatedAt = database.GetServerTimeUtc()
-                });
+                var update = Builders<JobDto>
+                    .Update
+                    .Set(j => j.StateName, state.Name)
+                    .Push(j => j.StateHistory, new StateDto
+                    {
+                        Name = "Name",
+                        Reason = "Reason",
+                        Data = data,
+                        CreatedAt = database.GetServerTimeUtc()
+                    });
 
-                var stateDto = new StateDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    JobId = jobId,
-                    Name = "Name",
-                    Reason = "Reason",
-                    Data = data,
-                    CreatedAt = database.GetServerTimeUtc()
-                };
-                database.State.InsertOne(stateDto);
-
-                jobDto.StateId = stateDto.Id;
-                database.Job.ReplaceOne(_ => _.Id == jobDto.Id, jobDto, new UpdateOptions());
-
+                database.Job.UpdateOne(j => j.Id == jobId, update);
+                
                 var result = connection.GetStateData(jobId.ToString());
                 Assert.NotNull(result);
 
@@ -354,10 +355,13 @@ namespace Hangfire.Mongo.Tests
 
                 connection.SetJobParameter(jobId, "Name", "Value");
 
-                var parameter = database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)) &
-                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, "Name")).FirstOrDefault();
+                var parameters = database
+                    .Job
+                    .Find(j => j.Id == int.Parse(jobId))
+                    .Project(j => j.Parameters)
+                    .FirstOrDefault();
 
-                Assert.Equal("Value", parameter.Value);
+                Assert.Equal("Value", parameters["Name"]);
             });
         }
 
@@ -379,10 +383,13 @@ namespace Hangfire.Mongo.Tests
                 connection.SetJobParameter(jobId, "Name", "Value");
                 connection.SetJobParameter(jobId, "Name", "AnotherValue");
 
-                var parameter = database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)) &
-                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, "Name")).FirstOrDefault();
+                var parameters = database
+                    .Job
+                    .Find(j => j.Id == int.Parse(jobId))
+                    .Project(j => j.Parameters)
+                    .FirstOrDefault();
 
-                Assert.Equal("AnotherValue", parameter.Value);
+                Assert.Equal("AnotherValue", parameters["Name"]);
             });
         }
 
@@ -402,11 +409,14 @@ namespace Hangfire.Mongo.Tests
                 string jobId = jobDto.Id.ToString();
 
                 connection.SetJobParameter(jobId, "Name", null);
+                
+                var parameters = database
+                    .Job
+                    .Find(j => j.Id == int.Parse(jobId))
+                    .Project(j => j.Parameters)
+                    .FirstOrDefault();
 
-                var parameter = database.JobParameter.Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(jobId)) &
-                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, "Name")).FirstOrDefault();
-
-                Assert.Equal(null, parameter.Value);
+                Assert.Equal(null, parameters["Name"]);
             });
         }
 
@@ -459,13 +469,8 @@ namespace Hangfire.Mongo.Tests
                 database.Job.InsertOne(jobDto);
                 string jobId = jobDto.Id.ToString();
 
-                database.JobParameter.InsertOne(new JobParameterDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    JobId = int.Parse(jobId),
-                    Name = "name",
-                    Value = "value"
-                });
+
+                connection.SetJobParameter(jobId, "name", "value");
 
                 var value = connection.GetJobParameter(jobId, "name");
 
