@@ -155,14 +155,15 @@ namespace Hangfire.Mongo.Tests
 
                 var testJob = GetTestJob(database, jobId);
                 Assert.Equal("State", testJob.StateName);
-                Assert.NotNull(testJob.StateId);
+                Assert.Equal(1, testJob.StateHistory.Length);
 
                 var anotherTestJob = GetTestJob(database, anotherJobId);
                 Assert.Null(anotherTestJob.StateName);
-                Assert.Equal(ObjectId.Empty, anotherTestJob.StateId);
+                Assert.Equal(0, anotherTestJob.StateHistory.Length);
 
-                StateDto jobState = database.State.Find(new BsonDocument()).ToList().Single();
-                Assert.Equal(jobId, jobState.JobId);
+                var jobWithStates = database.Job.Find(new BsonDocument()).ToList().FirstOrDefault();
+                
+                var jobState = jobWithStates.StateHistory.Single();
                 Assert.Equal("State", jobState.Name);
                 Assert.Equal("Reason", jobState.Reason);
                 Assert.NotNull(jobState.CreatedAt);
@@ -196,10 +197,9 @@ namespace Hangfire.Mongo.Tests
 
                 var testJob = GetTestJob(database, jobId);
                 Assert.Null(testJob.StateName);
-                Assert.Equal(ObjectId.Empty, testJob.StateId);
 
-                StateDto jobState = database.State.Find(new BsonDocument()).ToList().Single();
-                Assert.Equal(jobId, jobState.JobId);
+                var jobWithStates = database.Job.Find(new BsonDocument()).ToList().Single();
+                var jobState = jobWithStates.StateHistory.Last();
                 Assert.Equal("State", jobState.Name);
                 Assert.Equal("Reason", jobState.Reason);
                 Assert.NotNull(jobState.CreatedAt);
@@ -891,7 +891,7 @@ namespace Hangfire.Mongo.Tests
         }
 
 
-        private static dynamic GetTestJob(HangfireDbContext database, int jobId)
+        private static JobDto GetTestJob(HangfireDbContext database, int jobId)
         {
             return database.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId)).FirstOrDefault();
         }

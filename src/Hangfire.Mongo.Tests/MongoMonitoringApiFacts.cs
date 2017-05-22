@@ -264,16 +264,14 @@ namespace Hangfire.Mongo.Tests
         {
             var job = Job.FromExpression(() => SampleMethod("wrong"));
 
-	        var jobState = new StateDto
+	        var jobState = new StateDto()
 	        {
 		        CreatedAt = database.GetServerTimeUtc(),
 		        Data =
 			        stateName == EnqueuedState.StateName
 				        ? new Dictionary<string, string> {["EnqueuedAt"] = $"{database.GetServerTimeUtc():o}"}
-				        : new Dictionary<string, string>(),
-		        JobId = jobId
+				        : new Dictionary<string, string>()
 	        };
-            database.State.InsertOne(jobState);
 
             var jobDto = new JobDto
             {
@@ -282,8 +280,9 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "['Arguments']",
                 StateName = stateName,
                 CreatedAt = database.GetServerTimeUtc(),
-                StateId = jobState.Id
+                StateHistory = new []{jobState}
             };
+
             database.Job.InsertOne(jobDto);
 
             var jobQueueDto = new JobQueueDto

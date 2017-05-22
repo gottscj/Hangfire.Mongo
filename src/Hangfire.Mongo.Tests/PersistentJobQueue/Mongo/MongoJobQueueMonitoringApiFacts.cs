@@ -278,13 +278,10 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
 
         private static JobQueueDto CreateJobQueueDto(HangfireDbContext connection, string queue, bool isFetched)
         {
-            var state = new StateDto();
-            connection.State.InsertOne(state);
-
             var job = new JobDto
             {
                 CreatedAt = connection.GetServerTimeUtc(),
-                StateId = state.Id
+                StateHistory = new []{new StateDto()}
             };
 
             connection.Job.InsertOne(job);

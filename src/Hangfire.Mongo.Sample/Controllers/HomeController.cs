@@ -37,7 +37,7 @@ namespace Hangfire.Mongo.Sample.Controllers
 
             return RedirectToAction("Index");
         }
-        private static void PrintToDebug(string message)
+        public static void PrintToDebug(string message)
         {
             Debug.WriteLine(message);
         }

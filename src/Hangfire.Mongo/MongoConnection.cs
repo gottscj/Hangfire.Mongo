@@ -10,6 +10,7 @@ using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Server;
 using Hangfire.Storage;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -74,6 +75,7 @@ namespace Hangfire.Mongo
             {
                 InvocationData = JobHelper.ToJson(invocationData),
                 Arguments = invocationData.Arguments,
+                Parameters = parameters.ToDictionary(kv => kv.Key, kv => kv.Value),
                 CreatedAt = createdAt,
                 ExpireAt = createdAt.Add(expireIn)
             };
@@ -81,20 +83,7 @@ namespace Hangfire.Mongo
             Database.Job.InsertOne(jobDto);
 
             var jobId = jobDto.Id;
-
-            if (parameters.Count > 0)
-            {
-                Database
-                    .JobParameter
-                    .InsertMany(parameters.Select(parameter =>
-                        new JobParameterDto
-                        {
-                            JobId = jobId,
-                            Name = parameter.Key,
-                            Value = parameter.Value
-                        }));
-            }
-
+            
             return jobId.ToString();
         }
 
@@ -125,16 +114,22 @@ namespace Hangfire.Mongo
 
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
+            
+            var filter = new BsonDocument("_id", int.Parse(id));
+            BsonValue bsonValue;
+            if (value == null)
+            {
+                bsonValue = BsonNull.Value;
+            }
+            else
+            {
+                bsonValue = value;
+            }
+            
+            
+            var update = new BsonDocument("$set", new BsonDocument($"{nameof(JobDto.Parameters)}.{name}", bsonValue));
 
-            Database.JobParameter
-                .UpdateMany(
-                    Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(id)) &
-                    Builders<JobParameterDto>.Filter.Eq(_ => _.Name, name),
-                    Builders<JobParameterDto>.Update.Set(_ => _.Value, value),
-                    new UpdateOptions
-                    {
-                        IsUpsert = true
-                    });
+            Database.Job.FindOneAndUpdate(filter, update);
         }
 
         public override string GetJobParameter(string id, string name)
@@ -145,11 +140,16 @@ namespace Hangfire.Mongo
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
 
-            var jobParameter = Database.JobParameter
-                .Find(Builders<JobParameterDto>.Filter.Eq(_ => _.JobId, int.Parse(id)) &
-                      Builders<JobParameterDto>.Filter.Eq(_ => _.Name, name)).FirstOrDefault();
+            var parameters = Database
+                .Job
+                .Find(j => j.Id == int.Parse(id))
+                .Project(job => job.Parameters)
+                .FirstOrDefault();
 
-            return jobParameter?.Value;
+            string value = null;
+            parameters?.TryGetValue(name, out value);
+            
+            return value;
         }
 
         public override JobData GetJobData(string jobId)
@@ -194,18 +194,22 @@ namespace Hangfire.Mongo
         {
             if (jobId == null)
                 throw new ArgumentNullException(nameof(jobId));
-
-            var job = Database
+            var projection = Builders<JobDto>
+                .Projection
+                .Include(j => j.StateHistory)
+                .Slice(j => j.StateHistory, -1);
+                
+            var latest = Database
                 .Job
-                .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)))
+                .Find(j => j.Id == int.Parse(jobId))
+                .Project(projection)
                 .FirstOrDefault();
-
-            if (job == null)
+            
+            if (latest == null)
                 return null;
 
-            var state = Database
-                .State
-                .Find(Builders<StateDto>.Filter.Eq(_ => _.Id, job.StateId))
+            var state = latest[nameof(JobDto.StateHistory)]
+                .AsBsonArray
                 .FirstOrDefault();
 
             if (state == null)
@@ -213,10 +217,11 @@ namespace Hangfire.Mongo
 
             return new StateData
             {
-                Name = state.Name,
-                Reason = state.Reason,
-                Data = state.Data
-			};
+                Name = state[nameof(StateDto.Name)] == BsonNull.Value ? null : state[nameof(StateDto.Name)].AsString,
+                Reason = state[nameof(StateDto.Reason)] == BsonNull.Value ? null : state[nameof(StateDto.Reason)].AsString,
+                Data = state[nameof(StateDto.Data)] == BsonNull.Value ? new Dictionary<string, string>() :
+                    state[nameof(StateDto.Data)].AsBsonDocument.Elements.ToDictionary(e => e.Name, e => e.Value.AsString)
+            };
         }
 
         public override void AnnounceServer(string serverId, ServerContext context)
