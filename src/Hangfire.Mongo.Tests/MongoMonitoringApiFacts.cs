@@ -4,7 +4,6 @@ using System.Diagnostics;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.States;
@@ -58,12 +57,12 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                CreateJobInState(database, 1, EnqueuedState.StateName);
-                CreateJobInState(database, 2, EnqueuedState.StateName);
-                CreateJobInState(database, 4, FailedState.StateName);
-                CreateJobInState(database, 5, ProcessingState.StateName);
-                CreateJobInState(database, 6, ScheduledState.StateName);
-                CreateJobInState(database, 7, ScheduledState.StateName);
+                CreateJobInState(database, 1.ToString(), EnqueuedState.StateName);
+                CreateJobInState(database, 2.ToString(), EnqueuedState.StateName);
+                CreateJobInState(database, 4.ToString(), FailedState.StateName);
+                CreateJobInState(database, 5.ToString(), ProcessingState.StateName);
+                CreateJobInState(database, 6.ToString(), ScheduledState.StateName);
+                CreateJobInState(database, 7.ToString(), ScheduledState.StateName);
 
                 var result = monitoringApi.GetStatistics();
                 Assert.Equal(2, result.Enqueued);
@@ -88,14 +87,14 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var job1 = CreateJobInState(database, 1, EnqueuedState.StateName);
+                var job1 = CreateJobInState(database, 1.ToString(), EnqueuedState.StateName);
 
                 var result = monitoringApi.JobDetails(job1.Id.ToString());
 
                 Assert.NotNull(result);
                 Assert.NotNull(result.Job);
                 Assert.Equal("Arguments", result.Job.Args[0]);
-                Assert.True(database.GetServerTimeUtc().AddMinutes(-1) < result.CreatedAt);
+                Assert.True(DateTime.UtcNow.AddMinutes(-1) < result.CreatedAt);
                 Assert.True(result.CreatedAt < DateTime.UtcNow.AddMinutes(1));
             });
         }
@@ -105,7 +104,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var jobIds = new List<int>();
+                var jobIds = new List<string>();
 
                 _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
@@ -122,9 +121,9 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var unfetchedJob = CreateJobInState(database, 1, EnqueuedState.StateName);
+                var unfetchedJob = CreateJobInState(database, 1.ToString(), EnqueuedState.StateName);
 
-                var jobIds = new List<int> { unfetchedJob.Id };
+                var jobIds = new List<string> { unfetchedJob.Id };
                 _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
@@ -140,9 +139,9 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var fetchedJob = CreateJobInState(database, 1, FetchedStateName);
+                var fetchedJob = CreateJobInState(database, 1.ToString(), FetchedStateName);
 
-                var jobIds = new List<int> { fetchedJob.Id };
+                var jobIds = new List<string> { fetchedJob.Id };
                 _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
@@ -158,11 +157,11 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var unfetchedJob = CreateJobInState(database, 1, EnqueuedState.StateName);
-                var unfetchedJob2 = CreateJobInState(database, 2, EnqueuedState.StateName);
-                var fetchedJob = CreateJobInState(database, 3, FetchedStateName);
+                var unfetchedJob = CreateJobInState(database, 1.ToString(), EnqueuedState.StateName);
+                var unfetchedJob2 = CreateJobInState(database, 2.ToString(), EnqueuedState.StateName);
+                var fetchedJob = CreateJobInState(database, 3.ToString(), FetchedStateName);
 
-                var jobIds = new List<int> { unfetchedJob.Id, unfetchedJob2.Id, fetchedJob.Id };
+                var jobIds = new List<string> { unfetchedJob.Id, unfetchedJob2.Id, fetchedJob.Id };
                 _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
@@ -178,7 +177,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var jobIds = new List<int>();
+                var jobIds = new List<string>();
 
                 _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetFetchedJobIds(DefaultQueue, From, PerPage))
@@ -195,9 +194,9 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var fetchedJob = CreateJobInState(database, 1, FetchedStateName);
+                var fetchedJob = CreateJobInState(database, 1.ToString(), FetchedStateName);
 
-                var jobIds = new List<int> { fetchedJob.Id };
+                var jobIds = new List<string> { fetchedJob.Id };
                 _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetFetchedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
@@ -213,9 +212,9 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var unfetchedJob = CreateJobInState(database, 1, EnqueuedState.StateName);
+                var unfetchedJob = CreateJobInState(database, 1.ToString(), EnqueuedState.StateName);
 
-                var jobIds = new List<int> { unfetchedJob.Id };
+                var jobIds = new List<string> { unfetchedJob.Id };
                 _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetFetchedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
@@ -231,11 +230,11 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var fetchedJob = CreateJobInState(database, 1, FetchedStateName);
-                var fetchedJob2 = CreateJobInState(database, 2, FetchedStateName);
-                var unfetchedJob = CreateJobInState(database, 3, EnqueuedState.StateName);
+                var fetchedJob = CreateJobInState(database, 1.ToString(), FetchedStateName);
+                var fetchedJob2 = CreateJobInState(database, 2.ToString(), FetchedStateName);
+                var unfetchedJob = CreateJobInState(database, 3.ToString(), EnqueuedState.StateName);
 
-                var jobIds = new List<int> { fetchedJob.Id, fetchedJob2.Id, unfetchedJob.Id };
+                var jobIds = new List<string> { fetchedJob.Id, fetchedJob2.Id, unfetchedJob.Id };
                 _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetFetchedJobIds(DefaultQueue, From, PerPage))
                     .Returns(jobIds);
@@ -260,16 +259,16 @@ namespace Hangfire.Mongo.Tests
             }
         }
 
-        private JobDto CreateJobInState(HangfireDbContext database, int jobId, string stateName)
+        private JobDto CreateJobInState(HangfireDbContext database, string jobId, string stateName)
         {
             var job = Job.FromExpression(() => SampleMethod("wrong"));
 
 	        var jobState = new StateDto()
 	        {
-		        CreatedAt = database.GetServerTimeUtc(),
+		        CreatedAt = DateTime.UtcNow,
 		        Data =
 			        stateName == EnqueuedState.StateName
-				        ? new Dictionary<string, string> {["EnqueuedAt"] = $"{database.GetServerTimeUtc():o}"}
+				        ? new Dictionary<string, string> {["EnqueuedAt"] = $"{DateTime.UtcNow:o}"}
 				        : new Dictionary<string, string>()
 	        };
 
@@ -279,7 +278,7 @@ namespace Hangfire.Mongo.Tests
                 InvocationData = JobHelper.ToJson(InvocationData.Serialize(job)),
                 Arguments = "['Arguments']",
                 StateName = stateName,
-                CreatedAt = database.GetServerTimeUtc(),
+                CreatedAt = DateTime.UtcNow,
                 StateHistory = new []{jobState}
             };
 
@@ -288,14 +287,13 @@ namespace Hangfire.Mongo.Tests
             var jobQueueDto = new JobQueueDto
             {
                 FetchedAt = null,
-                Id = jobId * 10,
                 JobId = jobId,
                 Queue = DefaultQueue
             };
 
             if (stateName == FetchedStateName)
             {
-                jobQueueDto.FetchedAt = database.GetServerTimeUtc();
+                jobQueueDto.FetchedAt = DateTime.UtcNow;
             }
 
             database.JobQueue.InsertOne(jobQueueDto);

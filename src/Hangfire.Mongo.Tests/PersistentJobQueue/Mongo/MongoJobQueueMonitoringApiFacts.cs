@@ -2,7 +2,6 @@
 using System.Linq;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
 using Hangfire.Mongo.Tests.Utils;
 using Xunit;
@@ -280,7 +279,7 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
         {
             var job = new JobDto
             {
-                CreatedAt = connection.GetServerTimeUtc(),
+                CreatedAt = DateTime.UtcNow,
                 StateHistory = new []{new StateDto()}
             };
 
@@ -294,7 +293,7 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
 
             if (isFetched)
             {
-                jobQueue.FetchedAt = connection.GetServerTimeUtc().AddDays(-1);
+                jobQueue.FetchedAt = DateTime.UtcNow.AddDays(-1);
             }
 
             connection.JobQueue.InsertOne(jobQueue);

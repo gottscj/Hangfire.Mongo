@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
@@ -100,20 +99,18 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobQueue = new JobQueueDto
                 {
-                    JobId = 1,
+                    JobId = 1.ToString(),
                     Queue = "default"
                 };
 
                 connection.JobQueue.InsertOne(jobQueue);
-
-                var id = jobQueue.Id;
+                
                 var queue = CreateJobQueue(connection);
 
                 // Act
                 MongoFetchedJob payload = (MongoFetchedJob)queue.Dequeue(DefaultQueues, CreateTimingOutCancellationToken());
 
                 // Assert
-                Assert.Equal(id, payload.Id);
                 Assert.Equal("1", payload.JobId);
                 Assert.Equal("default", payload.Queue);
             });
@@ -129,7 +126,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = connection.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 connection.Job.InsertOne(job);
 
@@ -148,7 +145,7 @@ namespace Hangfire.Mongo.Tests
                 // Assert
                 Assert.NotNull(payload);
 
-                var fetchedAt = connection.JobQueue.Find(Builders<JobQueueDto>.Filter.Eq(_ => _.JobId, int.Parse(payload.JobId))).FirstOrDefault().FetchedAt;
+                var fetchedAt = connection.JobQueue.Find(Builders<JobQueueDto>.Filter.Eq(_ => _.JobId, payload.JobId)).FirstOrDefault().FetchedAt;
 
                 Assert.NotNull(fetchedAt);
                 Assert.True(fetchedAt > DateTime.UtcNow.AddMinutes(-1));
@@ -165,7 +162,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = connection.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 connection.Job.InsertOne(job);
 
@@ -173,7 +170,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     JobId = job.Id,
                     Queue = "default",
-                    FetchedAt = connection.GetServerTimeUtc().AddDays(-1)
+                    FetchedAt = DateTime.UtcNow.AddDays(-1)
                 };
                 connection.JobQueue.InsertOne(jobQueue);
 
@@ -197,7 +194,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = connection.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 connection.Job.InsertOne(job1);
 
@@ -205,7 +202,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = connection.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 connection.Job.InsertOne(job2);
 
@@ -227,7 +224,7 @@ namespace Hangfire.Mongo.Tests
                 var payload = queue.Dequeue(DefaultQueues, CreateTimingOutCancellationToken());
 
                 // Assert
-                var otherJobFetchedAt = connection.JobQueue.Find(Builders<JobQueueDto>.Filter.Ne(_ => _.JobId, int.Parse(payload.JobId))).FirstOrDefault().FetchedAt;
+                var otherJobFetchedAt = connection.JobQueue.Find(Builders<JobQueueDto>.Filter.Ne(_ => _.JobId, payload.JobId)).FirstOrDefault().FetchedAt;
 
                 Assert.Null(otherJobFetchedAt);
             });
@@ -242,7 +239,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = connection.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 connection.Job.InsertOne(job1);
 
@@ -268,7 +265,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = connection.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 connection.Job.InsertOne(criticalJob);
 
@@ -276,7 +273,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = connection.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 connection.Job.InsertOne(defaultJob);
 

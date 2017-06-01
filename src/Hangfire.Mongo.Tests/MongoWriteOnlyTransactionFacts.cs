@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.States;
@@ -52,19 +51,19 @@ namespace Hangfire.Mongo.Tests
             {
                 JobDto job = new JobDto
                 {
-                    Id = 1,
+                    Id = 1.ToString(),
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(job);
 
                 JobDto anotherJob = new JobDto
                 {
-                    Id = 2,
+                    Id = 2.ToString(),
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(anotherJob);
 
@@ -74,7 +73,7 @@ namespace Hangfire.Mongo.Tests
                 Commit(database, x => x.ExpireJob(jobId.ToString(), TimeSpan.FromDays(1)));
 
                 var testJob = GetTestJob(database, jobId);
-                Assert.True(database.GetServerTimeUtc().AddMinutes(-1) < testJob.ExpireAt && testJob.ExpireAt <= database.GetServerTimeUtc().AddDays(1));
+                Assert.True(DateTime.UtcNow.AddMinutes(-1) < testJob.ExpireAt && testJob.ExpireAt <= DateTime.UtcNow.AddDays(1));
 
                 var anotherTestJob = GetTestJob(database, anotherJobId);
                 Assert.Null(anotherTestJob.ExpireAt);
@@ -88,21 +87,21 @@ namespace Hangfire.Mongo.Tests
             {
                 JobDto job = new JobDto
                 {
-                    Id = 1,
+                    Id = 1.ToString(),
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = database.GetServerTimeUtc(),
-                    ExpireAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow,
+                    ExpireAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(job);
 
                 JobDto anotherJob = new JobDto
                 {
-                    Id = 2,
+                    Id = 2.ToString(),
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = database.GetServerTimeUtc(),
-                    ExpireAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow,
+                    ExpireAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(anotherJob);
 
@@ -126,19 +125,19 @@ namespace Hangfire.Mongo.Tests
             {
                 JobDto job = new JobDto
                 {
-                    Id = 1,
+                    Id = 1.ToString(),
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(job);
 
                 JobDto anotherJob = new JobDto
                 {
-                    Id = 2,
+                    Id = 2.ToString(),
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(anotherJob);
 
@@ -178,10 +177,10 @@ namespace Hangfire.Mongo.Tests
             {
                 JobDto job = new JobDto
                 {
-                    Id = 1,
+                    Id = 1.ToString(),
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(job);
 
@@ -255,8 +254,8 @@ namespace Hangfire.Mongo.Tests
 
                 var expireAt = (DateTime)record.ExpireAt;
 
-                Assert.True(database.GetServerTimeUtc().AddHours(23) < expireAt);
-                Assert.True(expireAt < database.GetServerTimeUtc().AddHours(25));
+                Assert.True(DateTime.UtcNow.AddHours(23) < expireAt);
+                Assert.True(expireAt < DateTime.UtcNow.AddHours(25));
             });
         }
 
@@ -307,8 +306,8 @@ namespace Hangfire.Mongo.Tests
 
                 var expireAt = (DateTime)record.ExpireAt;
 
-                Assert.True(database.GetServerTimeUtc().AddHours(23) < expireAt);
-                Assert.True(expireAt < database.GetServerTimeUtc().AddHours(25));
+                Assert.True(DateTime.UtcNow.AddHours(23) < expireAt);
+                Assert.True(expireAt < DateTime.UtcNow.AddHours(25));
             });
         }
 
@@ -724,7 +723,7 @@ namespace Hangfire.Mongo.Tests
                 Commit(database, x => x.ExpireSet(set1.Key, TimeSpan.FromDays(1)));
 
                 var testSet1 = GetTestSet(database, set1.Key).FirstOrDefault();
-                Assert.True(database.GetServerTimeUtc().AddMinutes(-1) < testSet1.ExpireAt && testSet1.ExpireAt <= database.GetServerTimeUtc().AddDays(1));
+                Assert.True(DateTime.UtcNow.AddMinutes(-1) < testSet1.ExpireAt && testSet1.ExpireAt <= DateTime.UtcNow.AddDays(1));
 
                 var testSet2 = GetTestSet(database, set2.Key).FirstOrDefault();
                 Assert.NotNull(testSet2);
@@ -746,7 +745,7 @@ namespace Hangfire.Mongo.Tests
                 Commit(database, x => x.ExpireList(list1.Key, TimeSpan.FromDays(1)));
 
                 var testList1 = GetTestList(database, list1.Key);
-                Assert.True(database.GetServerTimeUtc().AddMinutes(-1) < testList1.ExpireAt && testList1.ExpireAt <= database.GetServerTimeUtc().AddDays(1));
+                Assert.True(DateTime.UtcNow.AddMinutes(-1) < testList1.ExpireAt && testList1.ExpireAt <= DateTime.UtcNow.AddDays(1));
 
                 var testList2 = GetTestList(database, list2.Key);
                 Assert.Null(testList2.ExpireAt);
@@ -767,7 +766,7 @@ namespace Hangfire.Mongo.Tests
                 Commit(database, x => x.ExpireHash(hash1.Key, TimeSpan.FromDays(1)));
 
                 var testHash1 = GetTestHash(database, hash1.Key);
-                Assert.True(database.GetServerTimeUtc().AddMinutes(-1) < testHash1.ExpireAt && testHash1.ExpireAt <= database.GetServerTimeUtc().AddDays(1));
+                Assert.True(DateTime.UtcNow.AddMinutes(-1) < testHash1.ExpireAt && testHash1.ExpireAt <= DateTime.UtcNow.AddDays(1));
 
                 var testHash2 = GetTestHash(database, hash2.Key);
                 Assert.Null(testHash2.ExpireAt);
@@ -780,10 +779,10 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var set1 = new SetDto { Key = "Set1", Value = "value1", ExpireAt = database.GetServerTimeUtc() };
+                var set1 = new SetDto { Key = "Set1", Value = "value1", ExpireAt = DateTime.UtcNow };
                 database.Set.InsertOne(set1);
 
-                var set2 = new SetDto { Key = "Set2", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                var set2 = new SetDto { Key = "Set2", Value = "value2", ExpireAt = DateTime.UtcNow };
                 database.Set.InsertOne(set2);
 
                 Commit(database, x => x.PersistSet(set1.Key));
@@ -801,10 +800,10 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var list1 = new ListDto { Key = "List1", Value = "value1", ExpireAt = database.GetServerTimeUtc() };
+                var list1 = new ListDto { Key = "List1", Value = "value1", ExpireAt = DateTime.UtcNow };
                 database.List.InsertOne(list1);
 
-                var list2 = new ListDto { Key = "List2", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                var list2 = new ListDto { Key = "List2", Value = "value2", ExpireAt = DateTime.UtcNow };
                 database.List.InsertOne(list2);
 
                 Commit(database, x => x.PersistList(list1.Key));
@@ -822,10 +821,10 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var hash1 = new HashDto { Key = "Hash1", Value = "value1", ExpireAt = database.GetServerTimeUtc() };
+                var hash1 = new HashDto { Key = "Hash1", Value = "value1", ExpireAt = DateTime.UtcNow };
                 database.Hash.InsertOne(hash1);
 
-                var hash2 = new HashDto { Key = "Hash2", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                var hash2 = new HashDto { Key = "Hash2", Value = "value2", ExpireAt = DateTime.UtcNow };
                 database.Hash.InsertOne(hash2);
 
                 Commit(database, x => x.PersistHash(hash1.Key));
@@ -843,13 +842,13 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var set1Val1 = new SetDto { Key = "Set1", Value = "value1", ExpireAt = database.GetServerTimeUtc() };
+                var set1Val1 = new SetDto { Key = "Set1", Value = "value1", ExpireAt = DateTime.UtcNow };
                 database.Set.InsertOne(set1Val1);
 
-                var set1Val2 = new SetDto { Key = "Set1", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                var set1Val2 = new SetDto { Key = "Set1", Value = "value2", ExpireAt = DateTime.UtcNow };
                 database.Set.InsertOne(set1Val2);
 
-                var set2 = new SetDto { Key = "Set2", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                var set2 = new SetDto { Key = "Set2", Value = "value2", ExpireAt = DateTime.UtcNow };
                 database.Set.InsertOne(set2);
 
                 var values = new[] { "test1", "test2", "test3" };
@@ -871,13 +870,13 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var set1Val1 = new SetDto { Key = "Set1", Value = "value1", ExpireAt = database.GetServerTimeUtc() };
+                var set1Val1 = new SetDto { Key = "Set1", Value = "value1", ExpireAt = DateTime.UtcNow };
                 database.Set.InsertOne(set1Val1);
 
-                var set1Val2 = new SetDto { Key = "Set1", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                var set1Val2 = new SetDto { Key = "Set1", Value = "value2", ExpireAt = DateTime.UtcNow };
                 database.Set.InsertOne(set1Val2);
 
-                var set2 = new SetDto { Key = "Set2", Value = "value2", ExpireAt = database.GetServerTimeUtc() };
+                var set2 = new SetDto { Key = "Set2", Value = "value2", ExpireAt = DateTime.UtcNow };
                 database.Set.InsertOne(set2);
 
                 Commit(database, x => x.RemoveSet(set1Val1.Key));
@@ -891,7 +890,7 @@ namespace Hangfire.Mongo.Tests
         }
 
 
-        private static JobDto GetTestJob(HangfireDbContext database, int jobId)
+        private static JobDto GetTestJob(HangfireDbContext database, string jobId)
         {
             return database.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId)).FirstOrDefault();
         }

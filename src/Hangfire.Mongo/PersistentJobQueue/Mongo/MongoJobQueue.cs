@@ -43,7 +43,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
             var fetchConditions = new[]
             {
                 Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null),
-                Builders<JobQueueDto>.Filter.Lt(_ => _.FetchedAt, _connection.GetServerTimeUtc().AddSeconds(_options.InvisibilityTimeout.Negate().TotalSeconds))
+                Builders<JobQueueDto>.Filter.Lt(_ => _.FetchedAt, DateTime.UtcNow.AddSeconds(_options.InvisibilityTimeout.Negate().TotalSeconds))
             };
             var currentQueryIndex = 0;
 
@@ -57,7 +57,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 {
                     fetchedJob = _connection.JobQueue.FindOneAndUpdate(
                             fetchCondition & Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue),
-                            Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, _connection.GetServerTimeUtc()),
+                            Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, DateTime.UtcNow),
                             new FindOneAndUpdateOptions<JobQueueDto>
                             {
                                 IsUpsert = false,
@@ -82,7 +82,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
             }
             while (fetchedJob == null);
 
-            return new MongoFetchedJob(_connection, fetchedJob.Id, fetchedJob.JobId.ToString(CultureInfo.InvariantCulture), fetchedJob.Queue);
+            return new MongoFetchedJob(_connection, fetchedJob.JobId, fetchedJob.Queue);
         }
 
         public void Enqueue(string queue, string jobId)
@@ -91,7 +91,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 .JobQueue
                 .InsertOne(new JobQueueDto
                 {
-                    JobId = int.Parse(jobId),
+                    JobId = jobId,
                     Queue = queue
                 });
         }

@@ -152,7 +152,7 @@ namespace Hangfire.Mongo.Tests
             {
                 using (new MongoDistributedLock("resource1", TimeSpan.Zero, database, new MongoStorageOptions() { DistributedLockLifetime = TimeSpan.FromSeconds(3) }))
                 {
-                    DateTime initialExpireAt = database.GetServerTimeUtc();
+                    DateTime initialExpireAt = DateTime.UtcNow;
                     Thread.Sleep(TimeSpan.FromSeconds(5));
 
                     DistributedLockDto lockEntry = database.DistributedLock.Find(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1")).FirstOrDefault();

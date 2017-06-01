@@ -111,7 +111,7 @@ namespace Hangfire.Mongo.Tests
                     () => connection.CreateExpiredJob(
                         null,
                         new Dictionary<string, string>(),
-                        database.GetServerTimeUtc(),
+                        DateTime.UtcNow,
                         TimeSpan.Zero));
 
                 Assert.Equal("job", exception.ParamName);
@@ -127,7 +127,7 @@ namespace Hangfire.Mongo.Tests
                     () => connection.CreateExpiredJob(
                         Job.FromExpression(() => SampleMethod("hello")),
                         null,
-                        database.GetServerTimeUtc(),
+                        DateTime.UtcNow,
                         TimeSpan.Zero));
 
                 Assert.Equal("parameters", exception.ParamName);
@@ -167,7 +167,7 @@ namespace Hangfire.Mongo.Tests
 
                 var parameters = database
                     .Job
-                    .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)))
+                    .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId))
                     .Project(j => j.Parameters)
                     .ToList()
                     .SelectMany(j => j)
@@ -204,11 +204,11 @@ namespace Hangfire.Mongo.Tests
 
                 var jobDto = new JobDto
                 {
-                    Id = 1,
+                    Id = 1.ToString(),
                     InvocationData = JobHelper.ToJson(InvocationData.Serialize(job)),
                     Arguments = "['Arguments']",
                     StateName = "Succeeded",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
 
@@ -219,7 +219,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal("Succeeded", result.State);
                 Assert.Equal("Arguments", result.Job.Args[0]);
                 Assert.Null(result.LoadException);
-                Assert.True(database.GetServerTimeUtc().AddMinutes(-1) < result.CreatedAt);
+                Assert.True(DateTime.UtcNow.AddMinutes(-1) < result.CreatedAt);
                 Assert.True(result.CreatedAt < DateTime.UtcNow.AddMinutes(1));
             });
         }
@@ -255,15 +255,15 @@ namespace Hangfire.Mongo.Tests
                 var state = new StateDto
                 {
                     Name = "old-state",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 var jobDto = new JobDto
                 {
-                    Id = 1,
+                    Id = 1.ToString(),
                     InvocationData = "",
                     Arguments = "",
                     StateName = "",
-                    CreatedAt = database.GetServerTimeUtc(),
+                    CreatedAt = DateTime.UtcNow,
                     StateHistory = new [] {state}
                 };
 
@@ -278,7 +278,7 @@ namespace Hangfire.Mongo.Tests
                         Name = "Name",
                         Reason = "Reason",
                         Data = data,
-                        CreatedAt = database.GetServerTimeUtc()
+                        CreatedAt = DateTime.UtcNow
                     });
 
                 database.Job.UpdateOne(j => j.Id == jobId, update);
@@ -299,11 +299,11 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobDto = new JobDto
                 {
-                    Id = 1,
+                    Id = 1.ToString(),
                     InvocationData = JobHelper.ToJson(new InvocationData(null, null, null, null)),
                     Arguments = "['Arguments']",
                     StateName = "Succeeded",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
                 var jobId = jobDto.Id;
@@ -345,10 +345,10 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobDto = new JobDto
                 {
-                    Id = 1,
+                    Id = 1.ToString(),
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
                 string jobId = jobDto.Id.ToString();
@@ -357,7 +357,7 @@ namespace Hangfire.Mongo.Tests
 
                 var parameters = database
                     .Job
-                    .Find(j => j.Id == int.Parse(jobId))
+                    .Find(j => j.Id == jobId)
                     .Project(j => j.Parameters)
                     .FirstOrDefault();
 
@@ -372,10 +372,10 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobDto = new JobDto
                 {
-                    Id = 1,
+                    Id = 1.ToString(),
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
                 string jobId = jobDto.Id.ToString();
@@ -385,7 +385,7 @@ namespace Hangfire.Mongo.Tests
 
                 var parameters = database
                     .Job
-                    .Find(j => j.Id == int.Parse(jobId))
+                    .Find(j => j.Id == jobId)
                     .Project(j => j.Parameters)
                     .FirstOrDefault();
 
@@ -400,10 +400,10 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobDto = new JobDto
                 {
-                    Id = 1,
+                    Id = 1.ToString(),
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
                 string jobId = jobDto.Id.ToString();
@@ -412,7 +412,7 @@ namespace Hangfire.Mongo.Tests
                 
                 var parameters = database
                     .Job
-                    .Find(j => j.Id == int.Parse(jobId))
+                    .Find(j => j.Id == jobId)
                     .Project(j => j.Parameters)
                     .FirstOrDefault();
 
@@ -461,18 +461,17 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobDto = new JobDto
                 {
-                    Id = 1,
+                    Id = 1.ToString(),
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = database.GetServerTimeUtc()
+                    CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
-                string jobId = jobDto.Id.ToString();
 
 
-                connection.SetJobParameter(jobId, "name", "value");
+                connection.SetJobParameter(jobDto.Id, "name", "value");
 
-                var value = connection.GetJobParameter(jobId, "name");
+                var value = connection.GetJobParameter(jobDto.Id, "name");
 
                 Assert.Equal("value", value);
             });
@@ -620,13 +619,13 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = "Server1",
                     Data = "",
-                    LastHeartbeat = database.GetServerTimeUtc()
+                    LastHeartbeat = DateTime.UtcNow
                 });
                 database.Server.InsertOne(new ServerDto
                 {
                     Id = "Server2",
                     Data = "",
-                    LastHeartbeat = database.GetServerTimeUtc()
+                    LastHeartbeat = DateTime.UtcNow
                 });
 
                 connection.RemoveServer("Server1");
@@ -687,13 +686,13 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = "server1",
                     Data = "",
-                    LastHeartbeat = database.GetServerTimeUtc().AddDays(-1)
+                    LastHeartbeat = DateTime.UtcNow.AddDays(-1)
                 });
                 database.Server.InsertOne(new ServerDto
                 {
                     Id = "server2",
                     Data = "",
-                    LastHeartbeat = database.GetServerTimeUtc().AddHours(-12)
+                    LastHeartbeat = DateTime.UtcNow.AddHours(-12)
                 });
 
                 connection.RemoveTimedOutServers(TimeSpan.FromHours(15));

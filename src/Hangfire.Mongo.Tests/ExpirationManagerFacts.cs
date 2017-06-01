@@ -35,7 +35,7 @@ namespace Hangfire.Mongo.Tests
         {
             using (var connection = ConnectionUtils.CreateConnection())
             {
-                var entryId = CreateExpirationEntry(connection, connection.GetServerTimeUtc().AddMonths(-1));
+                var entryId = CreateExpirationEntry(connection, DateTime.UtcNow.AddMonths(-1));
                 var manager = CreateManager();
 
                 manager.Execute(_token);
@@ -83,7 +83,7 @@ namespace Hangfire.Mongo.Tests
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Value = 1,
-                    ExpireAt = connection.GetServerTimeUtc().AddMonths(-1)
+                    ExpireAt = DateTime.UtcNow.AddMonths(-1)
                 });
 
                 var manager = CreateManager();
@@ -105,11 +105,11 @@ namespace Hangfire.Mongo.Tests
                 // Arrange
                 connection.Job.InsertOne(new JobDto
                 {
-                    Id = 1,
+                    Id = 1.ToString(),
                     InvocationData = "",
                     Arguments = "",
-                    CreatedAt = connection.GetServerTimeUtc(),
-                    ExpireAt = connection.GetServerTimeUtc().AddMonths(-1),
+                    CreatedAt = DateTime.UtcNow,
+                    ExpireAt = DateTime.UtcNow.AddMonths(-1),
                 });
 
                 var manager = CreateManager();
@@ -133,7 +133,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
-                    ExpireAt = connection.GetServerTimeUtc().AddMonths(-1)
+                    ExpireAt = DateTime.UtcNow.AddMonths(-1)
                 });
 
                 var manager = CreateManager();
@@ -159,7 +159,7 @@ namespace Hangfire.Mongo.Tests
                     Key = "key",
                     Score = 0,
                     Value = "",
-                    ExpireAt = connection.GetServerTimeUtc().AddMonths(-1)
+                    ExpireAt = DateTime.UtcNow.AddMonths(-1)
                 });
 
                 var manager = CreateManager();
@@ -185,7 +185,7 @@ namespace Hangfire.Mongo.Tests
                     Key = "key",
                     Field = "field",
                     Value = "",
-                    ExpireAt = connection.GetServerTimeUtc().AddMonths(-1)
+                    ExpireAt = DateTime.UtcNow.AddMonths(-1)
                 });
 
                 var manager = CreateManager();

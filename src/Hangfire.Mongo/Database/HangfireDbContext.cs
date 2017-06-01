@@ -68,12 +68,7 @@ namespace Hangfire.Mongo.Database
         /// Mongo database connection identifier
         /// </summary>
         public string ConnectionId { get; private set; }
-
-        /// <summary>
-        /// Reference to collection which contains identifiers
-        /// </summary>
-        public virtual IMongoCollection<IdentifierDto> Identifiers => Database.GetCollection<IdentifierDto>(_prefix + "_identifiers");
-
+        
         /// <summary>
         /// Reference to collection which contains distributed locks
         /// </summary>
@@ -164,7 +159,6 @@ namespace Hangfire.Mongo.Database
         private void CreateJobIndexes()
         {
             // Create for jobid jobQueue
-            JobQueue.CreateDescendingIndex(p => p.JobId);
         }
 
 

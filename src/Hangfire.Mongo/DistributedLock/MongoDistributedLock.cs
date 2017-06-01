@@ -140,7 +140,7 @@ namespace Hangfire.Mongo.DistributedLock
                 {
                     // Acquire the lock if it does not exist - Notice: ReturnDocument.Before
                     var filter = Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource);
-                    var update = Builders<DistributedLockDto>.Update.SetOnInsert(_ => _.ExpireAt, _database.GetServerTimeUtc().Add(_options.DistributedLockLifetime));
+                    var update = Builders<DistributedLockDto>.Update.SetOnInsert(_ => _.ExpireAt, DateTime.UtcNow.Add(_options.DistributedLockLifetime));
                     var options = new FindOneAndUpdateOptions<DistributedLockDto>
                     {
                         IsUpsert = true,
@@ -233,7 +233,7 @@ namespace Hangfire.Mongo.DistributedLock
                 // Delete expired locks
                 _database.DistributedLock.DeleteOne(
                     Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource) &
-                    Builders<DistributedLockDto>.Filter.Lt(_ => _.ExpireAt, _database.GetServerTimeUtc()));
+                    Builders<DistributedLockDto>.Filter.Lt(_ => _.ExpireAt, DateTime.UtcNow));
             }
             catch (Exception ex)
             {
@@ -257,7 +257,7 @@ namespace Hangfire.Mongo.DistributedLock
                     try
                     {
                         var filter = Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource);
-                        var update = Builders<DistributedLockDto>.Update.Set(_ => _.ExpireAt, _database.GetServerTimeUtc().Add(_options.DistributedLockLifetime));
+                        var update = Builders<DistributedLockDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(_options.DistributedLockLifetime));
                         _database.DistributedLock.FindOneAndUpdate(filter, update);
                     }
                     catch (Exception ex)
