@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.MongoUtils;
 using Hangfire.Server;
 using MongoDB.Driver;
@@ -61,12 +62,8 @@ namespace Hangfire.Mongo
             {
                 DateTime now = connection.GetServerTimeUtc();
 
-                RemoveExpiredRecord(connection.AggregatedCounter, _ => _.ExpireAt, now);
-                RemoveExpiredRecord(connection.Counter, _ => _.ExpireAt, now);
                 RemoveExpiredRecord(connection.Job, _ => _.ExpireAt, now);
-                RemoveExpiredRecord(connection.List, _ => _.ExpireAt, now);
-                RemoveExpiredRecord(connection.Set, _ => _.ExpireAt, now);
-                RemoveExpiredRecord(connection.Hash, _ => _.ExpireAt, now);
+                RemoveExpiredRecord(connection.StateData.OfType<ExpiringKeyValueDto>(), _ => _.ExpireAt, now);
             }
 
             cancellationToken.WaitHandle.WaitOne(_checkInterval);

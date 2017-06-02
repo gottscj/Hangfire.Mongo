@@ -4,6 +4,7 @@ using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.MongoUtils;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Database
@@ -75,25 +76,15 @@ namespace Hangfire.Mongo.Database
         public virtual IMongoCollection<IdentifierDto> Identifiers => Database.GetCollection<IdentifierDto>(_prefix + "_identifiers");
 
         /// <summary>
+        /// Reference to collection which contains various state information
+        /// </summary>
+        public virtual IMongoCollection<KeyValueDto> StateData => Database.GetCollection<KeyValueDto>(_prefix + ".statedata");
+        
+        /// <summary>
         /// Reference to collection which contains distributed locks
         /// </summary>
         public virtual IMongoCollection<DistributedLockDto> DistributedLock => Database.GetCollection<DistributedLockDto>(_prefix + ".locks");
-
-        /// <summary>
-        /// Reference to collection which contains counters
-        /// </summary>
-        public virtual IMongoCollection<CounterDto> Counter => Database.GetCollection<CounterDto>(_prefix + ".counter");
-
-        /// <summary>
-        /// Reference to collection which contains aggregated counters
-        /// </summary>
-        public virtual IMongoCollection<AggregatedCounterDto> AggregatedCounter => Database.GetCollection<AggregatedCounterDto>(_prefix + ".aggregatedcounter");
-
-        /// <summary>
-        /// Reference to collection which contains hashes
-        /// </summary>
-        public virtual IMongoCollection<HashDto> Hash => Database.GetCollection<HashDto>(_prefix + ".hash");
-
+        
         /// <summary>
         /// Reference to collection which contains jobs
         /// </summary>
@@ -103,12 +94,7 @@ namespace Hangfire.Mongo.Database
         /// Reference to collection which contains jobs queues
         /// </summary>
         public virtual IMongoCollection<JobQueueDto> JobQueue => Database.GetCollection<JobQueueDto>(_prefix + ".jobQueue");
-
-        /// <summary>
-        /// Reference to collection which contains lists
-        /// </summary>
-        public virtual IMongoCollection<ListDto> List => Database.GetCollection<ListDto>(_prefix + ".list");
-
+        
         /// <summary>
         /// Reference to collection which contains schemas
         /// </summary>
@@ -118,11 +104,6 @@ namespace Hangfire.Mongo.Database
         /// Reference to collection which contains servers information
         /// </summary>
         public virtual IMongoCollection<ServerDto> Server => Database.GetCollection<ServerDto>(_prefix + ".server");
-
-        /// <summary>
-        /// Reference to collection which contains sets
-        /// </summary>
-        public virtual IMongoCollection<SetDto> Set => Database.GetCollection<SetDto>(_prefix + ".set");
         
         /// <summary>
         /// Initializes intial collections schema for Hangfire

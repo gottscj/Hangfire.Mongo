@@ -277,12 +277,14 @@ namespace Hangfire.Mongo
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            IEnumerable<string> result = Database.Set
+            var result = Database
+                .StateData
+                .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
                 .Project(_ => _.Value)
                 .ToList();
 
-            return new HashSet<string>(result);
+            return new HashSet<string>(result.Cast<string>());
         }
 
         public override string GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore)
@@ -293,13 +295,15 @@ namespace Hangfire.Mongo
             if (toScore < fromScore)
                 throw new ArgumentException("The `toScore` value must be higher or equal to the `fromScore` value.");
 
-            return Database.Set
+            return Database
+                .StateData
+                .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key) &
                       Builders<SetDto>.Filter.Gte(_ => _.Score, fromScore) &
                       Builders<SetDto>.Filter.Lte(_ => _.Score, toScore))
                 .SortBy(_ => _.Score)
                 .Project(_ => _.Value)
-                .FirstOrDefault();
+                .FirstOrDefault() as string;
         }
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
@@ -312,7 +316,10 @@ namespace Hangfire.Mongo
 
             foreach (var keyValuePair in keyValuePairs)
             {
-                Database.Hash.UpdateMany(
+                Database
+                    .StateData
+                    .OfType<HashDto>()
+                    .UpdateMany(
                     Builders<HashDto>.Filter.Eq(_ => _.Key, key) & Builders<HashDto>.Filter.Eq(_ => _.Field, keyValuePair.Key),
                     Builders<HashDto>.Update.Set(_ => _.Value, keyValuePair.Value),
                     new UpdateOptions { IsUpsert = true });
@@ -324,9 +331,12 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            var result = Database.Hash
+            var result = Database
+                .StateData
+                .OfType<HashDto>()
                 .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
-                .ToList().ToDictionary(x => x.Field, x => x.Value);
+                .ToList()
+                .ToDictionary(x => x.Field, x => (string)x.Value);
 
             return result.Count != 0 ? result : null;
         }
@@ -336,7 +346,9 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            return Database.Set
+            return Database
+                .StateData
+                .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
                 .Count();
         }
@@ -346,11 +358,13 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            return Database.Set
+            return Database
+                .StateData
+                .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
-                .Project(dto => dto.Value)
+                .Project(dto => (string) dto.Value)
                 .ToList();
         }
 
@@ -359,7 +373,9 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            var values = Database.Set
+            var values = Database
+                .StateData
+                .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key) &
                       Builders<SetDto>.Filter.Not(Builders<SetDto>.Filter.Eq(_ => _.ExpireAt, null)))
                 .Project(dto => dto.ExpireAt.Value)
@@ -376,17 +392,24 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            var counterQuery = Database.Counter
+            var counterQuery = Database
+                .StateData
+                .OfType<CounterDto>()
                 .Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, key))
-                .Project(_ => (long)_.Value)
+                .Project(_ => _.Value)
                 .ToList();
 
-            var aggregatedCounterQuery = Database.AggregatedCounter
+            var aggregatedCounterQuery = Database
+                .StateData
+                .OfType<AggregatedCounterDto>()
                 .Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, key))
                 .Project(_ => _.Value)
                 .ToList();
 
-            var values = counterQuery.Concat(aggregatedCounterQuery).ToArray();
+            var values = counterQuery
+                .Concat(aggregatedCounterQuery)
+                .Select(c => (long)c)
+                .ToArray();
 
             return values.Any() ? values.Sum() : 0;
         }
@@ -397,7 +420,8 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
 
             return Database
-                .Hash
+                .StateData
+                .OfType<HashDto>()
                 .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
                 .Count();
         }
@@ -406,7 +430,9 @@ namespace Hangfire.Mongo
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            var result = Database.Hash
+            var result = Database
+                .StateData
+                .OfType<HashDto>()
                 .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
                 .SortBy(dto => dto.ExpireAt)
                 .Project(_ => _.ExpireAt)
@@ -426,11 +452,13 @@ namespace Hangfire.Mongo
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
 
-            var result = Database.Hash
+            var result = Database
+                .StateData
+                .OfType<HashDto>()
                 .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key) & Builders<HashDto>.Filter.Eq(_ => _.Field, name))
                 .FirstOrDefault();
 
-            return result?.Value;
+            return result?.Value as string;
         }
 
         public override long GetListCount(string key)
@@ -438,7 +466,9 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            return Database.List
+            return Database
+                .StateData
+                .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
                 .Count();
         }
@@ -448,7 +478,9 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            var result = Database.List
+            var result = Database
+                .StateData
+                .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
                 .SortBy(_ => _.ExpireAt)
                 .Project(_ => _.ExpireAt)
@@ -465,11 +497,13 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            return Database.List
+            return Database
+                .StateData
+                .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
-                .Project(_ => _.Value)
+                .Project(_ => (string)_.Value)
                 .ToList();
         }
 
@@ -478,9 +512,11 @@ namespace Hangfire.Mongo
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            return Database.List
+            return Database
+                .StateData
+                .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
-                .Project(_ => _.Value)
+                .Project(_ => (string)_.Value)
                 .ToList();
         }
     }

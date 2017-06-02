@@ -514,28 +514,28 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Score = 1.0,
                     Value = "1.0"
                 });
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Score = -1.0,
                     Value = "-1.0"
                 });
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
                     Score = -5.0,
                     Value = "-5.0"
                 });
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "another-key",
@@ -728,21 +728,21 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-set",
                     Score = 0.0,
                     Value = "1"
                 });
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-set",
                     Score = 0.0,
                     Value = "2"
                 });
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "another-set",
@@ -795,7 +795,7 @@ namespace Hangfire.Mongo.Tests
                             { "Key2", "Value2" }
                         });
 
-                var result = database.Hash.Find(Builders<HashDto>.Filter.Eq(_ => _.Key, "some-hash")).ToList()
+                var result = database.StateData.OfType<HashDto>().Find(Builders<HashDto>.Filter.Eq(_ => _.Key, "some-hash")).ToList()
                     .ToDictionary(x => x.Field, x => x.Value);
 
                 Assert.Equal("Value1", result["Key1"]);
@@ -826,21 +826,21 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.Hash.InsertOne(new HashDto
+                database.StateData.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-hash",
                     Field = "Key1",
                     Value = "Value1"
                 });
-                database.Hash.InsertOne(new HashDto
+                database.StateData.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-hash",
                     Field = "Key2",
                     Value = "Value2"
                 });
-                database.Hash.InsertOne(new HashDto
+                database.StateData.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "another-hash",
@@ -884,19 +884,19 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
                     Value = "value-1"
                 });
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-2",
                     Value = "value-1"
                 });
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
@@ -923,7 +923,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
@@ -931,7 +931,7 @@ namespace Hangfire.Mongo.Tests
                     Score = 0.0
                 });
 
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
@@ -939,7 +939,7 @@ namespace Hangfire.Mongo.Tests
                     Score = 0.0
                 });
 
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
@@ -947,7 +947,7 @@ namespace Hangfire.Mongo.Tests
                     Score = 0.0
                 });
 
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
@@ -955,7 +955,7 @@ namespace Hangfire.Mongo.Tests
                     Score = 0.0
                 });
 
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-2",
@@ -963,7 +963,7 @@ namespace Hangfire.Mongo.Tests
                     Score = 0.0
                 });
 
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
@@ -1002,7 +1002,7 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-1",
@@ -1011,7 +1011,7 @@ namespace Hangfire.Mongo.Tests
                     ExpireAt = DateTime.UtcNow.AddMinutes(60)
                 });
 
-                database.Set.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "set-2",
@@ -1055,23 +1055,23 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.Counter.InsertOne(new CounterDto
+                database.StateData.InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-1",
-                    Value = 1
+                    Value = 1l
                 });
-                database.Counter.InsertOne(new CounterDto
+                database.StateData.InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-2",
-                    Value = 1
+                    Value = 1l
                 });
-                database.Counter.InsertOne(new CounterDto
+                database.StateData.InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-1",
-                    Value = 1
+                    Value = 1l
                 });
 
                 // Act
@@ -1088,17 +1088,17 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.AggregatedCounter.InsertOne(new AggregatedCounterDto
+                database.StateData.InsertOne(new AggregatedCounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-1",
-                    Value = 12
+                    Value = 12l
                 });
-                database.AggregatedCounter.InsertOne(new AggregatedCounterDto
+                database.StateData.InsertOne(new AggregatedCounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-2",
-                    Value = 15
+                    Value = 15l
                 });
 
                 // Act
@@ -1133,19 +1133,19 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.Hash.InsertOne(new HashDto
+                database.StateData.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
                     Field = "field-1"
                 });
-                database.Hash.InsertOne(new HashDto
+                database.StateData.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
                     Field = "field-2"
                 });
-                database.Hash.InsertOne(new HashDto
+                database.StateData.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-2",
@@ -1186,14 +1186,14 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.Hash.InsertOne(new HashDto
+                database.StateData.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
                     Field = "field",
                     ExpireAt = DateTime.UtcNow.AddHours(1)
                 });
-                database.Hash.InsertOne(new HashDto
+                database.StateData.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-2",
@@ -1250,21 +1250,21 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.Hash.InsertOne(new HashDto
+                database.StateData.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
                     Field = "field-1",
                     Value = "1"
                 });
-                database.Hash.InsertOne(new HashDto
+                database.StateData.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
                     Field = "field-2",
                     Value = "2"
                 });
-                database.Hash.InsertOne(new HashDto
+                database.StateData.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-2",
@@ -1306,17 +1306,17 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                 });
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                 });
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-2",
@@ -1356,13 +1356,13 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                     ExpireAt = DateTime.UtcNow.AddHours(1)
                 });
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-2",
@@ -1406,31 +1406,31 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                     Value = "1"
                 });
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-2",
                     Value = "2"
                 });
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                     Value = "3"
                 });
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                     Value = "4"
                 });
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
@@ -1471,19 +1471,19 @@ namespace Hangfire.Mongo.Tests
             UseConnection((database, connection) =>
             {
                 // Arrange
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
                     Value = "1"
                 });
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-2",
                     Value = "2"
                 });
-                database.List.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "list-1",
