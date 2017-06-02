@@ -130,17 +130,18 @@ namespace Hangfire.Mongo
 
                 stats.Servers = connection.Server.Count(new BsonDocument());
 
-                int[] succeededItems = connection.Counter.Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => _.Value)
-                    .Concat(connection.AggregatedCounter.Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (int)_.Value))
+                long[] succeededItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (long)_.Value)
+                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (long)_.Value))
                     .ToArray();
+
                 stats.Succeeded = succeededItems.Any() ? succeededItems.Sum() : 0;
 
-                int[] deletedItems = connection.Counter.Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => _.Value)
-                    .Concat(connection.AggregatedCounter.Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (int)_.Value))
+                long[] deletedItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value)
+                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value))
                     .ToArray();
                 stats.Deleted = deletedItems.Any() ? deletedItems.Sum() : 0;
 
-                stats.Recurring = connection.Set.Count(Builders<SetDto>.Filter.Eq(_ => _.Key, "recurring-jobs"));
+                stats.Recurring = connection.StateData.OfType<SetDto>().Count(Builders<SetDto>.Filter.Eq(_ => _.Key, "recurring-jobs"));
 
                 stats.Queues = _queueProviders
                     .SelectMany(x => x.GetJobQueueMonitoringApi(connection).GetQueues())
@@ -499,7 +500,7 @@ namespace Hangfire.Mongo
             var stringDates = dates.Select(x => x.ToString("yyyy-MM-dd")).ToList();
             var keys = stringDates.Select(x => $"stats:{type}:{x}").ToList();
 
-            var valuesMap = connection.AggregatedCounter
+            var valuesMap = connection.StateData.OfType<AggregatedCounterDto>()
                 .Find(Builders<AggregatedCounterDto>.Filter.In(_ => _.Key, keys))
                 .ToList()
                 .GroupBy(x => x.Key)
@@ -532,7 +533,7 @@ namespace Hangfire.Mongo
 
             var keys = dates.Select(x => $"stats:{type}:{x:yyyy-MM-dd-HH}").ToList();
 
-            var valuesMap = connection.Counter.Find(Builders<CounterDto>.Filter.In(_ => _.Key, keys))
+            var valuesMap = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.In(_ => _.Key, keys))
                 .ToList()
                 .GroupBy(x => x.Key, x => x)
                 .ToDictionary(x => x.Key, x => (long)x.Count());
