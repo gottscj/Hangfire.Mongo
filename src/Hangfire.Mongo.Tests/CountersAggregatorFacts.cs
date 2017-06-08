@@ -18,10 +18,10 @@ namespace Hangfire.Mongo.Tests
             using (var connection = (MongoConnection)storage.GetConnection())
             {
                 // Arrange
-                connection.Database.Counter.InsertOne(new CounterDto
+                connection.Database.StateData.InsertOne(new CounterDto
                 {
                     Key = "key",
-                    Value = 1,
+                    Value = 1L,
                     ExpireAt = DateTime.UtcNow.AddHours(1)
                 });
 
@@ -33,7 +33,7 @@ namespace Hangfire.Mongo.Tests
                 aggregator.Execute(cts.Token);
 
                 // Assert
-                Assert.Equal(1, connection.Database.AggregatedCounter.Count(new BsonDocument()));
+                Assert.Equal(1, connection.Database.StateData.OfType<AggregatedCounterDto>().Count(new BsonDocument()));
             }
         }
     }

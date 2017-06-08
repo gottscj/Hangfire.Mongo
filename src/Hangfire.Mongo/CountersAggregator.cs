@@ -61,10 +61,12 @@ namespace Hangfire.Mongo
             {
                 using (var storageConnection = (MongoConnection)_storage.GetConnection())
                 {
-                    HangfireDbContext database = storageConnection.Database;
+                    var database = storageConnection.Database;
 
-                    List<CounterDto> recordsToAggregate = database
-                        .Counter.Find(new BsonDocument())
+                    var recordsToAggregate = database
+                        .StateData
+                        .OfType<CounterDto>()
+                        .Find(new BsonDocument())
                         .Limit(NumberOfRecordsInSinglePass)
                         .ToList();
 
@@ -72,26 +74,33 @@ namespace Hangfire.Mongo
                         .GroupBy(_ => _.Key).Select(_ => new
                         {
                             Key = _.Key,
-                            Value = _.Sum(x => x.Value),
+                            Value = _.Sum(x => (long)x.Value),
                             ExpireAt = _.Max(x => x.ExpireAt)
                         });
 
                     foreach (var item in recordsToMerge)
                     {
                         AggregatedCounterDto aggregatedItem = database
-                            .AggregatedCounter
+                            .StateData
+                            .OfType<AggregatedCounterDto>()
                             .Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key))
                             .FirstOrDefault();
+
                         if (aggregatedItem != null)
                         {
-                            database.AggregatedCounter.UpdateOne(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key),
+                            database
+                                .StateData
+                                .OfType<AggregatedCounterDto>()
+                                .UpdateOne(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key),
                                 Builders<AggregatedCounterDto>.Update.Combine(
                                 Builders<AggregatedCounterDto>.Update.Inc(_ => _.Value, item.Value),
                                 Builders<AggregatedCounterDto>.Update.Set(_ => _.ExpireAt, item.ExpireAt > aggregatedItem.ExpireAt ? item.ExpireAt : aggregatedItem.ExpireAt)));
                         }
                         else
                         {
-                            database.AggregatedCounter.InsertOne(new AggregatedCounterDto
+                            database
+                                .StateData
+                                .InsertOne(new AggregatedCounterDto
                             {
                                 Id = ObjectId.GenerateNewId(),
                                 Key = item.Key,
@@ -102,7 +111,8 @@ namespace Hangfire.Mongo
                     }
 
                     removedCount = database
-                        .Counter
+                        .StateData
+                        .OfType<CounterDto>()
                         .DeleteMany(Builders<CounterDto>.Filter.In(_ => _.Id, recordsToAggregate.Select(_ => _.Id)))
                         .DeletedCount;
                 }
