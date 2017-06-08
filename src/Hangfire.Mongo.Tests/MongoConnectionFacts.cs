@@ -1058,19 +1058,19 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-1",
-                    Value = 1l
+                    Value = 1L
                 });
                 database.StateData.InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-2",
-                    Value = 1l
+                    Value = 1L
                 });
                 database.StateData.InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-1",
-                    Value = 1l
+                    Value = 1L
                 });
 
                 // Act
@@ -1091,13 +1091,13 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-1",
-                    Value = 12l
+                    Value = 12L
                 });
                 database.StateData.InsertOne(new AggregatedCounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-2",
-                    Value = 15l
+                    Value = 15L
                 });
 
                 // Act
