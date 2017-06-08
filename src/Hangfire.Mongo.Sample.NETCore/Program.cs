@@ -4,7 +4,7 @@ namespace Hangfire.Mongo.Sample.NETCore
 {
     public class Program
     {
-        private const int JobCount = 10;
+        private const int JobCount = 100;
 
         public static void Main(string[] args)
         {

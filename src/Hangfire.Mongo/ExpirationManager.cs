@@ -59,7 +59,7 @@ namespace Hangfire.Mongo
         {
             using (HangfireDbContext connection = _storage.CreateAndOpenConnection())
             {
-                DateTime now = connection.GetServerTimeUtc();
+                DateTime now = DateTime.UtcNow;
 
                 RemoveExpiredRecord(connection.AggregatedCounter, _ => _.ExpireAt, now);
                 RemoveExpiredRecord(connection.Counter, _ => _.ExpireAt, now);

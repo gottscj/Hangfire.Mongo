@@ -4,7 +4,6 @@ using System.Linq;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.States;
 using Hangfire.Storage;
@@ -87,7 +86,7 @@ namespace Hangfire.Mongo
         {
             return UseConnection(connection =>
             {
-                JobDto job = connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)))
+                JobDto job = connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId))
                     .FirstOrDefault();
 
                 if (job == null)
@@ -309,13 +308,13 @@ namespace Hangfire.Mongo
             return result;
         }
 
-        private JobList<EnqueuedJobDto> EnqueuedJobs(HangfireDbContext connection, IEnumerable<int> jobIds)
+        private JobList<EnqueuedJobDto> EnqueuedJobs(HangfireDbContext connection, IEnumerable<string> jobIds)
         {
-            List<JobDto> jobs = connection.Job
+            var jobs = connection.Job
                 .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobIds))
                 .ToList();
 
-            Dictionary<int, JobQueueDto> jobIdToJobQueueMap = connection.JobQueue
+            var jobIdToJobQueueMap = connection.JobQueue
                 .Find(Builders<JobQueueDto>.Filter.In(_ => _.JobId, jobs.Select(job => job.Id))
                       & (Builders<JobQueueDto>.Filter.Not(Builders<JobQueueDto>.Filter.Exists(_ => _.FetchedAt))
                       | Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)))
@@ -364,7 +363,7 @@ namespace Hangfire.Mongo
                 var dto = selector(job, DeserializeJob(job.InvocationData, job.Arguments), stateData);
 
                 result.Add(new KeyValuePair<string, TDto>(
-                    job.Id.ToString(), dto));
+                    job.Id, dto));
             }
 
             return new JobList<TDto>(result);
@@ -393,13 +392,13 @@ namespace Hangfire.Mongo
             return monitoringApi;
         }
 
-        private JobList<FetchedJobDto> FetchedJobs(HangfireDbContext connection, IEnumerable<int> jobIds)
+        private JobList<FetchedJobDto> FetchedJobs(HangfireDbContext connection, IEnumerable<string> jobIds)
         {
-            List<JobDto> jobs = connection.Job
+            var jobs = connection.Job
                 .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobIds))
                 .ToList();
 
-            Dictionary<int, JobQueueDto> jobIdToJobQueueMap = connection.JobQueue
+            var jobIdToJobQueueMap = connection.JobQueue
                 .Find(Builders<JobQueueDto>.Filter.In(_ => _.JobId, jobs.Select(job => job.Id))
                       & Builders<JobQueueDto>.Filter.Exists(_ => _.FetchedAt)
                       & Builders<JobQueueDto>.Filter.Not(Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)))
@@ -431,7 +430,7 @@ namespace Hangfire.Mongo
             foreach (var job in joinedJobs)
             {
                 result.Add(new KeyValuePair<string, FetchedJobDto>(
-                    job.Id.ToString(),
+                    job.Id,
                     new FetchedJobDto
                     {
                         Job = DeserializeJob(job.InvocationData, job.Arguments),
@@ -487,7 +486,7 @@ namespace Hangfire.Mongo
 
         private Dictionary<DateTime, long> GetTimelineStats(HangfireDbContext connection, string type)
         {
-            var endDate = connection.GetServerTimeUtc().Date;
+            var endDate = DateTime.UtcNow.Date;
             var startDate = endDate.AddDays(-7);
             var dates = new List<DateTime>();
 
@@ -523,7 +522,7 @@ namespace Hangfire.Mongo
 
         private Dictionary<DateTime, long> GetHourlyTimelineStats(HangfireDbContext connection, string type)
         {
-            var endDate = connection.GetServerTimeUtc();
+            var endDate = DateTime.UtcNow;
             var dates = new List<DateTime>();
             for (var i = 0; i < 24; i++)
             {

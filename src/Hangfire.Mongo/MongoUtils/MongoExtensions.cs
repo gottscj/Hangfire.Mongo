@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Linq.Expressions;
-using Hangfire.Mongo.Database;
-using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.MongoUtils
@@ -11,31 +9,6 @@ namespace Hangfire.Mongo.MongoUtils
     /// </summary>
     public static class MongoExtensions
     {
-        /// <summary>
-        /// Retreives server time in UTC zone
-        /// </summary>
-        /// <param name="database">Mongo database</param>
-        /// <returns>Server time</returns>
-        public static DateTime GetServerTimeUtc(this IMongoDatabase database)
-        {
-            var serverStatus = database.RunCommand<BsonDocument>(new BsonDocument("isMaster", 1));
-            BsonValue localTime;
-            return serverStatus.TryGetValue("localTime", out localTime)
-                ? ((DateTime)localTime).ToUniversalTime()
-                : DateTime.UtcNow;
-        }
-
-        /// <summary>
-        /// Retreives server time in UTC zone
-        /// </summary>
-        /// <param name="dbContext">Hangfire database context</param>
-        /// <returns>Server time</returns>
-        public static DateTime GetServerTimeUtc(this HangfireDbContext dbContext)
-        {
-            return GetServerTimeUtc(dbContext.Database);
-        }
-
-
         /// <summary>
         /// Adds a ascending index on the field to the collection
         /// </summary>
@@ -68,7 +41,6 @@ namespace Hangfire.Mongo.MongoUtils
             {
                 Name = name ?? field.GetFieldName()
             };
-
             collection.Indexes.CreateOne(builder.Descending(field), options);
         }
 
@@ -85,9 +57,14 @@ namespace Hangfire.Mongo.MongoUtils
         /// </returns>
         private static string GetFieldName<TDocument>(this Expression<Func<TDocument, object>> field)
         {
-            var exp = field.Body as UnaryExpression;
-            var memberExp = exp?.Operand as MemberExpression;
-            return memberExp?.Member.Name;
+            var body = field.Body as MemberExpression;
+
+            if (body != null) return body.Member.Name;
+
+            var ubody = (UnaryExpression)field.Body;
+            body = ubody.Operand as MemberExpression;
+
+            return body.Member.Name;
         }
 
     }

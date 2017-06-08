@@ -28,7 +28,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 .ToList().Distinct().ToList();
         }
 
-        public IEnumerable<int> GetEnqueuedJobIds(string queue, int from, int perPage)
+        public IEnumerable<string> GetEnqueuedJobIds(string queue, int from, int perPage)
         {
             return _connection.JobQueue
                 .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null))
@@ -42,7 +42,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 }).ToArray();
         }
 
-        public IEnumerable<int> GetFetchedJobIds(string queue, int from, int perPage)
+        public IEnumerable<string> GetFetchedJobIds(string queue, int from, int perPage)
         {
             return _connection.JobQueue
                 .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null))

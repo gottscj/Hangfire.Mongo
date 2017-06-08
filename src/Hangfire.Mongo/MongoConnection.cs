@@ -6,7 +6,6 @@ using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Server;
 using Hangfire.Storage;
@@ -84,7 +83,7 @@ namespace Hangfire.Mongo
 
             var jobId = jobDto.Id;
             
-            return jobId.ToString();
+            return jobId;
         }
 
         public override IFetchedJob FetchNextJob(string[] queues, CancellationToken cancellationToken)
@@ -115,7 +114,7 @@ namespace Hangfire.Mongo
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
             
-            var filter = new BsonDocument("_id", int.Parse(id));
+            var filter = new BsonDocument("_id", id);
             BsonValue bsonValue;
             if (value == null)
             {
@@ -142,7 +141,7 @@ namespace Hangfire.Mongo
 
             var parameters = Database
                 .Job
-                .Find(j => j.Id == int.Parse(id))
+                .Find(j => j.Id == id)
                 .Project(job => job.Parameters)
                 .FirstOrDefault();
 
@@ -159,7 +158,7 @@ namespace Hangfire.Mongo
 
             var jobData = Database
                 .Job
-                .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)))
+                .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId))
                 .FirstOrDefault();
 
             if (jobData == null)
@@ -201,7 +200,7 @@ namespace Hangfire.Mongo
                 
             var latest = Database
                 .Job
-                .Find(j => j.Id == int.Parse(jobId))
+                .Find(j => j.Id == jobId)
                 .Project(projection)
                 .FirstOrDefault();
             
@@ -236,12 +235,12 @@ namespace Hangfire.Mongo
             {
                 WorkerCount = context.WorkerCount,
                 Queues = context.Queues,
-                StartedAt = Database.GetServerTimeUtc()
+                StartedAt = DateTime.UtcNow
             };
 
             Database.Server.UpdateMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId),
                 Builders<ServerDto>.Update.Combine(Builders<ServerDto>.Update.Set(_ => _.Data, JobHelper.ToJson(data)),
-                    Builders<ServerDto>.Update.Set(_ => _.LastHeartbeat, Database.GetServerTimeUtc())),
+                    Builders<ServerDto>.Update.Set(_ => _.LastHeartbeat, DateTime.UtcNow)),
                 new UpdateOptions { IsUpsert = true });
         }
 
@@ -259,7 +258,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(serverId));
 
             Database.Server.UpdateMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId),
-                Builders<ServerDto>.Update.Set(_ => _.LastHeartbeat, Database.GetServerTimeUtc()));
+                Builders<ServerDto>.Update.Set(_ => _.LastHeartbeat, DateTime.UtcNow));
         }
 
         public override int RemoveTimedOutServers(TimeSpan timeOut)
@@ -269,7 +268,7 @@ namespace Hangfire.Mongo
 
             return (int)Database
                 .Server
-                .DeleteMany(Builders<ServerDto>.Filter.Lt(_ => _.LastHeartbeat, Database.GetServerTimeUtc().Add(timeOut.Negate())))
+                .DeleteMany(Builders<ServerDto>.Filter.Lt(_ => _.LastHeartbeat, DateTime.UtcNow.Add(timeOut.Negate())))
                 .DeletedCount;
         }
 

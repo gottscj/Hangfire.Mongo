@@ -7,7 +7,7 @@ namespace Hangfire.Mongo.Dto
 #pragma warning disable 1591
     public class JobDetailedDto
     {
-        public int Id { get; set; }
+        public string Id { get; set; }
 
         public string InvocationData { get; set; }
 

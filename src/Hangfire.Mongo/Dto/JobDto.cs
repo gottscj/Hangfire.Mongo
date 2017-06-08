@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using Hangfire.Mongo.MongoUtils;
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson.Serialization.IdGenerators;
 
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
     public class JobDto
     {
-        [BsonId(IdGenerator = typeof(AutoIncrementIntIdGenerator))]
-        public int Id { get; set; }
+        [BsonId(IdGenerator = typeof(StringObjectIdGenerator))]
+        public string Id { get; set; }
         
         public string StateName { get; set; }
 

@@ -7,9 +7,9 @@ namespace Hangfire.Mongo.PersistentJobQueue
     {
         IEnumerable<string> GetQueues();
 
-        IEnumerable<int> GetEnqueuedJobIds(string queue, int from, int perPage);
+        IEnumerable<string> GetEnqueuedJobIds(string queue, int from, int perPage);
 
-        IEnumerable<int> GetFetchedJobIds(string queue, int from, int perPage);
+        IEnumerable<string> GetFetchedJobIds(string queue, int from, int perPage);
 
         EnqueuedAndFetchedCountDto GetEnqueuedAndFetchedCount(string queue);
     }

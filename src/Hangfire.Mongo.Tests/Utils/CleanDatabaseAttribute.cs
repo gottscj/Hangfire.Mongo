@@ -32,8 +32,7 @@ namespace Hangfire.Mongo.Tests.Utils
                 try
                 {
                     context.Init(new MongoStorageOptions());
-
-                    context.Identifiers.DeleteMany(new BsonDocument());
+                    
                     context.DistributedLock.DeleteMany(new BsonDocument());
                     context.AggregatedCounter.DeleteMany(new BsonDocument());
                     context.Counter.DeleteMany(new BsonDocument());

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.States;
 using Hangfire.Storage;
@@ -39,13 +38,13 @@ namespace Hangfire.Mongo
 
         public override void ExpireJob(string jobId, TimeSpan expireIn)
         {
-            QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)),
-                Builders<JobDto>.Update.Set(_ => _.ExpireAt, _connection.GetServerTimeUtc().Add(expireIn))));
+            QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId),
+                Builders<JobDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(expireIn))));
         }
 
         public override void PersistJob(string jobId)
         {
-            QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, int.Parse(jobId)),
+            QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId),
                 Builders<JobDto>.Update.Set(_ => _.ExpireAt, null)));
         }
 
@@ -60,11 +59,11 @@ namespace Hangfire.Mongo
                     {
                         Name = state.Name,
                         Reason = state.Reason,
-                        CreatedAt = x.GetServerTimeUtc(),
+                        CreatedAt = DateTime.UtcNow,
                         Data = state.SerializeData()
                     });
 
-                x.Job.UpdateOne(j => j.Id == int.Parse(jobId), update);
+                x.Job.UpdateOne(j => j.Id == jobId, update);
             });
         }
 
@@ -77,11 +76,11 @@ namespace Hangfire.Mongo
                     {
                         Name = state.Name,
                         Reason = state.Reason,
-                        CreatedAt = x.GetServerTimeUtc(),
+                        CreatedAt = DateTime.UtcNow,
                         Data = state.SerializeData()
                     });
 
-                x.Job.UpdateOne(j => j.Id == int.Parse(jobId), update);
+                x.Job.UpdateOne(j => j.Id == jobId, update);
             });
         }
 
@@ -113,7 +112,7 @@ namespace Hangfire.Mongo
                 Id = ObjectId.GenerateNewId(),
                 Key = key,
                 Value = +1,
-                ExpireAt = _connection.GetServerTimeUtc().Add(expireIn)
+                ExpireAt = DateTime.UtcNow.Add(expireIn)
             }));
         }
 
@@ -134,7 +133,7 @@ namespace Hangfire.Mongo
                 Id = ObjectId.GenerateNewId(),
                 Key = key,
                 Value = -1,
-                ExpireAt = _connection.GetServerTimeUtc().Add(expireIn)
+                ExpireAt = DateTime.UtcNow.Add(expireIn)
             }));
         }
 
@@ -253,21 +252,21 @@ namespace Hangfire.Mongo
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             QueueCommand(x => x.Set.UpdateMany(Builders<SetDto>.Filter.Eq(_ => _.Key, key),
-                Builders<SetDto>.Update.Set(_ => _.ExpireAt, _connection.GetServerTimeUtc().Add(expireIn))));
+                Builders<SetDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(expireIn))));
         }
 
         public override void ExpireList(string key, TimeSpan expireIn)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             QueueCommand(x => x.List.UpdateMany(Builders<ListDto>.Filter.Eq(_ => _.Key, key),
-                Builders<ListDto>.Update.Set(_ => _.ExpireAt, _connection.GetServerTimeUtc().Add(expireIn))));
+                Builders<ListDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(expireIn))));
         }
 
         public override void ExpireHash(string key, TimeSpan expireIn)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             QueueCommand(x => x.Hash.UpdateMany(Builders<HashDto>.Filter.Eq(_ => _.Key, key),
-                Builders<HashDto>.Update.Set(_ => _.ExpireAt, _connection.GetServerTimeUtc().Add(expireIn))));
+                Builders<HashDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(expireIn))));
         }
 
         public override void PersistSet(string key)
