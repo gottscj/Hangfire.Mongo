@@ -17,7 +17,7 @@ set artifacts_sources_path="%cd%\artifacts\sources"
 set artifacts_bin_path="%cd%\artifacts\bin"
 set artifacts_nuget_path="%cd%\artifacts\nuget"
 set sources_path="%cd%\src"
-set build_output="%artifacts_sources_path%\Hangfire.Mongo\bin\Release"
+set build_output="%artifacts_sources_path%\Hangfire.Mongo\bin\Any CPU\Release"
 set nuget="%sources_path%\.nuget\NuGet.exe"
 
 echo build number : %APPVEYOR_BUILD_NUMBER%
