@@ -6,9 +6,14 @@ Hangfire.Mongo
 MongoDB support for [Hangfire](http://hangfire.io/) library. By using this library you can store all jobs information in MongoDB.
 
 
-## What's New (06/18/2017)
+## What's New (06/22/2017)
 
-### *** BREAKING CHANGES FOR v0.4.0 ***
+### Bug fixes (v0.4.1)
+- Add workaround for MongDB C# driver not adding inheritance types when doing upsert
+  - (We have filed a bug report with MongoDB)
+- Fix bug in MongoWriteOnlyTransaction.AddRangeToSet where Value not being written for upsert
+
+### *** BREAKING CHANGES FOR v0.4.0 *** (v0.4.1)
 - Combined collections for state data into one collection
 - Optimized job creation
   - Not getting timestamp from mongodb. Using Datetime.UtcNow
@@ -98,7 +103,7 @@ public void Configuration(IAppBuilder app)
 }
 ```
 
-Contrubutors
+Contributors
 ------------
 
 * Sergey Zwezdin ([@sergeyzwezdin](https://github.com/sergeyzwezdin))
