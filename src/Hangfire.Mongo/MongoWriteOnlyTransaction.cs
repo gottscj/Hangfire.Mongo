@@ -146,11 +146,17 @@ namespace Hangfire.Mongo
 
         public override void AddToSet(string key, string value, double score)
         {
+            var builder = Builders<SetDto>.Update;
+            var set = builder.Set(_ => _.Score, score);
+            var setTypesOnInsert = builder.SetOnInsert("_t", new[] {nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(SetDto)});
+            var setExpireAt = builder.SetOnInsert(nameof(SetDto.ExpireAt), BsonNull.Value);
+            var update = builder.Combine(set, setTypesOnInsert, setExpireAt);
+
             QueueCommand(x => x.StateData
                 .OfType<SetDto>()
-                .UpdateMany(
+                .UpdateOne(
                     Builders<SetDto>.Filter.Eq(_ => _.Key, key) & Builders<SetDto>.Filter.Eq(_ => _.Value, value),
-                    Builders<SetDto>.Update.Set(_ => _.Score, score),
+                    update,
                     new UpdateOptions
                     {
                         IsUpsert = true
@@ -218,19 +224,31 @@ namespace Hangfire.Mongo
             if (keyValuePairs == null)
                 throw new ArgumentNullException(nameof(keyValuePairs));
 
+            var builder = Builders<HashDto>.Update;
+            var setTypesOnInsert = builder.SetOnInsert("_t",
+                new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(HashDto) });
+            var setExpireAt = builder.SetOnInsert(nameof(HashDto.ExpireAt), BsonNull.Value);
+
+            
             foreach (var keyValuePair in keyValuePairs)
             {
-                var pair = keyValuePair;
-
-                QueueCommand(x => x.StateData.OfType<HashDto>()
-                    .UpdateMany(
-                        Builders<HashDto>.Filter.Eq(_ => _.Key, key) &
-                        Builders<HashDto>.Filter.Eq(_ => _.Field, pair.Key),
-                        Builders<HashDto>.Update.Set(_ => _.Value, pair.Value),
-                        new UpdateOptions
-                        {
-                            IsUpsert = true
-                        }));
+                var field = keyValuePair.Key;
+                var value = keyValuePair.Value;
+               
+                QueueCommand(x =>
+                {
+                    var set = builder.Set(_ => _.Value, value);
+                    var update = builder.Combine(set, setTypesOnInsert, setExpireAt);
+                    x.StateData.OfType<HashDto>()
+                        .UpdateMany(
+                            Builders<HashDto>.Filter.Eq(_ => _.Key, key) &
+                            Builders<HashDto>.Filter.Eq(_ => _.Field, field),
+                            update,
+                            new UpdateOptions
+                            {
+                                IsUpsert = true
+                            });
+                });
             }
         }
 
@@ -321,19 +339,32 @@ namespace Hangfire.Mongo
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             if (items == null) throw new ArgumentNullException(nameof(items));
+            var builder = Builders<SetDto>.Update;
+            
+
+            var setTypesOnInsert = builder.SetOnInsert("_t",
+                new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(SetDto) });
+            var setExpireAt = builder.SetOnInsert(nameof(SetDto.ExpireAt), BsonNull.Value);
+            var set = builder.Set(_ => _.Score, 0.0);
 
             foreach (var item in items)
             {
-                QueueCommand(x => x.StateData
-                    .OfType<SetDto>()
-                    .UpdateMany(
-                        Builders<SetDto>.Filter.Eq(_ => _.Key, key) & Builders<SetDto>.Filter.In(_ => _.Value, items),
-                        Builders<SetDto>.Update.Set(_ => _.Score, 0.0),
-                        new UpdateOptions
-                        {
-                            IsUpsert = true
-                        }));
+                QueueCommand(x =>
+                {
+                    var update = builder.Combine(set, setTypesOnInsert, setExpireAt);
+                    x.StateData
+                        .OfType<SetDto>()
+                        .UpdateMany(
+                            Builders<SetDto>.Filter.Eq(_ => _.Key, key) &
+                            Builders<SetDto>.Filter.Eq(_ => _.Value, item),
+                            update,
+                            new UpdateOptions
+                            {
+                                IsUpsert = true
+                            });
+                });
             }
+            
         }
 
         public override void RemoveSet(string key)
