@@ -225,11 +225,9 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(keyValuePairs));
 
             var builder = Builders<HashDto>.Update;
-            var setTypesOnInsert = builder.SetOnInsert("_t",
-                new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(HashDto) });
+            var setTypesOnInsert = builder.SetOnInsert("_t", new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(HashDto) });
             var setExpireAt = builder.SetOnInsert(_ => _.ExpireAt, null);
-
-
+            
             foreach (var keyValuePair in keyValuePairs)
             {
                 var field = keyValuePair.Key;
@@ -342,9 +340,8 @@ namespace Hangfire.Mongo
             var builder = Builders<SetDto>.Update;
             
 
-            var setTypesOnInsert = builder.SetOnInsert("_t",
-                new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(SetDto) });
-            var setExpireAt = builder.SetOnInsert(nameof(SetDto.ExpireAt), BsonNull.Value);
+            var setTypesOnInsert = builder.SetOnInsert("_t", new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(SetDto) });
+            var setExpireAt = builder.SetOnInsert(_ => _.ExpireAt, null);
             var set = builder.Set(_ => _.Score, 0.0);
             var update = builder.Combine(set, setTypesOnInsert, setExpireAt);
 
