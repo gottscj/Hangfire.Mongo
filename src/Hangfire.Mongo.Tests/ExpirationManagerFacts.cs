@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.MongoUtils;
+using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -17,10 +19,13 @@ namespace Hangfire.Mongo.Tests
         private readonly MongoStorage _storage;
 
         private readonly CancellationToken _token;
+        private static PersistentJobQueueProviderCollection _queueProviders;
 
         public ExpirationManagerFacts()
         {
             _storage = new MongoStorage(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName());
+            _queueProviders = _storage.QueueProviders;
+            
             _token = new CancellationToken(true);
         }
 
@@ -35,12 +40,12 @@ namespace Hangfire.Mongo.Tests
         {
             using (var connection = ConnectionUtils.CreateConnection())
             {
-                var entryId = CreateExpirationEntry(connection, DateTime.UtcNow.AddMonths(-1));
+                CreateExpirationEntries(connection, DateTime.UtcNow.AddMonths(-1));
                 var manager = CreateManager();
 
                 manager.Execute(_token);
 
-                Assert.True(IsEntryExpired(connection, entryId));
+                Assert.True(IsEntryExpired(connection));
             }
         }
 
@@ -49,12 +54,12 @@ namespace Hangfire.Mongo.Tests
         {
             using (var connection = ConnectionUtils.CreateConnection())
             {
-                var entryId = CreateExpirationEntry(connection, null);
+                CreateExpirationEntries(connection, null);
                 var manager = CreateManager();
 
                 manager.Execute(_token);
 
-                Assert.False(IsEntryExpired(connection, entryId));
+                Assert.False(IsEntryExpired(connection));
             }
         }
 
@@ -63,12 +68,13 @@ namespace Hangfire.Mongo.Tests
         {
             using (var connection = ConnectionUtils.CreateConnection())
             {
-                var entryId = CreateExpirationEntry(connection, DateTime.Now.AddMonths(1));
+                CreateExpirationEntries(connection, DateTime.Now.AddMonths(1));
                 var manager = CreateManager();
 
                 manager.Execute(_token);
 
-                Assert.False(IsEntryExpired(connection, entryId));
+
+                Assert.False(IsEntryExpired(connection));
             }
         }
 
@@ -237,28 +243,27 @@ namespace Hangfire.Mongo.Tests
 
 
 
-        private static ObjectId CreateExpirationEntry(HangfireDbContext connection, DateTime? expireAt)
+        private static void CreateExpirationEntries(HangfireDbContext connection, DateTime? expireAt)
         {
-            var counter = new AggregatedCounterDto
+            Commit(connection, x => x.AddToSet("my-key", "my-value"));
+            Commit(connection, x => x.AddToSet("my-key", "my-value1"));
+            Commit(connection, x => x.SetRangeInHash("my-hash-key", new[]{new KeyValuePair<string, string>("key","value"), new KeyValuePair<string, string>("key1", "value1") }));
+            Commit(connection, x => x.AddRangeToSet("my-key", new[] { "my-value", "my-value1" }));
+
+            if (expireAt.HasValue)
             {
-                Id = ObjectId.GenerateNewId(),
-                Key = "key",
-                Value = 1,
-                ExpireAt = expireAt
-            };
-            connection.StateData.InsertOne(counter);
-
-            var id = counter.Id;
-
-            return id;
+                var expireIn = expireAt.Value - DateTime.Now;
+                Commit(connection, x => x.ExpireHash("my-hash-key", expireIn));
+                Commit(connection, x => x.ExpireSet("my-key", expireIn));
+            }
         }
 
-        private static bool IsEntryExpired(HangfireDbContext connection, ObjectId entryId)
+        private static bool IsEntryExpired(HangfireDbContext connection)
         {
             var count = connection
                 .StateData
-                .OfType<AggregatedCounterDto>()
-                .Count(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Id, entryId));
+                .OfType<ExpiringKeyValueDto>()
+                .Count(new BsonDocument());
 
             return count == 0;
         }
@@ -266,6 +271,15 @@ namespace Hangfire.Mongo.Tests
         private ExpirationManager CreateManager()
         {
             return new ExpirationManager(_storage);
+        }
+
+        private static void Commit(HangfireDbContext connection, Action<MongoWriteOnlyTransaction> action)
+        {
+            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection, _queueProviders))
+            {
+                action(transaction);
+                transaction.Commit();
+            }
         }
     }
 #pragma warning restore 1591

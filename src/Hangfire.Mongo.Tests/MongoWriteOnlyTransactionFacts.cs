@@ -855,7 +855,11 @@ namespace Hangfire.Mongo.Tests
                 Commit(database, x => x.AddRangeToSet(set1Val1.Key, values));
 
                 var testSet1 = GetTestSet(database, set1Val1.Key);
+                var valuesToTest = new List<string>(values) {"value1", "value2"};
+
                 Assert.NotNull(testSet1);
+                // verify all values are present in testSet1
+                Assert.True(testSet1.Select(s => s.Value.ToString()).All(value => valuesToTest.Contains(value)));
                 Assert.Equal(5, testSet1.Count);
 
                 var testSet2 = GetTestSet(database, set2.Key);

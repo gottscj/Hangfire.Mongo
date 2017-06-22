@@ -24,17 +24,22 @@
 		<Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
 		<PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
 		<PackageReleaseNotes>
+      0.4.1
+      * Add workaround for MongDB C# driver not adding inheritance types when doing upsert
+        - (We have filed a bug report with MongoDB)
+      * Fix bug in MongoWriteOnlyTransaction.AddRangeToSet where Value not being written for upsert
+      
       0.4.0
       * THIS RELEASE INTRODUCES BREAKING CHANGES, YOU WILL HAVE TO DROP YOUR JOBS DB.
         - Go to https://github.com/sergeyzwezdin/Hangfire.Mongo for (slightly) more info
-		  * BREAKING: Combined collections for state data into one collection
-		  * BREAKING: Optimized job creation 
-		  * Not getting timestamp from mongodb. Using Datetime.UtcNow
-		  * Using MongoDB native "ObjectId" as JobId instead of int.
-		  * Fix MongoStorage.ToString() when settings contain multiple servers
-		  * Upgraded to VS2017, new csproj and MSBuild
-		  * Fix for duplicated key error writing schema version
-		  * Update to JobDto, added parameters and statehistory to JobDto
+      * BREAKING: Combined collections for state data into one collection
+      * BREAKING: Optimized job creation 
+      * Not getting timestamp from mongodb. Using Datetime.UtcNow
+      * Using MongoDB native "ObjectId" as JobId instead of int.
+      * Fix MongoStorage.ToString() when settings contain multiple servers
+      * Upgraded to VS2017, new csproj and MSBuild
+      * Fix for duplicated key error writing schema version
+      * Update to JobDto, added parameters and statehistory to JobDto
       
 			0.3.2
 			* Fixed support on UNIX systems
