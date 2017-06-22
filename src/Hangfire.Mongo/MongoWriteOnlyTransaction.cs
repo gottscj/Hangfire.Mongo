@@ -149,7 +149,7 @@ namespace Hangfire.Mongo
             var builder = Builders<SetDto>.Update;
             var set = builder.Set(_ => _.Score, score);
             var setTypesOnInsert = builder.SetOnInsert("_t", new[] {nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(SetDto)});
-            var setExpireAt = builder.SetOnInsert(nameof(SetDto.ExpireAt), BsonNull.Value);
+            var setExpireAt = builder.SetOnInsert(_ => _.ExpireAt, null);
             var update = builder.Combine(set, setTypesOnInsert, setExpireAt);
 
             QueueCommand(x => x.StateData
@@ -227,9 +227,9 @@ namespace Hangfire.Mongo
             var builder = Builders<HashDto>.Update;
             var setTypesOnInsert = builder.SetOnInsert("_t",
                 new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(HashDto) });
-            var setExpireAt = builder.SetOnInsert(nameof(HashDto.ExpireAt), BsonNull.Value);
+            var setExpireAt = builder.SetOnInsert(_ => _.ExpireAt, null);
 
-            
+
             foreach (var keyValuePair in keyValuePairs)
             {
                 var field = keyValuePair.Key;
@@ -346,12 +346,12 @@ namespace Hangfire.Mongo
                 new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(SetDto) });
             var setExpireAt = builder.SetOnInsert(nameof(SetDto.ExpireAt), BsonNull.Value);
             var set = builder.Set(_ => _.Score, 0.0);
+            var update = builder.Combine(set, setTypesOnInsert, setExpireAt);
 
             foreach (var item in items)
             {
                 QueueCommand(x =>
                 {
-                    var update = builder.Combine(set, setTypesOnInsert, setExpireAt);
                     x.StateData
                         .OfType<SetDto>()
                         .UpdateMany(
