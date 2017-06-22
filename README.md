@@ -13,7 +13,7 @@ MongoDB support for [Hangfire](http://hangfire.io/) library. By using this libra
   - (We have filed a bug report with MongoDB)
 - Fix bug in MongoWriteOnlyTransaction.AddRangeToSet where Value not being written for upsert
 
-### *** BREAKING CHANGES FOR v0.4.0 *** (v0.4.1)
+### *** BREAKING CHANGES FOR v0.4.0 *** (v0.4.0)
 - Combined collections for state data into one collection
 - Optimized job creation
   - Not getting timestamp from mongodb. Using Datetime.UtcNow
