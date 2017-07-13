@@ -503,7 +503,7 @@ namespace Hangfire.Mongo
                 .StateData
                 .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
-                .SortBy(_ => _.Id)
+                .SortByDescending(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
                 .Project(_ => (string)_.Value)
@@ -519,7 +519,7 @@ namespace Hangfire.Mongo
                 .StateData
                 .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
-                .SortBy(_ => _.Id)
+                .SortByDescending(_ => _.Id)
                 .Project(_ => (string)_.Value)
                 .ToList();
         }

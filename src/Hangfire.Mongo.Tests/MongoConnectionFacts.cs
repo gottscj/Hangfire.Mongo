@@ -1461,7 +1461,7 @@ namespace Hangfire.Mongo.Tests
                 var result = connection.GetRangeFromList("list-1", 1, 2);
 
                 // Assert
-                Assert.Equal(new[] { "3", "4" }, result);
+                Assert.Equal(new[] { "4", "3" }, result);
             });
         }
 
@@ -1510,7 +1510,7 @@ namespace Hangfire.Mongo.Tests
                 var result = connection.GetRangeFromList("list-1", 1, 5);
 
                 // Assert
-                Assert.Equal(new[] { "2", "3", "4", "5" }, result);
+                Assert.Equal(new[] { "4", "3", "2", "1" }, result);
             });
         }
 
@@ -1575,7 +1575,7 @@ namespace Hangfire.Mongo.Tests
                 var result = connection.GetAllItemsFromList("list-1");
 
                 // Assert
-                Assert.Equal(new[] { "1", "3", "4", "5" }, result);
+                Assert.Equal(new[] { "5", "4", "3", "1" }, result);
             });
         }
         private void UseConnection(Action<HangfireDbContext, MongoConnection> action)
