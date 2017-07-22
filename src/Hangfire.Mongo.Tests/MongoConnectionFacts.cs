@@ -722,7 +722,7 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact, CleanDatabase]
-        public void GetAllItemsFromSet_ReturnsAllItems()
+        public void GetAllItemsFromSet_ReturnsAllItems_InCorrectOrder()
         {
             UseConnection((database, connection) =>
             {
@@ -748,14 +748,35 @@ namespace Hangfire.Mongo.Tests
                     Score = 0.0,
                     Value = "3"
                 });
-
+                database.StateData.InsertOne(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "some-set",
+                    Score = 0.0,
+                    Value = "4"
+                });
+                database.StateData.InsertOne(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "some-set",
+                    Score = 0.0,
+                    Value = "5"
+                });
+                database.StateData.InsertOne(new SetDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "some-set",
+                    Score = 0.0,
+                    Value = "6"
+                });
                 // Act
                 var result = connection.GetAllItemsFromSet("some-set");
 
                 // Assert
-                Assert.Equal(2, result.Count);
+                Assert.Equal(5, result.Count);
                 Assert.Contains("1", result);
                 Assert.Contains("2", result);
+                Assert.Equal(new[] { "1", "2", "4", "5", "6" }, result);
             });
         }
 
@@ -857,7 +878,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal("Value2", result["Key2"]);
             });
         }
-
+        
         [Fact, CleanDatabase]
         public void GetSetCount_ThrowsAnException_WhenKeyIsNull()
         {
@@ -918,7 +939,7 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact, CleanDatabase]
-        public void GetRangeFromSet_ReturnsPagedElements()
+        public void GetRangeFromSet_ReturnsPagedElementsInCorrectOrder()
         {
             UseConnection((database, connection) =>
             {
@@ -970,9 +991,9 @@ namespace Hangfire.Mongo.Tests
                     Score = 0.0
                 });
 
-                var result = connection.GetRangeFromSet("set-1", 2, 3);
+                var result = connection.GetRangeFromSet("set-1", 1, 8);
 
-                Assert.Equal(new[] { "3", "4" }, result);
+                Assert.Equal(new[] { "2", "3", "4", "6" }, result);
             });
         }
 
@@ -1440,7 +1461,56 @@ namespace Hangfire.Mongo.Tests
                 var result = connection.GetRangeFromList("list-1", 1, 2);
 
                 // Assert
-                Assert.Equal(new[] { "3", "4" }, result);
+                Assert.Equal(new[] { "4", "3" }, result);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void GetRangeFromList_ReturnsAllEntriesInCorrectOrder()
+        {
+            UseConnection((database, connection) =>
+            {
+                // Arrange
+                var listDtos = new List<ListDto>
+                {
+                    new ListDto
+                    {
+                        Id = ObjectId.GenerateNewId(),
+                        Key = "list-1",
+                        Value = "1"
+                    },
+                    new ListDto
+                    {
+                        Id = ObjectId.GenerateNewId(),
+                        Key = "list-1",
+                        Value = "2"
+                    },
+                    new ListDto
+                    {
+                        Id = ObjectId.GenerateNewId(),
+                        Key = "list-1",
+                        Value = "3"
+                    },
+                    new ListDto
+                    {
+                        Id = ObjectId.GenerateNewId(),
+                        Key = "list-1",
+                        Value = "4"
+                    },
+                    new ListDto
+                    {
+                        Id = ObjectId.GenerateNewId(),
+                        Key = "list-1",
+                        Value = "5"
+                    }
+                };
+                database.StateData.InsertMany(listDtos);
+
+                // Act
+                var result = connection.GetRangeFromList("list-1", 1, 5);
+
+                // Assert
+                Assert.Equal(new[] { "4", "3", "2", "1" }, result);
             });
         }
 
@@ -1465,7 +1535,7 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact, CleanDatabase]
-        public void GetAllItemsFromList_ReturnsAllItems_FromAGivenList()
+        public void GetAllItemsFromList_ReturnsAllItemsFromAGivenList_InCorrectOrder()
         {
             UseConnection((database, connection) =>
             {
@@ -1488,15 +1558,26 @@ namespace Hangfire.Mongo.Tests
                     Key = "list-1",
                     Value = "3"
                 });
+                database.StateData.InsertOne(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-1",
+                    Value = "4"
+                });
+                database.StateData.InsertOne(new ListDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = "list-1",
+                    Value = "5"
+                });
 
                 // Act
                 var result = connection.GetAllItemsFromList("list-1");
 
                 // Assert
-                Assert.Equal(new[] { "1", "3" }, result);
+                Assert.Equal(new[] { "5", "4", "3", "1" }, result);
             });
         }
-
         private void UseConnection(Action<HangfireDbContext, MongoConnection> action)
         {
             using (var database = ConnectionUtils.CreateConnection())

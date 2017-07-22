@@ -193,6 +193,7 @@ namespace Hangfire.Mongo
         {
             if (jobId == null)
                 throw new ArgumentNullException(nameof(jobId));
+
             var projection = Builders<JobDto>
                 .Projection
                 .Include(j => j.StateHistory)
@@ -280,6 +281,7 @@ namespace Hangfire.Mongo
                 .StateData
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
+                .SortBy(_ => _.Id)
                 .Project(_ => _.Value)
                 .ToList();
 
@@ -361,6 +363,7 @@ namespace Hangfire.Mongo
                 .StateData
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
+                .SortBy(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
                 .Project(dto => (string) dto.Value)
@@ -500,6 +503,7 @@ namespace Hangfire.Mongo
                 .StateData
                 .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
+                .SortByDescending(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
                 .Project(_ => (string)_.Value)
@@ -515,6 +519,7 @@ namespace Hangfire.Mongo
                 .StateData
                 .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
+                .SortByDescending(_ => _.Id)
                 .Project(_ => (string)_.Value)
                 .ToList();
         }
