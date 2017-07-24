@@ -224,7 +224,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Empty(resultList);
             });
         }
-
+        
         [Fact, CleanDatabase]
         public void FetchedJobs_ReturnsFetchedJobsOnly_WhenMultipleJobsExistsInFetchedAndUnfetchedStates()
         {
@@ -245,6 +245,45 @@ namespace Hangfire.Mongo.Tests
             });
         }
 
+        [Fact, CleanDatabase]
+        public void ProcessingJobs_ReturnsProcessingJobsOnly_WhenMultipleJobsExistsInProcessingSucceededAndEnqueuedState()
+        {
+            UseMonitoringApi((database, monitoringApi) =>
+            {
+                var processingJob = CreateJobInState(database, 1.ToString(), ProcessingState.StateName);
+
+                var succeededJob = CreateJobInState(database, 2.ToString(), SucceededState.StateName, jobDto =>
+                {
+                    var processingState = new StateDto()
+                    {
+                        Name = ProcessingState.StateName,
+                        Reason = null,
+                        CreatedAt = DateTime.UtcNow,
+                        Data = new Dictionary<string, string>
+                        {
+                            ["ServerId"] = Guid.NewGuid().ToString(),
+                            ["StartedAt"] =
+                            JobHelper.SerializeDateTime(DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(500)))
+                        }
+                    };
+                    var succeededState = jobDto.StateHistory[0];
+                    jobDto.StateHistory = new[] {processingState, succeededState};
+                    return jobDto;
+                });
+
+                var enqueuedJob = CreateJobInState(database, 3.ToString(), EnqueuedState.StateName);
+
+                var jobIds = new List<string> { processingJob.Id, succeededJob.Id, enqueuedJob.Id };
+                _persistentJobQueueMonitoringApi.Setup(x => x
+                        .GetFetchedJobIds(DefaultQueue, From, PerPage))
+                    .Returns(jobIds);
+
+                var resultList = monitoringApi.ProcessingJobs(From, PerPage);
+
+                Assert.Equal(1, resultList.Count);
+            });
+        }
+
         public static void SampleMethod(string arg)
         {
             Debug.WriteLine(arg);
@@ -259,18 +298,35 @@ namespace Hangfire.Mongo.Tests
             }
         }
 
-        private JobDto CreateJobInState(HangfireDbContext database, string jobId, string stateName)
+        private JobDto CreateJobInState(HangfireDbContext database, string jobId, string stateName, Func<JobDto, JobDto> visitor = null)
         {
             var job = Job.FromExpression(() => SampleMethod("wrong"));
+            
+            Dictionary<string, string> stateData;
+            if (stateName == EnqueuedState.StateName)
+            {
+                stateData = new Dictionary<string, string> {["EnqueuedAt"] = $"{DateTime.UtcNow:o}"};
+            }
+            else if (stateName == ProcessingState.StateName)
+            {
+                stateData = new Dictionary<string, string>
+                {
+                    ["ServerId"] = Guid.NewGuid().ToString(),
+                    ["StartedAt"] = JobHelper.SerializeDateTime(DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(500)))
+                };
+            }
+            else
+            {
+                stateData = new Dictionary<string, string>();
+            }
 
-	        var jobState = new StateDto()
-	        {
-		        CreatedAt = DateTime.UtcNow,
-		        Data =
-			        stateName == EnqueuedState.StateName
-				        ? new Dictionary<string, string> {["EnqueuedAt"] = $"{DateTime.UtcNow:o}"}
-				        : new Dictionary<string, string>()
-	        };
+            var jobState = new StateDto()
+            {
+                Name = stateName,
+                Reason = null,
+                CreatedAt = DateTime.UtcNow,
+                Data = stateData
+            };
 
             var jobDto = new JobDto
             {
@@ -281,7 +337,10 @@ namespace Hangfire.Mongo.Tests
                 CreatedAt = DateTime.UtcNow,
                 StateHistory = new []{jobState}
             };
-
+            if (visitor != null)
+            {
+                jobDto = visitor(jobDto);
+            }
             database.Job.InsertOne(jobDto);
 
             var jobQueueDto = new JobQueueDto
