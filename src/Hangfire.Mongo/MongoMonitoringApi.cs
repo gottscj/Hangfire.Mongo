@@ -448,7 +448,7 @@ namespace Hangfire.Mongo
             // only retrieve job ids
             var filter = Builders<JobDto>
                 .Filter
-                .ElemMatch(j => j.StateHistory, stateHistory => stateHistory.Name == stateName);
+                .Eq(j => j.StateName, stateName);
 
             var jobs = connection.Job
                 .Find(filter)
