@@ -275,7 +275,7 @@ namespace Hangfire.Mongo.Tests
 
         private static void Commit(HangfireDbContext connection, Action<MongoWriteOnlyTransaction> action)
         {
-            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection, _queueProviders))
+            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection, _queueProviders, new MongoStorageOptions()))
             {
                 action(transaction);
                 transaction.Commit();
