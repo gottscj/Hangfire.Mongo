@@ -1,23 +1,22 @@
 {
-    "version": "0.2.0",
-    "configurations": [
+   // Use IntelliSense to find out which attributes exist for C# debugging
+   // Use hover for the description of the existing attributes
+   // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
+   "version": "0.2.0",
+   "configurations": [
         {
-            "name": ".NET Core Launch (console)",
+            "name": "Hangfire.Mongo.Sample .NET Core Launch (console)",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
-            "program": "${workspaceRoot}/Hangfire.Mongo.Sample.NETCore/bin/Debug/netcoreapp1.0/Hangfire.Mongo.Sample.NETCore.dll",
+            "preLaunchTask": "Build Hangfire.Mongo.Sample.NETCore",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceRoot}/Hangfire.Mongo.Sample.NETCore/bin/Debug/netcoreapp1.1/Hangfire.Mongo.Sample.NETCore.dll",
             "args": [],
             "cwd": "${workspaceRoot}/Hangfire.Mongo.Sample.NETCore",
-            "externalConsole": true,
+            // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
+            "console": "externalTerminal",
             "stopAtEntry": false,
             "internalConsoleOptions": "openOnSessionStart"
-        },
-        {
-            "name": ".NET Core Attach",
-            "type": "coreclr",
-            "request": "attach",
-            "processId": "${command.pickProcess}"
         }
     ]
 }

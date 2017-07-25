@@ -1,21 +1,24 @@
 {
     // See https://go.microsoft.com/fwlink/?LinkId=733558
     // for the documentation about the tasks.json format
-    "version": "0.1.0",
+    "version": "2.0.0",
     "command": "dotnet",
-    "isShellCommand": true,
     "args": [],
     "tasks": [
         {
-            "taskName": "build",
+            "taskName": "Build Hangfire.Mongo.Sample.NETCore",
+            "command": "dotnet",
             "args": [
-                "Hangfire.Mongo",
-                "Hangfire.Mongo.Sample.NETCore"
+                "build",
+                "${workspaceRoot}/Hangfire.Mongo.Sample.NETCore/Hangfire.Mongo.Sample.NETCore.csproj"
             ],
-            "isBuildCommand": true,
-            "showOutput": "always",
-            "echoCommand": true,
-            "problemMatcher": "$msCompile"
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ]
         }
     ]
 }
