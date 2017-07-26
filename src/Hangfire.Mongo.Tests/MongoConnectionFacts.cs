@@ -173,6 +173,7 @@ namespace Hangfire.Mongo.Tests
                     .SelectMany(j => j)
                     .ToDictionary(p => p.Key, x => x.Value);
 
+                Assert.NotNull(parameters);
                 Assert.Equal("Value1", parameters["Key1"]);
                 Assert.Equal("Value2", parameters["Key2"]);
             });
@@ -361,6 +362,7 @@ namespace Hangfire.Mongo.Tests
                     .Project(j => j.Parameters)
                     .FirstOrDefault();
 
+                Assert.NotNull(parameters);
                 Assert.Equal("Value", parameters["Name"]);
             });
         }
@@ -389,6 +391,7 @@ namespace Hangfire.Mongo.Tests
                     .Project(j => j.Parameters)
                     .FirstOrDefault();
 
+                Assert.NotNull(parameters);
                 Assert.Equal("AnotherValue", parameters["Name"]);
             });
         }
@@ -416,6 +419,7 @@ namespace Hangfire.Mongo.Tests
                     .Project(j => j.Parameters)
                     .FirstOrDefault();
 
+                Assert.NotNull(parameters);
                 Assert.Equal(null, parameters["Name"]);
             });
         }
