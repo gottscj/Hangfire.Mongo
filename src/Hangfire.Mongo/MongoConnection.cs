@@ -19,7 +19,7 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoConnection : JobStorageConnection
     {
-        private readonly MongoStorageOptions _options;
+        private readonly MongoStorageOptions _storageOptions;
 
         private readonly PersistentJobQueueProviderCollection _queueProviders;
 
@@ -30,20 +30,28 @@ namespace Hangfire.Mongo
         {
         }
 
-        public MongoConnection(HangfireDbContext database, MongoStorageOptions options,
+        public MongoConnection(
+            HangfireDbContext database,
+            MongoStorageOptions storageOptions,
             PersistentJobQueueProviderCollection queueProviders)
         {
             if (database == null)
+            {
                 throw new ArgumentNullException(nameof(database));
+            }
 
             if (queueProviders == null)
+            {
                 throw new ArgumentNullException(nameof(queueProviders));
+            }
 
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
+            if (storageOptions == null)
+            {
+                throw new ArgumentNullException(nameof(storageOptions));
+            }
 
             Database = database;
-            _options = options;
+            _storageOptions = storageOptions;
             _queueProviders = queueProviders;
         }
 
@@ -51,12 +59,12 @@ namespace Hangfire.Mongo
 
         public override IWriteOnlyTransaction CreateWriteTransaction()
         {
-            return new MongoWriteOnlyTransaction(Database, _queueProviders, _options);
+            return new MongoWriteOnlyTransaction(Database, _queueProviders, _storageOptions);
         }
 
         public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
         {
-            return new MongoDistributedLock($"HangFire:{resource}", timeout, Database, _options);
+            return new MongoDistributedLock($"HangFire:{resource}", timeout, Database, _storageOptions);
         }
 
         public override string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
@@ -82,7 +90,7 @@ namespace Hangfire.Mongo
             Database.Job.InsertOne(jobDto);
 
             var jobId = jobDto.Id;
-            
+
             return jobId;
         }
 
@@ -113,7 +121,7 @@ namespace Hangfire.Mongo
 
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
-            
+
             var filter = new BsonDocument("_id", id);
             BsonValue bsonValue;
             if (value == null)
@@ -124,8 +132,8 @@ namespace Hangfire.Mongo
             {
                 bsonValue = value;
             }
-            
-            
+
+
             var update = new BsonDocument("$set", new BsonDocument($"{nameof(JobDto.Parameters)}.{name}", bsonValue));
 
             Database.Job.FindOneAndUpdate(filter, update);
@@ -147,7 +155,7 @@ namespace Hangfire.Mongo
 
             string value = null;
             parameters?.TryGetValue(name, out value);
-            
+
             return value;
         }
 
@@ -198,13 +206,13 @@ namespace Hangfire.Mongo
                 .Projection
                 .Include(j => j.StateHistory)
                 .Slice(j => j.StateHistory, -1);
-                
+
             var latest = Database
                 .Job
                 .Find(j => j.Id == jobId)
                 .Project(projection)
                 .FirstOrDefault();
-            
+
             if (latest == null)
                 return null;
 
@@ -309,7 +317,7 @@ namespace Hangfire.Mongo
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
-            using (var transaction = new MongoWriteOnlyTransaction(Database, _queueProviders, _options))
+            using (var transaction = new MongoWriteOnlyTransaction(Database, _queueProviders, _storageOptions))
             {
                 transaction.SetRangeInHash(key, keyValuePairs);
                 transaction.Commit();
@@ -355,7 +363,7 @@ namespace Hangfire.Mongo
                 .SortBy(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
-                .Project(dto => (string) dto.Value)
+                .Project(dto => (string)dto.Value)
                 .ToList();
         }
 

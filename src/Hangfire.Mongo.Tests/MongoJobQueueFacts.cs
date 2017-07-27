@@ -20,8 +20,8 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
-            var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoJobQueue(null, new MongoStorageOptions()));
+            var exception = Assert.Throws<ArgumentNullException>(() =>
+                new MongoJobQueue(null, new MongoStorageOptions()));
 
             Assert.Equal("connection", exception.ParamName);
         }
@@ -31,10 +31,10 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(connection =>
             {
-                var exception = Assert.Throws<ArgumentNullException>(
-                   () => new MongoJobQueue(connection, null));
+                var exception = Assert.Throws<ArgumentNullException>(() =>
+                    new MongoJobQueue(connection, null));
 
-                Assert.Equal("options", exception.ParamName);
+                Assert.Equal("storageOptions", exception.ParamName);
             });
         }
 
@@ -45,8 +45,8 @@ namespace Hangfire.Mongo.Tests
             {
                 var queue = CreateJobQueue(connection);
 
-                var exception = Assert.Throws<ArgumentNullException>(
-                    () => queue.Dequeue(null, CreateTimingOutCancellationToken()));
+                var exception = Assert.Throws<ArgumentNullException>(() =>
+                    queue.Dequeue(null, CreateTimingOutCancellationToken()));
 
                 Assert.Equal("queues", exception.ParamName);
             });
@@ -59,8 +59,8 @@ namespace Hangfire.Mongo.Tests
             {
                 var queue = CreateJobQueue(connection);
 
-                var exception = Assert.Throws<ArgumentException>(
-                    () => queue.Dequeue(new string[0], CreateTimingOutCancellationToken()));
+                var exception = Assert.Throws<ArgumentException>(() =>
+                    queue.Dequeue(new string[0], CreateTimingOutCancellationToken()));
 
                 Assert.Equal("queues", exception.ParamName);
             });
@@ -75,7 +75,8 @@ namespace Hangfire.Mongo.Tests
                 cts.Cancel();
                 var queue = CreateJobQueue(connection);
 
-                Assert.Throws<OperationCanceledException>(() => queue.Dequeue(DefaultQueues, cts.Token));
+                Assert.Throws<OperationCanceledException>(() =>
+                    queue.Dequeue(DefaultQueues, cts.Token));
             });
         }
 
@@ -87,7 +88,8 @@ namespace Hangfire.Mongo.Tests
                 var cts = new CancellationTokenSource(200);
                 var queue = CreateJobQueue(connection);
 
-                Assert.Throws<OperationCanceledException>(() => queue.Dequeue(DefaultQueues, cts.Token));
+                Assert.Throws<OperationCanceledException>(() =>
+                    queue.Dequeue(DefaultQueues, cts.Token));
             });
         }
 

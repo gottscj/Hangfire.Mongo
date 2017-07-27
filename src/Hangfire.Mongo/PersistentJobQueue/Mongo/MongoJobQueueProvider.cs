@@ -6,19 +6,21 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 #pragma warning disable 1591
     internal class MongoJobQueueProvider : IPersistentJobQueueProvider
     {
-        private readonly MongoStorageOptions _options;
+        private readonly MongoStorageOptions _storageOptions;
 
-        public MongoJobQueueProvider(MongoStorageOptions options)
+        public MongoJobQueueProvider(MongoStorageOptions storageOptions)
         {
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
+            if (storageOptions == null)
+            {
+                throw new ArgumentNullException(nameof(storageOptions));
+            }
 
-            _options = options;
+            _storageOptions = storageOptions;
         }
 
         public IPersistentJobQueue GetJobQueue(HangfireDbContext connection)
         {
-            return new MongoJobQueue(connection, _options);
+            return new MongoJobQueue(connection, _storageOptions);
         }
 
         public IPersistentJobQueueMonitoringApi GetJobQueueMonitoringApi(HangfireDbContext connection)

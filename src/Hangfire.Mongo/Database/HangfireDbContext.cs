@@ -67,27 +67,27 @@ namespace Hangfire.Mongo.Database
         /// Mongo database connection identifier
         /// </summary>
         public string ConnectionId { get; private set; }
-        
+
         /// <summary>
         /// Reference to collection which contains various state information
         /// </summary>
         public virtual IMongoCollection<KeyValueDto> StateData => Database.GetCollection<KeyValueDto>(_prefix + ".statedata");
-        
+
         /// <summary>
         /// Reference to collection which contains distributed locks
         /// </summary>
         public virtual IMongoCollection<DistributedLockDto> DistributedLock => Database.GetCollection<DistributedLockDto>(_prefix + ".locks");
-        
+
         /// <summary>
         /// Reference to collection which contains jobs
         /// </summary>
         public virtual IMongoCollection<JobDto> Job => Database.GetCollection<JobDto>(_prefix + ".job");
-        
+
         /// <summary>
         /// Reference to collection which contains jobs queues
         /// </summary>
         public virtual IMongoCollection<JobQueueDto> JobQueue => Database.GetCollection<JobQueueDto>(_prefix + ".jobQueue");
-        
+
         /// <summary>
         /// Reference to collection which contains schemas
         /// </summary>
@@ -97,13 +97,13 @@ namespace Hangfire.Mongo.Database
         /// Reference to collection which contains servers information
         /// </summary>
         public virtual IMongoCollection<ServerDto> Server => Database.GetCollection<ServerDto>(_prefix + ".server");
-        
+
         /// <summary>
         /// Initializes intial collections schema for Hangfire
         /// </summary>
-        public void Init(MongoStorageOptions options)
+        public void Init(MongoStorageOptions storageOptions)
         {
-            using (new MongoDistributedLock(nameof(Init), TimeSpan.FromSeconds(1), this, options))
+            using (new MongoDistributedLock(nameof(Init), TimeSpan.FromSeconds(1), this, storageOptions))
             {
                 var schema = Schema.Find(new BsonDocument()).FirstOrDefault();
                 if (schema != null)
@@ -128,7 +128,7 @@ namespace Hangfire.Mongo.Database
                 }
                 else
                 {
-                    Schema.InsertOne(new SchemaDto {Version = RequiredSchemaVersion});
+                    Schema.InsertOne(new SchemaDto { Version = RequiredSchemaVersion });
                 }
             }
             CreateJobIndexes();

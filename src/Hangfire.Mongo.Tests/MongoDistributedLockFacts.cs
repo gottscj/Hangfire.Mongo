@@ -141,7 +141,7 @@ namespace Hangfire.Mongo.Tests
                 var exception = Assert.Throws<ArgumentNullException>(() =>
                     new MongoDistributedLock("resource1", TimeSpan.Zero, database, null));
 
-                Assert.Equal("options", exception.ParamName);
+                Assert.Equal("storageOptions", exception.ParamName);
             });
         }
 

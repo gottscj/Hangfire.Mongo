@@ -13,19 +13,19 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 #pragma warning disable 1591
     public class MongoJobQueue : IPersistentJobQueue
     {
-        private readonly MongoStorageOptions _options;
+        private readonly MongoStorageOptions _storageOptions;
 
         private readonly HangfireDbContext _connection;
 
-        public MongoJobQueue(HangfireDbContext connection, MongoStorageOptions options)
+        public MongoJobQueue(HangfireDbContext connection, MongoStorageOptions storageOptions)
         {
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
+            if (storageOptions == null)
+                throw new ArgumentNullException(nameof(storageOptions));
 
             if (connection == null)
                 throw new ArgumentNullException(nameof(connection));
 
-            _options = options;
+            _storageOptions = storageOptions;
             _connection = connection;
         }
 
@@ -43,7 +43,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
             var fetchConditions = new[]
             {
                 Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null),
-                Builders<JobQueueDto>.Filter.Lt(_ => _.FetchedAt, DateTime.UtcNow.AddSeconds(_options.InvisibilityTimeout.Negate().TotalSeconds))
+                Builders<JobQueueDto>.Filter.Lt(_ => _.FetchedAt, DateTime.UtcNow.AddSeconds(_storageOptions.InvisibilityTimeout.Negate().TotalSeconds))
             };
             var currentQueryIndex = 0;
 
@@ -73,7 +73,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 {
                     if (currentQueryIndex == fetchConditions.Length - 1)
                     {
-                        cancellationToken.WaitHandle.WaitOne(_options.QueuePollInterval);
+                        cancellationToken.WaitHandle.WaitOne(_storageOptions.QueuePollInterval);
                         cancellationToken.ThrowIfCancellationRequested();
                     }
                 }
