@@ -8,6 +8,8 @@ From xUnit 2.2.0 and forward at least .NET Framework 4.5.2 is required.
 
 So until the target framework for this project is changed to .NET Framework 4.5.2 or later, please do not touch xUnit.
 
+Documentation found [here](http://xunit.github.io/releases/2.2)
+
 Contributors
 ------------
 
