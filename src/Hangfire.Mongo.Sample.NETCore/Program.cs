@@ -8,7 +8,16 @@ namespace Hangfire.Mongo.Sample.NETCore
 
         public static void Main(string[] args)
         {
-            JobStorage.Current = new MongoStorage("mongodb://localhost", "Mongo-Hangfire-Sample-NETCore");
+            JobStorage.Current = new MongoStorage(
+                "mongodb://localhost",
+                "Mongo-Hangfire-Sample-NETCore",
+                new MongoStorageOptions
+                {
+                    MigrationOptions = new MongoMigrationOptions
+                    {
+                        Strategy = MongoMigrationStrategy.Drop
+                    }
+                });
 
             using (new BackgroundJobServer())
             {

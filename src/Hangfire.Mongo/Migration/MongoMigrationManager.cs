@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Hangfire.Mongo.Database;
@@ -61,26 +62,38 @@ namespace Hangfire.Mongo.Migration
                 }
 
                 // Update the schema version to required version
-                database.Schema.DeleteOne(_ => true);
+                database.Schema.DeleteMany(_ => true);
                 database.Schema.InsertOne(new SchemaDto { Version = RequiredSchemaVersion });
-
             }
         }
 
 
         private void ExecuteNone()
         {
-            var version = GetType().GetTypeInfo().Assembly.GetName().Version;
+            var assemblyName = GetType().GetTypeInfo().Assembly.GetName();
             throw new InvalidOperationException(
-                $"Hangfire.Mongo version: {version}, introduces a new schema version that requires migration.{Environment.NewLine}" +
-                $"You can choose a migration strategy by setting the {nameof(MongoStorageOptions)}.{nameof(MongoStorageOptions.MigrationOptions)} property.{Environment.NewLine}" +
-                 "Please see https://github.com/sergeyzwezdin/Hangfire.Mongo#migration for further information.");
+                $"{Environment.NewLine}{assemblyName.Name} version: {assemblyName.Version}, introduces a new schema version that requires migration." +
+                $"{Environment.NewLine}You can choose a migration strategy by setting the {nameof(MongoStorageOptions)}.{nameof(MongoStorageOptions.MigrationOptions)} property." +
+                $"{Environment.NewLine}Please see https://github.com/sergeyzwezdin/Hangfire.Mongo#migration for further information.");
         }
 
 
         private void ExecuteDrop(HangfireDbContext database)
         {
-            throw new NotImplementedException($@"The {nameof(MongoMigrationStrategy.Drop)} is not yet implemented");
+            var collections = database.GetType().GetTypeInfo().GetProperties().Where(prop => {
+                var typeInfo = prop.PropertyType.GetTypeInfo();
+                return typeInfo.IsGenericType &&
+                       typeof(IMongoCollection<>).GetTypeInfo().IsAssignableFrom(typeInfo.GetGenericTypeDefinition());
+            }).Select(prop =>
+            {
+                dynamic collection = prop.GetValue(database);
+                return collection.CollectionNamespace as CollectionNamespace;
+            });
+
+            foreach (var collection in collections)
+            {
+                database.Database.DropCollection(collection.CollectionName);
+            }
         }
 
 

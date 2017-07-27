@@ -24,6 +24,7 @@ namespace Hangfire.Mongo
         Migrate
     }
 
+
     /// <summary>
     /// Represents options for MongoDB migration.
     /// Only forward migration is suported
