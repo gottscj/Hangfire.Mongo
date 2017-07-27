@@ -2,9 +2,7 @@
 using System.Reflection;
 using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Database
@@ -140,6 +138,7 @@ namespace Hangfire.Mongo.Database
         private void CreateJobIndexes()
         {
             // Create for jobid jobQueue
+            StateData.Indexes.CreateOne(Builders<KeyValueDto>.IndexKeys.Ascending(_ => _.Key));
         }
 
 

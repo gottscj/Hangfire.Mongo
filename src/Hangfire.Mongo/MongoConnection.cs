@@ -51,7 +51,7 @@ namespace Hangfire.Mongo
 
         public override IWriteOnlyTransaction CreateWriteTransaction()
         {
-            return new MongoWriteOnlyTransaction(Database, _queueProviders);
+            return new MongoWriteOnlyTransaction(Database, _queueProviders, _options);
         }
 
         public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
@@ -309,21 +309,10 @@ namespace Hangfire.Mongo
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
-            if (key == null)
-                throw new ArgumentNullException(nameof(key));
-
-            if (keyValuePairs == null)
-                throw new ArgumentNullException(nameof(keyValuePairs));
-
-            foreach (var keyValuePair in keyValuePairs)
+            using (var transaction = new MongoWriteOnlyTransaction(Database, _queueProviders, _options))
             {
-                Database
-                    .StateData
-                    .OfType<HashDto>()
-                    .UpdateMany(
-                    Builders<HashDto>.Filter.Eq(_ => _.Key, key) & Builders<HashDto>.Filter.Eq(_ => _.Field, keyValuePair.Key),
-                    Builders<HashDto>.Update.Set(_ => _.Value, keyValuePair.Value),
-                    new UpdateOptions { IsUpsert = true });
+                transaction.SetRangeInHash(key, keyValuePairs);
+                transaction.Commit();
             }
         }
 

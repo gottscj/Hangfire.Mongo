@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.States;
@@ -21,8 +22,10 @@ namespace Hangfire.Mongo
 
         private readonly PersistentJobQueueProviderCollection _queueProviders;
 
+        private readonly MongoStorageOptions _options;
+
         public MongoWriteOnlyTransaction(HangfireDbContext connection,
-            PersistentJobQueueProviderCollection queueProviders)
+            PersistentJobQueueProviderCollection queueProviders, MongoStorageOptions options)
         {
             if (connection == null)
                 throw new ArgumentNullException(nameof(connection));
@@ -30,8 +33,12 @@ namespace Hangfire.Mongo
             if (queueProviders == null)
                 throw new ArgumentNullException(nameof(queueProviders));
 
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
+
             _connection = connection;
             _queueProviders = queueProviders;
+            _options = options;
         }
 
         public override void Dispose()
@@ -260,9 +267,12 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
-            foreach (var action in _commandQueue)
+            using (new MongoDistributedLock(nameof(Commit), TimeSpan.FromSeconds(1), _connection, _options))
             {
-                action.Invoke(_connection);
+                foreach (var action in _commandQueue)
+                {
+                    action.Invoke(_connection);
+                }
             }
         }
 
