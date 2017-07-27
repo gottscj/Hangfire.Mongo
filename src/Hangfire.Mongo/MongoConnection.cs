@@ -15,7 +15,7 @@ using MongoDB.Driver;
 namespace Hangfire.Mongo
 {
     /// <summary>
-    ///     MongoDB database connection for Hangfire
+    /// MongoDB database connection for Hangfire
     /// </summary>
     public class MongoConnection : JobStorageConnection
     {
@@ -23,36 +23,24 @@ namespace Hangfire.Mongo
 
         private readonly PersistentJobQueueProviderCollection _queueProviders;
 
-#pragma warning disable 1591
+        /// <summary>
+        /// Ctor using default storage options
+        /// </summary>
         public MongoConnection(HangfireDbContext database, PersistentJobQueueProviderCollection queueProviders)
 
             : this(database, new MongoStorageOptions(), queueProviders)
         {
         }
 
+#pragma warning disable 1591
         public MongoConnection(
             HangfireDbContext database,
             MongoStorageOptions storageOptions,
             PersistentJobQueueProviderCollection queueProviders)
         {
-            if (database == null)
-            {
-                throw new ArgumentNullException(nameof(database));
-            }
-
-            if (queueProviders == null)
-            {
-                throw new ArgumentNullException(nameof(queueProviders));
-            }
-
-            if (storageOptions == null)
-            {
-                throw new ArgumentNullException(nameof(storageOptions));
-            }
-
-            Database = database;
-            _storageOptions = storageOptions;
-            _queueProviders = queueProviders;
+            Database = database ?? throw new ArgumentNullException(nameof(database));
+            _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
+            _queueProviders = queueProviders ?? throw new ArgumentNullException(nameof(queueProviders));
         }
 
         public HangfireDbContext Database { get; }

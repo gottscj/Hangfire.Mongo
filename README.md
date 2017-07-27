@@ -71,6 +71,41 @@ public void Configuration(IAppBuilder app)
 }
 ```
 
+## Migration
+
+We sometimes introduce breaking changes in the schema. For this reason we have introduced migration options.
+Three migration strategies exists.
+* None
+
+  This is the default migration strategy. It will throw an InvalidOperationException never letting you get up and running if there is a schema version mismatch. So it forces you to decide what migration strategy is best for you and at the same time keeps your data safe.
+* Drop
+
+  This will simply just drop your existing Hangfire.Mongo database and update the schema version. No fuzz and ready to start from scratch.
+  It the perfect strategy if you e.g. enques all your jobs at startup.
+* Migrate
+
+  This will migrate your database from one schema version to the next until the required schema version is reached. Changes are that not all data can be migrated, why some loss of data might occur. Please use with caution and thougoughly test before deploying to production.
+
+```csharp
+public void Configuration(IAppBuilder app)
+{
+    var migrationOptions = new MongoMigrationOptions
+    {
+        Strategy = MongoMigrationStrategy.Migrate
+    };
+    var storageOptions = new MongoStorageOptions
+    {
+        // ...
+        MigrationOptions = migrationOptions
+    };
+    GlobalConfiguration.Configuration.UseMongoStorage("<connection string>", "<database name>", storageOptions);
+
+    app.UseHangfireServer();
+    app.UseHangfireDashboard();
+}
+```
+
+
 Contributors
 ------------
 

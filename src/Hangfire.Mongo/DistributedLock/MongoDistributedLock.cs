@@ -1,11 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Storage;
 using MongoDB.Driver;
-using System;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace Hangfire.Mongo.DistributedLock
 {
@@ -48,18 +48,18 @@ namespace Hangfire.Mongo.DistributedLock
         /// <exception cref="MongoDistributedLockException">Thrown if other mongo specific issue prevented the lock to be acquired</exception>
         public MongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext database, MongoStorageOptions storageOptions)
         {
+            _resource = resource ?? throw new ArgumentNullException(nameof(resource));
+            _database = database ?? throw new ArgumentNullException(nameof(database));
+            _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
+
             if (string.IsNullOrEmpty(resource))
             {
-                throw new ArgumentNullException(nameof(resource));
+                throw new ArgumentException($@"The {nameof(resource)} cannot be empty", nameof(resource));
             }
             if (timeout.TotalSeconds > int.MaxValue)
             {
                 throw new ArgumentException($"The timeout specified is too large. Please supply a timeout equal to or less than {int.MaxValue} seconds", nameof(timeout));
             }
-
-            _resource = resource;
-            _database = database ?? throw new ArgumentNullException(nameof(database));
-            _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
 
             if (!AcquiredLocks.Value.ContainsKey(_resource) || AcquiredLocks.Value[_resource] == 0)
             {

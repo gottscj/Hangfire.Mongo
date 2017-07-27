@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Reflection;
-using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
-using MongoDB.Bson;
+using Hangfire.Mongo.Migration;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Database
@@ -10,11 +8,8 @@ namespace Hangfire.Mongo.Database
     /// <summary>
     /// Represents Mongo database context for Hangfire
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1063:ImplementIDisposableCorrectly")]
-    public class HangfireDbContext : IDisposable
+    public sealed class HangfireDbContext : IDisposable
     {
-        private const int RequiredSchemaVersion = 6;
-
         private readonly string _prefix;
 
         internal IMongoDatabase Database { get; }
@@ -71,66 +66,44 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to collection which contains various state information
         /// </summary>
-        public virtual IMongoCollection<KeyValueDto> StateData => Database.GetCollection<KeyValueDto>(_prefix + ".statedata");
+        public IMongoCollection<KeyValueDto> StateData =>
+            Database.GetCollection<KeyValueDto>(_prefix + ".statedata");
 
         /// <summary>
         /// Reference to collection which contains distributed locks
         /// </summary>
-        public virtual IMongoCollection<DistributedLockDto> DistributedLock => Database.GetCollection<DistributedLockDto>(_prefix + ".locks");
+        public IMongoCollection<DistributedLockDto> DistributedLock => Database
+            .GetCollection<DistributedLockDto>(_prefix + ".locks");
 
         /// <summary>
         /// Reference to collection which contains jobs
         /// </summary>
-        public virtual IMongoCollection<JobDto> Job => Database.GetCollection<JobDto>(_prefix + ".job");
+        public IMongoCollection<JobDto> Job => Database.GetCollection<JobDto>(_prefix + ".job");
 
         /// <summary>
         /// Reference to collection which contains jobs queues
         /// </summary>
-        public virtual IMongoCollection<JobQueueDto> JobQueue => Database.GetCollection<JobQueueDto>(_prefix + ".jobQueue");
+        public IMongoCollection<JobQueueDto> JobQueue =>
+            Database.GetCollection<JobQueueDto>(_prefix + ".jobQueue");
 
         /// <summary>
         /// Reference to collection which contains schemas
         /// </summary>
-        public virtual IMongoCollection<SchemaDto> Schema => Database.GetCollection<SchemaDto>(_prefix + ".schema");
+        public IMongoCollection<SchemaDto> Schema => Database.GetCollection<SchemaDto>(_prefix + ".schema");
 
         /// <summary>
         /// Reference to collection which contains servers information
         /// </summary>
-        public virtual IMongoCollection<ServerDto> Server => Database.GetCollection<ServerDto>(_prefix + ".server");
+        public IMongoCollection<ServerDto> Server => Database.GetCollection<ServerDto>(_prefix + ".server");
 
         /// <summary>
         /// Initializes intial collections schema for Hangfire
         /// </summary>
         public void Init(MongoStorageOptions storageOptions)
         {
-            using (new MongoDistributedLock(nameof(Init), TimeSpan.FromSeconds(1), this, storageOptions))
-            {
-                var schema = Schema.Find(new BsonDocument()).FirstOrDefault();
-                if (schema != null)
-                {
-                    if (RequiredSchemaVersion > schema.Version)
-                    {
-                        var version = Assembly.GetEntryAssembly().GetName().Version;
-                        throw new InvalidOperationException(
-                            $"Hangfire.Mongo version: {version}, introduces breaking changes. Please drop your data base\n" +
-                            "You can use mongo shell\n" +
-                            "mongo                      //to start the mongodb shell\n" +
-                            "show dbs                   //to list existing databases\n" +
-                            "use <dbname>               //the <dbname> is the database you'd like to drop\n" +
-                            "db                         //should show <dbname> just to be sure I'm working with the right database\n" +
-                            "db.dropDatabase()          //will delete the database & return { \"dropped\": \" < dbname > \", \"ok\" : 1 }\");");
-                    }
-                    if (RequiredSchemaVersion < schema.Version)
-                    {
-                        throw new InvalidOperationException(
-                            $"HangFire current database schema version {schema.Version} is newer than the configured MongoStorage schema version {RequiredSchemaVersion}. Please update to the latest HangFire.Mongo NuGet package.");
-                    }
-                }
-                else
-                {
-                    Schema.InsertOne(new SchemaDto { Version = RequiredSchemaVersion });
-                }
-            }
+            var migrationManager = new MongoMigrationManager(storageOptions);
+            migrationManager.Migrate(this);
+
             CreateJobIndexes();
         }
 
@@ -145,8 +118,6 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Disposes the object
         /// </summary>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1063:ImplementIDisposableCorrectly",
-            Justification = "Dispose should only implement finalizer if owning an unmanaged resource")]
         public void Dispose()
         {
         }
