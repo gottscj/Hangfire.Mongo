@@ -4,6 +4,9 @@
 ### Bug fixes (v0.4.2)
 - MonitoringApi returning succeeded jobs when quering processing
 - List and Set not sorted correctly
+- Fixed NuGet references for xUnit so they again can be run from IDE
+- Updated Hangfire NuGet reference to latest ([Hangfire 1.6.14](https://github.com/HangfireIO/Hangfire/releases/tag/v1.6.14))
+- Updated project files so it is possible to buiold and run .NETCore sample from [Visual Studio Code](https://code.visualstudio.com)
 
 ### Bug fixes (v0.4.1)
 - Add workaround for MongDB C# driver not adding inheritance types when doing upsert
