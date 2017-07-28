@@ -86,6 +86,8 @@ Three migration strategies exists.
 
   This will migrate your database from one schema version to the next until the required schema version is reached. Changes are that not all data can be migrated, why some loss of data might occur. Please use with caution and thougoughly test before deploying to production.
 
+  NOTE: Only forward migration is supported. If you need to revert to a previous schema version, you need to **manually** drop or restore the previous database.
+
 ```csharp
 public void Configuration(IAppBuilder app)
 {

@@ -13,6 +13,7 @@ namespace Hangfire.Mongo.Migration
 
     internal enum MongoSchema
     {
+        Version5 = 5,
         Version6 = 6
     }
 
@@ -51,7 +52,7 @@ namespace Hangfire.Mongo.Migration
                             ExecuteNone();
                             break;
                         case MongoMigrationStrategy.Drop:
-                            ExecuteDrop(database);
+                            ExecuteDrop(database, (MongoSchema)schema.Version);
                             break;
                         case MongoMigrationStrategy.Migrate:
                             ExecuteMigrate(database);
@@ -78,9 +79,10 @@ namespace Hangfire.Mongo.Migration
         }
 
 
-        private void ExecuteDrop(HangfireDbContext database)
+        private void ExecuteDrop(HangfireDbContext database, MongoSchema schema)
         {
-            var collections = database.GetType().GetTypeInfo().GetProperties().Where(prop => {
+            var collections = database.GetType().GetTypeInfo().GetProperties().Where(prop =>
+            {
                 var typeInfo = prop.PropertyType.GetTypeInfo();
                 return typeInfo.IsGenericType &&
                        typeof(IMongoCollection<>).GetTypeInfo().IsAssignableFrom(typeInfo.GetGenericTypeDefinition());
@@ -90,9 +92,28 @@ namespace Hangfire.Mongo.Migration
                 return collection.CollectionNamespace as CollectionNamespace;
             });
 
-            foreach (var collection in collections)
+            var existingCollectionNames = database.Database.ListCollections()
+                                              .ToList()
+                                              .Select(c => c["name"]).ToList();
+            foreach (var collection in collections.Where(c => existingCollectionNames.Contains(c.CollectionName)))
             {
-                database.Database.DropCollection(collection.CollectionName);
+                if (!_storageOptions.MigrationOptions.Backup)
+                {
+                    database.Database.DropCollection(collection.CollectionName);
+                }
+                else
+                {
+                    var backupCollectionName = BackupCollectionName(collection.CollectionName, schema);
+                    if (existingCollectionNames.Contains(backupCollectionName))
+                    {
+						// Assume that the collection is already backed up - just drop the original
+						database.Database.DropCollection(collection.CollectionName);
+					}
+                    else
+                    {
+						database.Database.RenameCollection(collection.CollectionName, backupCollectionName);
+					}
+                }
             }
         }
 
@@ -100,6 +121,13 @@ namespace Hangfire.Mongo.Migration
         private void ExecuteMigrate(HangfireDbContext database)
         {
             throw new NotImplementedException($@"The {nameof(MongoMigrationStrategy.Migrate)} is not yet implemented");
+        }
+
+
+
+        private string BackupCollectionName(string collectionName, MongoSchema schema)
+        {
+            return $@"{collectionName}.{(int)schema}.{_storageOptions.MigrationOptions.BackupPostfix}";
         }
 
     }
