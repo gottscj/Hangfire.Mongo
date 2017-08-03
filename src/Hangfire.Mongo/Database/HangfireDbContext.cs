@@ -103,15 +103,6 @@ namespace Hangfire.Mongo.Database
         {
             var migrationManager = new MongoMigrationManager(storageOptions);
             migrationManager.Migrate(this);
-
-            CreateJobIndexes();
-        }
-
-
-        private void CreateJobIndexes()
-        {
-            // Create for jobid jobQueue
-            StateData.Indexes.CreateOne(Builders<KeyValueDto>.IndexKeys.Ascending(_ => _.Key));
         }
 
 
