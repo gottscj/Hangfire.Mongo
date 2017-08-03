@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Hangfire.Mongo
+﻿namespace Hangfire.Mongo
 {
 
     /// <summary>

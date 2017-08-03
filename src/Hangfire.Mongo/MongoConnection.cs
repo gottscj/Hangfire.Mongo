@@ -244,7 +244,9 @@ namespace Hangfire.Mongo
         public override void RemoveServer(string serverId)
         {
             if (serverId == null)
+            {
                 throw new ArgumentNullException(nameof(serverId));
+            }
 
             Database.Server.DeleteMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId));
         }
@@ -252,7 +254,9 @@ namespace Hangfire.Mongo
         public override void Heartbeat(string serverId)
         {
             if (serverId == null)
+            {
                 throw new ArgumentNullException(nameof(serverId));
+            }
 
             Database.Server.UpdateMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId),
                 Builders<ServerDto>.Update.Set(_ => _.LastHeartbeat, DateTime.UtcNow));
@@ -261,7 +265,9 @@ namespace Hangfire.Mongo
         public override int RemoveTimedOutServers(TimeSpan timeOut)
         {
             if (timeOut.Duration() != timeOut)
+            {
                 throw new ArgumentException("The `timeOut` value must be positive.", nameof(timeOut));
+            }
 
             return (int)Database
                 .Server
@@ -271,7 +277,10 @@ namespace Hangfire.Mongo
 
         public override HashSet<string> GetAllItemsFromSet(string key)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
 
             var result = Database
                 .StateData
@@ -287,10 +296,14 @@ namespace Hangfire.Mongo
         public override string GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             if (toScore < fromScore)
+            {
                 throw new ArgumentException("The `toScore` value must be higher or equal to the `fromScore` value.");
+            }
 
             return Database
                 .StateData
@@ -315,7 +328,9 @@ namespace Hangfire.Mongo
         public override Dictionary<string, string> GetAllEntriesFromHash(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             var result = Database
                 .StateData
@@ -330,7 +345,9 @@ namespace Hangfire.Mongo
         public override long GetSetCount(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             return Database
                 .StateData
@@ -342,7 +359,9 @@ namespace Hangfire.Mongo
         public override List<string> GetRangeFromSet(string key, int startingFrom, int endingAt)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             return Database
                 .StateData
@@ -358,7 +377,9 @@ namespace Hangfire.Mongo
         public override TimeSpan GetSetTtl(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             var values = Database
                 .StateData
@@ -368,16 +389,15 @@ namespace Hangfire.Mongo
                 .Project(dto => dto.ExpireAt.Value)
                 .ToList();
 
-            if (values.Any() == false)
-                return TimeSpan.FromSeconds(-1);
-
-            return values.Min() - DateTime.UtcNow;
+            return values.Any() ? values.Min() - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
 
         public override long GetCounter(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             var counterQuery = Database
                 .StateData
@@ -404,7 +424,9 @@ namespace Hangfire.Mongo
         public override long GetHashCount(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             return Database
                 .StateData
@@ -415,7 +437,10 @@ namespace Hangfire.Mongo
 
         public override TimeSpan GetHashTtl(string key)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
 
             var result = Database
                 .StateData
@@ -425,19 +450,20 @@ namespace Hangfire.Mongo
                 .Project(_ => _.ExpireAt)
                 .FirstOrDefault();
 
-            if (!result.HasValue)
-                return TimeSpan.FromSeconds(-1);
-
-            return result.Value - DateTime.UtcNow;
+            return result.HasValue ? result.Value - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
 
         public override string GetValueFromHash(string key, string name)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             if (name == null)
+            {
                 throw new ArgumentNullException(nameof(name));
+            }
 
             var result = Database
                 .StateData
@@ -451,7 +477,9 @@ namespace Hangfire.Mongo
         public override long GetListCount(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             return Database
                 .StateData
@@ -463,7 +491,9 @@ namespace Hangfire.Mongo
         public override TimeSpan GetListTtl(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             var result = Database
                 .StateData
@@ -472,17 +502,16 @@ namespace Hangfire.Mongo
                 .SortBy(_ => _.ExpireAt)
                 .Project(_ => _.ExpireAt)
                 .FirstOrDefault();
-
-            if (!result.HasValue)
-                return TimeSpan.FromSeconds(-1);
-
-            return result.Value - DateTime.UtcNow;
+                
+            return result.HasValue ? result.Value - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
 
         public override List<string> GetRangeFromList(string key, int startingFrom, int endingAt)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             return Database
                 .StateData
@@ -498,7 +527,9 @@ namespace Hangfire.Mongo
         public override List<string> GetAllItemsFromList(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             return Database
                 .StateData

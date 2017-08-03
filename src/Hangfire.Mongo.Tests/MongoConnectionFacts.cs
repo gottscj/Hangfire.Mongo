@@ -590,8 +590,7 @@ namespace Hangfire.Mongo.Tests
 
                 var server = database.Server.Find(new BsonDocument()).Single();
                 Assert.Equal("server", server.Id);
-                Assert.True(server.Data.StartsWith(
-                    "{\"WorkerCount\":4,\"Queues\":[\"critical\",\"default\"],\"StartedAt\":"),
+                Assert.True(server.Data.StartsWith("{\"WorkerCount\":4,\"Queues\":[\"critical\",\"default\"],\"StartedAt\":", StringComparison.InvariantCulture),
                     server.Data);
                 Assert.NotNull(server.LastHeartbeat);
 
