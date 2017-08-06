@@ -67,7 +67,7 @@ namespace Hangfire.Mongo.Database
         /// Reference to collection which contains various state information
         /// </summary>
         public IMongoCollection<KeyValueDto> StateData =>
-            Database.GetCollection<KeyValueDto>(_prefix + ".statedata");
+            Database.GetCollection<KeyValueDto>(_prefix + ".stateData");
 
         /// <summary>
         /// Reference to collection which contains distributed locks

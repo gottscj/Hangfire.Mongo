@@ -1,6 +1,6 @@
 ﻿using MongoDB.Driver;
 
-namespace Hangfire.Mongo.Migration
+namespace Hangfire.Mongo.Migration.Steps
 {
 
     /// <summary>

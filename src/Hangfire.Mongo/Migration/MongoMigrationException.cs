@@ -1,4 +1,5 @@
 ﻿using System;
+using Hangfire.Mongo.Migration.Steps;
 
 namespace Hangfire.Mongo.Migration
 {

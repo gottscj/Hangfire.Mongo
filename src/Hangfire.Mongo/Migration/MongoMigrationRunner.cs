@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
+using Hangfire.Mongo.Migration.Steps;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration
@@ -55,14 +56,16 @@ namespace Hangfire.Mongo.Migration
                         throw new MongoMigrationException(migrationStep);
                     }
                 }
+                // We just completed a migration to the next schema.
+                // Update the schema info and continue.
 				_dbContext.Schema.DeleteMany(_ => true);
 				_dbContext.Schema.InsertOne(new SchemaDto { Version = (int)migrationGroup.Key });
 			}
-        }
+		}
 
 
         /// <summary>
-        /// Loads, instantiates and orders the migration steps available in this assembly.
+        /// Finds, instantiates and orders the migration steps available in this assembly.
         /// </summary>
         private IEnumerable<IMongoMigrationStep> LoadMigrationSteps()
         {
