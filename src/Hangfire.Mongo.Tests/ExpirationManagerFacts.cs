@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
@@ -25,7 +24,7 @@ namespace Hangfire.Mongo.Tests
         {
             _storage = new MongoStorage(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName());
             _queueProviders = _storage.QueueProviders;
-            
+
             _token = new CancellationToken(true);
         }
 
@@ -247,7 +246,7 @@ namespace Hangfire.Mongo.Tests
         {
             Commit(connection, x => x.AddToSet("my-key", "my-value"));
             Commit(connection, x => x.AddToSet("my-key", "my-value1"));
-            Commit(connection, x => x.SetRangeInHash("my-hash-key", new[]{new KeyValuePair<string, string>("key","value"), new KeyValuePair<string, string>("key1", "value1") }));
+            Commit(connection, x => x.SetRangeInHash("my-hash-key", new[] { new KeyValuePair<string, string>("key", "value"), new KeyValuePair<string, string>("key1", "value1") }));
             Commit(connection, x => x.AddRangeToSet("my-key", new[] { "my-value", "my-value1" }));
 
             if (expireAt.HasValue)

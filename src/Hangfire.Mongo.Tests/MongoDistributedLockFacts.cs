@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.Storage;
 using MongoDB.Driver;
