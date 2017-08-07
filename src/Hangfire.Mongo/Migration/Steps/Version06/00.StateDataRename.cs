@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration.Steps.Version06
 {
@@ -15,7 +16,15 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
         {
             var oldName = $@"{storageOptions.Prefix}.statedata";
             var newName = $@"{storageOptions.Prefix}.stateData";
-            database.RenameCollection(oldName, newName);
+
+            var options = new ListCollectionsOptions
+            {
+                Filter = new FilterDefinitionBuilder<BsonDocument>().Eq("name", oldName)
+            };
+            if (database.ListCollections(options).Any())
+            {
+                database.RenameCollection(oldName, newName);
+            }
             return true;
         }
     }
