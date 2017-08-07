@@ -27,27 +27,29 @@ namespace Hangfire.Mongo.Migration.Strategies
                     _dbContext.Database.DropCollection(collectionName);
                 }
             }
-
-
-            // Backup was requested. 
-            var backupCollectionNames = existingCollectionNames.ToDictionary(k => k, v => BackupCollectionName(v, toSchema));
-
-            // Let's double check that we have not backed up before.
-            foreach (var collectionName in ExistingDatabaseCollectionNames())
+            else
             {
-                if (backupCollectionNames.Values.ToList().Contains(collectionName))
+                // Backup was requested. 
+                var backupCollectionNames =
+                    existingCollectionNames.ToDictionary(k => k, v => BackupCollectionName(v, toSchema));
+
+                // Let's double check that we have not backed up before.
+                foreach (var collectionName in ExistingDatabaseCollectionNames())
                 {
-                    throw new InvalidOperationException(
-                        $"{Environment.NewLine}{collectionName} already exists. Cannot perform backup." +
-                        $"{Environment.NewLine}Cannot overwrite existing backups.. Please resolve this manually (e.g. by droping collection)." +
-                        $"{Environment.NewLine}Please see https://github.com/sergeyzwezdin/Hangfire.Mongo#migration for further information.");
+                    if (backupCollectionNames.Values.ToList().Contains(collectionName))
+                    {
+                        throw new InvalidOperationException(
+                            $"{Environment.NewLine}{collectionName} already exists. Cannot perform backup." +
+                            $"{Environment.NewLine}Cannot overwrite existing backups. Please resolve this manually (e.g. by droping collection)." +
+                            $"{Environment.NewLine}Please see https://github.com/sergeyzwezdin/Hangfire.Mongo#migration for further information.");
+                    }
                 }
-            }
 
-            // Now do the actual back (by renaming hangfire collections)
-            foreach (var collection in backupCollectionNames)
-            {
-                _dbContext.Database.RenameCollection(collection.Key, collection.Value);
+                // Now do the actual back (by renaming hangfire collections)
+                foreach (var collection in backupCollectionNames)
+                {
+                    _dbContext.Database.RenameCollection(collection.Key, collection.Value);
+                }
             }
 
             // Now the database should be cleared for all hangfire collections
