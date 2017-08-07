@@ -6,7 +6,15 @@ namespace Hangfire.Mongo.Sample
     {
         public void ConfigureHangfire(IAppBuilder app)
         {
-            GlobalConfiguration.Configuration.UseMongoStorage("mongodb://localhost", "hangfire-mongo-sample");
+            var migrationOptions = new MongoStorageOptions
+            {
+                MigrationOptions = new MongoMigrationOptions
+                {
+                    Strategy = MongoMigrationStrategy.Migrate,
+                }
+            };
+
+            GlobalConfiguration.Configuration.UseMongoStorage("mongodb://localhost", "hangfire-mongo-sample", migrationOptions);
             //GlobalConfiguration.Configuration.UseMongoStorage(new MongoClientSettings()
             //{
             //    // ...

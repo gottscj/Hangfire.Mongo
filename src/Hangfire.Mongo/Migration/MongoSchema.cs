@@ -12,6 +12,7 @@ namespace Hangfire.Mongo.Migration
         None = 0,
         Version5 = 5,
         Version6 = 6,
+        Version7 = 7,
     }
 
 
@@ -30,22 +31,38 @@ namespace Hangfire.Mongo.Migration
 
                 case MongoSchema.Version5:
                     return new[] {
-                        prefix + ".statedata",
-                        prefix + ".locks",
+                        "_identifiers", // A bug prevented the use of prefix
+                        prefix + ".counter",
+                        prefix + ".hash",
                         prefix + ".job",
+                        prefix + ".jobParameter",
                         prefix + ".jobQueue",
+                        prefix + ".list",
+                        prefix + ".locks",
                         prefix + ".schema",
-                        prefix + ".server"
+                        prefix + ".server",
+                        prefix + ".set",
+                        prefix + ".state",
                     };
 
                 case MongoSchema.Version6:
                     return new[] {
-                        prefix + ".stateData",
-                        prefix + ".locks",
                         prefix + ".job",
                         prefix + ".jobQueue",
+                        prefix + ".locks",
                         prefix + ".schema",
-                        prefix + ".server"
+                        prefix + ".server",
+                        prefix + ".statedata"
+                    };
+
+                case MongoSchema.Version7:
+                    return new[] {
+                        prefix + ".job",
+                        prefix + ".jobQueue",
+                        prefix + ".locks",
+                        prefix + ".schema",
+                        prefix + ".server",
+                        prefix + ".stateData"
                     };
 
                 default:

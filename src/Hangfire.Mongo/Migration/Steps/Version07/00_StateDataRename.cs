@@ -1,14 +1,14 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace Hangfire.Mongo.Migration.Steps.Version06
+namespace Hangfire.Mongo.Migration.Steps.Version07
 {
     /// <summary>
     /// Create index for statedate collection
     /// </summary>
     internal class StateDataRename : IMongoMigrationStep
     {
-        public MongoSchema TargetSchema => MongoSchema.Version6;
+        public MongoSchema TargetSchema => MongoSchema.Version7;
 
         public long Sequence => 0;
 
