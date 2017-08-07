@@ -26,7 +26,7 @@ namespace Hangfire.Mongo.Migration.Strategies
             {
                 foreach (var collectionName in ExistingHangfireCollectionNameSpaces(fromSchema))
                 {
-                    BackupCollection(_dbContext, collectionName, toSchema);
+                    BackupCollection(_dbContext, collectionName, fromSchema);
                 }
             }
 
@@ -52,119 +52,15 @@ namespace Hangfire.Mongo.Migration.Strategies
                 foreach (var index in indexes)
                 {
                     var newIndex = new BsonDocumentIndexKeysDefinition<BsonDocument>(index["key"].AsBsonDocument);
-
-                    var keyTranslation = new List<dynamic>
-                    {
-                        new
-                        {
-                            Key = "v",
-                            Name = nameof(CreateIndexOptions.Version),
-                            Convert = (Func<BsonValue, int>)(i => i.AsInt32)
-                        },
-                        new
-                        {
-                            Key = "name",
-                            Name = nameof(CreateIndexOptions.Name),
-                            Convert = (Func<BsonValue, string>)(i => i.AsString)
-                        },
-                        new
-                        {
-                            Key = "unique",
-                            Name = nameof(CreateIndexOptions.Unique),
-                            Convert = (Func<BsonValue, bool>)(i => i.AsBoolean)
-                        },
-                        new
-                        {
-                            Key = "sparse",
-                            Name = nameof(CreateIndexOptions.Sparse),
-                            Convert = (Func<BsonValue, bool>)(i => i.AsBoolean)
-                        },
-                        new
-                        {
-                            Key = "expireAfterSeconds",
-                            Name = nameof(CreateIndexOptions.ExpireAfter),
-                            Convert = (Func<BsonValue, TimeSpan>)(i => TimeSpan.FromSeconds(i.AsInt64))
-                        },
-                        new
-                        {
-                            Key = "background",
-                            Name = nameof(CreateIndexOptions.Background),
-                            Convert = (Func<BsonValue, bool>)(i => i.AsBoolean)
-                        },
-                        new
-                        {
-                            Key = "textIndexVersion",
-                            Name = nameof(CreateIndexOptions.TextIndexVersion),
-                            Convert = (Func<BsonValue, int>)(i => i.AsInt32)
-                        },
-                        new
-                        {
-                            Key = "default_language",
-                            Name = nameof(CreateIndexOptions.DefaultLanguage),
-                            Convert = (Func<BsonValue, string>)(i => i.AsString)
-                        },
-                        new
-                        {
-                            Key = "language_override",
-                            Name = nameof(CreateIndexOptions.LanguageOverride),
-                            Convert = (Func<BsonValue, string>)(i => i.AsString)
-                        },
-                        new
-                        {
-                            Key = "weights",
-                            Name = nameof(CreateIndexOptions.Weights),
-                            Convert = (Func<BsonValue, BsonDocument>)(i => i.AsBsonDocument)
-                        },
-                        new
-                        {
-                            Key = "min",
-                            Name = nameof(CreateIndexOptions.Min),
-                            Convert = (Func<BsonValue, double>)(i => i.AsDouble)
-                        },
-                        new
-                        {
-                            Key = "max",
-                            Name = nameof(CreateIndexOptions.Max),
-                            Convert = (Func<BsonValue, double>)(i => i.AsDouble)
-                        },
-                        new
-                        {
-                            Key = "bits",
-                            Name = nameof(CreateIndexOptions.Bits),
-                            Convert = (Func<BsonValue, int>)(i => i.AsInt32)
-                        },
-                        new
-                        {
-                            Key = "2dsphereIndexVersion",
-                            Name = nameof(CreateIndexOptions.SphereIndexVersion),
-                            Convert = (Func<BsonValue, int>)(i => i.AsInt32)
-                        },
-                        new
-                        {
-                            Key = "bucketSize",
-                            Name = nameof(CreateIndexOptions.BucketSize),
-                            Convert = (Func<BsonValue, double>)(i => i.AsDouble)
-                        },
-                        new
-                        {
-                            Key = "partialFilterExpression",
-                            Name = "Unsupported",
-                        },
-                        new
-                        {
-                            Key = "collation",
-                            Name = "Unsupported",
-                        },
-                    };
+                    var newIndexKeys = index.Names.ToList();
 
                     var newOptions = new CreateIndexOptions();
-                    foreach (var element in index.Where(e => keyTranslation.Any(t => e.Name == t.Key)))
+                    foreach (var mapping in CreateIndexOptionsMapping.Where(m => newIndexKeys.Contains(m.Key)))
                     {
-                        var translation = keyTranslation.First(t => element.Name == t.Key);
-                        var prop = newOptions.GetType().GetTypeInfo().GetProperty(translation.Name);
+                        var prop = newOptions.GetType().GetTypeInfo().GetProperty(mapping.Name);
                         if (prop != null)
                         {
-                            prop.SetValue(newOptions, translation.Convert(element.Value));
+                            prop.SetValue(newOptions, mapping.Convert(index[mapping.Key].Value));
                         }
                     }
                     dbBackup.Indexes.CreateOne(newIndex, newOptions);
@@ -188,6 +84,110 @@ namespace Hangfire.Mongo.Migration.Strategies
         }
 
 
+
+        private static List<dynamic> CreateIndexOptionsMapping = new List<dynamic>
+        {
+            new
+            {
+                Key = "v",
+                Name = nameof(CreateIndexOptions.Version),
+                Convert = (Func<BsonValue, int>)(i => i.AsInt32)
+            },
+            new
+            {
+                Key = "name",
+                Name = nameof(CreateIndexOptions.Name),
+                Convert = (Func<BsonValue, string>)(i => i.AsString)
+            },
+            new
+            {
+                Key = "unique",
+                Name = nameof(CreateIndexOptions.Unique),
+                Convert = (Func<BsonValue, bool>)(i => i.AsBoolean)
+            },
+            new
+            {
+                Key = "sparse",
+                Name = nameof(CreateIndexOptions.Sparse),
+                Convert = (Func<BsonValue, bool>)(i => i.AsBoolean)
+            },
+            new
+            {
+                Key = "expireAfterSeconds",
+                Name = nameof(CreateIndexOptions.ExpireAfter),
+                Convert = (Func<BsonValue, TimeSpan>)(i => TimeSpan.FromSeconds(i.AsInt64))
+            },
+            new
+            {
+                Key = "background",
+                Name = nameof(CreateIndexOptions.Background),
+                Convert = (Func<BsonValue, bool>)(i => i.AsBoolean)
+            },
+            new
+            {
+                Key = "textIndexVersion",
+                Name = nameof(CreateIndexOptions.TextIndexVersion),
+                Convert = (Func<BsonValue, int>)(i => i.AsInt32)
+            },
+            new
+            {
+                Key = "default_language",
+                Name = nameof(CreateIndexOptions.DefaultLanguage),
+                Convert = (Func<BsonValue, string>)(i => i.AsString)
+            },
+            new
+            {
+                Key = "language_override",
+                Name = nameof(CreateIndexOptions.LanguageOverride),
+                Convert = (Func<BsonValue, string>)(i => i.AsString)
+            },
+            new
+            {
+                Key = "weights",
+                Name = nameof(CreateIndexOptions.Weights),
+                Convert = (Func<BsonValue, BsonDocument>)(i => i.AsBsonDocument)
+            },
+            new
+            {
+                Key = "min",
+                Name = nameof(CreateIndexOptions.Min),
+                Convert = (Func<BsonValue, double>)(i => i.AsDouble)
+            },
+            new
+            {
+                Key = "max",
+                Name = nameof(CreateIndexOptions.Max),
+                Convert = (Func<BsonValue, double>)(i => i.AsDouble)
+            },
+            new
+            {
+                Key = "bits",
+                Name = nameof(CreateIndexOptions.Bits),
+                Convert = (Func<BsonValue, int>)(i => i.AsInt32)
+            },
+            new
+            {
+                Key = "2dsphereIndexVersion",
+                Name = nameof(CreateIndexOptions.SphereIndexVersion),
+                Convert = (Func<BsonValue, int>)(i => i.AsInt32)
+            },
+            new
+            {
+                Key = "bucketSize",
+                Name = nameof(CreateIndexOptions.BucketSize),
+                Convert = (Func<BsonValue, double>)(i => i.AsDouble)
+            },
+            new
+            {
+                Key = "partialFilterExpression",
+                Name = "Unsupported",
+            },
+            new
+            {
+                Key = "collation",
+                Name = "Unsupported",
+            },
+        };
 
     }
 }
