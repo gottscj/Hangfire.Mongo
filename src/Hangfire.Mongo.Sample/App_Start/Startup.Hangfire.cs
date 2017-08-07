@@ -1,4 +1,5 @@
-﻿using Owin;
+﻿using System.Configuration;
+using Owin;
 
 namespace Hangfire.Mongo.Sample
 {
@@ -6,8 +7,10 @@ namespace Hangfire.Mongo.Sample
     {
         public void ConfigureHangfire(IAppBuilder app)
         {
-            GlobalConfiguration.Configuration.UseMongoStorage("mongodb://localhost", "hangfire-mongo-sample");
-            //GlobalConfiguration.Configuration.UseMongoStorage(new MongoClientSettings()
+            // Read DefaultConnection string from Web.config
+            var connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+            GlobalConfiguration.Configuration.UseMongoStorage(connectionString, "hangfire-mongo-sample");
+            //GlobalConfiguration.Configuration.UseMongoStorage(new MongoClientSettings
             //{
             //    // ...
             //    IPv6 = true
