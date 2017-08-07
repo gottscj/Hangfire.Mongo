@@ -15,8 +15,8 @@ namespace Hangfire.Mongo.Migration
     /// </summary>
     internal class MongoMigrationRunner
     {
-        private HangfireDbContext _dbContext;
-        private MongoStorageOptions _storageOptions;
+        private readonly HangfireDbContext _dbContext;
+        private readonly MongoStorageOptions _storageOptions;
 
         public MongoMigrationRunner(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
@@ -58,10 +58,10 @@ namespace Hangfire.Mongo.Migration
                 }
                 // We just completed a migration to the next schema.
                 // Update the schema info and continue.
-				_dbContext.Schema.DeleteMany(_ => true);
-				_dbContext.Schema.InsertOne(new SchemaDto { Version = (int)migrationGroup.Key });
-			}
-		}
+                _dbContext.Schema.DeleteMany(_ => true);
+                _dbContext.Schema.InsertOne(new SchemaDto { Version = (int)migrationGroup.Key });
+            }
+        }
 
 
         /// <summary>

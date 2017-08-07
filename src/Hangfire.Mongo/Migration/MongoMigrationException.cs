@@ -24,21 +24,21 @@ namespace Hangfire.Mongo.Migration
         }
 
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="T:Hangfire.Mongo.Migration.MongoMigrationException"/> class.
-		/// </summary>
-		/// <param name="message">Exception message</param>
-		public MongoMigrationException(string message)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="T:Hangfire.Mongo.Migration.MongoMigrationException"/> class.
+        /// </summary>
+        /// <param name="message">Exception message</param>
+        public MongoMigrationException(string message)
             : base(message)
         {
         }
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="T:Hangfire.Mongo.Migration.MongoMigrationException"/> class.
-		/// </summary>
-		/// <param name="message">Exception message</param>
-		/// <param name="innerException">Inner exception</param>
-		public MongoMigrationException(string message, Exception innerException)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="T:Hangfire.Mongo.Migration.MongoMigrationException"/> class.
+        /// </summary>
+        /// <param name="message">Exception message</param>
+        /// <param name="innerException">Inner exception</param>
+        public MongoMigrationException(string message, Exception innerException)
             : base(message, innerException)
         {
         }

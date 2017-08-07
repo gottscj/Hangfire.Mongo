@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Hangfire.Mongo.Migration
 {
@@ -22,31 +21,6 @@ namespace Hangfire.Mongo.Migration
     internal static class MongoSchemaExtentions
     {
 
-        /// <summary>
-        /// Is the schema version the last and current one.
-        /// </summary>
-        internal static bool IsLast(this MongoSchema schema)
-        {
-            return Enum.GetValues(typeof(MongoSchema))
-                       .OfType<MongoSchema>()
-                       .Last() == schema;
-        }
-
-
-        /// <summary>
-        /// Get the next schema version.
-        /// </summary>
-        /// <returns>The next.</returns>
-        /// <param name="schema">Schema.</param>
-        internal static MongoSchema Next(this MongoSchema schema)
-        {
-            var schemaValues = Enum.GetValues(typeof(MongoSchema))
-                                   .OfType<MongoSchema>()
-                                   .ToList();
-            return schemaValues.ElementAt(schemaValues.IndexOf(schema));
-        }
-
-
         internal static IList<string> CollectionNames(this MongoSchema schema, string prefix)
         {
             switch (schema)
@@ -65,16 +39,16 @@ namespace Hangfire.Mongo.Migration
                     };
 
                 case MongoSchema.Version6:
-					return new[] {
-						prefix + ".stateData",
-						prefix + ".locks",
-						prefix + ".job",
-						prefix + ".jobQueue",
-						prefix + ".schema",
-						prefix + ".server"
-					};
+                    return new[] {
+                        prefix + ".stateData",
+                        prefix + ".locks",
+                        prefix + ".job",
+                        prefix + ".jobQueue",
+                        prefix + ".schema",
+                        prefix + ".server"
+                    };
 
-				default:
+                default:
                     throw new ArgumentException($@"Unknown schema: '{schema}'", nameof(schema));
             }
         }

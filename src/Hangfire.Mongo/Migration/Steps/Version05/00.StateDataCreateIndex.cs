@@ -15,9 +15,9 @@ namespace Hangfire.Mongo.Migration.Steps.Version05
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions)
         {
             var db = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.stateData");
-			var index = new BsonDocumentIndexKeysDefinition<BsonDocument>(new BsonDocument("Key", 1));
+            var index = new BsonDocumentIndexKeysDefinition<BsonDocument>(new BsonDocument("Key", 1));
             db.Indexes.CreateOne(index);
             return true;
-		}
+        }
     }
 }

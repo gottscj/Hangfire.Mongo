@@ -18,12 +18,12 @@ namespace Hangfire.Mongo.Migration.Steps
         /// </summary>
         long Sequence { get; }
 
-		/// <summary>
-		/// Executes the migration step.
-		/// </summary>
-		/// <param name="database">The mongo database.</param>
-		/// <param name="storageOptions">Storage options.</param>
-		/// <returns>True on success, else false</returns>
-		bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions);
+        /// <summary>
+        /// Executes the migration step.
+        /// </summary>
+        /// <param name="database">The mongo database.</param>
+        /// <param name="storageOptions">Storage options.</param>
+        /// <returns>True on success, else false</returns>
+        bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions);
     }
 }

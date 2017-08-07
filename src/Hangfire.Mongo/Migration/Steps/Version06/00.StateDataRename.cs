@@ -17,6 +17,6 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
             var newName = $@"{storageOptions.Prefix}.stateData";
             database.RenameCollection(oldName, newName);
             return true;
-		}
+        }
     }
 }

@@ -1,10 +1,8 @@
 using System;
-using System.Globalization;
 using System.Threading;
 using Hangfire.Annotations;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Storage;
 using MongoDB.Driver;
 
@@ -20,10 +18,14 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
         public MongoJobQueue(HangfireDbContext connection, MongoStorageOptions storageOptions)
         {
             if (storageOptions == null)
+            {
                 throw new ArgumentNullException(nameof(storageOptions));
+            }
 
             if (connection == null)
+            {
                 throw new ArgumentNullException(nameof(connection));
+            }
 
             _storageOptions = storageOptions;
             _connection = connection;

@@ -17,7 +17,7 @@ namespace Hangfire.Mongo.Migration
     {
         private readonly MongoStorageOptions _storageOptions;
 
-        public static MongoSchema RequiredSchemaVersion => Enum.GetValues(typeof(MongoSchema)).Cast<MongoSchema>().Last();
+        public static MongoSchema RequiredSchemaVersion => Enum.GetValues(typeof(MongoSchema)).Cast<MongoSchema>().OrderBy(v => v).Last();
 
         public MongoMigrationManager(MongoStorageOptions storageOptions)
         {
@@ -51,26 +51,28 @@ namespace Hangfire.Mongo.Migration
                         $"{Environment.NewLine}Please see https://github.com/sergeyzwezdin/Hangfire.Mongo#migration for further information.");
                 }
 
-                IMongoMigrationStrategy migration = null;
-                if (RequiredSchemaVersion > currentSchemaVersion)
+                if (RequiredSchemaVersion == currentSchemaVersion)
                 {
-                    switch (_storageOptions.MigrationOptions.Strategy)
-                    {
-                        case MongoMigrationStrategy.None:
-                            migration = new MongoMigrationStrategyNone();
-                            break;
-                        case MongoMigrationStrategy.Drop:
-                            migration = new MongoMigrationStrategyDrop(dbContext, _storageOptions);
-                            break;
-                        case MongoMigrationStrategy.Migrate:
-							migration = new MongoMigrationStrategyMigrate(dbContext, _storageOptions);
-							break;
-                        default:
-                            throw new ArgumentOutOfRangeException($@"Unknown migration strategy: {_storageOptions.MigrationOptions.Strategy}", $@"{nameof(MongoMigrationOptions)}.{nameof(MongoMigrationOptions.Strategy)}");
-                    }
-
-                    migration?.Migrate(currentSchemaVersion, RequiredSchemaVersion);
+                    // Nothing to migrate - so let's get outa here.
+                    return;
                 }
+
+                IMongoMigrationStrategy migration;
+                switch (_storageOptions.MigrationOptions.Strategy)
+                {
+                    case MongoMigrationStrategy.None:
+                        migration = new MongoMigrationStrategyNone();
+                        break;
+                    case MongoMigrationStrategy.Drop:
+                        migration = new MongoMigrationStrategyDrop(dbContext, _storageOptions);
+                        break;
+                    case MongoMigrationStrategy.Migrate:
+                        migration = new MongoMigrationStrategyMigrate(dbContext, _storageOptions);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException($@"Unknown migration strategy: {_storageOptions.MigrationOptions.Strategy}", $@"{nameof(MongoMigrationOptions)}.{nameof(MongoMigrationOptions.Strategy)}");
+                }
+                migration.Migrate(currentSchemaVersion, RequiredSchemaVersion);
             }
         }
 
