@@ -28,9 +28,6 @@ namespace Hangfire.Mongo.Migration
         {
             using (new MongoDistributedLock(nameof(Migrate), TimeSpan.FromSeconds(30), dbContext, _storageOptions))
             {
-                //dbContext.Schema.DeleteMany(_ => true);
-                //dbContext.Schema.InsertOne(new SchemaDto { Version = 5 });
-
                 var currentSchema = dbContext.Schema.Find(new BsonDocument()).FirstOrDefault();
                 if (currentSchema == null)
                 {

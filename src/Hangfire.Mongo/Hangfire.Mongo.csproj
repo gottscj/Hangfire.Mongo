@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<VersionPrefix>0.4.1</VersionPrefix>
-		<TargetFrameworks>netstandard1.5;net461;net45</TargetFrameworks>
+		<TargetFrameworks>net45;net46;netstandard1.5</TargetFrameworks>
 		<NoWarn>$(NoWarn);CS0618</NoWarn>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
