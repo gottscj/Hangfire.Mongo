@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -37,6 +38,11 @@ namespace Hangfire.Mongo.DistributedLock
 
         private string EventWaitHandleName => $@"{GetType().FullName}.{_resource}";
 
+        private readonly static bool IsWindows = System
+                                                    .Runtime
+                                                    .InteropServices
+                                                    .RuntimeInformation
+                                                    .IsOSPlatform(OSPlatform.Windows);
 
         /// <summary>
         /// Creates MongoDB distributed lock
@@ -155,23 +161,13 @@ namespace Hangfire.Mongo.DistributedLock
                     }
                     else
                     {
-                        try
+                        if (IsWindows)
                         {
-                            // Wait on the event. This allows us to be "woken" up sooner rather than later.
-                            // We wait in chunks as we need to "wake-up" from time to time and poll mongo,
-                            // in case that the lock was acquired on another machine or instance.
                             var eventWaitHandle = new EventWaitHandle(false, EventResetMode.AutoReset, EventWaitHandleName);
                             eventWaitHandle.WaitOne((int)timeout.TotalMilliseconds / 10);
                         }
-                        catch (PlatformNotSupportedException)
+                        else
                         {
-                            // EventWaitHandle is not supported on UNIX systems
-                            // https://github.com/dotnet/coreclr/pull/1387
-                            // Instead of using a compiler directive, we catch the
-                            // exception and handles it. This way, when EventWaitHandle
-                            // becomes available on UNIX, we will start working.
-                            // So in this case, we just sleep for a while and then 
-                            // check if the lock has been released.
                             Thread.Sleep((int)timeout.TotalMilliseconds / 10);
                         }
                         now = DateTime.Now;
@@ -205,19 +201,15 @@ namespace Hangfire.Mongo.DistributedLock
                 // Remove resource lock
                 _database.DistributedLock.DeleteOne(
                     Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource));
-                EventWaitHandle eventWaitHandler;
-                if (EventWaitHandle.TryOpenExisting(EventWaitHandleName, out eventWaitHandler))
+
+                if (IsWindows)
                 {
-                    eventWaitHandler.Set();
+                    EventWaitHandle eventWaitHandler;
+                    if (EventWaitHandle.TryOpenExisting(EventWaitHandleName, out eventWaitHandler))
+                    {
+                        eventWaitHandler.Set();
+                    }
                 }
-            }
-            catch (PlatformNotSupportedException)
-            {
-                // EventWaitHandle is not supported on UNIX systems
-                // https://github.com/dotnet/coreclr/pull/1387
-                // So we are not able to signal anyone waiting
-                // for this lock, in order for them to acquire
-                // it sooner rather than later.
             }
             catch (Exception ex)
             {

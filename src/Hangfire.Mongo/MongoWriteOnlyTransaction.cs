@@ -155,7 +155,7 @@ namespace Hangfire.Mongo
         {
             var builder = Builders<SetDto>.Update;
             var set = builder.Set(_ => _.Score, score);
-            var setTypesOnInsert = builder.SetOnInsert("_t", new[] {nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(SetDto)});
+            var setTypesOnInsert = builder.SetOnInsert("_t", new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(SetDto) });
             var setExpireAt = builder.SetOnInsert(_ => _.ExpireAt, null);
             var update = builder.Combine(set, setTypesOnInsert, setExpireAt);
 
@@ -205,13 +205,13 @@ namespace Hangfire.Mongo
                 int start = keepStartingFrom + 1;
                 int end = keepEndingAt + 1;
 
-                ObjectId[] items = ((IEnumerable<ListDto>) x.StateData.OfType<ListDto>()
+                ObjectId[] items = ((IEnumerable<ListDto>)x.StateData.OfType<ListDto>()
                         .Find(new BsonDocument())
                         .Project(Builders<ListDto>.Projection.Include(_ => _.Key))
                         .Project(_ => _)
                         .ToList())
                     .Reverse()
-                    .Select((data, i) => new {Index = i + 1, Data = data.Id})
+                    .Select((data, i) => new { Index = i + 1, Data = data.Id })
                     .Where(_ => ((_.Index >= start) && (_.Index <= end)) == false)
                     .Select(_ => _.Data)
                     .ToArray();
@@ -234,12 +234,12 @@ namespace Hangfire.Mongo
             var builder = Builders<HashDto>.Update;
             var setTypesOnInsert = builder.SetOnInsert("_t", new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(HashDto) });
             var setExpireAt = builder.SetOnInsert(_ => _.ExpireAt, null);
-            
+
             foreach (var keyValuePair in keyValuePairs)
             {
                 var field = keyValuePair.Key;
                 var value = keyValuePair.Value;
-               
+
                 QueueCommand(x =>
                 {
                     var set = builder.Set(_ => _.Value, value);
@@ -267,12 +267,9 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
-            using (new MongoDistributedLock(nameof(Commit), TimeSpan.FromSeconds(1), _connection, _options))
+            foreach (var action in _commandQueue)
             {
-                foreach (var action in _commandQueue)
-                {
-                    action.Invoke(_connection);
-                }
+                action.Invoke(_connection);
             }
         }
 
@@ -348,7 +345,7 @@ namespace Hangfire.Mongo
             if (key == null) throw new ArgumentNullException(nameof(key));
             if (items == null) throw new ArgumentNullException(nameof(items));
             var builder = Builders<SetDto>.Update;
-            
+
 
             var setTypesOnInsert = builder.SetOnInsert("_t", new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(SetDto) });
             var setExpireAt = builder.SetOnInsert(_ => _.ExpireAt, null);
@@ -371,7 +368,7 @@ namespace Hangfire.Mongo
                             });
                 });
             }
-            
+
         }
 
         public override void RemoveSet(string key)
