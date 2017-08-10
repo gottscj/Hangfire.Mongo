@@ -15,29 +15,28 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
 
         public long Sequence => 1;
 
-        private Dictionary<int, string> JobIdMapping;
-
-        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions)
+        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
         {
-            MigrateJob(database, storageOptions);
-            MigrateJobQueue(database, storageOptions);
-            MigrateScheduledJobs(database, storageOptions);
+            MigrateJob(database, storageOptions, migrationBag);
+            MigrateJobQueue(database, storageOptions, migrationBag);
             return true;
         }
 
 
-        private void MigrateJob(IMongoDatabase database, MongoStorageOptions storageOptions)
+        private void MigrateJob(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
         {
             var jobCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.job");
             var jobParametersCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobParameter");
             var stateCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.state");
 
-            var jobs = jobCollection.Find(_ => true).ToList();
+            var filter = Builders<BsonDocument>.Filter.Type("_id", BsonType.Int32);
+            var jobs = jobCollection.Find(filter).ToList();
 
-            JobIdMapping = jobs
+            var jobIdMapping = jobs
                 .Select(j => j["_id"].AsInt32)
                 .Distinct()
-                .ToDictionary(jid => jid, jid => BsonObjectId.GenerateNewId().ToString());
+                .ToDictionary(jid => jid, jid => new BsonObjectId(ObjectId.GenerateNewId()).ToString());
+            migrationBag.SetItem("JobIdMapping", jobIdMapping);
 
             var migratedJobs = jobs.Select(job =>
             {
@@ -47,7 +46,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
                 var jobStates = stateCollection.Find(s => s["JobId"] == _id)
                     .SortBy(s => s["CreatedAt"])
                     .ToList();
-                job["_id"] = JobIdMapping[_id];
+                job["_id"] = jobIdMapping[_id];
                 job["Parameters"] = new BsonDocument(jobParameters.ToDictionary(jp => jp["Name"].AsString, jp => jp["Value"].AsString));
                 job["StateHistory"] = new BsonArray(jobStates.Select(s =>
                 {
@@ -59,38 +58,24 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
                 job.Remove("StateId");
                 return job;
             }).ToList();
-            jobCollection.InsertMany(migratedJobs);
 
-            var filter = Builders<BsonDocument>.Filter.In("_id", JobIdMapping.Keys);
+            if (migratedJobs.Any())
+            {
+                jobCollection.InsertMany(migratedJobs);
+            }
+
             jobCollection.DeleteMany(filter);
         }
 
 
-        private void MigrateScheduledJobs(IMongoDatabase database, MongoStorageOptions storageOptions)
+        private void MigrateJobQueue(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
         {
-            var setCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.set");
-            var migratedSetList = setCollection.Find(s => s["Key"] == "schedule").ToList().Select(s =>
-            {
-                s["Value"] = JobIdMapping[int.Parse(s["Value"].AsString)];
-                s["_t"] = new BsonArray(new[] { "KeyValueDto", "ExpiringKeyValueDto", "SetDto" });
-                return s;
-            }).ToList();
-
-            if (migratedSetList.Any())
-            {
-                var stateDataCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.statedata");
-                stateDataCollection.InsertMany(migratedSetList);
-            }
-        }
-
-
-        private void MigrateJobQueue(IMongoDatabase database, MongoStorageOptions storageOptions)
-        {
+            var jobIdMapping = migrationBag.GetItem<Dictionary<int, string>>("JobIdMapping");
             // Update jobQueue to reflect new job id
             var jobQueueCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobQueue");
             var migratedJobQueueList = jobQueueCollection.Find(_ => true).ToList().Select(jq =>
             {
-                jq["_id"] = JobIdMapping[jq["JobId"].AsInt32];
+                jq["_id"] = jobIdMapping[jq["JobId"].AsInt32];
                 jq.Remove("JobId");
                 return jq;
             }).ToList();
@@ -100,7 +85,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
                 jobQueueCollection.InsertMany(migratedJobQueueList);
             }
 
-            var filter = Builders<BsonDocument>.Filter.In("_id", JobIdMapping.Keys);
+            var filter = Builders<BsonDocument>.Filter.In("_id", jobIdMapping.Keys);
             jobQueueCollection.DeleteMany(filter);
         }
 

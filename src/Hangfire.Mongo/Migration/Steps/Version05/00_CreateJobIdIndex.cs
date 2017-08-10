@@ -12,7 +12,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version05
 
         public long Sequence => 0;
 
-        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions)
+        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
         {
             CreateJobIndex(database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobParameter"));
             CreateJobIndex(database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobQueue"));

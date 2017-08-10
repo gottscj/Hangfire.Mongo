@@ -12,7 +12,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
 
         public long Sequence => 0;
 
-        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions)
+        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
         {
             var db = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.statedata");
 

@@ -12,7 +12,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version07
 
         public long Sequence => 0;
 
-        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions)
+        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
         {
             var oldName = $@"{storageOptions.Prefix}.statedata";
             var newName = $@"{storageOptions.Prefix}.stateData";
@@ -21,6 +21,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version07
             {
                 Filter = new FilterDefinitionBuilder<BsonDocument>().Eq("name", oldName)
             };
+
             if (database.ListCollections(options).Any())
             {
                 database.RenameCollection(oldName, newName);

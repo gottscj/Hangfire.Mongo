@@ -73,7 +73,7 @@ public void Configuration(IAppBuilder app)
 
 ## Migration
 
-We sometimes introduce breaking changes in the schema. For this reason we have introduced migration options.
+We sometimes introduce breaking changes in the schema. For this reason we have introduced migration.
 Three migration strategies exists.
 * None
 
@@ -81,10 +81,10 @@ Three migration strategies exists.
 * Drop
 
   This will simply just drop your existing Hangfire.Mongo database and update the schema version. No fuzz and ready to start from scratch.
-  It the perfect strategy if you e.g. enques all your jobs at startup.
+  It is the perfect strategy if you e.g. enque all your jobs at startup.
 * Migrate
 
-  This will migrate your database from one schema version to the next until the required schema version is reached. Changes are that not all data can be migrated, why some loss of data might occur. Please use with caution and thougoughly test before deploying to production.
+  This will migrate your database from one schema version to the next until the required schema version is reached. Chances are that not all data can be migrated, why some loss of data might occur. Please use with caution and thougoughly test before deploying to production. We are not responsible for data loss.
 
   NOTE: Only forward migration is supported. If you need to revert to a previous schema version, you need to **manually** drop or restore the previous database.
 
@@ -107,6 +107,11 @@ public void Configuration(IAppBuilder app)
 }
 ```
 
+### Migration Backup
+By default a backup is made before attempting to migrate.
+Backup consists of "cloning" each collection to the same database.
+You can disable or customize the backup using MongoMigrationOptions.
+NOTE: This software is made by humans in our sparetime - we do our best but are not responsible for data loss.
 
 Contributors
 ------------

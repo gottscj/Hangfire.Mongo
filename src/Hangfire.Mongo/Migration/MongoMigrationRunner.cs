@@ -11,9 +11,19 @@ namespace Hangfire.Mongo.Migration
 {
 
     /// <summary>
+    /// Bag used for parsing info between migration steps
+    /// </summary>
+    internal interface IMongoMigrationBag
+    {
+        T GetItem<T>(string key);
+
+        void SetItem<T>(string key, T value);
+    }
+
+    /// <summary>
     /// Class for running a full migration
     /// </summary>
-    internal class MongoMigrationRunner
+    internal class MongoMigrationRunner : IMongoMigrationBag
     {
         private readonly HangfireDbContext _dbContext;
         private readonly MongoStorageOptions _storageOptions;
@@ -51,7 +61,7 @@ namespace Hangfire.Mongo.Migration
             {
                 foreach (var migrationStep in migrationGroup)
                 {
-                    if (!migrationStep.Execute(_dbContext.Database, _storageOptions))
+                    if (!migrationStep.Execute(_dbContext.Database, _storageOptions, this))
                     {
                         throw new MongoMigrationException(migrationStep);
                     }
@@ -76,5 +86,20 @@ namespace Hangfire.Mongo.Migration
                 .OrderBy(step => (int)step.TargetSchema).ThenBy(step => step.Sequence);
         }
 
+        #region IMongoMigrationBag
+
+        private Dictionary<string, object> _bag = new Dictionary<string, object>();
+
+        public T GetItem<T>(string key)
+        {
+            return (T)_bag[key];
+        }
+
+        public void SetItem<T>(string key, T value)
+        {
+            _bag[key] = value;
+        }
+
+        #endregion
     }
 }
