@@ -5,7 +5,7 @@ using MongoDB.Driver;
 namespace Hangfire.Mongo.Migration.Steps.Version06
 {
     /// <summary>
-    /// Migrate Job collection
+    /// Migrate recurrent jobs
     /// </summary>
     internal class RecurringJobMigration : IMongoMigrationStep
     {
