@@ -2,6 +2,7 @@
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Storage;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -12,6 +13,7 @@ namespace Hangfire.Mongo
     public sealed class MongoFetchedJob : IFetchedJob
     {
         private readonly HangfireDbContext _connection;
+        private readonly ObjectId _id;
 
         private bool _disposed;
 
@@ -23,29 +25,26 @@ namespace Hangfire.Mongo
         /// Constructs fetched job by database connection, identifier, job ID and queue
         /// </summary>
         /// <param name="connection">Database connection</param>
+        /// <param name="id">Identifier</param>
         /// <param name="jobId">Job ID</param>
         /// <param name="queue">Queue name</param>
-        public MongoFetchedJob(HangfireDbContext connection, string jobId, string queue)
+        public MongoFetchedJob(HangfireDbContext connection, ObjectId id, string jobId, string queue)
         {
-            if (connection == null) throw new ArgumentNullException(nameof(connection));
-            if (jobId == null) throw new ArgumentNullException(nameof(jobId));
-            if (queue == null) throw new ArgumentNullException(nameof(queue));
-
-            _connection = connection;
-            
-            JobId = jobId;
-            Queue = queue;
+            _connection = connection ?? throw new ArgumentNullException(nameof(connection));
+            _id = id;
+            JobId = jobId ?? throw new ArgumentNullException(nameof(jobId));
+            Queue = queue ?? throw new ArgumentNullException(nameof(queue));
         }
 
         /// <summary>
         /// Job ID
         /// </summary>
-        public string JobId { get; private set; }
+        public string JobId { get; }
 
         /// <summary>
         /// Queue name
         /// </summary>
-        public string Queue { get; private set; }
+        public string Queue { get; }
 
         /// <summary>
         /// Removes fetched job from a queue
@@ -54,7 +53,7 @@ namespace Hangfire.Mongo
         {
             _connection
                .JobQueue
-               .DeleteOne(Builders<JobQueueDto>.Filter.Eq(_ => _.JobId, JobId));
+               .DeleteOne(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, _id));
 
             _removedFromQueue = true;
         }
@@ -65,7 +64,7 @@ namespace Hangfire.Mongo
         public void Requeue()
         {
             _connection.JobQueue.FindOneAndUpdate(
-                Builders<JobQueueDto>.Filter.Eq(_ => _.JobId, JobId),
+                Builders<JobQueueDto>.Filter.Eq(_ => _.Id, _id),
                 Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null));
 
             _requeued = true;
