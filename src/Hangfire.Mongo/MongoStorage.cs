@@ -27,7 +27,7 @@ namespace Hangfire.Mongo
 
         private readonly MongoClientSettings _mongoClientSettings;
 
-        private readonly MongoStorageOptions _options;
+        private readonly MongoStorageOptions _storageOptions;
 
         /// <summary>
         /// Constructs Job Storage by database connection string and name
@@ -44,25 +44,29 @@ namespace Hangfire.Mongo
         /// </summary>
         /// <param name="connectionString">MongoDB connection string</param>
         /// <param name="databaseName">Database name</param>
-        /// <param name="options">Storage options</param>
-        public MongoStorage(string connectionString, string databaseName, MongoStorageOptions options)
+        /// <param name="storageOptions">Storage options</param>
+        public MongoStorage(string connectionString, string databaseName, MongoStorageOptions storageOptions)
         {
             if (string.IsNullOrWhiteSpace(connectionString))
+            {
                 throw new ArgumentNullException(nameof(connectionString));
-
+            }
             if (string.IsNullOrWhiteSpace(databaseName))
+            {
                 throw new ArgumentNullException(nameof(databaseName));
-
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
+            }
+            if (storageOptions == null)
+            {
+                throw new ArgumentNullException(nameof(storageOptions));
+            }
 
             _connectionString = connectionString;
             _databaseName = databaseName;
-            _options = options;
+            _storageOptions = storageOptions;
 
-            Connection = new HangfireDbContext(connectionString, databaseName, options.Prefix);
-            Connection.Init(_options);
-            var defaultQueueProvider = new MongoJobQueueProvider(options);
+            Connection = new HangfireDbContext(connectionString, databaseName, storageOptions.Prefix);
+            Connection.Init(_storageOptions);
+            var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
             QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }
 
@@ -81,24 +85,28 @@ namespace Hangfire.Mongo
         /// </summary>
         /// <param name="mongoClientSettings">Client settings for MongoDB</param>
         /// <param name="databaseName">Database name</param>
-        /// <param name="options">Storage options</param>
-        public MongoStorage(MongoClientSettings mongoClientSettings, string databaseName, MongoStorageOptions options)
+        /// <param name="storageOptions">Storage options</param>
+        public MongoStorage(MongoClientSettings mongoClientSettings, string databaseName, MongoStorageOptions storageOptions)
         {
             if (mongoClientSettings == null)
+            {
                 throw new ArgumentNullException(nameof(mongoClientSettings));
-
+            }
             if (string.IsNullOrWhiteSpace(databaseName))
+            {
                 throw new ArgumentNullException(nameof(databaseName));
-
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
+            }
+            if (storageOptions == null)
+            {
+                throw new ArgumentNullException(nameof(storageOptions));
+            }
 
             _mongoClientSettings = mongoClientSettings;
             _databaseName = databaseName;
-            _options = options;
+            _storageOptions = storageOptions;
 
-            Connection = new HangfireDbContext(mongoClientSettings, databaseName, options.Prefix);
-            var defaultQueueProvider = new MongoJobQueueProvider(options);
+            Connection = new HangfireDbContext(mongoClientSettings, databaseName, _storageOptions.Prefix);
+            var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
             QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }
 
@@ -127,7 +135,7 @@ namespace Hangfire.Mongo
         /// <returns>Storage connection</returns>
         public override IStorageConnection GetConnection()
         {
-            return new MongoConnection(Connection, _options, QueueProviders);
+            return new MongoConnection(Connection, _storageOptions, QueueProviders);
         }
 
         /// <summary>
@@ -136,8 +144,8 @@ namespace Hangfire.Mongo
         /// <returns>Collection of server components</returns>
         public override IEnumerable<IServerComponent> GetComponents()
         {
-            yield return new ExpirationManager(this, _options.JobExpirationCheckInterval);
-            yield return new CountersAggregator(this, _options.CountersAggregateInterval);
+            yield return new ExpirationManager(this, _storageOptions.JobExpirationCheckInterval);
+            yield return new CountersAggregator(this, _storageOptions.CountersAggregateInterval);
         }
 
         /// <summary>
@@ -159,7 +167,7 @@ namespace Hangfire.Mongo
         public override void WriteOptionsToLog(ILog logger)
         {
             logger.Info("Using the following options for Mongo DB job storage:");
-            logger.InfoFormat("    Prefix: {0}.", _options.Prefix);
+            logger.InfoFormat("    Prefix: {0}.", _storageOptions.Prefix);
         }
 
         /// <summary>
@@ -168,7 +176,7 @@ namespace Hangfire.Mongo
         /// <returns>Database context</returns>
         public HangfireDbContext CreateAndOpenConnection()
         {
-            return _connectionString != null ? new HangfireDbContext(_connectionString, _databaseName, _options.Prefix) : new HangfireDbContext(_mongoClientSettings, _databaseName, _options.Prefix);
+            return _connectionString != null ? new HangfireDbContext(_connectionString, _databaseName, _storageOptions.Prefix) : new HangfireDbContext(_mongoClientSettings, _databaseName, _storageOptions.Prefix);
         }
 
         /// <summary>
@@ -184,10 +192,10 @@ namespace Hangfire.Mongo
             }
             else if (_mongoClientSettings != null && _mongoClientSettings.Servers != null)
             {
-	            var servers = string.Join(",", _mongoClientSettings.Servers.Select(s => $"{s.Host}:{s.Port}"));
+                var servers = string.Join(",", _mongoClientSettings.Servers.Select(s => $"{s.Host}:{s.Port}"));
                 obscuredConnectionString = $"mongodb://<username>:<password>@{servers}";
             }
-            return $"Connection string: {obscuredConnectionString}, database name: {_databaseName}, prefix: {_options.Prefix}";
+            return $"Connection string: {obscuredConnectionString}, database name: {_databaseName}, prefix: {_storageOptions.Prefix}";
         }
     }
 }

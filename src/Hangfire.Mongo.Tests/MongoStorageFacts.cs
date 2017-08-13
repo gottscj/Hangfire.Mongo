@@ -27,11 +27,11 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void Ctor_ThrowsAnException_WhenOptionsValueIsNull()
+        public void Ctor_ThrowsAnException_WhenStorageOptionsValueIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(() => new MongoStorage("localhost", "database", null));
 
-            Assert.Equal("options", exception.ParamName);
+            Assert.Equal("storageOptions", exception.ParamName);
         }
 
         [Fact, CleanDatabase]

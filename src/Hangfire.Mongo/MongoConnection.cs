@@ -15,48 +15,44 @@ using MongoDB.Driver;
 namespace Hangfire.Mongo
 {
     /// <summary>
-    ///     MongoDB database connection for Hangfire
+    /// MongoDB database connection for Hangfire
     /// </summary>
     public class MongoConnection : JobStorageConnection
     {
-        private readonly MongoStorageOptions _options;
+        private readonly MongoStorageOptions _storageOptions;
 
         private readonly PersistentJobQueueProviderCollection _queueProviders;
 
-#pragma warning disable 1591
+        /// <summary>
+        /// Ctor using default storage options
+        /// </summary>
         public MongoConnection(HangfireDbContext database, PersistentJobQueueProviderCollection queueProviders)
 
             : this(database, new MongoStorageOptions(), queueProviders)
         {
         }
 
-        public MongoConnection(HangfireDbContext database, MongoStorageOptions options,
+#pragma warning disable 1591
+        public MongoConnection(
+            HangfireDbContext database,
+            MongoStorageOptions storageOptions,
             PersistentJobQueueProviderCollection queueProviders)
         {
-            if (database == null)
-                throw new ArgumentNullException(nameof(database));
-
-            if (queueProviders == null)
-                throw new ArgumentNullException(nameof(queueProviders));
-
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
-
-            Database = database;
-            _options = options;
-            _queueProviders = queueProviders;
+            Database = database ?? throw new ArgumentNullException(nameof(database));
+            _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
+            _queueProviders = queueProviders ?? throw new ArgumentNullException(nameof(queueProviders));
         }
 
         public HangfireDbContext Database { get; }
 
         public override IWriteOnlyTransaction CreateWriteTransaction()
         {
-            return new MongoWriteOnlyTransaction(Database, _queueProviders, _options);
+            return new MongoWriteOnlyTransaction(Database, _queueProviders, _storageOptions);
         }
 
         public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
         {
-            return new MongoDistributedLock($"HangFire:{resource}", timeout, Database, _options);
+            return new MongoDistributedLock($"HangFire:{resource}", timeout, Database, _storageOptions);
         }
 
         public override string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
@@ -82,7 +78,7 @@ namespace Hangfire.Mongo
             Database.Job.InsertOne(jobDto);
 
             var jobId = jobDto.Id;
-            
+
             return jobId;
         }
 
@@ -113,7 +109,7 @@ namespace Hangfire.Mongo
 
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
-            
+
             var filter = new BsonDocument("_id", id);
             BsonValue bsonValue;
             if (value == null)
@@ -124,8 +120,8 @@ namespace Hangfire.Mongo
             {
                 bsonValue = value;
             }
-            
-            
+
+
             var update = new BsonDocument("$set", new BsonDocument($"{nameof(JobDto.Parameters)}.{name}", bsonValue));
 
             Database.Job.FindOneAndUpdate(filter, update);
@@ -147,7 +143,7 @@ namespace Hangfire.Mongo
 
             string value = null;
             parameters?.TryGetValue(name, out value);
-            
+
             return value;
         }
 
@@ -198,13 +194,13 @@ namespace Hangfire.Mongo
                 .Projection
                 .Include(j => j.StateHistory)
                 .Slice(j => j.StateHistory, -1);
-                
+
             var latest = Database
                 .Job
                 .Find(j => j.Id == jobId)
                 .Project(projection)
                 .FirstOrDefault();
-            
+
             if (latest == null)
                 return null;
 
@@ -248,7 +244,9 @@ namespace Hangfire.Mongo
         public override void RemoveServer(string serverId)
         {
             if (serverId == null)
+            {
                 throw new ArgumentNullException(nameof(serverId));
+            }
 
             Database.Server.DeleteMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId));
         }
@@ -256,7 +254,9 @@ namespace Hangfire.Mongo
         public override void Heartbeat(string serverId)
         {
             if (serverId == null)
+            {
                 throw new ArgumentNullException(nameof(serverId));
+            }
 
             Database.Server.UpdateMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId),
                 Builders<ServerDto>.Update.Set(_ => _.LastHeartbeat, DateTime.UtcNow));
@@ -265,7 +265,9 @@ namespace Hangfire.Mongo
         public override int RemoveTimedOutServers(TimeSpan timeOut)
         {
             if (timeOut.Duration() != timeOut)
+            {
                 throw new ArgumentException("The `timeOut` value must be positive.", nameof(timeOut));
+            }
 
             return (int)Database
                 .Server
@@ -275,7 +277,10 @@ namespace Hangfire.Mongo
 
         public override HashSet<string> GetAllItemsFromSet(string key)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
 
             var result = Database
                 .StateData
@@ -291,10 +296,14 @@ namespace Hangfire.Mongo
         public override string GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             if (toScore < fromScore)
+            {
                 throw new ArgumentException("The `toScore` value must be higher or equal to the `fromScore` value.");
+            }
 
             return Database
                 .StateData
@@ -309,7 +318,7 @@ namespace Hangfire.Mongo
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
-            using (var transaction = new MongoWriteOnlyTransaction(Database, _queueProviders, _options))
+            using (var transaction = new MongoWriteOnlyTransaction(Database, _queueProviders, _storageOptions))
             {
                 transaction.SetRangeInHash(key, keyValuePairs);
                 transaction.Commit();
@@ -319,7 +328,9 @@ namespace Hangfire.Mongo
         public override Dictionary<string, string> GetAllEntriesFromHash(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             var result = Database
                 .StateData
@@ -334,7 +345,9 @@ namespace Hangfire.Mongo
         public override long GetSetCount(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             return Database
                 .StateData
@@ -346,7 +359,9 @@ namespace Hangfire.Mongo
         public override List<string> GetRangeFromSet(string key, int startingFrom, int endingAt)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             return Database
                 .StateData
@@ -355,14 +370,16 @@ namespace Hangfire.Mongo
                 .SortBy(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
-                .Project(dto => (string) dto.Value)
+                .Project(dto => (string)dto.Value)
                 .ToList();
         }
 
         public override TimeSpan GetSetTtl(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             var values = Database
                 .StateData
@@ -372,16 +389,15 @@ namespace Hangfire.Mongo
                 .Project(dto => dto.ExpireAt.Value)
                 .ToList();
 
-            if (values.Any() == false)
-                return TimeSpan.FromSeconds(-1);
-
-            return values.Min() - DateTime.UtcNow;
+            return values.Any() ? values.Min() - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
 
         public override long GetCounter(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             var counterQuery = Database
                 .StateData
@@ -408,7 +424,9 @@ namespace Hangfire.Mongo
         public override long GetHashCount(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             return Database
                 .StateData
@@ -419,7 +437,10 @@ namespace Hangfire.Mongo
 
         public override TimeSpan GetHashTtl(string key)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
 
             var result = Database
                 .StateData
@@ -429,19 +450,20 @@ namespace Hangfire.Mongo
                 .Project(_ => _.ExpireAt)
                 .FirstOrDefault();
 
-            if (!result.HasValue)
-                return TimeSpan.FromSeconds(-1);
-
-            return result.Value - DateTime.UtcNow;
+            return result.HasValue ? result.Value - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
 
         public override string GetValueFromHash(string key, string name)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             if (name == null)
+            {
                 throw new ArgumentNullException(nameof(name));
+            }
 
             var result = Database
                 .StateData
@@ -455,7 +477,9 @@ namespace Hangfire.Mongo
         public override long GetListCount(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             return Database
                 .StateData
@@ -467,7 +491,9 @@ namespace Hangfire.Mongo
         public override TimeSpan GetListTtl(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             var result = Database
                 .StateData
@@ -476,17 +502,16 @@ namespace Hangfire.Mongo
                 .SortBy(_ => _.ExpireAt)
                 .Project(_ => _.ExpireAt)
                 .FirstOrDefault();
-
-            if (!result.HasValue)
-                return TimeSpan.FromSeconds(-1);
-
-            return result.Value - DateTime.UtcNow;
+                
+            return result.HasValue ? result.Value - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
 
         public override List<string> GetRangeFromList(string key, int startingFrom, int endingAt)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             return Database
                 .StateData
@@ -502,7 +527,9 @@ namespace Hangfire.Mongo
         public override List<string> GetAllItemsFromList(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             return Database
                 .StateData

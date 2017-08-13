@@ -12,27 +12,27 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_SetsTheDefaultOptions()
         {
-            MongoStorageOptions options = new MongoStorageOptions();
+            MongoStorageOptions storageOptions = new MongoStorageOptions();
 
-            Assert.Equal("hangfire", options.Prefix);
-            Assert.True(options.InvisibilityTimeout > TimeSpan.Zero);
+            Assert.Equal("hangfire", storageOptions.Prefix);
+            Assert.True(storageOptions.InvisibilityTimeout > TimeSpan.Zero);
         }
 
         [Fact]
         public void Ctor_SetsTheDefaultOptions_ShouldGenerateClientId()
         {
-            var options = new MongoStorageOptions();
-            Assert.False(String.IsNullOrWhiteSpace(options.ClientId));
+            var storageOptions = new MongoStorageOptions();
+            Assert.False(String.IsNullOrWhiteSpace(storageOptions.ClientId));
         }
 
         [Fact]
         public void Ctor_SetsTheDefaultOptions_ShouldGenerateUniqueClientId()
         {
-            var options1 = new MongoStorageOptions();
-            var options2 = new MongoStorageOptions();
-            var options3 = new MongoStorageOptions();
+            var storageOptions1 = new MongoStorageOptions();
+            var storageOptions2 = new MongoStorageOptions();
+            var storageOptions3 = new MongoStorageOptions();
 
-            IEnumerable<string> result = new[] { options1.ClientId, options2.ClientId, options3.ClientId }.Distinct();
+            IEnumerable<string> result = new[] { storageOptions1.ClientId, storageOptions2.ClientId, storageOptions3.ClientId }.Distinct();
 
             Assert.Equal(3, result.Count());
         }
@@ -40,27 +40,27 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Set_QueuePollInterval_ShouldThrowAnException_WhenGivenIntervalIsEqualToZero()
         {
-            var options = new MongoStorageOptions();
+            var storageOptions = new MongoStorageOptions();
             Assert.Throws<ArgumentException>(
-                () => options.QueuePollInterval = TimeSpan.Zero);
+                () => storageOptions.QueuePollInterval = TimeSpan.Zero);
         }
 
         [Fact]
         public void Set_QueuePollInterval_ShouldThrowAnException_WhenGivenIntervalIsNegative()
         {
-            var options = new MongoStorageOptions();
+            var storageOptions = new MongoStorageOptions();
             Assert.Throws<ArgumentException>(
-                () => options.QueuePollInterval = TimeSpan.FromSeconds(-1));
+                () => storageOptions.QueuePollInterval = TimeSpan.FromSeconds(-1));
         }
 
         [Fact]
         public void Set_QueuePollInterval_SetsTheValue()
         {
-            var options = new MongoStorageOptions
+            var storageOptions = new MongoStorageOptions
             {
                 QueuePollInterval = TimeSpan.FromSeconds(1)
             };
-            Assert.Equal(TimeSpan.FromSeconds(1), options.QueuePollInterval);
+            Assert.Equal(TimeSpan.FromSeconds(1), storageOptions.QueuePollInterval);
         }
     }
 #pragma warning restore 1591

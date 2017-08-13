@@ -19,7 +19,6 @@ namespace Hangfire.Mongo.Tests
         public void MultipleServerRunsRecurrentJobs()
         {
             // ARRANGE
-
             var options = new BackgroundJobServerOptions[_serverCount];
             var storage = new MongoStorage[_serverCount];
             var servers = new BackgroundJobServer[_serverCount];
@@ -28,9 +27,9 @@ namespace Hangfire.Mongo.Tests
 
             for (int i = 0; i < _serverCount; i++)
             {
-                options[i] = new BackgroundJobServerOptions {Queues = new[] {$"queue_options_{i}"}, WorkerCount = _workerCount };
+                options[i] = new BackgroundJobServerOptions { Queues = new[] { $"queue_options_{i}" }, WorkerCount = _workerCount };
                 storage[i] = new MongoStorage(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName(),
-                    new MongoStorageOptions {QueuePollInterval = TimeSpan.FromSeconds(1)});
+                    new MongoStorageOptions { QueuePollInterval = TimeSpan.FromSeconds(1) });
 
                 servers[i] = new BackgroundJobServer(options[i], storage[i]);
                 jobManagers[i] = new RecurringJobManager(storage[i]);
@@ -43,7 +42,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     var i1 = i;
                     var jobManager = jobManagers[i1];
-                    
+
                     for (int j = 0; j < _workerCount; j++)
                     {
                         var j1 = j;

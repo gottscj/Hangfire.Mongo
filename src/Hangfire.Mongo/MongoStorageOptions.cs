@@ -23,8 +23,9 @@ namespace Hangfire.Mongo
             JobExpirationCheckInterval = TimeSpan.FromHours(1);
             CountersAggregateInterval = TimeSpan.FromMinutes(5);
 
-
             ClientId = Guid.NewGuid().ToString().Replace("-", string.Empty);
+
+            MigrationOptions = new MongoMigrationOptions();
         }
 
         /// <summary>
@@ -98,5 +99,10 @@ namespace Hangfire.Mongo
         /// </summary>
         public TimeSpan CountersAggregateInterval { get; set; }
 
+
+        /// <summary>
+        /// The options used if migration is needed
+        /// </summary>
+        public MongoMigrationOptions MigrationOptions { get; set; }
     }
 }
