@@ -161,6 +161,7 @@ namespace Hangfire.Mongo.DistributedLock
                     }
                     else
                     {
+                        // EventWaitHandle is not supported on UNIX systems 
                         if (IsWindows)
                         {
                             var eventWaitHandle = new EventWaitHandle(false, EventResetMode.AutoReset, EventWaitHandleName);
