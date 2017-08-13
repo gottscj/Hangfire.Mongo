@@ -29,18 +29,16 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         public void ConfigureServices(IServiceCollection services)
         {
             // Add framework services.
+            var connectionString = "mongodb://localhost";
+            services.AddHangfire(config => config.UseMongoStorage(connectionString, "hangfire-mongo-sample-aspnetcore"));
             services.AddMvc();
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            var connectionString = "mongodb://localhost:27017";
-            GlobalConfiguration.Configuration.UseMongoStorage(connectionString, "hangfire-mongo-sample-aspnetcore");
             app.UseHangfireServer();
-
-            // Enables the Dashboard UI middleware to listen on `/hangfire`
-            // path string.
             app.UseHangfireDashboard();
 
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
