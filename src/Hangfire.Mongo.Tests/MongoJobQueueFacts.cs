@@ -106,7 +106,7 @@ namespace Hangfire.Mongo.Tests
                 };
 
                 connection.JobQueue.InsertOne(jobQueue);
-                
+
                 var queue = CreateJobQueue(connection);
 
                 // Act
