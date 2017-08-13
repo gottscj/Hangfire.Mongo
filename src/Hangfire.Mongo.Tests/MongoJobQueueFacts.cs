@@ -34,7 +34,7 @@ namespace Hangfire.Mongo.Tests
                 var exception = Assert.Throws<ArgumentNullException>(
                    () => new MongoJobQueue(connection, null));
 
-                Assert.Equal("options", exception.ParamName);
+                Assert.Equal("storageOptions", exception.ParamName);
             });
         }
 
@@ -104,7 +104,7 @@ namespace Hangfire.Mongo.Tests
                 };
 
                 connection.JobQueue.InsertOne(jobQueue);
-                
+
                 var queue = CreateJobQueue(connection);
 
                 // Act

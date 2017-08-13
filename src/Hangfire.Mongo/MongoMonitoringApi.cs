@@ -91,7 +91,7 @@ namespace Hangfire.Mongo
 
                 if (job == null)
                     return null;
-                
+
                 var history = job.StateHistory.Select(x => new StateHistoryDto
                 {
                     StateName = x.Name,
@@ -315,15 +315,17 @@ namespace Hangfire.Mongo
                 .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobIds))
                 .ToList();
 
-            var jobIdToJobQueueMap = connection.JobQueue
-                .Find(Builders<JobQueueDto>.Filter.In(_ => _.JobId, jobs.Select(job => job.Id))
-                      & (Builders<JobQueueDto>.Filter.Not(Builders<JobQueueDto>.Filter.Exists(_ => _.FetchedAt))
-                      | Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)))
-                .ToList().ToDictionary(kv => kv.JobId, kv => kv);
-            
-            IEnumerable<JobDto> jobsFiltered = jobs.Where(job => jobIdToJobQueueMap.ContainsKey(job.Id));
+            var filterBuilder = Builders<JobQueueDto>.Filter;
+            var enqueuedJobs = connection.JobQueue
+                .Find(filterBuilder.In(_ => _.JobId, jobs.Select(job => job.Id)) &
+                      (filterBuilder.Not(filterBuilder.Exists(_ => _.FetchedAt)) | filterBuilder.Eq(_ => _.FetchedAt, null)))
+                .ToList();
 
-            List<JobDetailedDto> joinedJobs = jobsFiltered
+            var jobsFiltered = enqueuedJobs
+                .Select(jq => jobs.FirstOrDefault(job => job.Id == jq.JobId));
+
+            var joinedJobs = jobsFiltered
+                .Where(job => job != null)
                 .Select(job =>
                 {
                     var state = job.StateHistory.LastOrDefault();
@@ -362,9 +364,7 @@ namespace Hangfire.Mongo
             {
                 var stateData = job.StateData;
                 var dto = selector(job, DeserializeJob(job.InvocationData, job.Arguments), stateData);
-
-                result.Add(new KeyValuePair<string, TDto>(
-                    job.Id, dto));
+                result.Add(new KeyValuePair<string, TDto>(job.Id, dto));
             }
 
             return new JobList<TDto>(result);
@@ -404,7 +404,7 @@ namespace Hangfire.Mongo
                       & Builders<JobQueueDto>.Filter.Exists(_ => _.FetchedAt)
                       & Builders<JobQueueDto>.Filter.Not(Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)))
                 .ToList().ToDictionary(kv => kv.JobId, kv => kv);
-            
+
             IEnumerable<JobDto> jobsFiltered = jobs.Where(job => jobIdToJobQueueMap.ContainsKey(job.Id));
 
             List<JobDetailedDto> joinedJobs = jobsFiltered
@@ -455,7 +455,7 @@ namespace Hangfire.Mongo
                 .Skip(from)
                 .Limit(count)
                 .ToList();
-            
+
             List<JobDetailedDto> joinedJobs = jobs
                 .Select(job =>
                 {
