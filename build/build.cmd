@@ -30,7 +30,7 @@ echo Restoring NuGet packages...
 %nuget% restore %sources_path%\Hangfire.Mongo.sln
 
 echo build project using selected MSBuild
-%msbuild% %sources_path%\Hangfire.Mongo.sln /t:Rebuild /p:Configuration="Release" /p:Platform="Any CPU"
+%msbuild% %sources_path%\Hangfire.Mongo.sln /t:Restore /t:Rebuild /p:Configuration="Release" /p:Platform="Any CPU"
 
 rem CREATE ARTIFACTS
 echo delete and create artifacts folders
@@ -47,7 +47,7 @@ echo Restoring NuGet packages...
 %nuget% restore %artifacts_sources_path%\Hangfire.Mongo\Hangfire.Mongo.csproj
 
 echo build project using selected MSBuild
-%msbuild% %artifacts_sources_path%\Hangfire.Mongo\Hangfire.Mongo.csproj /t:Rebuild /t:pack /p:Configuration="Release" /p:Platform="Any CPU"
+%msbuild% %artifacts_sources_path%\Hangfire.Mongo\Hangfire.Mongo.csproj /t:Restore /t:Rebuild /t:pack /p:Configuration="Release" /p:Platform="Any CPU"
 
 if errorlevel 1 (
 	echo Build failed.
