@@ -39,7 +39,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
                 jobQueueCollection.InsertMany(migratedJobQueueList);
             }
 
-            var filter = Builders<BsonDocument>.Filter.In("_id", jobIdMapping.Keys);
+            var filter = Builders<BsonDocument>.Filter.In("JobId", jobIdMapping.Keys);
             jobQueueCollection.DeleteMany(filter);
 
             return true;
