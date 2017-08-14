@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.Storage;
 using MongoDB.Driver;
@@ -141,7 +140,7 @@ namespace Hangfire.Mongo.Tests
                 var exception = Assert.Throws<ArgumentNullException>(() =>
                     new MongoDistributedLock("resource1", TimeSpan.Zero, database, null));
 
-                Assert.Equal("options", exception.ParamName);
+                Assert.Equal("storageOptions", exception.ParamName);
             });
         }
 

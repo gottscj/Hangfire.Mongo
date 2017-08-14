@@ -1,4 +1,4 @@
- @echo off
+@echo off
 
 set community_msbuild=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe
 set proofessional_msbuild=C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\Bin\MSBuild.exe
@@ -31,6 +31,10 @@ echo Restoring NuGet packages...
 
 echo build project using selected MSBuild
 %msbuild% %sources_path%\Hangfire.Mongo.sln /t:Rebuild /p:Configuration="Release" /p:Platform="Any CPU"
+if errorlevel 1 (
+	echo Build failed.
+	exit /B 1
+)
 
 rem CREATE ARTIFACTS
 echo delete and create artifacts folders

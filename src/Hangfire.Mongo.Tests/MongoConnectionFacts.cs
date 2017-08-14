@@ -6,7 +6,6 @@ using System.Threading;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.Server;
@@ -265,7 +264,7 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     StateName = "",
                     CreatedAt = DateTime.UtcNow,
-                    StateHistory = new [] {state}
+                    StateHistory = new[] { state }
                 };
 
                 database.Job.InsertOne(jobDto);
@@ -283,7 +282,7 @@ namespace Hangfire.Mongo.Tests
                     });
 
                 database.Job.UpdateOne(j => j.Id == jobId, update);
-                
+
                 var result = connection.GetStateData(jobId.ToString());
                 Assert.NotNull(result);
 
@@ -412,7 +411,7 @@ namespace Hangfire.Mongo.Tests
                 string jobId = jobDto.Id.ToString();
 
                 connection.SetJobParameter(jobId, "Name", null);
-                
+
                 var parameters = database
                     .Job
                     .Find(j => j.Id == jobId)
@@ -590,8 +589,7 @@ namespace Hangfire.Mongo.Tests
 
                 var server = database.Server.Find(new BsonDocument()).Single();
                 Assert.Equal("server", server.Id);
-                Assert.True(server.Data.StartsWith(
-                    "{\"WorkerCount\":4,\"Queues\":[\"critical\",\"default\"],\"StartedAt\":"),
+                Assert.True(server.Data.StartsWith("{\"WorkerCount\":4,\"Queues\":[\"critical\",\"default\"],\"StartedAt\":", StringComparison.InvariantCulture),
                     server.Data);
                 Assert.NotNull(server.LastHeartbeat);
 
@@ -882,7 +880,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal("Value2", result["Key2"]);
             });
         }
-        
+
         [Fact, CleanDatabase]
         public void GetSetCount_ThrowsAnException_WhenKeyIsNull()
         {

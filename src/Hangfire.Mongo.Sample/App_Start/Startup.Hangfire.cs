@@ -9,7 +9,15 @@ namespace Hangfire.Mongo.Sample
         {
             // Read DefaultConnection string from Web.config
             var connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-            GlobalConfiguration.Configuration.UseMongoStorage(connectionString, "hangfire-mongo-sample");
+
+            var migrationOptions = new MongoStorageOptions
+            {
+                MigrationOptions = new MongoMigrationOptions
+                {
+                    Strategy = MongoMigrationStrategy.Migrate,
+                }
+            };
+            GlobalConfiguration.Configuration.UseMongoStorage(connectionString, "hangfire-mongo-sample", migrationOptions);
             //GlobalConfiguration.Configuration.UseMongoStorage(new MongoClientSettings
             //{
             //    // ...

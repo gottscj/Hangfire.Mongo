@@ -5,7 +5,6 @@ using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.MongoUtils;
 using Hangfire.Storage;
 using MongoDB.Driver;
 
@@ -14,7 +13,7 @@ namespace Hangfire.Mongo.DistributedLock
     /// <summary>
     /// Represents distibuted lock implementation for MongoDB
     /// </summary>
-    public sealed class MongoDistributedLock : IDisposable
+    internal sealed class MongoDistributedLock : IDisposable
     {
 
         private static readonly ILog Logger = LogProvider.For<MongoDistributedLock>();
@@ -27,7 +26,7 @@ namespace Hangfire.Mongo.DistributedLock
 
         private readonly HangfireDbContext _database;
 
-        private readonly MongoStorageOptions _options;
+        private readonly MongoStorageOptions _storageOptions;
 
 
         private Timer _heartbeatTimer;
@@ -50,31 +49,23 @@ namespace Hangfire.Mongo.DistributedLock
         /// <param name="resource">Lock resource</param>
         /// <param name="timeout">Lock timeout</param>
         /// <param name="database">Lock database</param>
-        /// <param name="options">Database options</param>
+        /// <param name="storageOptions">Database options</param>
         /// <exception cref="DistributedLockTimeoutException">Thrown if lock is not acuired within the timeout</exception>
         /// <exception cref="MongoDistributedLockException">Thrown if other mongo specific issue prevented the lock to be acquired</exception>
-        public MongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext database, MongoStorageOptions options)
+        public MongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext database, MongoStorageOptions storageOptions)
         {
+            _resource = resource ?? throw new ArgumentNullException(nameof(resource));
+            _database = database ?? throw new ArgumentNullException(nameof(database));
+            _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
+
             if (string.IsNullOrEmpty(resource))
             {
-                throw new ArgumentNullException(nameof(resource));
+                throw new ArgumentException($@"The {nameof(resource)} cannot be empty", nameof(resource));
             }
             if (timeout.TotalSeconds > int.MaxValue)
             {
                 throw new ArgumentException($"The timeout specified is too large. Please supply a timeout equal to or less than {int.MaxValue} seconds", nameof(timeout));
             }
-            if (database == null)
-            {
-                throw new ArgumentNullException(nameof(database));
-            }
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-
-            _resource = resource;
-            _database = database;
-            _options = options;
 
             if (!AcquiredLocks.Value.ContainsKey(_resource) || AcquiredLocks.Value[_resource] == 0)
             {
@@ -146,7 +137,7 @@ namespace Hangfire.Mongo.DistributedLock
                 {
                     // Acquire the lock if it does not exist - Notice: ReturnDocument.Before
                     var filter = Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource);
-                    var update = Builders<DistributedLockDto>.Update.SetOnInsert(_ => _.ExpireAt, DateTime.UtcNow.Add(_options.DistributedLockLifetime));
+                    var update = Builders<DistributedLockDto>.Update.SetOnInsert(_ => _.ExpireAt, DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime));
                     var options = new FindOneAndUpdateOptions<DistributedLockDto>
                     {
                         IsUpsert = true,
@@ -239,7 +230,7 @@ namespace Hangfire.Mongo.DistributedLock
         /// </summary>
         private void StartHeartBeat()
         {
-            TimeSpan timerInterval = TimeSpan.FromMilliseconds(_options.DistributedLockLifetime.TotalMilliseconds / 5);
+            TimeSpan timerInterval = TimeSpan.FromMilliseconds(_storageOptions.DistributedLockLifetime.TotalMilliseconds / 5);
 
             _heartbeatTimer = new Timer(state =>
             {
@@ -250,7 +241,7 @@ namespace Hangfire.Mongo.DistributedLock
                     try
                     {
                         var filter = Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource);
-                        var update = Builders<DistributedLockDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(_options.DistributedLockLifetime));
+                        var update = Builders<DistributedLockDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime));
                         _database.DistributedLock.FindOneAndUpdate(filter, update);
                     }
                     catch (Exception ex)
