@@ -37,7 +37,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void GetMonitoringApi_ReturnsNonNullInstance()
         {
-            MongoStorage storage = CreateStorage();
+            MongoStorage storage = ConnectionUtils.CreateStorage();
             IMonitoringApi api = storage.GetMonitoringApi();
             Assert.NotNull(api);
         }
@@ -45,7 +45,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void GetConnection_ReturnsNonNullInstance()
         {
-            MongoStorage storage = CreateStorage();
+            MongoStorage storage = ConnectionUtils.CreateStorage();
             using (IStorageConnection connection = storage.GetConnection())
             {
                 Assert.NotNull(connection);
@@ -55,7 +55,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void GetComponents_ReturnsAllNeededComponents()
         {
-            MongoStorage storage = CreateStorage();
+            MongoStorage storage = ConnectionUtils.CreateStorage();
 
             var components = storage.GetComponents();
 
@@ -63,10 +63,6 @@ namespace Hangfire.Mongo.Tests
             Assert.Contains(typeof(ExpirationManager), componentTypes);
         }
 
-        private static MongoStorage CreateStorage()
-        {
-            return new MongoStorage(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName());
-        }
     }
 #pragma warning restore 1591
 }

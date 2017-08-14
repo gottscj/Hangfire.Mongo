@@ -14,7 +14,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void CountersAggregatorExecutesProperly()
         {
-            var storage = new MongoStorage(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName());
+            var storage = ConnectionUtils.CreateStorage();
             using (var connection = (MongoConnection)storage.GetConnection())
             {
                 // Arrange

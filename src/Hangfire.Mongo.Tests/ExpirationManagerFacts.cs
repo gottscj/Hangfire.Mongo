@@ -22,7 +22,7 @@ namespace Hangfire.Mongo.Tests
 
         public ExpirationManagerFacts()
         {
-            _storage = new MongoStorage(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName());
+            _storage = ConnectionUtils.CreateStorage();
             _queueProviders = _storage.QueueProviders;
 
             _token = new CancellationToken(true);
