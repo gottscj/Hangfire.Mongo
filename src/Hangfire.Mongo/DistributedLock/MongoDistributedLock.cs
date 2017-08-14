@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -15,6 +14,13 @@ namespace Hangfire.Mongo.DistributedLock
     /// </summary>
     internal sealed class MongoDistributedLock : IDisposable
     {
+
+        // EventWaitHandle is not supported on UNIX systems
+        // https://github.com/dotnet/coreclr/pull/1387
+        // Instead of using a compiler directive, we catch the
+        // exception and handles it. This way, when EventWaitHandle
+        // becomes available on UNIX, we will start working.
+        private static bool _isEventWaitHandleSupported = true;
 
         private static readonly ILog Logger = LogProvider.For<MongoDistributedLock>();
 
@@ -36,12 +42,6 @@ namespace Hangfire.Mongo.DistributedLock
         private readonly object _lockObject = new object();
 
         private string EventWaitHandleName => $@"{GetType().FullName}.{_resource}";
-
-        private readonly static bool IsWindows = System
-                                                    .Runtime
-                                                    .InteropServices
-                                                    .RuntimeInformation
-                                                    .IsOSPlatform(OSPlatform.Windows);
 
         /// <summary>
         /// Creates MongoDB distributed lock
@@ -145,22 +145,36 @@ namespace Hangfire.Mongo.DistributedLock
                     };
                     var result = _database.DistributedLock.FindOneAndUpdate(filter, update, options);
 
-                    // If result is null, then it means we acquired the lock
+                    // If result is null, it means we acquired the lock
                     if (result == null)
                     {
                         isLockAcquired = true;
                     }
                     else
                     {
-                        // EventWaitHandle is not supported on UNIX systems 
-                        if (IsWindows)
+                        EventWaitHandle eventWaitHandle = null;
+                        var waitTime = (int)timeout.TotalMilliseconds / 10;
+                        if (_isEventWaitHandleSupported)
                         {
-                            var eventWaitHandle = new EventWaitHandle(false, EventResetMode.AutoReset, EventWaitHandleName);
-                            eventWaitHandle.WaitOne((int)timeout.TotalMilliseconds / 10);
+                            try
+                            {
+                                // Wait on the event. This allows us to be "woken" up sooner rather than later.
+                                // We wait in chunks as we need to "wake-up" from time to time and poll mongo,
+                                // in case that the lock was acquired on another machine or instance.
+                                eventWaitHandle = new EventWaitHandle(false, EventResetMode.AutoReset, EventWaitHandleName);
+                                eventWaitHandle.WaitOne(waitTime);
+                            }
+                            catch (PlatformNotSupportedException)
+                            {
+                                // See _isEventWaitHandleSupported definition for more info.
+                                _isEventWaitHandleSupported = false;
+                                eventWaitHandle = null;
+                            }
                         }
-                        else
+                        if (eventWaitHandle == null)
                         {
-                            Thread.Sleep((int)timeout.TotalMilliseconds / 10);
+                            // Sleep for a while and then check if the lock has been released.
+                            Thread.Sleep(waitTime);
                         }
                         now = DateTime.Now;
                     }
@@ -194,12 +208,19 @@ namespace Hangfire.Mongo.DistributedLock
                 _database.DistributedLock.DeleteOne(
                     Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource));
 
-                if (IsWindows)
+                if (_isEventWaitHandleSupported)
                 {
-                    EventWaitHandle eventWaitHandler;
-                    if (EventWaitHandle.TryOpenExisting(EventWaitHandleName, out eventWaitHandler))
+                    try
                     {
-                        eventWaitHandler.Set();
+                        if (EventWaitHandle.TryOpenExisting(EventWaitHandleName, out EventWaitHandle eventWaitHandler))
+                        {
+                            eventWaitHandler.Set();
+                        }
+                    }
+                    catch (PlatformNotSupportedException)
+                    {
+                        // See _isEventWaitHandleSupported definition for more info.
+                        _isEventWaitHandleSupported = false;
                     }
                 }
             }
