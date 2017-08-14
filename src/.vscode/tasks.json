@@ -19,6 +19,23 @@
             "problemMatcher": [
                 "$msCompile"
             ]
+        },
+        {
+            "taskName": "Unit Test Hangfire.Mongo.Tests",
+            "command": "dotnet",
+            "args": [
+                "test",
+                "-f",
+                "netcoreapp1.0",
+                "${workspaceRoot}/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
+            ],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ]
         }
     ]
 }
