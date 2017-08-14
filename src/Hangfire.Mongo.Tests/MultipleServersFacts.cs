@@ -15,7 +15,7 @@ namespace Hangfire.Mongo.Tests
         private static int _workerCount = 20;
         private static AutoResetEvent[] _signals;
 
-        [/*Fact*/ Fact(Skip = "Long running and does not always fail"), CleanDatabase]
+        [Fact(Skip = "Long running and does not always fail"), CleanDatabase]
         public void MultipleServerRunsRecurrentJobs()
         {
             // ARRANGE
@@ -28,8 +28,7 @@ namespace Hangfire.Mongo.Tests
             for (int i = 0; i < _serverCount; i++)
             {
                 options[i] = new BackgroundJobServerOptions { Queues = new[] { $"queue_options_{i}" }, WorkerCount = _workerCount };
-                storage[i] = new MongoStorage(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName(),
-                    new MongoStorageOptions { QueuePollInterval = TimeSpan.FromSeconds(1) });
+                storage[i] = ConnectionUtils.CreateStorage(new MongoStorageOptions { QueuePollInterval = TimeSpan.FromSeconds(1) });
 
                 servers[i] = new BackgroundJobServer(options[i], storage[i]);
                 jobManagers[i] = new RecurringJobManager(storage[i]);

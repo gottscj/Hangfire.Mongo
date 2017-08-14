@@ -36,7 +36,7 @@ namespace Hangfire.Mongo.Sample.NETCore
                 Console.WriteLine();
                 Console.WriteLine("Press any key to exit...");
 
-                Console.ReadKey(true);
+                Console.Read();
             }
         }
     }

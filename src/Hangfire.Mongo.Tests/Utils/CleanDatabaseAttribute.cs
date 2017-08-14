@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Reflection;
 using System.Threading;
-using Hangfire.Mongo.Database;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Xunit.Sdk;
@@ -27,12 +26,12 @@ namespace Hangfire.Mongo.Tests.Utils
 
         private static void RecreateDatabaseAndInstallObjects()
         {
-            using (HangfireDbContext context = new HangfireDbContext(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName()))
+            using (var context = ConnectionUtils.CreateConnection())
             {
                 try
                 {
                     context.Init(new MongoStorageOptions());
-                    
+
                     context.DistributedLock.DeleteMany(new BsonDocument());
                     context.StateData.DeleteMany(new BsonDocument());
                     context.Job.DeleteMany(new BsonDocument());
