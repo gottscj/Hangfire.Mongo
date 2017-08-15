@@ -98,11 +98,13 @@ namespace Hangfire.Mongo.Tests
                     var locksCount = database.DistributedLock.Count(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
                     Assert.Equal(1, locksCount);
 
-                    Task.Run(() =>
+                    var t = new Thread(() =>
                     {
                         Assert.Throws<DistributedLockTimeoutException>(() =>
                                 new MongoDistributedLock("resource1", TimeSpan.Zero, database, new MongoStorageOptions()));
-                    }).Wait();
+                    });
+                    t.Start();
+                    Assert.True(t.Join(5000), "Thread is hanging unexpected");
                 }
             });
         }
@@ -112,20 +114,21 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                Task.Run(() =>
+                var t = new Thread(() =>
                 {
                     using (new MongoDistributedLock("resource1", TimeSpan.Zero, database, new MongoStorageOptions()))
                     {
-                        Thread.Sleep(TimeSpan.FromSeconds(5));
+                        Thread.Sleep(TimeSpan.FromSeconds(3));
                     }
                 });
+                t.Start();
 
                 // Wait just a bit to make sure the above lock is acuired
                 Thread.Sleep(TimeSpan.FromSeconds(1));
 
                 // Record when we try to aquire the lock
                 var startTime = DateTime.Now;
-                using (new MongoDistributedLock("resource1", TimeSpan.FromSeconds(30), database, new MongoStorageOptions()))
+                using (new MongoDistributedLock("resource1", TimeSpan.FromSeconds(10), database, new MongoStorageOptions()))
                 {
                     Assert.InRange(DateTime.Now - startTime, TimeSpan.Zero, TimeSpan.FromSeconds(5));
                 }

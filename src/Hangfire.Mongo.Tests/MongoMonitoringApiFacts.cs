@@ -332,7 +332,7 @@ namespace Hangfire.Mongo.Tests
             {
                 Id = jobId,
                 InvocationData = JobHelper.ToJson(InvocationData.Serialize(job)),
-                Arguments = "['Arguments']",
+                Arguments = "[\"\\\"Arguments\\\"\"]",
                 StateName = stateName,
                 CreatedAt = DateTime.UtcNow,
                 StateHistory = new []{jobState}

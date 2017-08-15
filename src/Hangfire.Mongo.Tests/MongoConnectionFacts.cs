@@ -206,7 +206,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = ObjectId.GenerateNewId().ToString(),
                     InvocationData = JobHelper.ToJson(InvocationData.Serialize(job)),
-                    Arguments = "['Arguments']",
+                    Arguments = "[\"\\\"Arguments\\\"\"]",
                     StateName = "Succeeded",
                     CreatedAt = DateTime.UtcNow
                 };
@@ -301,7 +301,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = 1.ToString(),
                     InvocationData = JobHelper.ToJson(new InvocationData(null, null, null, null)),
-                    Arguments = "['Arguments']",
+                    Arguments = "[\"\\\"Arguments\\\"\"]",
                     StateName = "Succeeded",
                     CreatedAt = DateTime.UtcNow
                 };
