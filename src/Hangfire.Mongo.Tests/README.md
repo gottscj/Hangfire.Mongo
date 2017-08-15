@@ -3,7 +3,13 @@ Hangfire.Mongo.Tests
 
 # Important Notice
 
-Unit tests is not detected when using Visual Studio for Mac. Please use Visual Studio Code if you want to run unit tests on macos or unis systems.
+We now have (.netcore) support for running unit test on macos and unix.
+
+Please use Visual Studio Code if you want to run unit tests on macos or unix systems.
+
+## MacOS
+Unit tests are not detected when using *Visual Studio for Mac*. They do however compile. Hopefully will this be supported soon.
+
 
 Contributors
 ------------
