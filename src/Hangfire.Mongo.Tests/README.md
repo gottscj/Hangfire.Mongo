@@ -3,12 +3,13 @@ Hangfire.Mongo.Tests
 
 # Important Notice
 
-Do NOT update xUnit. Version 2.1.0 of xUnit is the lat to support .NET Framework 4.5.
-From xUnit 2.2.0 and forward at least .NET Framework 4.5.2 is required.
+We now have (.netcore) support for running unit test on macos and unix.
 
-So until the target framework for this project is changed to .NET Framework 4.5.2 or later, please do not touch xUnit.
+Please use Visual Studio Code if you want to run unit tests on macos or unix systems.
 
-Documentation found [here](http://xunit.github.io/releases/2.2)
+## MacOS
+Unit tests are not detected when using *Visual Studio for Mac*. They do however compile. Hopefully will this be supported soon.
+
 
 Contributors
 ------------

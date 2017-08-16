@@ -8,7 +8,6 @@
   <MonoDevelop.Ide.DebuggingService.PinnedWatches />
   <MultiItemStartupConfigurations />
   <DisabledProjects>
-    <String>Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj</String>
     <String>Hangfire.Mongo.Sample.NETCore/Hangfire.Mongo.Sample.NETCore.csproj</String>
   </DisabledProjects>
 </Properties>

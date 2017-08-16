@@ -204,15 +204,15 @@ namespace Hangfire.Mongo.Tests
 
                 var jobDto = new JobDto
                 {
-                    Id = 1.ToString(),
+                    Id = ObjectId.GenerateNewId().ToString(),
                     InvocationData = JobHelper.ToJson(InvocationData.Serialize(job)),
-                    Arguments = "['Arguments']",
+                    Arguments = "[\"\\\"Arguments\\\"\"]",
                     StateName = "Succeeded",
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
 
-                var result = connection.GetJobData(jobDto.Id.ToString());
+                var result = connection.GetJobData(jobDto.Id);
 
                 Assert.NotNull(result);
                 Assert.NotNull(result.Job);
@@ -301,7 +301,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = 1.ToString(),
                     InvocationData = JobHelper.ToJson(new InvocationData(null, null, null, null)),
-                    Arguments = "['Arguments']",
+                    Arguments = "[\"\\\"Arguments\\\"\"]",
                     StateName = "Succeeded",
                     CreatedAt = DateTime.UtcNow
                 };
@@ -589,7 +589,7 @@ namespace Hangfire.Mongo.Tests
 
                 var server = database.Server.Find(new BsonDocument()).Single();
                 Assert.Equal("server", server.Id);
-                Assert.True(server.Data.StartsWith("{\"WorkerCount\":4,\"Queues\":[\"critical\",\"default\"],\"StartedAt\":", StringComparison.InvariantCulture),
+                Assert.True(server.Data.StartsWith("{\"WorkerCount\":4,\"Queues\":[\"critical\",\"default\"],\"StartedAt\":", StringComparison.Ordinal),
                     server.Data);
                 Assert.NotNull(server.LastHeartbeat);
 
