@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Common;
 using Hangfire.Mongo.Tests.Utils;
 using Xunit;
@@ -11,71 +10,66 @@ namespace Hangfire.Mongo.Tests
     [Collection("Database")]
     public class MultipleServersFacts
     {
-        private static int _serverCount = 5;
-        private static int _workerCount = 20;
-        private static AutoResetEvent[] _signals;
-
         [Fact(Skip = "Long running and does not always fail"), CleanDatabase]
         public void MultipleServerRunsRecurrentJobs()
         {
             // ARRANGE
-            var options = new BackgroundJobServerOptions[_serverCount];
-            var storage = new MongoStorage[_serverCount];
-            var servers = new BackgroundJobServer[_serverCount];
-            _signals = new AutoResetEvent[_serverCount];
-            var jobManagers = new RecurringJobManager[_serverCount];
+            const int serverCount = 20;
+            const int workerCount = 20;
 
-            for (int i = 0; i < _serverCount; i++)
+            var options = new BackgroundJobServerOptions[serverCount];
+            var storage = ConnectionUtils.CreateStorage(new MongoStorageOptions { QueuePollInterval = TimeSpan.FromSeconds(1) });
+            var servers = new BackgroundJobServer[serverCount];
+
+            var jobManagers = new RecurringJobManager[serverCount];
+
+            for (int i = 0; i < serverCount; i++)
             {
-                options[i] = new BackgroundJobServerOptions { Queues = new[] { $"queue_options_{i}" }, WorkerCount = _workerCount };
-                storage[i] = ConnectionUtils.CreateStorage(new MongoStorageOptions { QueuePollInterval = TimeSpan.FromSeconds(1) });
+                options[i] = new BackgroundJobServerOptions { Queues = new[] { $"queue_options_{i}" }, WorkerCount = workerCount };
 
-                servers[i] = new BackgroundJobServer(options[i], storage[i]);
-                jobManagers[i] = new RecurringJobManager(storage[i]);
-                _signals[i] = new AutoResetEvent(false);
+                servers[i] = new BackgroundJobServer(options[i], storage);
+                jobManagers[i] = new RecurringJobManager(storage);
             }
+
             try
             {
+
                 // ACT
-                for (int i = 0; i < _serverCount; i++)
+                for (int i = 0; i < serverCount; i++)
                 {
                     var i1 = i;
                     var jobManager = jobManagers[i1];
 
-                    for (int j = 0; j < _workerCount; j++)
+                    for (int j = 0; j < workerCount; j++)
                     {
                         var j1 = j;
                         var queueIndex = j1 % options[i1].Queues.Length;
                         var queueName = options[i1].Queues[queueIndex];
-                        var job = Job.FromExpression(() => SetSignal(queueName, i1));
-                        var jobId = Guid.NewGuid().ToString("N");
+                        var job = Job.FromExpression(() => Console.WriteLine("Setting signal for queue {0}",
+                            queueName));
+                        var jobId = $"job:[{i},{j}]";
 
                         jobManager.AddOrUpdate(jobId, job, Cron.Minutely(), new RecurringJobOptions
                         {
                             QueueName = queueName
                         });
+                        jobManager.Trigger(jobId);
                     }
                 }
-                WaitHandle.WaitAll(_signals);
-                // ASSERT
-                // no exceptions
+
+                // let hangfire run for 1 sec
+                Task.Delay(1000).Wait();
             }
             finally
             {
-                for (int i = 0; i < _serverCount; i++)
+                for (int i = 0; i < serverCount; i++)
                 {
                     servers[i].SendStop();
                     servers[i].Dispose();
-                    _signals[i].Dispose();
                 }
             }
         }
 
-        public static void SetSignal(string queueName, int index)
-        {
-            Debug.WriteLine("Setting signal for queue {0}", queueName);
-            _signals[index].Set();
-        }
     }
 #pragma warning restore 1591
 }
