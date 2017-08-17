@@ -1,21 +1,21 @@
 
 ## What's New (07/24/2017)
 
-### Bug fixes (v0.4.2)
+### v0.5.0
+- Migration has been introduces. So now you can upgrade from previous version without loosing you jobs.
 - MonitoringApi returning succeeded jobs when quering processing
 - List and Set not sorted correctly
 - Fixed NuGet references for xUnit so they again can be run from IDE
-- Updated Hangfire NuGet reference to latest ([Hangfire 1.6.14](https://github.com/HangfireIO/Hangfire/releases/tag/v1.6.14))
-- Updated project files so it is possible to buiold and run .NETCore sample from [Visual Studio Code](https://code.visualstudio.com)
-- Locking MongoWriteOnlyTransaction.Commit (for now)
+- Updated Hangfire NuGet reference to latest ([Hangfire 1.6.15](https://github.com/HangfireIO/Hangfire/releases/tag/v1.6.15))
+- Updated project files so it is possible to build and run .NETCore sample from [Visual Studio Code](https://code.visualstudio.com)
 - Using MongoWriteOnlyTransaction.SetRangeInHash in MongoConnection.SetRangeInHash
 
-### Bug fixes (v0.4.1)
+### v0.4.1
 - Add workaround for MongDB C# driver not adding inheritance types when doing upsert
   - (We have filed a bug report with MongoDB)
 - Fix bug in MongoWriteOnlyTransaction.AddRangeToSet where Value not being written for upsert
 
-### *** BREAKING CHANGES FOR v0.4.0 *** (v0.4.0)
+### *** BREAKING CHANGES FOR v0.4.0 *** v0.4.0
 - Combined collections for state data into one collection
 - Optimized job creation
   - Not getting timestamp from mongodb. Using Datetime.UtcNow

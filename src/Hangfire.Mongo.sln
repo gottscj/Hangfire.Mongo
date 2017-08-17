@@ -10,6 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{87D6A811
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "description", "description", "{561F7C57-4031-40D9-937C-ADA64A99E004}"
 	ProjectSection(SolutionItems) = preProject
+		..\ChangeLog.md = ..\ChangeLog.md
 		..\LICENSE = ..\LICENSE
 		..\README.md = ..\README.md
 	EndProjectSection
