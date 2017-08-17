@@ -32,6 +32,12 @@
                     "netstandard1.5"
                 ]
             },
+            "linux": {
+                "args": [
+                    "-f",
+                    "netstandard1.5"
+                ]
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -83,6 +89,12 @@
                     "netcoreapp1.0"
                 ]
             },
+            "linux": {
+                "args": [
+                    "-f",
+                    "netcoreapp1.0"
+                ]
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -99,6 +111,12 @@
                 "${workspaceRoot}/src/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
             ],
             "osx": {
+                "args": [
+                    "-f",
+                    "netcoreapp1.0"
+                ]
+            },
+            "linux": {
                 "args": [
                     "-f",
                     "netcoreapp1.0"
