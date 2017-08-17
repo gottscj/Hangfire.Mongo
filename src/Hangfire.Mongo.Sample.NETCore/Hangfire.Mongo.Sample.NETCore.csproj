@@ -8,7 +8,6 @@
     <OutputType>Exe</OutputType>
     <PackageId>Hangfire.Mongo.Sample.NETCore</PackageId>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
-    <RuntimeFrameworkVersion>1.0.4</RuntimeFrameworkVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,7 +15,7 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Hangfire.Core" Version="1.6.14" />
+		<PackageReference Include="Hangfire.Core" Version="1.6.15" />
 		<PackageReference Include="MongoDB.Driver" Version="2.3.0" />
 	</ItemGroup>
 
