@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Hangfire;
 
 namespace Hangfire.Mongo.Sample.ASPNetCore
 {
@@ -29,10 +24,22 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         public void ConfigureServices(IServiceCollection services)
         {
             // Add framework services.
-            var connectionString = "mongodb://localhost";
-            services.AddHangfire(config => config.UseMongoStorage(connectionString, "hangfire-mongo-sample-aspnetcore"));
+            services.AddHangfire(config =>
+            {
+                // Read DefaultConnection string from appsettings.json
+                var connectionString = Configuration.GetConnectionString("DefaultConnection");
+
+                var migrationOptions = new MongoStorageOptions
+                {
+                    MigrationOptions = new MongoMigrationOptions
+                    {
+                        Strategy = MongoMigrationStrategy.Migrate,
+                    }
+                };
+                config.UseMongoStorage(connectionString, "hangfire-mongo-sample-aspnetcore", migrationOptions);
+            });
             services.AddMvc();
-            
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

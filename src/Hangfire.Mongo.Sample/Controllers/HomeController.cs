@@ -13,7 +13,7 @@ namespace Hangfire.Mongo.Sample.Controllers
 
         public ActionResult FireAndForget(int id)
         {
-            for (var i = 0; i < id; i++)
+            for (int i = 0; i < id; i++)
             {
                 var index = i;
                 BackgroundJob.Enqueue(() => PrintToDebug($@"Hangfire fire-and-forget task started ({index}) - {Guid.NewGuid()}"));

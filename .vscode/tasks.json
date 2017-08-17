@@ -36,13 +36,28 @@
             ]
         },
         {
+            "taskName": "Build Hangfire.Mongo.Tests",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "${workspaceRoot}/src/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ]
+        },
+        {
             "taskName": "Unit Test Hangfire.Mongo.Tests",
             "command": "dotnet",
             "args": [
                 "test",
                 "-f",
                 "netcoreapp1.0",
-                "${workspaceRoot}/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
+                "${workspaceRoot}/src/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
             ],
             "group": {
                 "kind": "test",

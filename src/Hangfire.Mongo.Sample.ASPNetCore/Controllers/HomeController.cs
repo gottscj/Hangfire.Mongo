@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Hangfire.Mongo.Sample.ASPNetCore.Controllers
@@ -17,7 +15,8 @@ namespace Hangfire.Mongo.Sample.ASPNetCore.Controllers
         {
             for (int i = 0; i < id; i++)
             {
-                BackgroundJob.Enqueue(() => PrintToConsole("Hangfire fire-and-forget task started."));
+                var index = i;
+                BackgroundJob.Enqueue(() => PrintToDebug($@"Hangfire fire-and-forget task started ({index}) - {Guid.NewGuid()}"));
             }
 
             return RedirectToAction("Index");
@@ -27,7 +26,8 @@ namespace Hangfire.Mongo.Sample.ASPNetCore.Controllers
         {
             for (int i = 0; i < id; i++)
             {
-                BackgroundJob.Schedule(() => PrintToConsole("Hangfire delayed task started!"), TimeSpan.FromMinutes(1));
+                var index = i;
+                BackgroundJob.Schedule(() => PrintToDebug($@"Hangfire delayed task started ({index}) - {Guid.NewGuid()}"), TimeSpan.FromMinutes(1));
             }
 
             return RedirectToAction("Index");
@@ -35,13 +35,14 @@ namespace Hangfire.Mongo.Sample.ASPNetCore.Controllers
 
         public ActionResult Recurring()
         {
-            RecurringJob.AddOrUpdate(() => PrintToConsole("Hangfire recurring task started!"), Cron.Minutely);
+            RecurringJob.AddOrUpdate(() => PrintToDebug($@"Hangfire recurring task started - {Guid.NewGuid()}"), Cron.Minutely);
 
             return RedirectToAction("Index");
         }
-        public static void PrintToConsole(string message)
+
+        public static void PrintToDebug(string message)
         {
-            Console.WriteLine(message);
+            Debug.WriteLine(message);
         }
     }
 }
