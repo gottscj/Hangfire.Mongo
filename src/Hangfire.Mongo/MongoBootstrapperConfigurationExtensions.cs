@@ -15,7 +15,7 @@ namespace Hangfire.Mongo
         /// Configure Hangfire to use MongoDB storage
         /// </summary>
         /// <param name="configuration">Configuration</param>
-        /// <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:passwordY@host:port'</param>
+        /// <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:password@host:port'</param>
         /// <param name="databaseName">Name of database at Mongo server</param>
         /// <returns></returns>
         [Obsolete("Please use `GlobalConfiguration.UseStorage` instead. Will be removed in Hangfire version 2.0.0.")]
@@ -30,7 +30,7 @@ namespace Hangfire.Mongo
         /// Configure Hangfire to use MongoDB storage
         /// </summary>
         /// <param name="configuration">Configuration</param>
-        /// <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:passwordY@host:port'</param>
+        /// <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:password@host:port'</param>
         /// <param name="databaseName">Name of database at Mongo server</param>
         /// <param name="storageOptions">Storage options</param>
         /// <returns></returns>
@@ -89,7 +89,7 @@ namespace Hangfire.Mongo
         /// Configure Hangfire to use MongoDB storage
         /// </summary>
         /// <param name="configuration">Configuration</param>
-        /// <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:passwordY@host:port'</param>
+        /// <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:password@host:port'</param>
         /// <param name="databaseName">Name of database at Mongo server</param>
         /// <returns></returns>
         public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
@@ -103,7 +103,7 @@ namespace Hangfire.Mongo
         /// Configure Hangfire to use MongoDB storage
         /// </summary>
         /// <param name="configuration">Configuration</param>
-        /// <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:passwordY@host:port'</param>
+        /// <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:password@host:port'</param>
         /// <param name="databaseName">Name of database at Mongo server</param>
         /// <param name="storageOptions">Storage options</param>
         /// <returns></returns>

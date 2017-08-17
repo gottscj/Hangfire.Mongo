@@ -2,9 +2,44 @@
     // See https://go.microsoft.com/fwlink/?LinkId=733558
     // for the documentation about the tasks.json format
     "version": "2.0.0",
-    "command": "dotnet",
-    "args": [],
     "tasks": [
+        {
+            "taskName": "Build all",
+            "dependsOn": [
+                "Build Hangfire.Mongo",
+                "Build Hangfire.Mongo.Sample.NETCore",
+                "Build Hangfire.Mongo.Sample.ASPNetCore",
+                "Build Hangfire.Mongo.Tests"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ]
+        },
+        {
+            "taskName": "Build Hangfire.Mongo",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "${workspaceRoot}/src/Hangfire.Mongo/Hangfire.Mongo.csproj"
+            ],
+            "osx": {
+                "args": [
+                    "-f",
+                    "netstandard1.5"
+                ]
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ]
+        },
         {
             "taskName": "Build Hangfire.Mongo.Sample.NETCore",
             "command": "dotnet",
@@ -42,6 +77,12 @@
                 "build",
                 "${workspaceRoot}/src/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
             ],
+            "osx": {
+                "args": [
+                    "-f",
+                    "netcoreapp1.0"
+                ]
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -55,10 +96,14 @@
             "command": "dotnet",
             "args": [
                 "test",
-                "-f",
-                "netcoreapp1.0",
                 "${workspaceRoot}/src/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
             ],
+            "osx": {
+                "args": [
+                    "-f",
+                    "netcoreapp1.0"
+                ]
+            },
             "group": {
                 "kind": "test",
                 "isDefault": true
