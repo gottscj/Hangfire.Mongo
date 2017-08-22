@@ -24,7 +24,16 @@ namespace Hangfire.Mongo.Migration.Steps.Version07
 
             if (database.ListCollections(options).Any())
             {
-                database.RenameCollection(oldName, newName);
+                options.Filter = new FilterDefinitionBuilder<BsonDocument>().Eq("name", newName);
+                if (database.ListCollections(options).Any())
+                {
+                    // A situation can occur where both the old and the new name exists.
+                    database.DropCollection(oldName);
+                }
+                else
+                {
+                    database.RenameCollection(oldName, newName);
+                }
             }
             return true;
         }
