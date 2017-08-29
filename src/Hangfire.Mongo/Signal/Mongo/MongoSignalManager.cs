@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Threading;
 using Hangfire.Logging;
-using Hangfire.Mongo.Signal;
-using Hangfire.Mongo.Signal.Mongo;
 using Hangfire.Server;
 
-namespace Hangfire.Mongo
+namespace Hangfire.Mongo.Signal.Mongo
 {
     /// <summary>
     /// 
