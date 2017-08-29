@@ -1,6 +1,5 @@
 ﻿using System;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Migration;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Database
@@ -99,16 +98,6 @@ namespace Hangfire.Mongo.Database
         /// Reference to collection which contains servers information
         /// </summary>
         public IMongoCollection<ServerDto> Server => Database.GetCollection<ServerDto>(_prefix + ".server");
-
-        /// <summary>
-        /// Initializes intial collections schema for Hangfire
-        /// </summary>
-        public void Init(MongoStorageOptions storageOptions)
-        {
-            var migrationManager = new MongoMigrationManager(storageOptions);
-            migrationManager.Migrate(this);
-        }
-
 
         /// <summary>
         /// Disposes the object

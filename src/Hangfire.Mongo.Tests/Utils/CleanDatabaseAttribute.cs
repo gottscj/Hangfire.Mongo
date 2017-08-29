@@ -30,14 +30,11 @@ namespace Hangfire.Mongo.Tests.Utils
             {
                 try
                 {
-                    context.Init(new MongoStorageOptions());
-
                     context.DistributedLock.DeleteMany(new BsonDocument());
                     context.StateData.DeleteMany(new BsonDocument());
                     context.Job.DeleteMany(new BsonDocument());
                     context.JobQueue.DeleteMany(new BsonDocument());
                     context.Server.DeleteMany(new BsonDocument());
-
                 }
                 catch (MongoException ex)
                 {

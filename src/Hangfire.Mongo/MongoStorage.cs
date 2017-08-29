@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.Migration;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
 using Hangfire.Mongo.Signal;
@@ -65,10 +66,13 @@ namespace Hangfire.Mongo
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
 
             Connection = new HangfireDbContext(connectionString, databaseName, storageOptions.Prefix);
-            Connection.Init(_storageOptions);
-            var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
+
             Signal = new MongoSignal(Connection.Signal);
 
+            var migrationManager = new MongoMigrationManager(storageOptions);
+            migrationManager.Migrate(Connection);
+
+            var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
             QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }
 
