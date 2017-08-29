@@ -21,11 +21,10 @@ namespace Hangfire.Mongo
         /// Constructs expiration manager with one hour checking interval
         /// </summary>
         /// <param name="storage">MongoDB storage</param>
-        /// <param name="signal"></param>
-        public MongoSignalManager(MongoStorage storage, ISignal signal)
+        public MongoSignalManager(MongoStorage storage)
         {
             _storage = storage ?? throw new ArgumentNullException(nameof(storage));
-            _signal = signal ?? throw new ArgumentNullException(nameof(signal));
+            _signal = new MongoSignal(_storage.Connection.Signal);
         }
 
         /// <summary>

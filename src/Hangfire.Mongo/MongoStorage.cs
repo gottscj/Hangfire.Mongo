@@ -7,7 +7,6 @@ using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
-using Hangfire.Mongo.Signal;
 using Hangfire.Mongo.Signal.Mongo;
 using Hangfire.Mongo.StateHandlers;
 using Hangfire.Server;
@@ -31,8 +30,6 @@ namespace Hangfire.Mongo
         private readonly MongoClientSettings _mongoClientSettings;
 
         private readonly MongoStorageOptions _storageOptions;
-
-        internal readonly ISignal Signal;
 
         /// <summary>
         /// Constructs Job Storage by database connection string and name
@@ -66,8 +63,6 @@ namespace Hangfire.Mongo
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
 
             Connection = new HangfireDbContext(connectionString, databaseName, storageOptions.Prefix);
-
-            Signal = new MongoSignal(Connection.Signal);
 
             var migrationManager = new MongoMigrationManager(storageOptions);
             migrationManager.Migrate(Connection);
@@ -104,6 +99,10 @@ namespace Hangfire.Mongo
             }
 
             Connection = new HangfireDbContext(mongoClientSettings, databaseName, _storageOptions.Prefix);
+
+            var migrationManager = new MongoMigrationManager(storageOptions);
+            migrationManager.Migrate(Connection);
+
             var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
             QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }
@@ -142,7 +141,7 @@ namespace Hangfire.Mongo
         /// <returns>Collection of server components</returns>
         public override IEnumerable<IServerComponent> GetComponents()
         {
-            yield return new MongoSignalManager(this, Signal);
+            yield return new MongoSignalManager(this);
             yield return new ExpirationManager(this, _storageOptions.JobExpirationCheckInterval);
             yield return new CountersAggregator(this, _storageOptions.CountersAggregateInterval);
         }
