@@ -39,7 +39,7 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoConnection(null, _providers));
+                () => new MongoConnection(null, null));
 
             Assert.Equal("database", exception.ParamName);
         }

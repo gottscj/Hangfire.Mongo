@@ -21,7 +21,7 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(() =>
-                new MongoJobQueue(null, new MongoStorageOptions()));
+                new MongoJobQueue(null, null));
 
             Assert.Equal("database", exception.ParamName);
         }
@@ -327,14 +327,13 @@ namespace Hangfire.Mongo.Tests
 
         private static CancellationToken CreateTimingOutCancellationToken()
         {
-            var source = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var source = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             return source.Token;
         }
 
         private static MongoJobQueue CreateJobQueue(HangfireDbContext database)
         {
-            var storageOptions = new MongoStorageOptions();
-            return new MongoJobQueue(database, storageOptions);
+            return new MongoJobQueue(database, new MongoStorageOptions());
         }
 
         private static void UseConnection(Action<HangfireDbContext> action)

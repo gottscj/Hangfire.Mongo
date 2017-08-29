@@ -27,7 +27,6 @@ namespace Hangfire.Mongo
         /// Ctor using default storage options
         /// </summary>
         public MongoConnection(HangfireDbContext database, PersistentJobQueueProviderCollection queueProviders)
-
             : this(database, new MongoStorageOptions(), queueProviders)
         {
         }
