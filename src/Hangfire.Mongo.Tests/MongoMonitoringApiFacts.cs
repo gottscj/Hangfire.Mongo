@@ -224,7 +224,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Empty(resultList);
             });
         }
-        
+
         [Fact, CleanDatabase]
         public void FetchedJobs_ReturnsFetchedJobsOnly_WhenMultipleJobsExistsInFetchedAndUnfetchedStates()
         {
@@ -267,7 +267,7 @@ namespace Hangfire.Mongo.Tests
                         }
                     };
                     var succeededState = jobDto.StateHistory[0];
-                    jobDto.StateHistory = new[] {processingState, succeededState};
+                    jobDto.StateHistory = new[] { processingState, succeededState };
                     return jobDto;
                 });
 
@@ -293,19 +293,19 @@ namespace Hangfire.Mongo.Tests
         {
             using (var database = ConnectionUtils.CreateConnection())
             {
-                var connection = new MongoMonitoringApi(database, _providers);
-                action(database, connection);
+                var monitoringApi = new MongoMonitoringApi(database, _providers);
+                action(database, monitoringApi);
             }
         }
 
         private JobDto CreateJobInState(HangfireDbContext database, string jobId, string stateName, Func<JobDto, JobDto> visitor = null)
         {
             var job = Job.FromExpression(() => SampleMethod("wrong"));
-            
+
             Dictionary<string, string> stateData;
             if (stateName == EnqueuedState.StateName)
             {
-                stateData = new Dictionary<string, string> {["EnqueuedAt"] = $"{DateTime.UtcNow:o}"};
+                stateData = new Dictionary<string, string> { ["EnqueuedAt"] = $"{DateTime.UtcNow:o}" };
             }
             else if (stateName == ProcessingState.StateName)
             {
@@ -335,7 +335,7 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "[\"\\\"Arguments\\\"\"]",
                 StateName = stateName,
                 CreatedAt = DateTime.UtcNow,
-                StateHistory = new []{jobState}
+                StateHistory = new[] { jobState }
             };
             if (visitor != null)
             {

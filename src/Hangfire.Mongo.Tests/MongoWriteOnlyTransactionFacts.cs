@@ -33,7 +33,7 @@ namespace Hangfire.Mongo.Tests
         {
             ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(null, _queueProviders, new MongoStorageOptions()));
 
-            Assert.Equal("connection", exception.ParamName);
+            Assert.Equal("database", exception.ParamName);
         }
 
         [Fact, CleanDatabase]
@@ -49,7 +49,7 @@ namespace Hangfire.Mongo.Tests
         {
             var exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(ConnectionUtils.CreateConnection(), _queueProviders, null));
 
-            Assert.Equal("options", exception.ParamName);
+            Assert.Equal("storageOptions", exception.ParamName);
         }
 
         [Fact, CleanDatabase]

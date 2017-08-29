@@ -44,7 +44,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("database", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Ctor_ThrowsAnException_WhenProvidersCollectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(

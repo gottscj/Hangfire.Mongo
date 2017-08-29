@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading;
-using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
@@ -166,11 +165,12 @@ namespace Hangfire.Mongo.Tests
 
         private static void UseConnection(Action<HangfireDbContext> action)
         {
-            using (var connection = ConnectionUtils.CreateConnection())
+            using (var database = ConnectionUtils.CreateConnection())
             {
-                action(connection);
+                action(database);
             }
         }
+
     }
 #pragma warning restore 1591
 }

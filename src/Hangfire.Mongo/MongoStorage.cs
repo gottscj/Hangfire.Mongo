@@ -55,14 +55,10 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(databaseName));
             }
-            if (storageOptions == null)
-            {
-                throw new ArgumentNullException(nameof(storageOptions));
-            }
 
             _connectionString = connectionString;
             _databaseName = databaseName;
-            _storageOptions = storageOptions;
+            _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
 
             Connection = new HangfireDbContext(connectionString, databaseName, storageOptions.Prefix);
             Connection.Init(_storageOptions);

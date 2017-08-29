@@ -10,7 +10,7 @@ namespace Hangfire.Mongo.Dto
     {
         [BsonId(IdGenerator = typeof(StringObjectIdGenerator))]
         public string Id { get; set; }
-        
+
         public string StateName { get; set; }
 
         public string InvocationData { get; set; }
@@ -24,6 +24,6 @@ namespace Hangfire.Mongo.Dto
         public DateTime CreatedAt { get; set; }
 
         public DateTime? ExpireAt { get; set; }
-    } 
+    }
 #pragma warning restore 1591
 }

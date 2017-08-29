@@ -29,10 +29,10 @@ namespace Hangfire.Mongo
 
         public IList<QueueWithTopEnqueuedJobsDto> Queues()
         {
-            return UseConnection<IList<QueueWithTopEnqueuedJobsDto>>(connection =>
+            return UseConnection<IList<QueueWithTopEnqueuedJobsDto>>(database =>
             {
                 var tuples = _queueProviders
-                    .Select(x => x.GetJobQueueMonitoringApi(connection))
+                    .Select(x => x.GetJobQueueMonitoringApi(database))
                     .SelectMany(x => x.GetQueues(), (monitoring, queue) => new { Monitoring = monitoring, Queue = queue })
                     .OrderBy(x => x.Queue)
                     .ToArray();
@@ -49,7 +49,7 @@ namespace Hangfire.Mongo
                         Name = tuple.Queue,
                         Length = counters.EnqueuedCount ?? 0,
                         Fetched = counters.FetchedCount,
-                        FirstJobs = EnqueuedJobs(connection, enqueuedJobIds)
+                        FirstJobs = EnqueuedJobs(database, enqueuedJobIds)
                     });
                 }
 
@@ -59,9 +59,9 @@ namespace Hangfire.Mongo
 
         public IList<ServerDto> Servers()
         {
-            return UseConnection<IList<ServerDto>>(connection =>
+            return UseConnection<IList<ServerDto>>(database =>
             {
-                var servers = connection.Server.Find(new BsonDocument()).ToList();
+                var servers = database.Server.Find(new BsonDocument()).ToList();
 
                 var result = new List<ServerDto>();
 
@@ -84,9 +84,9 @@ namespace Hangfire.Mongo
 
         public JobDetailsDto JobDetails(string jobId)
         {
-            return UseConnection(connection =>
+            return UseConnection(database =>
             {
-                JobDto job = connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId))
+                JobDto job = database.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId))
                     .FirstOrDefault();
 
                 if (job == null)
@@ -112,11 +112,11 @@ namespace Hangfire.Mongo
 
         public StatisticsDto GetStatistics()
         {
-            return UseConnection(connection =>
+            return UseConnection(database =>
             {
                 var stats = new StatisticsDto();
 
-                var countByStates = connection.Job.Aggregate()
+                var countByStates = database.Job.Aggregate()
                     .Match(Builders<JobDto>.Filter.Ne(_ => _.StateName, null))
                     .Group(dto => new { dto.StateName }, dtos => new { StateName = dtos.First().StateName, Count = dtos.Count() })
                     .ToList().ToDictionary(kv => kv.StateName, kv => kv.Count);
@@ -128,23 +128,23 @@ namespace Hangfire.Mongo
                 stats.Processing = getCountIfExists(ProcessingState.StateName);
                 stats.Scheduled = getCountIfExists(ScheduledState.StateName);
 
-                stats.Servers = connection.Server.Count(new BsonDocument());
+                stats.Servers = database.Server.Count(new BsonDocument());
 
-                long[] succeededItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (long)_.Value)
-                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (long)_.Value))
+                long[] succeededItems = database.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (long)_.Value)
+                    .Concat(database.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (long)_.Value))
                     .ToArray();
 
                 stats.Succeeded = succeededItems.Any() ? succeededItems.Sum() : 0;
 
-                long[] deletedItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value)
-                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value))
+                long[] deletedItems = database.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value)
+                    .Concat(database.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value))
                     .ToArray();
                 stats.Deleted = deletedItems.Any() ? deletedItems.Sum() : 0;
 
-                stats.Recurring = connection.StateData.OfType<SetDto>().Count(Builders<SetDto>.Filter.Eq(_ => _.Key, "recurring-jobs"));
+                stats.Recurring = database.StateData.OfType<SetDto>().Count(Builders<SetDto>.Filter.Eq(_ => _.Key, "recurring-jobs"));
 
                 stats.Queues = _queueProviders
-                    .SelectMany(x => x.GetJobQueueMonitoringApi(connection).GetQueues())
+                    .SelectMany(x => x.GetJobQueueMonitoringApi(database).GetQueues())
                     .Count();
 
                 return stats;
@@ -153,30 +153,30 @@ namespace Hangfire.Mongo
 
         public JobList<EnqueuedJobDto> EnqueuedJobs(string queue, int from, int perPage)
         {
-            return UseConnection(connection =>
+            return UseConnection(database =>
             {
-                var queueApi = GetQueueApi(connection, queue);
+                var queueApi = GetQueueApi(database, queue);
                 var enqueuedJobIds = queueApi.GetEnqueuedJobIds(queue, from, perPage);
 
-                return EnqueuedJobs(connection, enqueuedJobIds);
+                return EnqueuedJobs(database, enqueuedJobIds);
             });
         }
 
         public JobList<FetchedJobDto> FetchedJobs(string queue, int from, int perPage)
         {
-            return UseConnection(connection =>
+            return UseConnection(database =>
             {
-                var queueApi = GetQueueApi(connection, queue);
+                var queueApi = GetQueueApi(database, queue);
                 var fetchedJobIds = queueApi.GetFetchedJobIds(queue, from, perPage);
 
-                return FetchedJobs(connection, fetchedJobIds);
+                return FetchedJobs(database, fetchedJobIds);
             });
         }
 
         public JobList<ProcessingJobDto> ProcessingJobs(int from, int count)
         {
-            return UseConnection(connection => GetJobs(
-                connection,
+            return UseConnection(database => GetJobs(
+                database,
                 from, count,
                 ProcessingState.StateName,
                 (sqlJob, job, stateData) => new ProcessingJobDto
@@ -189,7 +189,7 @@ namespace Hangfire.Mongo
 
         public JobList<ScheduledJobDto> ScheduledJobs(int from, int count)
         {
-            return UseConnection(connection => GetJobs(connection, from, count, ScheduledState.StateName,
+            return UseConnection(database => GetJobs(database, from, count, ScheduledState.StateName,
                 (sqlJob, job, stateData) => new ScheduledJobDto
                 {
                     Job = job,
@@ -200,7 +200,7 @@ namespace Hangfire.Mongo
 
         public JobList<SucceededJobDto> SucceededJobs(int from, int count)
         {
-            return UseConnection(connection => GetJobs(connection, from, count, SucceededState.StateName,
+            return UseConnection(database => GetJobs(database, from, count, SucceededState.StateName,
                 (sqlJob, job, stateData) => new SucceededJobDto
                 {
                     Job = job,
@@ -214,7 +214,7 @@ namespace Hangfire.Mongo
 
         public JobList<FailedJobDto> FailedJobs(int from, int count)
         {
-            return UseConnection(connection => GetJobs(connection, from, count, FailedState.StateName,
+            return UseConnection(database => GetJobs(database, from, count, FailedState.StateName,
                 (sqlJob, job, stateData) => new FailedJobDto
                 {
                     Job = job,
@@ -228,7 +228,7 @@ namespace Hangfire.Mongo
 
         public JobList<DeletedJobDto> DeletedJobs(int from, int count)
         {
-            return UseConnection(connection => GetJobs(connection, from, count, DeletedState.StateName,
+            return UseConnection(database => GetJobs(database, from, count, DeletedState.StateName,
                 (sqlJob, job, stateData) => new DeletedJobDto
                 {
                     Job = job,
@@ -238,14 +238,14 @@ namespace Hangfire.Mongo
 
         public long ScheduledCount()
         {
-            return UseConnection(connection => GetNumberOfJobsByStateName(connection, ScheduledState.StateName));
+            return UseConnection(database => GetNumberOfJobsByStateName(database, ScheduledState.StateName));
         }
 
         public long EnqueuedCount(string queue)
         {
-            return UseConnection(connection =>
+            return UseConnection(database =>
             {
-                var queueApi = GetQueueApi(connection, queue);
+                var queueApi = GetQueueApi(database, queue);
                 var counters = queueApi.GetEnqueuedAndFetchedCount(queue);
 
                 return counters.EnqueuedCount ?? 0;
@@ -254,9 +254,9 @@ namespace Hangfire.Mongo
 
         public long FetchedCount(string queue)
         {
-            return UseConnection(connection =>
+            return UseConnection(database =>
             {
-                var queueApi = GetQueueApi(connection, queue);
+                var queueApi = GetQueueApi(database, queue);
                 var counters = queueApi.GetEnqueuedAndFetchedCount(queue);
 
                 return counters.FetchedCount ?? 0;
@@ -265,42 +265,42 @@ namespace Hangfire.Mongo
 
         public long FailedCount()
         {
-            return UseConnection(connection => GetNumberOfJobsByStateName(connection, FailedState.StateName));
+            return UseConnection(database => GetNumberOfJobsByStateName(database, FailedState.StateName));
         }
 
         public long ProcessingCount()
         {
-            return UseConnection(connection => GetNumberOfJobsByStateName(connection, ProcessingState.StateName));
+            return UseConnection(database => GetNumberOfJobsByStateName(database, ProcessingState.StateName));
         }
 
         public long SucceededListCount()
         {
-            return UseConnection(connection => GetNumberOfJobsByStateName(connection, SucceededState.StateName));
+            return UseConnection(database => GetNumberOfJobsByStateName(database, SucceededState.StateName));
         }
 
         public long DeletedListCount()
         {
-            return UseConnection(connection => GetNumberOfJobsByStateName(connection, DeletedState.StateName));
+            return UseConnection(database => GetNumberOfJobsByStateName(database, DeletedState.StateName));
         }
 
         public IDictionary<DateTime, long> SucceededByDatesCount()
         {
-            return UseConnection(connection => GetTimelineStats(connection, "succeeded"));
+            return UseConnection(database => GetTimelineStats(database, "succeeded"));
         }
 
         public IDictionary<DateTime, long> FailedByDatesCount()
         {
-            return UseConnection(connection => GetTimelineStats(connection, "failed"));
+            return UseConnection(database => GetTimelineStats(database, "failed"));
         }
 
         public IDictionary<DateTime, long> HourlySucceededJobs()
         {
-            return UseConnection(connection => GetHourlyTimelineStats(connection, "succeeded"));
+            return UseConnection(database => GetHourlyTimelineStats(database, "succeeded"));
         }
 
         public IDictionary<DateTime, long> HourlyFailedJobs()
         {
-            return UseConnection(connection => GetHourlyTimelineStats(connection, "failed"));
+            return UseConnection(database => GetHourlyTimelineStats(database, "failed"));
         }
 
         private T UseConnection<T>(Func<HangfireDbContext, T> action)
@@ -309,14 +309,14 @@ namespace Hangfire.Mongo
             return result;
         }
 
-        private JobList<EnqueuedJobDto> EnqueuedJobs(HangfireDbContext connection, IEnumerable<string> jobIds)
+        private JobList<EnqueuedJobDto> EnqueuedJobs(HangfireDbContext database, IEnumerable<string> jobIds)
         {
-            var jobs = connection.Job
+            var jobs = database.Job
                 .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobIds))
                 .ToList();
 
             var filterBuilder = Builders<JobQueueDto>.Filter;
-            var enqueuedJobs = connection.JobQueue
+            var enqueuedJobs = database.JobQueue
                 .Find(filterBuilder.In(_ => _.JobId, jobs.Select(job => job.Id)) &
                       (filterBuilder.Not(filterBuilder.Exists(_ => _.FetchedAt)) | filterBuilder.Eq(_ => _.FetchedAt, null)))
                 .ToList();
@@ -385,21 +385,21 @@ namespace Hangfire.Mongo
             }
         }
 
-        private IPersistentJobQueueMonitoringApi GetQueueApi(HangfireDbContext connection, string queueName)
+        private IPersistentJobQueueMonitoringApi GetQueueApi(HangfireDbContext database, string queueName)
         {
             var provider = _queueProviders.GetProvider(queueName);
-            var monitoringApi = provider.GetJobQueueMonitoringApi(connection);
+            var monitoringApi = provider.GetJobQueueMonitoringApi(database);
 
             return monitoringApi;
         }
 
-        private JobList<FetchedJobDto> FetchedJobs(HangfireDbContext connection, IEnumerable<string> jobIds)
+        private JobList<FetchedJobDto> FetchedJobs(HangfireDbContext database, IEnumerable<string> jobIds)
         {
-            var jobs = connection.Job
+            var jobs = database.Job
                 .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobIds))
                 .ToList();
 
-            var jobIdToJobQueueMap = connection.JobQueue
+            var jobIdToJobQueueMap = database.JobQueue
                 .Find(Builders<JobQueueDto>.Filter.In(_ => _.JobId, jobs.Select(job => job.Id))
                       & Builders<JobQueueDto>.Filter.Exists(_ => _.FetchedAt)
                       & Builders<JobQueueDto>.Filter.Not(Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)))
@@ -443,14 +443,14 @@ namespace Hangfire.Mongo
             return new JobList<FetchedJobDto>(result);
         }
 
-        private JobList<TDto> GetJobs<TDto>(HangfireDbContext connection, int from, int count, string stateName, Func<JobDetailedDto, Job, Dictionary<string, string>, TDto> selector)
+        private JobList<TDto> GetJobs<TDto>(HangfireDbContext database, int from, int count, string stateName, Func<JobDetailedDto, Job, Dictionary<string, string>, TDto> selector)
         {
             // only retrieve job ids
             var filter = Builders<JobDto>
                 .Filter
                 .Eq(j => j.StateName, stateName);
 
-            var jobs = connection.Job
+            var jobs = database.Job
                 .Find(filter)
                 .Skip(from)
                 .Limit(count)
@@ -479,13 +479,13 @@ namespace Hangfire.Mongo
             return DeserializeJobs(joinedJobs, selector);
         }
 
-        private long GetNumberOfJobsByStateName(HangfireDbContext connection, string stateName)
+        private long GetNumberOfJobsByStateName(HangfireDbContext database, string stateName)
         {
-            var count = connection.Job.Count(Builders<JobDto>.Filter.Eq(_ => _.StateName, stateName));
+            var count = database.Job.Count(Builders<JobDto>.Filter.Eq(_ => _.StateName, stateName));
             return count;
         }
 
-        private Dictionary<DateTime, long> GetTimelineStats(HangfireDbContext connection, string type)
+        private Dictionary<DateTime, long> GetTimelineStats(HangfireDbContext database, string type)
         {
             var endDate = DateTime.UtcNow.Date;
             var startDate = endDate.AddDays(-7);
@@ -500,7 +500,7 @@ namespace Hangfire.Mongo
             var stringDates = dates.Select(x => x.ToString("yyyy-MM-dd")).ToList();
             var keys = stringDates.Select(x => $"stats:{type}:{x}").ToList();
 
-            var valuesMap = connection.StateData.OfType<AggregatedCounterDto>()
+            var valuesMap = database.StateData.OfType<AggregatedCounterDto>()
                 .Find(Builders<AggregatedCounterDto>.Filter.In(_ => _.Key, keys))
                 .ToList()
                 .GroupBy(x => x.Key)
@@ -521,7 +521,7 @@ namespace Hangfire.Mongo
             return result;
         }
 
-        private Dictionary<DateTime, long> GetHourlyTimelineStats(HangfireDbContext connection, string type)
+        private Dictionary<DateTime, long> GetHourlyTimelineStats(HangfireDbContext database, string type)
         {
             var endDate = DateTime.UtcNow;
             var dates = new List<DateTime>();
@@ -533,7 +533,7 @@ namespace Hangfire.Mongo
 
             var keys = dates.Select(x => $"stats:{type}:{x:yyyy-MM-dd-HH}").ToList();
 
-            var valuesMap = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.In(_ => _.Key, keys))
+            var valuesMap = database.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.In(_ => _.Key, keys))
                 .ToList()
                 .GroupBy(x => x.Key, x => x)
                 .ToDictionary(x => x.Key, x => (long)x.Count());

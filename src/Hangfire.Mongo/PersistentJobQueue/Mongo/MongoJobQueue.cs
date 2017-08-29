@@ -11,14 +11,14 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 #pragma warning disable 1591
     public class MongoJobQueue : IPersistentJobQueue
     {
+        private readonly HangfireDbContext _database;
+
         private readonly MongoStorageOptions _storageOptions;
 
-        private readonly HangfireDbContext _connection;
-
-        public MongoJobQueue(HangfireDbContext connection, MongoStorageOptions storageOptions)
+        public MongoJobQueue(HangfireDbContext database, MongoStorageOptions storageOptions)
         {
+            _database = database ?? throw new ArgumentNullException(nameof(database));
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
-            _connection = connection ?? throw new ArgumentNullException(nameof(connection));
         }
 
         [NotNull]
@@ -58,7 +58,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
                 foreach (var queue in queues)
                 {
-                    fetchedJob = _connection.JobQueue.FindOneAndUpdate(
+                    fetchedJob = _database.JobQueue.FindOneAndUpdate(
                             fetchCondition & filter.Eq(_ => _.Queue, queue),
                             Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, DateTime.UtcNow),
                             options,
@@ -85,12 +85,12 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 fetchConditionsIndex = (fetchConditionsIndex + 1) % fetchConditions.Length;
             }
 
-            return new MongoFetchedJob(_connection, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
+            return new MongoFetchedJob(_database, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
         }
 
         public void Enqueue(string queue, string jobId)
         {
-            _connection.JobQueue.InsertOne(new JobQueueDto
+            _database.JobQueue.InsertOne(new JobQueueDto
             {
                 JobId = jobId,
                 Queue = queue
