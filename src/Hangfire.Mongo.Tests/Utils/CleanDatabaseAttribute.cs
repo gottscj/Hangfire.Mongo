@@ -1,14 +1,15 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
+using Hangfire.Mongo.Migration;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Xunit.Sdk;
 
 namespace Hangfire.Mongo.Tests.Utils
 {
-#pragma warning disable 1591
-    public class CleanDatabaseAttribute : BeforeAfterTestAttribute
+    internal class CleanDatabaseAttribute : BeforeAfterTestAttribute
     {
         private static readonly object GlobalLock = new object();
 
@@ -26,22 +27,22 @@ namespace Hangfire.Mongo.Tests.Utils
 
         private static void RecreateDatabaseAndInstallObjects()
         {
-            using (var context = ConnectionUtils.CreateConnection())
+            try
             {
-                try
+                var client = new MongoClient(ConnectionUtils.GetConnectionString());
+                var database = client.GetDatabase(ConnectionUtils.GetDatabaseName());
+                var storageOptions = new MongoStorageOptions();
+                var names = MongoMigrationManager.RequiredSchemaVersion.CollectionNames(storageOptions.Prefix);
+                foreach (var name in names.Where(n => !n.EndsWith("schema") && !n.EndsWith("signal")))
                 {
-                    context.DistributedLock.DeleteMany(new BsonDocument());
-                    context.StateData.DeleteMany(new BsonDocument());
-                    context.Job.DeleteMany(new BsonDocument());
-                    context.JobQueue.DeleteMany(new BsonDocument());
-                    context.Server.DeleteMany(new BsonDocument());
+                    var collection = database.GetCollection<BsonDocument>(name);
+                    collection.DeleteMany(new BsonDocument());
                 }
-                catch (MongoException ex)
-                {
-                    throw new InvalidOperationException("Unable to cleanup database.", ex);
-                }
+            }
+            catch (MongoException ex)
+            {
+                throw new InvalidOperationException("Unable to cleanup database.", ex);
             }
         }
     }
-#pragma warning restore 1591
 }
