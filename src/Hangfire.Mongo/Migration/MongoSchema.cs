@@ -14,6 +14,7 @@ namespace Hangfire.Mongo.Migration
         Version5 = 5,
         Version6 = 6,
         Version7 = 7,
+        Version8 = 8,
     }
 
 
@@ -72,17 +73,28 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".statedata"
                     };
 
-                case MongoSchema.Version7:
-                    return new[] {
-                        prefix + ".job",
-                        prefix + ".jobQueue",
-                        prefix + ".locks",
-                        prefix + ".schema",
-                        prefix + ".server",
-                        prefix + ".stateData"
-                    };
+				case MongoSchema.Version7:
+					return new[] {
+						prefix + ".job",
+						prefix + ".jobQueue",
+						prefix + ".locks",
+						prefix + ".schema",
+						prefix + ".server",
+						prefix + ".stateData"
+					};
 
-                default:
+				case MongoSchema.Version8:
+					return new[] {
+						prefix + ".job",
+						prefix + ".jobQueue",
+						prefix + ".locks",
+						prefix + ".schema",
+						prefix + ".server",
+						prefix + ".signal",
+						prefix + ".stateData"
+					};
+
+				default:
                     throw new ArgumentException($@"Unknown schema: '{schema}'", nameof(schema));
             }
         }

@@ -86,6 +86,11 @@ namespace Hangfire.Mongo.Database
         public IMongoCollection<JobQueueDto> JobQueue => Database.GetCollection<JobQueueDto>(_prefix + ".jobQueue");
 
         /// <summary>
+        /// Reference to collection which is used for signalling
+        /// </summary>
+        public IMongoCollection<SignalDto> Signal => Database.GetCollection<SignalDto>(_prefix + ".signal");
+
+        /// <summary>
         /// Reference to collection which contains schemas
         /// </summary>
         public IMongoCollection<SchemaDto> Schema => Database.GetCollection<SchemaDto>(_prefix + ".schema");
