@@ -8,7 +8,6 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
 {
-#pragma warning disable 1591
     [Collection("Database")]
     public class MongoJobQueueMonitoringApiFacts
     {
@@ -280,7 +279,7 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
             var job = new JobDto
             {
                 CreatedAt = DateTime.UtcNow,
-                StateHistory = new []{new StateDto()}
+                StateHistory = new[] { new StateDto() }
             };
 
             database.Job.InsertOne(job);
@@ -314,5 +313,4 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
             }
         }
     }
-#pragma warning restore 1591
 }

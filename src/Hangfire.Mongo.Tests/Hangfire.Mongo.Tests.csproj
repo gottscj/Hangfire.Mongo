@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-		<TargetFrameworks>net46;netstandard1.5;netcoreapp1.0</TargetFrameworks>
-    <NoWarn>$(NoWarn);CS0618</NoWarn>
+    <TargetFrameworks>net46;netstandard1.5;netcoreapp1.0</TargetFrameworks>
+    <NoWarn>$(NoWarn);1591,CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>Hangfire.Mongo.Tests</AssemblyName>
     <PackageId>Hangfire.Mongo.Tests</PackageId>

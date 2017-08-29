@@ -21,10 +21,19 @@ namespace Hangfire.Mongo.Signal
         /// <param name="name">
         /// Name of the signal to wait for.
         /// </param>
+        void Wait(string name);
+
+        /// <summary>
+        /// Wait for a signal with name.
+        /// </summary>
+        /// <param name="name">
+        /// Name of the signal to wait for.
+        /// </param>
         /// <param name="timeout">
         /// The timeout for the wait.
         /// </param>
         void Wait(string name, TimeSpan timeout);
+
 
         /// <summary>
         /// Wait for a signal with name.

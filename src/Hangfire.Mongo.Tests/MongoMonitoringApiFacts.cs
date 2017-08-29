@@ -13,7 +13,6 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
-#pragma warning disable 1591
     [Collection("Database")]
     public class MongoMonitoringApiFacts
     {
@@ -360,5 +359,4 @@ namespace Hangfire.Mongo.Tests
             return jobDto;
         }
     }
-#pragma warning restore 1591
 }
