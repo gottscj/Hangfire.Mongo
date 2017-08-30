@@ -28,7 +28,7 @@ namespace Hangfire.Mongo.DistributedLock
         private readonly HangfireDbContext _database;
 
         private readonly MongoStorageOptions _storageOptions;
-        private readonly ISignal _signal;
+        private readonly IPersistentSignal _signal;
         private Timer _heartbeatTimer;
 
         private bool _completed;

@@ -12,7 +12,7 @@ namespace Hangfire.Mongo.Signal.Mongo
     /// <summary>
     /// Provide interprocess/server signalling
     /// </summary>
-    internal class MongoSignal : ISignal
+    internal class MongoSignal : IPersistentSignal
     {
 
         private static readonly ConcurrentDictionary<string, EventWaitHandle> EventWaitHandles = new ConcurrentDictionary<string, EventWaitHandle>();

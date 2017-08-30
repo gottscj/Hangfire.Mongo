@@ -17,7 +17,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
         private readonly HangfireDbContext _database;
 
         private readonly MongoStorageOptions _storageOptions;
-        private readonly ISignal _signal;
+        private readonly IPersistentSignal _signal;
 
         public MongoJobQueue(HangfireDbContext database, MongoStorageOptions storageOptions)
         {

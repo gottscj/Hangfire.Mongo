@@ -13,7 +13,7 @@ namespace Hangfire.Mongo.Signal.Mongo
         private static readonly ILog Logger = LogProvider.For<ExpirationManager>();
 
         private readonly MongoStorage _storage;
-        private readonly ISignal _signal;
+        private readonly IPersistentSignal _signal;
 
         /// <summary>
         /// Constructs expiration manager with one hour checking interval

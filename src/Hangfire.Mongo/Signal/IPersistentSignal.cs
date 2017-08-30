@@ -6,13 +6,15 @@ namespace Hangfire.Mongo.Signal
     /// <summary>
     /// 
     /// </summary>
-    public interface ISignal
+    public interface IPersistentSignal
     {
 
         /// <summary>
-        /// 
+        /// Sets the signal
         /// </summary>
-        /// <param name="name"></param>
+        /// <param name="name">
+        /// Name of the signal to set.
+        /// </param>
         void Set(string name);
 
         /// <summary>
