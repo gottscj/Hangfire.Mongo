@@ -1,7 +1,7 @@
 Hangfire.Mongo
 ==============
 
-[![Build status](https://ci.appveyor.com/api/projects/status/xjr953s29pwwsuq?svg=true)](https://ci.appveyor.com/project/sergeyzwezdin/hangfire-mongo) [![Nuget version](https://img.shields.io/nuget/v/Hangfire.Mongo.svg)](https://www.nuget.org/packages/Hangfire.Mongo)
+[![Build status](https://ci.appveyor.com/api/projects/status/xjr953s29pwwsuq4?svg=true)](https://ci.appveyor.com/project/sergeyzwezdin/hangfire-mongo) [![Nuget version](https://img.shields.io/nuget/v/Hangfire.Mongo.svg)](https://www.nuget.org/packages/Hangfire.Mongo)
 
 MongoDB support for [Hangfire](http://hangfire.io/) library. By using this library you can store all jobs information in MongoDB.
 
