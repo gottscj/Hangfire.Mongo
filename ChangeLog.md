@@ -1,6 +1,9 @@
 
 ## What's New (07/24/2017)
 
+### v0.5.1
+- Fix for migration of stateData collelction.
+
 ### v0.5.0
 - Migration has been introduces. So now you can upgrade from previous version without loosing you jobs.
 - MonitoringApi returning succeeded jobs when quering processing
@@ -15,7 +18,7 @@
   - (We have filed a bug report with MongoDB)
 - Fix bug in MongoWriteOnlyTransaction.AddRangeToSet where Value not being written for upsert
 
-### *** BREAKING CHANGES FOR v0.4.0 *** v0.4.0
+### v0.4.0 *** BREAKING CHANGES ***
 - Combined collections for state data into one collection
 - Optimized job creation
   - Not getting timestamp from mongodb. Using Datetime.UtcNow
