@@ -17,7 +17,7 @@ namespace Hangfire.Mongo.Tests
             const int workerCount = 20;
 
             var options = new BackgroundJobServerOptions[serverCount];
-            var storage = ConnectionUtils.CreateStorage(new MongoStorageOptions { QueuePollInterval = TimeSpan.FromSeconds(1) });
+            var storage = ConnectionUtils.CreateStorage(new MongoStorageOptions());
             var servers = new BackgroundJobServer[serverCount];
 
             var jobManagers = new RecurringJobManager[serverCount];

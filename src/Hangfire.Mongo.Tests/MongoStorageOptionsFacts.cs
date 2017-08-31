@@ -36,30 +36,5 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(3, result.Count());
         }
 
-        [Fact]
-        public void Set_QueuePollInterval_ShouldThrowAnException_WhenGivenIntervalIsEqualToZero()
-        {
-            var storageOptions = new MongoStorageOptions();
-            Assert.Throws<ArgumentException>(
-                () => storageOptions.QueuePollInterval = TimeSpan.Zero);
-        }
-
-        [Fact]
-        public void Set_QueuePollInterval_ShouldThrowAnException_WhenGivenIntervalIsNegative()
-        {
-            var storageOptions = new MongoStorageOptions();
-            Assert.Throws<ArgumentException>(
-                () => storageOptions.QueuePollInterval = TimeSpan.FromSeconds(-1));
-        }
-
-        [Fact]
-        public void Set_QueuePollInterval_SetsTheValue()
-        {
-            var storageOptions = new MongoStorageOptions
-            {
-                QueuePollInterval = TimeSpan.FromSeconds(1)
-            };
-            Assert.Equal(TimeSpan.FromSeconds(1), storageOptions.QueuePollInterval);
-        }
     }
 }
