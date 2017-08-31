@@ -1,6 +1,10 @@
 
 ## What's New (07/24/2017)
 
+### v0.5.2
+- Forcing the use of Pascal Casing in Hangfire specific collections.
+  See [README.md](https://github.com/sergeyzwezdin/Hangfire.Mongo#naming-convention) for more info.
+
 ### v0.5.1
 - Fix for migration of stateData collelction.
 
