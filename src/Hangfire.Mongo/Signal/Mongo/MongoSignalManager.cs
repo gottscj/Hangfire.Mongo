@@ -40,15 +40,11 @@ namespace Hangfire.Mongo.Signal.Mongo
         /// <param name="cancellationToken">Cancellation token</param>
         public void Execute(CancellationToken cancellationToken)
         {
-            System.Diagnostics.Debug.WriteLine($@">>> Execute ({Thread.CurrentThread.ManagedThreadId})");
-
             using (var connection = _storage.CreateAndOpenConnection())
             {
                 var mongoSignal = _signal as MongoSignal;
                 mongoSignal.Listen(cancellationToken);
             }
-
-            System.Diagnostics.Debug.WriteLine($@"<<< Execute ({Thread.CurrentThread.ManagedThreadId})");
         }
 
         /// <summary>

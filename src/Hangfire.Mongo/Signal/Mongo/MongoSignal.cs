@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Hangfire.Logging;
 using Hangfire.Mongo.Dto;
 using MongoDB.Driver;
 
@@ -14,6 +15,8 @@ namespace Hangfire.Mongo.Signal.Mongo
     /// </summary>
     internal class MongoSignal : IPersistentSignal
     {
+
+        private static readonly ILog Logger = LogProvider.For<MongoSignal>();
 
         private static readonly ConcurrentDictionary<string, EventWaitHandle> EventWaitHandles = new ConcurrentDictionary<string, EventWaitHandle>();
 
@@ -39,7 +42,7 @@ namespace Hangfire.Mongo.Signal.Mongo
 
             using (var cursor = _signal.FindSync(filter, options, cancellationToken))
             {
-                System.Diagnostics.Debug.WriteLine($@"*** LISTEN ({Thread.CurrentThread.ManagedThreadId})");
+                Logger.Debug($@"*** LISTEN ({Thread.CurrentThread.ManagedThreadId})");
                 cancellationToken.ThrowIfCancellationRequested();
                 cursor.ForEachAsync(document =>
                 {
@@ -50,11 +53,11 @@ namespace Hangfire.Mongo.Signal.Mongo
                         cancellationToken);
                     if (signalDto == null)
                     {
-                        System.Diagnostics.Debug.WriteLine($@"*** TRIGGERED ({Thread.CurrentThread.ManagedThreadId})");
+                        Logger.Debug($@"*** TRIGGERED ({Thread.CurrentThread.ManagedThreadId})");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($@"*** OWNED: {signalDto.Name} ({Thread.CurrentThread.ManagedThreadId})");
+                        Logger.Debug($@"*** OWNED: {signalDto.Name} ({Thread.CurrentThread.ManagedThreadId})");
                     }
                     EventWaitHandles
                         .GetOrAdd(document.Name, n => new EventWaitHandle(false, EventResetMode.AutoReset))
@@ -65,7 +68,7 @@ namespace Hangfire.Mongo.Signal.Mongo
                     if (t.IsFaulted)
                     {
                         var messages = string.Join(Environment.NewLine, t.Exception.InnerExceptions.Select(e => e.Message));
-                        System.Diagnostics.Debug.WriteLine($@"*** FAULT: {messages} ({Thread.CurrentThread.ManagedThreadId})");
+                        Logger.Debug($@"*** FAULT: {messages} ({Thread.CurrentThread.ManagedThreadId})");
                     }
                 }).Wait();
             }
@@ -88,7 +91,7 @@ namespace Hangfire.Mongo.Signal.Mongo
                 .CurrentDate(s => s.TimeStamp);
             _signal.UpdateOne(_ => false, update, new UpdateOptions { IsUpsert = true });
 
-            System.Diagnostics.Debug.WriteLine($@"*** SET: {name} ({Thread.CurrentThread.ManagedThreadId})");
+            Logger.Debug($@"*** SET: {name} ({Thread.CurrentThread.ManagedThreadId})");
         }
 
         public void Wait(string name)
@@ -108,7 +111,7 @@ namespace Hangfire.Mongo.Signal.Mongo
             }
 
             var e = EventWaitHandles.GetOrAdd(name, n => new EventWaitHandle(false, EventResetMode.AutoReset));
-            System.Diagnostics.Debug.WriteLine($@">>> WAIT: {name} ({Thread.CurrentThread.ManagedThreadId})");
+            Logger.Debug($@">>> WAIT: {name} ({Thread.CurrentThread.ManagedThreadId})");
             if (timeout == TimeSpan.MaxValue)
             {
                 e.WaitOne();
@@ -117,7 +120,7 @@ namespace Hangfire.Mongo.Signal.Mongo
             {
                 e.WaitOne(timeout);
             }
-            System.Diagnostics.Debug.WriteLine($@"<<< WAIT: {name} ({Thread.CurrentThread.ManagedThreadId})");
+            Logger.Debug($@"<<< WAIT: {name} ({Thread.CurrentThread.ManagedThreadId})");
         }
 
         public void Wait(string name, CancellationToken cancellationToken)
@@ -131,9 +134,9 @@ namespace Hangfire.Mongo.Signal.Mongo
                 throw new ArgumentException("Name should not be empty", nameof(name));
             }
 
-            System.Diagnostics.Debug.WriteLine($@">>> WAIT: {name} ({Thread.CurrentThread.ManagedThreadId})");
+            Logger.Debug($@">>> WAIT: {name} ({Thread.CurrentThread.ManagedThreadId})");
             Task.Run(() => Wait(name, TimeSpan.MaxValue)).Wait(cancellationToken);
-            System.Diagnostics.Debug.WriteLine($@"<<< WAIT: {name} ({Thread.CurrentThread.ManagedThreadId})");
+            Logger.Debug($@"<<< WAIT: {name} ({Thread.CurrentThread.ManagedThreadId})");
         }
 
         public void Wait(string[] names, CancellationToken cancellationToken)
@@ -147,9 +150,9 @@ namespace Hangfire.Mongo.Signal.Mongo
                 throw new ArgumentException("Name should not be empty", nameof(names));
             }
 
-            System.Diagnostics.Debug.WriteLine($@">>> WAIT: {string.Join(",", names)} ({Thread.CurrentThread.ManagedThreadId})");
+            Logger.Debug($@">>> WAIT: {string.Join(",", names)} ({Thread.CurrentThread.ManagedThreadId})");
             Task.WaitAny(names.Select(n => Task.Run(() => Wait(n, TimeSpan.MaxValue))).ToArray(), cancellationToken);
-            System.Diagnostics.Debug.WriteLine($@"<<< WAIT: {string.Join(",", names)} ({Thread.CurrentThread.ManagedThreadId})");
+            Logger.Debug($@"<<< WAIT: {string.Join(",", names)} ({Thread.CurrentThread.ManagedThreadId})");
         }
 
     }
