@@ -8,7 +8,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version08
     /// </summary>
     internal class CreateSignalCollection : IMongoMigrationStep
     {
-        public MongoSchema TargetSchema => MongoSchema.Version8;
+        public MongoSchema TargetSchema => MongoSchema.Version9;
 
         public long Sequence => 0;
 
