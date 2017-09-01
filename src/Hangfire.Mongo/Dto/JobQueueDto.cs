@@ -11,10 +11,13 @@ namespace Hangfire.Mongo.Dto
         [BsonId]
         public ObjectId Id { get; set; }
 
+        [BsonElement(nameof(JobId))]
         public string JobId { get; set; }
 
+        [BsonElement(nameof(Queue))]
         public string Queue { get; set; }
 
+        [BsonElement(nameof(FetchedAt))]
         public DateTime? FetchedAt { get; set; }
 
     }

@@ -71,6 +71,15 @@ public void Configuration(IAppBuilder app)
 }
 ```
 
+## Naming Convention
+Hangfire.Mongo will ignore any naming conventions configured by your application.
+E.g. if your application use camel casing like this:
+```csharp
+  var camelCaseConventionPack = new ConventionPack { new CamelCaseElementNameConvention() };
+  ConventionRegistry.Register("CamelCase", camelCaseConventionPack, type => true);
+```
+it will be ignored by Hangfire.Mongo and Pascal Case will be used instead. Of cause only for Hangfire specific collections.
+
 ## Migration
 
 We sometimes introduce breaking changes in the schema. For this reason we have introduced migration.
