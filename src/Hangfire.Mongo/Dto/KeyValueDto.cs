@@ -18,13 +18,16 @@ namespace Hangfire.Mongo.Dto
         [BsonId]
         public ObjectId Id { get; set; }
 
+        [BsonElement(nameof(Key))]
         public string Key { get; set; }
 
+        [BsonElement(nameof(Value))]
         public object Value { get; set; }
     }
 
     public class ExpiringKeyValueDto : KeyValueDto
     {
+        [BsonElement(nameof(ExpireAt))]
         public DateTime? ExpireAt { get; set; }
     }
 #pragma warning restore 1591

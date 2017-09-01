@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<VersionPrefix>0.5.1</VersionPrefix>
+		<VersionPrefix>0.5.2</VersionPrefix>
 		<TargetFrameworks>net45;net46;netstandard1.5</TargetFrameworks>
 		<NoWarn>$(NoWarn);CS0618</NoWarn>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -23,7 +23,10 @@
 		<owners>Sergey Zwezdin</owners>
 		<Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
 		<PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-		<PackageReleaseNotes>0.5.1
+		<PackageReleaseNotes>0.5.2
+- Forcing the use of Pascal Casing in Hangfire specific collections.
+
+0.5.1
 - Fix for migration of stateData collelction.
 
 0.5.0

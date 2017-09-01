@@ -1,7 +1,7 @@
 Hangfire.Mongo
 ==============
 
-[![Build status](https://ci.appveyor.com/api/projects/status/xjr953s29pwwsuq4?svg=true)](https://ci.appveyor.com/project/sergeyzwezdin/hangfire-mongo) [![Nuget version](https://img.shields.io/nuget/v/Hangfire.Mongo.svg)](https://www.nuget.org/packages/Hangfire.Mongo)
+[![Build status](https://ci.appveyor.com/api/projects/status/xjr953s29pwwsuq4?svg=true)](https://ci.appveyor.com/project/sergeyzwezdin/hangfire-mongo) [![Nuget version](https://img.shields.io/nuget/v/Hangfire.Mongo.svg)](https://www.nuget.org/packages/Hangfire.Mongo) [![GitHub license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE)
 
 MongoDB support for [Hangfire](http://hangfire.io/) library. By using this library you can store all jobs information in MongoDB.
 
@@ -70,6 +70,15 @@ public void Configuration(IAppBuilder app)
     app.UseHangfireDashboard();
 }
 ```
+
+## Naming Convention
+Hangfire.Mongo will ignore any naming conventions configured by your application.
+E.g. if your application use camel casing like this:
+```csharp
+  var camelCaseConventionPack = new ConventionPack { new CamelCaseElementNameConvention() };
+  ConventionRegistry.Register("CamelCase", camelCaseConventionPack, type => true);
+```
+it will be ignored by Hangfire.Mongo and Pascal Case will be used instead. Of cause only for Hangfire specific collections.
 
 ## Migration
 

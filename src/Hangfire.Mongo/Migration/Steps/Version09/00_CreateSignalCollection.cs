@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using System;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration.Steps.Version08
@@ -27,8 +28,9 @@ namespace Hangfire.Mongo.Migration.Steps.Version08
             // We have to create one document to get the trailing curser working
             var dummySignal = new BsonDocument
             {
-                ["Signaled"] = "false",
-                ["Name"] = "dummy"
+                ["Name"] = "dummy",
+                ["Signaled"] = false,
+                ["TimeStamp"] = DateTime.MinValue
             };
 
             database.GetCollection<BsonDocument>(name).InsertOne(dummySignal);
