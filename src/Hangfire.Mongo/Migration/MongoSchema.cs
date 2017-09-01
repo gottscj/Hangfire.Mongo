@@ -14,6 +14,7 @@ namespace Hangfire.Mongo.Migration
         Version5 = 5,
         Version6 = 6,
         Version7 = 7,
+        Version8 = 8,
     }
 
 
@@ -73,6 +74,7 @@ namespace Hangfire.Mongo.Migration
                     };
 
                 case MongoSchema.Version7:
+                case MongoSchema.Version8:
                     return new[] {
                         prefix + ".job",
                         prefix + ".jobQueue",
