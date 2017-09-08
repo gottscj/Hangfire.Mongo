@@ -1,6 +1,5 @@
 ﻿using System;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Migration;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Database
@@ -83,8 +82,12 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to collection which contains jobs queues
         /// </summary>
-        public IMongoCollection<JobQueueDto> JobQueue =>
-            Database.GetCollection<JobQueueDto>(_prefix + ".jobQueue");
+        public IMongoCollection<JobQueueDto> JobQueue => Database.GetCollection<JobQueueDto>(_prefix + ".jobQueue");
+
+        /// <summary>
+        /// Reference to collection which is used for signalling
+        /// </summary>
+        public IMongoCollection<SignalDto> Signal => Database.GetCollection<SignalDto>(_prefix + ".signal");
 
         /// <summary>
         /// Reference to collection which contains schemas
@@ -95,16 +98,6 @@ namespace Hangfire.Mongo.Database
         /// Reference to collection which contains servers information
         /// </summary>
         public IMongoCollection<ServerDto> Server => Database.GetCollection<ServerDto>(_prefix + ".server");
-
-        /// <summary>
-        /// Initializes intial collections schema for Hangfire
-        /// </summary>
-        public void Init(MongoStorageOptions storageOptions)
-        {
-            var migrationManager = new MongoMigrationManager(storageOptions);
-            migrationManager.Migrate(this);
-        }
-
 
         /// <summary>
         /// Disposes the object

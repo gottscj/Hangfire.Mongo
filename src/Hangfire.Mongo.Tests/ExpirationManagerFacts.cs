@@ -11,7 +11,6 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
-#pragma warning disable 1591
     [Collection("Database")]
     public class ExpirationManagerFacts
     {
@@ -37,53 +36,53 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Execute_RemovesOutdatedRecords()
         {
-            using (var connection = ConnectionUtils.CreateConnection())
+            using (var database = ConnectionUtils.CreateConnection())
             {
-                CreateExpirationEntries(connection, DateTime.UtcNow.AddMonths(-1));
+                CreateExpirationEntries(database, DateTime.UtcNow.AddMonths(-1));
                 var manager = CreateManager();
 
                 manager.Execute(_token);
 
-                Assert.True(IsEntryExpired(connection));
+                Assert.True(IsEntryExpired(database));
             }
         }
 
         [Fact, CleanDatabase]
         public void Execute_DoesNotRemoveEntries_WithNoExpirationTimeSet()
         {
-            using (var connection = ConnectionUtils.CreateConnection())
+            using (var database = ConnectionUtils.CreateConnection())
             {
-                CreateExpirationEntries(connection, null);
+                CreateExpirationEntries(database, null);
                 var manager = CreateManager();
 
                 manager.Execute(_token);
 
-                Assert.False(IsEntryExpired(connection));
+                Assert.False(IsEntryExpired(database));
             }
         }
 
         [Fact, CleanDatabase]
         public void Execute_DoesNotRemoveEntries_WithFreshExpirationTime()
         {
-            using (var connection = ConnectionUtils.CreateConnection())
+            using (var database = ConnectionUtils.CreateConnection())
             {
-                CreateExpirationEntries(connection, DateTime.Now.AddMonths(1));
+                CreateExpirationEntries(database, DateTime.Now.AddMonths(1));
                 var manager = CreateManager();
 
                 manager.Execute(_token);
 
 
-                Assert.False(IsEntryExpired(connection));
+                Assert.False(IsEntryExpired(database));
             }
         }
 
         [Fact, CleanDatabase]
         public void Execute_Processes_CounterTable()
         {
-            using (var connection = ConnectionUtils.CreateConnection())
+            using (var database = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.StateData.InsertOne(new CounterDto
+                database.StateData.InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
@@ -97,7 +96,7 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                var count = connection.StateData.OfType<CounterDto>().Count(new BsonDocument());
+                var count = database.StateData.OfType<CounterDto>().Count(new BsonDocument());
                 Assert.Equal(0, count);
             }
         }
@@ -105,10 +104,10 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Execute_Processes_JobTable()
         {
-            using (var connection = ConnectionUtils.CreateConnection())
+            using (var database = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.Job.InsertOne(new JobDto
+                database.Job.InsertOne(new JobDto
                 {
                     Id = 1.ToString(),
                     InvocationData = "",
@@ -123,7 +122,7 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                var count = connection.Job.Count(new BsonDocument());
+                var count = database.Job.Count(new BsonDocument());
                 Assert.Equal(0, count);
             }
         }
@@ -131,10 +130,10 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Execute_Processes_ListTable()
         {
-            using (var connection = ConnectionUtils.CreateConnection())
+            using (var database = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.StateData.InsertOne(new ListDto
+                database.StateData.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
@@ -147,7 +146,7 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                var count = connection
+                var count = database
                     .StateData
                     .OfType<ListDto>()
                     .Count(new BsonDocument());
@@ -158,10 +157,10 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Execute_Processes_SetTable()
         {
-            using (var connection = ConnectionUtils.CreateConnection())
+            using (var database = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.StateData.InsertOne(new SetDto
+                database.StateData.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
@@ -176,7 +175,7 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                var count = connection
+                var count = database
                     .StateData
                     .OfType<SetDto>()
                     .Count(new BsonDocument());
@@ -187,10 +186,10 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Execute_Processes_HashTable()
         {
-            using (var connection = ConnectionUtils.CreateConnection())
+            using (var database = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.StateData.InsertOne(new HashDto
+                database.StateData.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
@@ -205,7 +204,7 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                var count = connection
+                var count = database
                     .StateData
                     .OfType<HashDto>()
                     .Count(new BsonDocument());
@@ -217,10 +216,10 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Execute_Processes_AggregatedCounterTable()
         {
-            using (var connection = ConnectionUtils.CreateConnection())
+            using (var database = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.StateData.InsertOne(new AggregatedCounterDto
+                database.StateData.InsertOne(new AggregatedCounterDto
                 {
                     Key = "key",
                     Value = 1,
@@ -233,7 +232,7 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                Assert.Equal(0, connection
+                Assert.Equal(0, database
                     .StateData
                     .OfType<CounterDto>()
                     .Find(new BsonDocument()).Count());
@@ -242,24 +241,24 @@ namespace Hangfire.Mongo.Tests
 
 
 
-        private static void CreateExpirationEntries(HangfireDbContext connection, DateTime? expireAt)
+        private static void CreateExpirationEntries(HangfireDbContext database, DateTime? expireAt)
         {
-            Commit(connection, x => x.AddToSet("my-key", "my-value"));
-            Commit(connection, x => x.AddToSet("my-key", "my-value1"));
-            Commit(connection, x => x.SetRangeInHash("my-hash-key", new[] { new KeyValuePair<string, string>("key", "value"), new KeyValuePair<string, string>("key1", "value1") }));
-            Commit(connection, x => x.AddRangeToSet("my-key", new[] { "my-value", "my-value1" }));
+            Commit(database, x => x.AddToSet("my-key", "my-value"));
+            Commit(database, x => x.AddToSet("my-key", "my-value1"));
+            Commit(database, x => x.SetRangeInHash("my-hash-key", new[] { new KeyValuePair<string, string>("key", "value"), new KeyValuePair<string, string>("key1", "value1") }));
+            Commit(database, x => x.AddRangeToSet("my-key", new[] { "my-value", "my-value1" }));
 
             if (expireAt.HasValue)
             {
                 var expireIn = expireAt.Value - DateTime.Now;
-                Commit(connection, x => x.ExpireHash("my-hash-key", expireIn));
-                Commit(connection, x => x.ExpireSet("my-key", expireIn));
+                Commit(database, x => x.ExpireHash("my-hash-key", expireIn));
+                Commit(database, x => x.ExpireSet("my-key", expireIn));
             }
         }
 
-        private static bool IsEntryExpired(HangfireDbContext connection)
+        private static bool IsEntryExpired(HangfireDbContext database)
         {
-            var count = connection
+            var count = database
                 .StateData
                 .OfType<ExpiringKeyValueDto>()
                 .Count(new BsonDocument());
@@ -272,14 +271,13 @@ namespace Hangfire.Mongo.Tests
             return new ExpirationManager(_storage);
         }
 
-        private static void Commit(HangfireDbContext connection, Action<MongoWriteOnlyTransaction> action)
+        private static void Commit(HangfireDbContext database, Action<MongoWriteOnlyTransaction> action)
         {
-            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection, _queueProviders, new MongoStorageOptions()))
+            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(database, _queueProviders, new MongoStorageOptions()))
             {
                 action(transaction);
                 transaction.Commit();
             }
         }
     }
-#pragma warning restore 1591
 }
