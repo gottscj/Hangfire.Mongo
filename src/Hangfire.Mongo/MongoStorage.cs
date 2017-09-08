@@ -141,7 +141,7 @@ namespace Hangfire.Mongo
         /// <returns>Collection of server components</returns>
         public override IEnumerable<IServerComponent> GetComponents()
         {
-            yield return new MongoSignalManager(this);
+            yield return new MongoSignalBackgroundProcess(this.Connection.Signal);
             yield return new ExpirationManager(this, _storageOptions.JobExpirationCheckInterval);
             yield return new CountersAggregator(this, _storageOptions.CountersAggregateInterval);
         }

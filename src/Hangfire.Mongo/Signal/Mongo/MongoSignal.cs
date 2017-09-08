@@ -20,11 +20,11 @@ namespace Hangfire.Mongo.Signal.Mongo
 
         private static readonly ConcurrentDictionary<string, EventWaitHandle> EventWaitHandles = new ConcurrentDictionary<string, EventWaitHandle>();
 
-        private IMongoCollection<SignalDto> _signal;
+        private IMongoCollection<SignalDto> _signalCollection;
 
-        internal MongoSignal(IMongoCollection<SignalDto> signal)
+        internal MongoSignal(IMongoCollection<SignalDto> signalCollection)
         {
-            _signal = signal ?? throw new ArgumentNullException(nameof(signal));
+            _signalCollection = signalCollection ?? throw new ArgumentNullException(nameof(signalCollection));
         }
 
         public void Listen(CancellationToken cancellationToken)
@@ -40,15 +40,17 @@ namespace Hangfire.Mongo.Signal.Mongo
             var filterBuilder = Builders<SignalDto>.Filter;
             var filter = filterBuilder.Eq(s => s.Signaled, true);
 
-            using (var cursor = _signal.FindSync(filter, options, cancellationToken))
+            using (var cursor = _signalCollection.FindSync(filter, options, cancellationToken))
             {
                 Logger.Debug($@"*** LISTEN ({Thread.CurrentThread.ManagedThreadId})");
                 cancellationToken.ThrowIfCancellationRequested();
+                var updateSignaled = Builders<SignalDto>.Update.Set(s => s.Signaled, false);
+
                 cursor.ForEachAsync(document =>
                 {
-                    var signalDto = _signal.FindOneAndUpdate(
+                    var signalDto = _signalCollection.FindOneAndUpdate(
                         s => s.Id == document.Id,
-                        Builders<SignalDto>.Update.Set(s => s.Signaled, false),
+                        updateSignaled,
                         null,
                         cancellationToken);
                     if (signalDto == null)
@@ -89,38 +91,22 @@ namespace Hangfire.Mongo.Signal.Mongo
                 .Set(s => s.Signaled, true)
                 .Set(s => s.Name, name)
                 .CurrentDate(s => s.TimeStamp);
-            _signal.UpdateOne(_ => false, update, new UpdateOptions { IsUpsert = true });
+            _signalCollection.UpdateOne(_ => false, update, new UpdateOptions { IsUpsert = true });
 
             Logger.Debug($@"*** SET: {name} ({Thread.CurrentThread.ManagedThreadId})");
         }
 
         public void Wait(string name)
         {
-            Wait(name, TimeSpan.MaxValue);
+            Wait(name, TimeSpan.FromMilliseconds(-1));
         }
 
         public void Wait(string name, TimeSpan timeout)
         {
-            if (name == null)
+            using (var cts = new CancellationTokenSource(timeout))
             {
-                throw new ArgumentNullException(nameof(name));
+                Wait(name, cts.Token);
             }
-            if (string.IsNullOrEmpty(name))
-            {
-                throw new ArgumentException("Name should not be empty", nameof(name));
-            }
-
-            var e = EventWaitHandles.GetOrAdd(name, n => new EventWaitHandle(false, EventResetMode.AutoReset));
-            Logger.Debug($@">>> WAIT: {name} ({Thread.CurrentThread.ManagedThreadId})");
-            if (timeout == TimeSpan.MaxValue)
-            {
-                e.WaitOne();
-            }
-            else
-            {
-                e.WaitOne(timeout);
-            }
-            Logger.Debug($@"<<< WAIT: {name} ({Thread.CurrentThread.ManagedThreadId})");
         }
 
         public void Wait(string name, CancellationToken cancellationToken)
@@ -134,9 +120,7 @@ namespace Hangfire.Mongo.Signal.Mongo
                 throw new ArgumentException("Name should not be empty", nameof(name));
             }
 
-            Logger.Debug($@">>> WAIT: {name} ({Thread.CurrentThread.ManagedThreadId})");
-            Task.Run(() => Wait(name, TimeSpan.MaxValue)).Wait(cancellationToken);
-            Logger.Debug($@"<<< WAIT: {name} ({Thread.CurrentThread.ManagedThreadId})");
+            Wait(new[] { name }, cancellationToken);
         }
 
         public void Wait(string[] names, CancellationToken cancellationToken)
@@ -150,8 +134,13 @@ namespace Hangfire.Mongo.Signal.Mongo
                 throw new ArgumentException("Name should not be empty", nameof(names));
             }
 
+            var waitHandles = names
+                .Select(n => EventWaitHandles.GetOrAdd(n, _ => new EventWaitHandle(false, EventResetMode.AutoReset)))
+                .Concat(new[] { cancellationToken.WaitHandle })
+                .ToArray();
+
             Logger.Debug($@">>> WAIT: {string.Join(",", names)} ({Thread.CurrentThread.ManagedThreadId})");
-            Task.WaitAny(names.Select(n => Task.Run(() => Wait(n, TimeSpan.MaxValue))).ToArray(), cancellationToken);
+            WaitHandle.WaitAny(waitHandles);
             Logger.Debug($@"<<< WAIT: {string.Join(",", names)} ({Thread.CurrentThread.ManagedThreadId})");
         }
 

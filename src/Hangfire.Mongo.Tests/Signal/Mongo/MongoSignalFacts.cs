@@ -17,7 +17,7 @@ namespace Hangfire.Mongo.Tests.Signal.Mongo
         {
             var exception = Assert.Throws<ArgumentNullException>(() => new MongoSignal(null));
 
-            Assert.Equal("signal", exception.ParamName);
+            Assert.Equal("signalCollection", exception.ParamName);
         }
 
         [Fact]

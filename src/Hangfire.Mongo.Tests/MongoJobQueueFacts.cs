@@ -70,12 +70,14 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var cts = new CancellationTokenSource();
-                cts.Cancel();
-                var queue = CreateJobQueue(database);
+                using (var cts = new CancellationTokenSource())
+                {
+                    cts.Cancel();
+                    var queue = CreateJobQueue(database);
 
-                Assert.Throws<OperationCanceledException>(() =>
-                    queue.Dequeue(DefaultQueues, cts.Token));
+                    Assert.Throws<OperationCanceledException>(() =>
+                        queue.Dequeue(DefaultQueues, cts.Token));
+                }
             });
         }
 
@@ -84,11 +86,13 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
-                var queue = CreateJobQueue(database);
+                using (var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200)))
+                {
+                    var queue = CreateJobQueue(database);
 
-                Assert.Throws<OperationCanceledException>(() =>
-                    queue.Dequeue(DefaultQueues, cts.Token));
+                    Assert.Throws<OperationCanceledException>(() =>
+                        queue.Dequeue(DefaultQueues, cts.Token));
+                }
             });
         }
 
@@ -326,8 +330,8 @@ namespace Hangfire.Mongo.Tests
 
         private static CancellationToken CreateTimingOutCancellationToken()
         {
-            var source = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            return source.Token;
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            return cts.Token;
         }
 
         private static MongoJobQueue CreateJobQueue(HangfireDbContext database)

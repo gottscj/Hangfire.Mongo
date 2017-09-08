@@ -11,7 +11,7 @@ namespace Hangfire.Mongo.Tests.Utils
         private static long Count = 0;
         private static readonly object GlobalLock = new object();
 
-        private MongoSignalManager _mongoSignalManager;
+        private MongoSignalBackgroundProcess _mongoSignalManager;
         private CancellationTokenSource _cancellationTokenSource;
 
         public override void Before(MethodInfo methodUnderTest)
@@ -37,6 +37,8 @@ namespace Hangfire.Mongo.Tests.Utils
                     Stop();
                 }
             }
+            _cancellationTokenSource.Dispose();
+            _cancellationTokenSource = null;
         }
 
         public void Start()
@@ -45,7 +47,8 @@ namespace Hangfire.Mongo.Tests.Utils
             Task.Run(() =>
             {
                 var cancellationToken = _cancellationTokenSource.Token;
-                _mongoSignalManager = new MongoSignalManager(ConnectionUtils.CreateStorage());
+                var signalCollection = ConnectionUtils.CreateStorage().Connection.Signal;
+                _mongoSignalManager = new MongoSignalBackgroundProcess(signalCollection);
 
                 while (!cancellationToken.IsCancellationRequested)
                 {

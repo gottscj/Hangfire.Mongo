@@ -1,28 +1,28 @@
 ﻿using System;
 using System.Threading;
 using Hangfire.Logging;
+using Hangfire.Mongo.Dto;
 using Hangfire.Server;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Signal.Mongo
 {
     /// <summary>
     /// 
     /// </summary>
-    public class MongoSignalManager : IBackgroundProcess, IServerComponent
+    public class MongoSignalBackgroundProcess : IBackgroundProcess, IServerComponent
     {
         private static readonly ILog Logger = LogProvider.For<ExpirationManager>();
 
-        private readonly MongoStorage _storage;
-        private readonly IPersistentSignal _signal;
+        private readonly MongoSignal _signal;
 
         /// <summary>
         /// Constructs expiration manager with one hour checking interval
         /// </summary>
-        /// <param name="storage">MongoDB storage</param>
-        public MongoSignalManager(MongoStorage storage)
+        /// <param name="signalCollection">MongoDB storage</param>
+        public MongoSignalBackgroundProcess(IMongoCollection<SignalDto> signalCollection)
         {
-            _storage = storage ?? throw new ArgumentNullException(nameof(storage));
-            _signal = new MongoSignal(_storage.Connection.Signal);
+            _signal = new MongoSignal(signalCollection);
         }
 
         /// <summary>
@@ -40,11 +40,7 @@ namespace Hangfire.Mongo.Signal.Mongo
         /// <param name="cancellationToken">Cancellation token</param>
         public void Execute(CancellationToken cancellationToken)
         {
-            using (var connection = _storage.CreateAndOpenConnection())
-            {
-                var mongoSignal = _signal as MongoSignal;
-                mongoSignal.Listen(cancellationToken);
-            }
+            _signal.Listen(cancellationToken);
         }
 
         /// <summary>
@@ -52,7 +48,7 @@ namespace Hangfire.Mongo.Signal.Mongo
         /// </summary>
         public override string ToString()
         {
-            return "Mongo Signal Manager";
+            return "Mongo Signal Background Process";
         }
 
     }

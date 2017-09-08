@@ -133,8 +133,7 @@ namespace Hangfire.Mongo.DistributedLock
                     isLockAcquired = Acquire();
                     if (!isLockAcquired)
                     {
-                        var cts = new CancellationTokenSource(timeout);
-                        _signal.Wait($@"{nameof(MongoDistributedLock)}.{_resource}", cts.Token);
+                        _signal.Wait($@"{nameof(MongoDistributedLock)}.{_resource}", timeout);
                         now = DateTime.Now;
                     }
                 }
