@@ -6,22 +6,22 @@
     <members>
         <member name="T:Hangfire.Mongo.Database.HangfireDbContext">
             <summary>
-            Represents Mongo database context for Hangfire
+            Represents Mongo connection context for Hangfire
             </summary>
         </member>
         <member name="M:Hangfire.Mongo.Database.HangfireDbContext.#ctor(System.String,System.String,System.String)">
             <summary>
-            Constructs context with connection string and database name
+            Constructs context with connection string and connection name
             </summary>
-            <param name="connectionString">Connection string for Mongo database</param>
+            <param name="connectionString">Connection string for Mongo connection</param>
             <param name="databaseName">Database name</param>
             <param name="prefix">Collections prefix</param>
         </member>
         <member name="M:Hangfire.Mongo.Database.HangfireDbContext.#ctor(MongoDB.Driver.MongoDatabase)">
             <summary>
-            Constructs context with existing Mongo database connection
+            Constructs context with existing Mongo connection connection
             </summary>
-            <param name="database">Database connection</param>
+            <param name="connection">Database connection</param>
         </member>
         <member name="M:Hangfire.Mongo.Database.HangfireDbContext.Init">
             <summary>
@@ -30,7 +30,7 @@
         </member>
         <member name="P:Hangfire.Mongo.Database.HangfireDbContext.ConnectionId">
             <summary>
-            Mongo database connection identifier
+            Mongo connection connection identifier
             </summary>
         </member>
         <member name="P:Hangfire.Mongo.Database.HangfireDbContext.DistributedLock">
@@ -88,8 +88,8 @@
             Configure Hangfire to use MongoDB storage
             </summary>
             <param name="configuration">Configuration</param>
-            <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:passwordY@host:port'</param>
-            <param name="databaseName">Name of database at Mongo server</param>
+            <param name="connectionString">Connection string for Mongo connection, for example 'mongodb://username:passwordY@host:port'</param>
+            <param name="databaseName">Name of connection at Mongo server</param>
             <returns></returns>
         </member>
         <member name="M:Hangfire.Mongo.MongoBootstrapperConfigurationExtensions.UseMongoStorage(Hangfire.IBootstrapperConfiguration,System.String,System.String,Hangfire.Mongo.MongoStorageOptions)">
@@ -97,14 +97,14 @@
             Configure Hangfire to use MongoDB storage
             </summary>
             <param name="configuration">Configuration</param>
-            <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:passwordY@host:port'</param>
-            <param name="databaseName">Name of database at Mongo server</param>
+            <param name="connectionString">Connection string for Mongo connection, for example 'mongodb://username:passwordY@host:port'</param>
+            <param name="databaseName">Name of connection at Mongo server</param>
             <param name="options">Storage options</param>
             <returns></returns>
         </member>
         <member name="T:Hangfire.Mongo.MongoUtils.AutoIncrementIdGenerator">
             <summary>
-            Represents ID generator for Mongo database
+            Represents ID generator for Mongo connection
             </summary>
         </member>
         <member name="M:Hangfire.Mongo.MongoUtils.AutoIncrementIdGenerator.#ctor">
@@ -135,21 +135,21 @@
         </member>
         <member name="T:Hangfire.Mongo.MongoUtils.MongoExtensions">
             <summary>
-            Helper utilities to work with Mongo database
+            Helper utilities to work with Mongo connection
             </summary>
         </member>
         <member name="M:Hangfire.Mongo.MongoUtils.MongoExtensions.GetServerTimeUtc(MongoDB.Driver.MongoDatabase)">
             <summary>
             Retreives server time in UTC zone
             </summary>
-            <param name="database">Mongo database</param>
+            <param name="connection">Mongo connection</param>
             <returns>Server time</returns>
         </member>
         <member name="M:Hangfire.Mongo.MongoUtils.MongoExtensions.GetServerTimeUtc(Hangfire.Mongo.Database.HangfireDbContext)">
             <summary>
             Retreives server time in UTC zone
             </summary>
-            <param name="dbContext">Hangfire database context</param>
+            <param name="dbContext">Hangfire connection context</param>
             <returns>Server time</returns>
         </member>
     </members>

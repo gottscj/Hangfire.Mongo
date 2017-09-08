@@ -7,7 +7,6 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
-#pragma warning disable 1591
     [Collection("Database")]
     public class CountersAggregatorFacts
     {
@@ -26,16 +25,17 @@ namespace Hangfire.Mongo.Tests
                 });
 
                 var aggregator = new CountersAggregator(storage, TimeSpan.Zero);
-                var cts = new CancellationTokenSource();
-                cts.Cancel();
 
                 // Act
-                aggregator.Execute(cts.Token);
+                using (var cts = new CancellationTokenSource())
+                {
+                    cts.Cancel();
+                    aggregator.Execute(cts.Token);
+                }
 
                 // Assert
                 Assert.Equal(1, connection.Database.StateData.OfType<AggregatedCounterDto>().Count(new BsonDocument()));
             }
         }
     }
-#pragma warning restore 1591
 }

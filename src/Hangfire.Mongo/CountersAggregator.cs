@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Hangfire.Logging;
-using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Server;
 using MongoDB.Bson;
@@ -31,10 +29,7 @@ namespace Hangfire.Mongo
         /// <param name="interval">Checking interval</param>
         public CountersAggregator(MongoStorage storage, TimeSpan interval)
         {
-            if (storage == null)
-                throw new ArgumentNullException(nameof(storage));
-
-            _storage = storage;
+            _storage = storage ?? throw new ArgumentNullException(nameof(storage));
             _interval = interval;
         }
 
@@ -101,12 +96,12 @@ namespace Hangfire.Mongo
                             database
                                 .StateData
                                 .InsertOne(new AggregatedCounterDto
-                            {
-                                Id = ObjectId.GenerateNewId(),
-                                Key = item.Key,
-                                Value = item.Value,
-                                ExpireAt = item.ExpireAt
-                            });
+                                {
+                                    Id = ObjectId.GenerateNewId(),
+                                    Key = item.Key,
+                                    Value = item.Value,
+                                    ExpireAt = item.ExpireAt
+                                });
                         }
                     }
 

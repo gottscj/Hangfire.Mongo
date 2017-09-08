@@ -71,5 +71,5 @@
         /// {collection-name}.{schema-version}.{BackupPostfix}
         /// </remarks>
         public string BackupPostfix { get; set; }
-    }         
+    }
 }
