@@ -1,6 +1,14 @@
 
 ## What's New (07/24/2017)
 
+### v0.5.4
+- Fix broken migration
+
+### v0.5.3
+- Added new backup database strategy when migration
+- Fixed a bug that made backup incompatiple with MongoDB 3.4
+- A few code optimizations
+
 ### v0.5.2
 - Forcing the use of Pascal Casing in Hangfire specific collections.
   See [README.md](https://github.com/sergeyzwezdin/Hangfire.Mongo#naming-convention) for more info.
