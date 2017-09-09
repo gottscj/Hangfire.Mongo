@@ -16,7 +16,9 @@ namespace Hangfire.Mongo.Sample.NETCore
                 }
             };
 
-            JobStorage.Current = new MongoStorage(
+            GlobalConfiguration.Configuration.UseColouredConsoleLogProvider();
+
+            GlobalConfiguration.Configuration.UseMongoStorage(
                 "mongodb://localhost",
                 "Mongo-Hangfire-Sample-NETCore",
                 migrationOptions);
