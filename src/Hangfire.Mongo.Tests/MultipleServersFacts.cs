@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Hangfire.Common;
 using Hangfire.Mongo.Tests.Utils;
@@ -67,6 +68,54 @@ namespace Hangfire.Mongo.Tests
                     servers[i].Dispose();
                 }
             }
+        }
+
+
+        [Fact, CleanDatabase]
+        public void MultipleBackgroundJobServers_AddsRecurrentJobs()
+        {
+            // ARRANGE
+            const int serverCount = 15;
+            const int workerCount = 2;
+
+            JobStorage.Current = ConnectionUtils.CreateStorage(new MongoStorageOptions());
+
+            var options = Enumerable.Range(0, serverCount)
+                .Select((_, i) => new BackgroundJobServerOptions
+                {
+                    Queues = new[] { "default", $"queue_{i}" },
+                    WorkerCount = workerCount
+                })
+                .ToList();
+
+            var servers = options.Select(o => new BackgroundJobServer(o)).ToList();
+
+            // let hangfire run for 1 sec
+            Task.Delay(1000).Wait();
+
+            // ACT
+            foreach (var queue in options.SelectMany(o => o.Queues))
+            {
+                for (int i = 0; i < workerCount; i++)
+                {
+                    RecurringJob.AddOrUpdate($@"job_{queue}.{i}-a", () => System.Diagnostics.Debug.WriteLine($@"{queue}.{i}-a"), Cron.Minutely(), null, queue);
+                    RecurringJob.AddOrUpdate($@"job_{queue}.{i}-b", () => System.Diagnostics.Debug.WriteLine($@"{queue}.{i}-b"), Cron.Minutely(), null, queue);
+                }
+            }
+
+            // let hangfire run for 1 sec
+            Task.Delay(1000).Wait();
+
+            // ASSERT
+            servers.ForEach(s =>
+            {
+                s.SendStop();
+            });
+            servers.ForEach(s =>
+            {
+                s.Dispose();
+            });
+
         }
 
     }
