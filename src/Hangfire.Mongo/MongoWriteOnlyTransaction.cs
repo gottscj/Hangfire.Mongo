@@ -27,18 +27,9 @@ namespace Hangfire.Mongo
         public MongoWriteOnlyTransaction(HangfireDbContext connection,
             PersistentJobQueueProviderCollection queueProviders, MongoStorageOptions options)
         {
-            if (connection == null)
-                throw new ArgumentNullException(nameof(connection));
-
-            if (queueProviders == null)
-                throw new ArgumentNullException(nameof(queueProviders));
-
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
-
-            _connection = connection;
-            _queueProviders = queueProviders;
-            _options = options;
+            _connection = connection ?? throw new ArgumentNullException(nameof(connection));
+            _queueProviders = queueProviders ?? throw new ArgumentNullException(nameof(queueProviders));
+            _options = options ?? throw new ArgumentNullException(nameof(options));
         }
 
         public override void Dispose()
@@ -106,6 +97,11 @@ namespace Hangfire.Mongo
 
         public override void IncrementCounter(string key)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x.StateData.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -116,6 +112,11 @@ namespace Hangfire.Mongo
 
         public override void IncrementCounter(string key, TimeSpan expireIn)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x.StateData.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -127,6 +128,11 @@ namespace Hangfire.Mongo
 
         public override void DecrementCounter(string key)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x.StateData.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -137,6 +143,11 @@ namespace Hangfire.Mongo
 
         public override void DecrementCounter(string key, TimeSpan expireIn)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x.StateData.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -153,6 +164,11 @@ namespace Hangfire.Mongo
 
         public override void AddToSet(string key, string value, double score)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             var builder = Builders<SetDto>.Update;
             var set = builder.Set(_ => _.Score, score);
             var setTypesOnInsert = builder.SetOnInsert("_t", new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(SetDto) });
@@ -172,6 +188,11 @@ namespace Hangfire.Mongo
 
         public override void RemoveFromSet(string key, string value)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x.StateData
                 .OfType<SetDto>()
                 .DeleteMany(
@@ -181,6 +202,11 @@ namespace Hangfire.Mongo
 
         public override void InsertToList(string key, string value)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x.StateData.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -191,6 +217,11 @@ namespace Hangfire.Mongo
 
         public override void RemoveFromList(string key, string value)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x.StateData
                 .OfType<ListDto>()
                 .DeleteMany(
@@ -200,6 +231,11 @@ namespace Hangfire.Mongo
 
         public override void TrimList(string key, int keepStartingFrom, int keepEndingAt)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x =>
             {
                 int start = keepStartingFrom + 1;
@@ -226,10 +262,14 @@ namespace Hangfire.Mongo
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             if (keyValuePairs == null)
+            {
                 throw new ArgumentNullException(nameof(keyValuePairs));
+            }
 
             var builder = Builders<HashDto>.Update;
             var setTypesOnInsert = builder.SetOnInsert("_t", new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(HashDto) });
@@ -260,16 +300,21 @@ namespace Hangfire.Mongo
         public override void RemoveHash(string key)
         {
             if (key == null)
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             QueueCommand(x => x.StateData.OfType<HashDto>().DeleteMany(Builders<HashDto>.Filter.Eq(_ => _.Key, key)));
         }
 
         public override void Commit()
         {
-            foreach (var action in _commandQueue)
+            using (new MongoDistributedLock("WriteOnlyTransaction", TimeSpan.FromSeconds(30), _connection, _options))
             {
-                action.Invoke(_connection);
+                foreach (var action in _commandQueue)
+                {
+                    action.Invoke(_connection);
+                }
             }
         }
 
@@ -279,15 +324,16 @@ namespace Hangfire.Mongo
         }
 
 
-
-        //New methods to support Hangfire pro feature - batches.
-
-
+        // New methods to support Hangfire pro feature - batches.
 
 
         public override void ExpireSet(string key, TimeSpan expireIn)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x
                 .StateData
                 .OfType<SetDto>()
@@ -297,7 +343,11 @@ namespace Hangfire.Mongo
 
         public override void ExpireList(string key, TimeSpan expireIn)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x.StateData
                 .OfType<ListDto>()
                 .UpdateMany(Builders<ListDto>.Filter.Eq(_ => _.Key, key),
@@ -306,7 +356,11 @@ namespace Hangfire.Mongo
 
         public override void ExpireHash(string key, TimeSpan expireIn)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x.StateData
                 .OfType<HashDto>()
                 .UpdateMany(Builders<HashDto>.Filter.Eq(_ => _.Key, key),
@@ -315,7 +369,11 @@ namespace Hangfire.Mongo
 
         public override void PersistSet(string key)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x.StateData
                 .OfType<SetDto>()
                 .UpdateMany(Builders<SetDto>.Filter.Eq(_ => _.Key, key),
@@ -324,7 +382,11 @@ namespace Hangfire.Mongo
 
         public override void PersistList(string key)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x.StateData
                 .OfType<ListDto>()
                 .UpdateMany(Builders<ListDto>.Filter.Eq(_ => _.Key, key),
@@ -333,7 +395,11 @@ namespace Hangfire.Mongo
 
         public override void PersistHash(string key)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             QueueCommand(x => x.StateData
                 .OfType<HashDto>()
                 .UpdateMany(Builders<HashDto>.Filter.Eq(_ => _.Key, key),
@@ -342,8 +408,14 @@ namespace Hangfire.Mongo
 
         public override void AddRangeToSet(string key, IList<string> items)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
-            if (items == null) throw new ArgumentNullException(nameof(items));
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+            if (items == null)
+            {
+                throw new ArgumentNullException(nameof(items));
+            }
             var builder = Builders<SetDto>.Update;
 
 
@@ -373,7 +445,10 @@ namespace Hangfire.Mongo
 
         public override void RemoveSet(string key)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
             QueueCommand(x => x.StateData
                 .OfType<SetDto>()
                 .DeleteMany(Builders<SetDto>.Filter.Eq(_ => _.Key, key)));
