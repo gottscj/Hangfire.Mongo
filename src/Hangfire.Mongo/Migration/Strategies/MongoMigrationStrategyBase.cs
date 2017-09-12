@@ -27,7 +27,7 @@ namespace Hangfire.Mongo.Migration.Strategies
                     BackupStrategyNone(_dbContext.Database, fromSchema, toSchema);
                     break;
 
-                case MongoBackupStrategy.Collection:
+                case MongoBackupStrategy.Collections:
                     BackupStrategyCollection(_dbContext.Database, fromSchema, toSchema);
                     break;
 
