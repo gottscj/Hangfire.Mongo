@@ -12,6 +12,8 @@ namespace Hangfire.Mongo.Database
     {
         private readonly string _prefix;
 
+        internal MongoClient Client { get; }
+
         internal IMongoDatabase Database { get; }
 
         /// <summary>
@@ -24,9 +26,9 @@ namespace Hangfire.Mongo.Database
         {
             _prefix = prefix;
 
-            var client = new MongoClient(connectionString);
+            Client = new MongoClient(connectionString);
 
-            Database = client.GetDatabase(databaseName);
+            Database = Client.GetDatabase(databaseName);
 
             ConnectionId = Guid.NewGuid().ToString();
         }

@@ -34,7 +34,7 @@ namespace Hangfire.Mongo.Tests.Utils
                 MigrationOptions = new MongoMigrationOptions
                 {
                     Strategy = MongoMigrationStrategy.Drop,
-                    Backup = false
+                    BackupStrategy = MongoBackupStrategy.None
                 }
             };
             return CreateStorage(storageOptions);
