@@ -41,7 +41,7 @@ namespace Hangfire.Mongo
         /// same database as your actual application data.
         /// This is the prefered and default backup strategy.
         /// </summary>
-        Collection,
+        Collections,
 
         /// <summary>
         /// Will copy the entire database into a new databse.
@@ -74,7 +74,7 @@ namespace Hangfire.Mongo
         public MongoMigrationOptions(MongoMigrationStrategy strategy)
         {
             Strategy = strategy;
-            BackupStrategy = MongoBackupStrategy.Collection;
+            BackupStrategy = MongoBackupStrategy.Collections;
             BackupPostfix = "migrationbackup";
         }
 
@@ -97,7 +97,7 @@ namespace Hangfire.Mongo
             {
                 if (value != Backup)
                 {
-                    BackupStrategy = value ? MongoBackupStrategy.Collection : MongoBackupStrategy.None;
+                    BackupStrategy = value ? MongoBackupStrategy.Collections : MongoBackupStrategy.None;
                 }
             }
         }

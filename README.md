@@ -102,7 +102,8 @@ public void Configuration(IAppBuilder app)
 {
     var migrationOptions = new MongoMigrationOptions
     {
-        Strategy = MongoMigrationStrategy.Migrate
+        Strategy = MongoMigrationStrategy.Migrate,
+        BackupStrategy = MongoBackupStrategy.Collections
     };
     var storageOptions = new MongoStorageOptions
     {
@@ -118,9 +119,10 @@ public void Configuration(IAppBuilder app)
 
 ### Migration Backup
 By default a backup is made before attempting to migrate.
-Backup consists of "cloning" each collection to the same database.
-You can disable or customize the backup using MongoMigrationOptions.
-NOTE: This software is made by humans in our sparetime - we do our best but are not responsible for data loss.
+You can backup Hangfire collections by "cloning" each collection to the same database.
+Or you can chose to copy the entire database. Alternatively you can just skip the backup.
+The backup can be customized using MongoMigrationOptions.
+NOTE: This software is made by humans in our sparetime - we do our best but will not be held responsible for any data loss.
 
 Contributors
 ------------
