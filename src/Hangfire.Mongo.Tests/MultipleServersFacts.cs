@@ -98,8 +98,8 @@ namespace Hangfire.Mongo.Tests
             {
                 for (int i = 0; i < workerCount; i++)
                 {
-                    RecurringJob.AddOrUpdate($@"job_{queue}.{i}-a", () => System.Diagnostics.Debug.WriteLine($@"{queue}.{i}-a"), Cron.Minutely(), null, queue);
-                    RecurringJob.AddOrUpdate($@"job_{queue}.{i}-b", () => System.Diagnostics.Debug.WriteLine($@"{queue}.{i}-b"), Cron.Minutely(), null, queue);
+                    RecurringJob.AddOrUpdate($@"job_{queue}.{i}-a", () => Console.WriteLine($@"{queue}.{i}-a"), Cron.Minutely(), null, queue);
+                    RecurringJob.AddOrUpdate($@"job_{queue}.{i}-b", () => Console.WriteLine($@"{queue}.{i}-b"), Cron.Minutely(), null, queue);
                 }
             }
 
