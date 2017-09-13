@@ -34,6 +34,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                     MigrationOptions = new MongoMigrationOptions
                     {
                         Strategy = MongoMigrationStrategy.Migrate,
+                        BackupStrategy = MongoBackupStrategy.Collections
                     }
                 };
                 config.UseMongoStorage(connectionString, "hangfire-mongo-sample-aspnetcore", migrationOptions);
