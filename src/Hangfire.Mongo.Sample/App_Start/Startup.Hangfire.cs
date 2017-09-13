@@ -15,6 +15,7 @@ namespace Hangfire.Mongo.Sample
                 MigrationOptions = new MongoMigrationOptions
                 {
                     Strategy = MongoMigrationStrategy.Migrate,
+                    BackupStrategy = MongoBackupStrategy.Collections
                 }
             };
             GlobalConfiguration.Configuration.UseMongoStorage(connectionString, "hangfire-mongo-sample", migrationOptions);
