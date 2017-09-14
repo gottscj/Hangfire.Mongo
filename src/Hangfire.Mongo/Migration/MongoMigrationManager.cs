@@ -26,48 +26,67 @@ namespace Hangfire.Mongo.Migration
 
         public void Migrate(HangfireDbContext dbContext)
         {
-            using (new MongoDistributedLock(nameof(Migrate), TimeSpan.FromSeconds(30), dbContext, _storageOptions))
+            var currentSchema = dbContext.Schema.Find(new BsonDocument()).FirstOrDefault();
+            if (currentSchema == null)
             {
-                var currentSchema = dbContext.Schema.Find(new BsonDocument()).FirstOrDefault();
-                if (currentSchema == null)
+                using (new MongoDistributedLock("migrate", TimeSpan.FromSeconds(30), dbContext, _storageOptions))
                 {
+                    // Read the current schema one more time under lock.
+                    // It might have changed in the time from aquiring the lock to we got it.
+                    currentSchema = dbContext.Schema.Find(new BsonDocument()).FirstOrDefault();
+                    if (((MongoSchema)currentSchema.Version) == RequiredSchemaVersion)
+                    {
+                        return;
+                    }
                     // We do not have a schema version yet
                     // - assume an empty connection and run full migrations
                     var migrationRunner = new MongoMigrationRunner(dbContext, _storageOptions);
                     migrationRunner.Execute(MongoSchema.None, RequiredSchemaVersion);
                     return;
                 }
+            }
 
-                var currentSchemaVersion = (MongoSchema)currentSchema.Version;
-                if (RequiredSchemaVersion < currentSchemaVersion)
-                {
-                    var assemblyName = GetType().GetTypeInfo().Assembly.GetName();
-                    throw new InvalidOperationException(
-                        $"{Environment.NewLine}{assemblyName.Name} version: {assemblyName.Version}, uses a schema prior to the current connection." +
-                        $"{Environment.NewLine}Backwards migration is not supported. Please resolve this manually (e.g. by droping the connection)." +
-                        $"{Environment.NewLine}Please see https://github.com/sergeyzwezdin/Hangfire.Mongo#migration for further information.");
-                }
+            var currentSchemaVersion = (MongoSchema)currentSchema.Version;
+            if (RequiredSchemaVersion < currentSchemaVersion)
+            {
+                var assemblyName = GetType().GetTypeInfo().Assembly.GetName();
+                throw new InvalidOperationException(
+                    $"{Environment.NewLine}{assemblyName.Name} version: {assemblyName.Version}, uses a schema prior to the current connection." +
+                    $"{Environment.NewLine}Backwards migration is not supported. Please resolve this manually (e.g. by droping the connection)." +
+                    $"{Environment.NewLine}Please see https://github.com/sergeyzwezdin/Hangfire.Mongo#migration for further information.");
+            }
 
-                if (RequiredSchemaVersion == currentSchemaVersion)
+            if (RequiredSchemaVersion == currentSchemaVersion)
+            {
+                // Nothing to migrate - so let's get outa here.
+                return;
+            }
+
+            IMongoMigrationStrategy migration;
+            switch (_storageOptions.MigrationOptions.Strategy)
+            {
+                case MongoMigrationStrategy.None:
+                    migration = new MongoMigrationStrategyNone();
+                    break;
+                case MongoMigrationStrategy.Drop:
+                    migration = new MongoMigrationStrategyDrop(dbContext, _storageOptions);
+                    break;
+                case MongoMigrationStrategy.Migrate:
+                    migration = new MongoMigrationStrategyMigrate(dbContext, _storageOptions);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException($@"Unknown migration strategy: {_storageOptions.MigrationOptions.Strategy}", $@"{nameof(MongoMigrationOptions)}.{nameof(MongoMigrationOptions.Strategy)}");
+            }
+
+            using (new MongoDistributedLock("migrate", TimeSpan.FromSeconds(30), dbContext, _storageOptions))
+            {
+                // Read the current schema one more time under lock.
+                // It might have changed in the time from aquiring the lock to we got it.
+                currentSchema = dbContext.Schema.Find(new BsonDocument()).FirstOrDefault();
+                currentSchemaVersion = (MongoSchema)currentSchema.Version;
+                if (currentSchemaVersion == RequiredSchemaVersion)
                 {
-                    // Nothing to migrate - so let's get outa here.
                     return;
-                }
-
-                IMongoMigrationStrategy migration;
-                switch (_storageOptions.MigrationOptions.Strategy)
-                {
-                    case MongoMigrationStrategy.None:
-                        migration = new MongoMigrationStrategyNone();
-                        break;
-                    case MongoMigrationStrategy.Drop:
-                        migration = new MongoMigrationStrategyDrop(dbContext, _storageOptions);
-                        break;
-                    case MongoMigrationStrategy.Migrate:
-                        migration = new MongoMigrationStrategyMigrate(dbContext, _storageOptions);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException($@"Unknown migration strategy: {_storageOptions.MigrationOptions.Strategy}", $@"{nameof(MongoMigrationOptions)}.{nameof(MongoMigrationOptions.Strategy)}");
                 }
                 migration.Migrate(currentSchemaVersion, RequiredSchemaVersion);
             }
