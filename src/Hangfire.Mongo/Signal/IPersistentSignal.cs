@@ -34,7 +34,11 @@ namespace Hangfire.Mongo.Signal
         /// <param name="timeout">
         /// The timeout for the wait.
         /// </param>
-        void Wait(string name, TimeSpan timeout);
+        /// <returns>
+        /// True is name was set or
+        /// false on timeout
+        /// </returns>
+        bool Wait(string name, TimeSpan timeout);
 
 
         /// <summary>
@@ -46,10 +50,11 @@ namespace Hangfire.Mongo.Signal
         /// <param name="cancellationToken">
         /// The cancelation token for canceling the blocking wait.
         /// </param>
-        /// <exception cref="System.OperationCanceledException">
-        /// Thrown if wait is cancelled
-        /// </exception>
-        void Wait(string name, CancellationToken cancellationToken);
+        /// <returns>
+        /// True is name was set or
+        /// false if cancellationTokem was canceled (timed out)
+        /// </returns>
+        bool Wait(string name, CancellationToken cancellationToken);
 
         /// <summary>
         /// Wait for a signal with one of the names.
@@ -60,10 +65,11 @@ namespace Hangfire.Mongo.Signal
         /// <param name="cancellationToken">
         /// The cancelation token for canceling the blocking wait.
         /// </param>
-        /// <exception cref="System.OperationCanceledException">
-        /// Thrown if wait is cancelled
-        /// </exception>
-        void Wait(string[] names, CancellationToken cancellationToken);
+        /// <returns>
+        /// True if one of the names was set.
+        /// False if cancellationTokem was canceled (timed out)
+        /// </returns>
+        bool Wait(string[] names, CancellationToken cancellationToken);
 
     }
 }

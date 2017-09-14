@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading;
-using Hangfire.Logging;
+﻿using System.Threading;
 using Hangfire.Mongo.Dto;
 using Hangfire.Server;
 using MongoDB.Driver;
@@ -12,8 +10,6 @@ namespace Hangfire.Mongo.Signal.Mongo
     /// </summary>
     public class MongoSignalBackgroundProcess : IBackgroundProcess, IServerComponent
     {
-        private static readonly ILog Logger = LogProvider.For<ExpirationManager>();
-
         private readonly MongoSignal _signal;
 
         /// <summary>
