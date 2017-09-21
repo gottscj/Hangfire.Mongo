@@ -13,10 +13,13 @@ namespace Hangfire.Mongo.Sample.NETCore
                 MigrationOptions = new MongoMigrationOptions
                 {
                     Strategy = MongoMigrationStrategy.Migrate,
+                    BackupStrategy = MongoBackupStrategy.Collections
                 }
             };
 
-            JobStorage.Current = new MongoStorage(
+            GlobalConfiguration.Configuration.UseColouredConsoleLogProvider();
+
+            GlobalConfiguration.Configuration.UseMongoStorage(
                 "mongodb://localhost",
                 "Mongo-Hangfire-Sample-NETCore",
                 migrationOptions);

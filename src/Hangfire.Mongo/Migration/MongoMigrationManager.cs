@@ -21,7 +21,7 @@ namespace Hangfire.Mongo.Migration
 
         public MongoMigrationManager(MongoStorageOptions storageOptions)
         {
-            _storageOptions = storageOptions;
+            _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
         }
 
         public void Migrate(HangfireDbContext dbContext)
@@ -32,7 +32,7 @@ namespace Hangfire.Mongo.Migration
                 if (currentSchema == null)
                 {
                     // We do not have a schema version yet
-                    // - assume an empty database and run full migrations
+                    // - assume an empty connection and run full migrations
                     var migrationRunner = new MongoMigrationRunner(dbContext, _storageOptions);
                     migrationRunner.Execute(MongoSchema.None, RequiredSchemaVersion);
                     return;
@@ -43,8 +43,8 @@ namespace Hangfire.Mongo.Migration
                 {
                     var assemblyName = GetType().GetTypeInfo().Assembly.GetName();
                     throw new InvalidOperationException(
-                        $"{Environment.NewLine}{assemblyName.Name} version: {assemblyName.Version}, uses a schema prior to the current database." +
-                        $"{Environment.NewLine}Backwards migration is not supported. Please resolve this manually (e.g. by droping the database)." +
+                        $"{Environment.NewLine}{assemblyName.Name} version: {assemblyName.Version}, uses a schema prior to the current connection." +
+                        $"{Environment.NewLine}Backwards migration is not supported. Please resolve this manually (e.g. by droping the connection)." +
                         $"{Environment.NewLine}Please see https://github.com/sergeyzwezdin/Hangfire.Mongo#migration for further information.");
                 }
 

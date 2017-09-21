@@ -29,17 +29,17 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                 // Read DefaultConnection string from appsettings.json
                 var connectionString = Configuration.GetConnectionString("DefaultConnection");
 
-                var migrationOptions = new MongoStorageOptions
+                var storageOptions = new MongoStorageOptions
                 {
                     MigrationOptions = new MongoMigrationOptions
                     {
                         Strategy = MongoMigrationStrategy.Migrate,
+                        BackupStrategy = MongoBackupStrategy.Collections
                     }
                 };
-                config.UseMongoStorage(connectionString, "hangfire-mongo-sample-aspnetcore", migrationOptions);
+                config.UseMongoStorage(connectionString, "hangfire-mongo-sample-aspnetcore", storageOptions);
             });
             services.AddMvc();
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

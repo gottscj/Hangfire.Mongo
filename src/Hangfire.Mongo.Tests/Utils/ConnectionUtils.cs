@@ -3,8 +3,7 @@ using Hangfire.Mongo.Database;
 
 namespace Hangfire.Mongo.Tests.Utils
 {
-#pragma warning disable 1591
-    public static class ConnectionUtils
+    internal static class ConnectionUtils
     {
         private const string DatabaseVariable = "Hangfire_Mongo_DatabaseName";
         private const string ConnectionStringTemplateVariable = "Hangfire_Mongo_ConnectionStringTemplate";
@@ -12,12 +11,12 @@ namespace Hangfire.Mongo.Tests.Utils
         private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
         private const string DefaultConnectionStringTemplate = @"mongodb://localhost";
 
-        private static string GetDatabaseName()
+        internal static string GetDatabaseName()
         {
             return Environment.GetEnvironmentVariable(DatabaseVariable) ?? DefaultDatabaseName;
         }
 
-        private static string GetConnectionString()
+        internal static string GetConnectionString()
         {
             return string.Format(GetConnectionStringTemplate(), GetDatabaseName());
         }
@@ -34,7 +33,7 @@ namespace Hangfire.Mongo.Tests.Utils
                 MigrationOptions = new MongoMigrationOptions
                 {
                     Strategy = MongoMigrationStrategy.Drop,
-                    Backup = false
+                    BackupStrategy = MongoBackupStrategy.None
                 }
             };
             return CreateStorage(storageOptions);
@@ -50,5 +49,5 @@ namespace Hangfire.Mongo.Tests.Utils
             return CreateStorage().Connection;
         }
     }
-#pragma warning restore 1591
+
 }

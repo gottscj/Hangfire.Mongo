@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Hangfire.Mongo.Database;
-using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.States;
@@ -18,27 +17,18 @@ namespace Hangfire.Mongo
     {
         private readonly Queue<Action<HangfireDbContext>> _commandQueue = new Queue<Action<HangfireDbContext>>();
 
-        private readonly HangfireDbContext _connection;
+        private readonly HangfireDbContext _database;
 
         private readonly PersistentJobQueueProviderCollection _queueProviders;
 
-        private readonly MongoStorageOptions _options;
+        private readonly MongoStorageOptions _storageOptions;
 
-        public MongoWriteOnlyTransaction(HangfireDbContext connection,
-            PersistentJobQueueProviderCollection queueProviders, MongoStorageOptions options)
+        public MongoWriteOnlyTransaction(HangfireDbContext database,
+            PersistentJobQueueProviderCollection queueProviders, MongoStorageOptions storageOptions)
         {
-            if (connection == null)
-                throw new ArgumentNullException(nameof(connection));
-
-            if (queueProviders == null)
-                throw new ArgumentNullException(nameof(queueProviders));
-
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
-
-            _connection = connection;
-            _queueProviders = queueProviders;
-            _options = options;
+            _database = database ?? throw new ArgumentNullException(nameof(database));
+            _queueProviders = queueProviders ?? throw new ArgumentNullException(nameof(queueProviders));
+            _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
         }
 
         public override void Dispose()
@@ -96,7 +86,7 @@ namespace Hangfire.Mongo
         public override void AddToQueue(string queue, string jobId)
         {
             IPersistentJobQueueProvider provider = _queueProviders.GetProvider(queue);
-            IPersistentJobQueue persistentQueue = provider.GetJobQueue(_connection);
+            IPersistentJobQueue persistentQueue = provider.GetJobQueue(_database);
 
             QueueCommand(_ =>
             {
@@ -321,7 +311,7 @@ namespace Hangfire.Mongo
         {
             foreach (var action in _commandQueue)
             {
-                action.Invoke(_connection);
+                action.Invoke(_database);
             }
         }
 

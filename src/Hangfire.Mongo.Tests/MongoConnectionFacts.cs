@@ -17,7 +17,6 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
-#pragma warning disable 1591
     [Collection("Database")]
     public class MongoConnectionFacts
     {
@@ -39,12 +38,12 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoConnection(null, _providers));
+                () => new MongoConnection(null, null));
 
             Assert.Equal("database", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Ctor_ThrowsAnException_WhenProvidersCollectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -1596,5 +1595,4 @@ namespace Hangfire.Mongo.Tests
             Debug.WriteLine(arg);
         }
     }
-#pragma warning restore 1591
 }

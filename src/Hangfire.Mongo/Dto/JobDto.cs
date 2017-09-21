@@ -31,6 +31,6 @@ namespace Hangfire.Mongo.Dto
 
         [BsonElement(nameof(ExpireAt))]
         public DateTime? ExpireAt { get; set; }
-    } 
+    }
 #pragma warning restore 1591
 }

@@ -4,8 +4,10 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.Migration;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
+using Hangfire.Mongo.Signal.Mongo;
 using Hangfire.Mongo.StateHandlers;
 using Hangfire.Server;
 using Hangfire.States;
@@ -55,17 +57,16 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(databaseName));
             }
-            if (storageOptions == null)
-            {
-                throw new ArgumentNullException(nameof(storageOptions));
-            }
 
             _connectionString = connectionString;
             _databaseName = databaseName;
-            _storageOptions = storageOptions;
+            _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
 
             Connection = new HangfireDbContext(connectionString, databaseName, storageOptions.Prefix);
-            Connection.Init(_storageOptions);
+
+            var migrationManager = new MongoMigrationManager(storageOptions);
+            migrationManager.Migrate(Connection);
+
             var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
             QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }
@@ -88,24 +89,20 @@ namespace Hangfire.Mongo
         /// <param name="storageOptions">Storage options</param>
         public MongoStorage(MongoClientSettings mongoClientSettings, string databaseName, MongoStorageOptions storageOptions)
         {
-            if (mongoClientSettings == null)
-            {
-                throw new ArgumentNullException(nameof(mongoClientSettings));
-            }
+            _mongoClientSettings = mongoClientSettings ?? throw new ArgumentNullException(nameof(mongoClientSettings));
+            _databaseName = databaseName ?? throw new ArgumentNullException(nameof(databaseName));
+            _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
+
             if (string.IsNullOrWhiteSpace(databaseName))
             {
-                throw new ArgumentNullException(nameof(databaseName));
+                throw new ArgumentException("Please state a connection name", nameof(databaseName));
             }
-            if (storageOptions == null)
-            {
-                throw new ArgumentNullException(nameof(storageOptions));
-            }
-
-            _mongoClientSettings = mongoClientSettings;
-            _databaseName = databaseName;
-            _storageOptions = storageOptions;
 
             Connection = new HangfireDbContext(mongoClientSettings, databaseName, _storageOptions.Prefix);
+
+            var migrationManager = new MongoMigrationManager(storageOptions);
+            migrationManager.Migrate(Connection);
+
             var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
             QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }
@@ -144,6 +141,7 @@ namespace Hangfire.Mongo
         /// <returns>Collection of server components</returns>
         public override IEnumerable<IServerComponent> GetComponents()
         {
+            yield return new MongoSignalBackgroundProcess(this.Connection.Signal);
             yield return new ExpirationManager(this, _storageOptions.JobExpirationCheckInterval);
             yield return new CountersAggregator(this, _storageOptions.CountersAggregateInterval);
         }

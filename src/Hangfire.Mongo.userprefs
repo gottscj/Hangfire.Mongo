@@ -6,9 +6,10 @@
     <BreakpointStore />
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.ItemProperties.tests.Hangfire.Mongo.Tests PreferredExecutionTarget="MonoDevelop.Default" />
   <MultiItemStartupConfigurations />
   <DisabledProjects>
-    <String>Hangfire.Mongo.Sample.NETCore/Hangfire.Mongo.Sample.NETCore.csproj</String>
     <String>Hangfire.Mongo.Sample.ASPNetCore/Hangfire.Mongo.Sample.ASPNetCore.csproj</String>
+    <String>Hangfire.Mongo.Sample.NETCore/Hangfire.Mongo.Sample.NETCore.csproj</String>
   </DisabledProjects>
 </Properties>

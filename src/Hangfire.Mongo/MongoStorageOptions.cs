@@ -7,8 +7,6 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoStorageOptions
     {
-        private TimeSpan _queuePollInterval;
-
         private TimeSpan _distributedLockLifetime;
 
         /// <summary>
@@ -17,7 +15,6 @@ namespace Hangfire.Mongo
         public MongoStorageOptions()
         {
             Prefix = "hangfire";
-            QueuePollInterval = TimeSpan.FromSeconds(15);
             InvisibilityTimeout = TimeSpan.FromMinutes(30);
             DistributedLockLifetime = TimeSpan.FromSeconds(30);
             JobExpirationCheckInterval = TimeSpan.FromHours(1);
@@ -36,25 +33,8 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Poll interval for queue
         /// </summary>
-        public TimeSpan QueuePollInterval
-        {
-            get { return _queuePollInterval; }
-            set
-            {
-                var message = $"The QueuePollInterval property value should be positive. Given: {value}.";
-
-                if (value == TimeSpan.Zero)
-                {
-                    throw new ArgumentException(message, nameof(value));
-                }
-                if (value != value.Duration())
-                {
-                    throw new ArgumentException(message, nameof(value));
-                }
-
-                _queuePollInterval = value;
-            }
-        }
+        [Obsolete("This is not used as we do not use polling anymore")]
+        public TimeSpan QueuePollInterval { get; set; }
 
         /// <summary>
         /// Invisibility timeout

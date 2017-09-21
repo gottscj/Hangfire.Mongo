@@ -1,7 +1,8 @@
 Hangfire.Mongo
 ==============
 
-[![Build status](https://ci.appveyor.com/api/projects/status/xjr953s29pwwsuq4?svg=true)](https://ci.appveyor.com/project/sergeyzwezdin/hangfire-mongo) [![Nuget version](https://img.shields.io/nuget/v/Hangfire.Mongo.svg)](https://www.nuget.org/packages/Hangfire.Mongo) [![GitHub license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE)
+[![Build status](https://ci.appveyor.com/api/projects/status/xjr953s29pwwsuq4?svg=true)](https://ci.appveyor.com/project/sergeyzwezdin/hangfire-mongo) [![Nuget version](https://img.shields.io/nuget/v/Hangfire.Mongo.svg)](https://www.nuget.org/packages/Hangfire.Mongo) [![Nuget downloads](https://img.shields.io/nuget/dt/Hangfire.Mongo.svg)](https://www.nuget.org/packages/Hangfire.Mongo) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE)
+
 
 MongoDB support for [Hangfire](http://hangfire.io/) library. By using this library you can store all jobs information in MongoDB.
 
@@ -102,7 +103,8 @@ public void Configuration(IAppBuilder app)
 {
     var migrationOptions = new MongoMigrationOptions
     {
-        Strategy = MongoMigrationStrategy.Migrate
+        Strategy = MongoMigrationStrategy.Migrate,
+        BackupStrategy = MongoBackupStrategy.Collections
     };
     var storageOptions = new MongoStorageOptions
     {
@@ -118,9 +120,10 @@ public void Configuration(IAppBuilder app)
 
 ### Migration Backup
 By default a backup is made before attempting to migrate.
-Backup consists of "cloning" each collection to the same database.
-You can disable or customize the backup using MongoMigrationOptions.
-NOTE: This software is made by humans in our sparetime - we do our best but are not responsible for data loss.
+You can backup Hangfire collections by "cloning" each collection to the same database.
+Or you can chose to copy the entire database. Alternatively you can just skip the backup.
+The backup can be customized using MongoMigrationOptions.
+NOTE: This software is made by humans in our sparetime - we do our best but will not be held responsible for any data loss.
 
 Contributors
 ------------

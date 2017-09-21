@@ -27,7 +27,6 @@ namespace Hangfire.Mongo
         /// Ctor using default storage options
         /// </summary>
         public MongoConnection(HangfireDbContext database, PersistentJobQueueProviderCollection queueProviders)
-
             : this(database, new MongoStorageOptions(), queueProviders)
         {
         }
@@ -55,14 +54,16 @@ namespace Hangfire.Mongo
             return new MongoDistributedLock($"Hangfire:{resource}", timeout, Database, _storageOptions);
         }
 
-        public override string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
-            TimeSpan expireIn)
+        public override string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt, TimeSpan expireIn)
         {
             if (job == null)
+            {
                 throw new ArgumentNullException(nameof(job));
-
+            }
             if (parameters == null)
+            {
                 throw new ArgumentNullException(nameof(parameters));
+            }
 
             var invocationData = InvocationData.Serialize(job);
 
@@ -85,7 +86,9 @@ namespace Hangfire.Mongo
         public override IFetchedJob FetchNextJob(string[] queues, CancellationToken cancellationToken)
         {
             if (queues == null || queues.Length == 0)
+            {
                 throw new ArgumentNullException(nameof(queues));
+            }
 
             var providers = queues
                 .Select(queue => _queueProviders.GetProvider(queue))
@@ -502,7 +505,7 @@ namespace Hangfire.Mongo
                 .SortBy(_ => _.ExpireAt)
                 .Project(_ => _.ExpireAt)
                 .FirstOrDefault();
-                
+
             return result.HasValue ? result.Value - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
 
