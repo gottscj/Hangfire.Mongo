@@ -72,7 +72,7 @@ namespace Hangfire.Mongo.Signal.Mongo
                         var messages = string.Join(Environment.NewLine, t.Exception.InnerExceptions.Select(e => e.Message));
                         Logger.Debug($@"*** FAULT: {messages} ({Thread.CurrentThread.ManagedThreadId})");
                     }
-                }).Wait();
+                }).Wait(cancellationToken);
             }
         }
 

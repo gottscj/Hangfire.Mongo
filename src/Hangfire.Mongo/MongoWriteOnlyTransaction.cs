@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.States;
@@ -309,9 +310,12 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
-            foreach (var action in _commandQueue)
+            using (new MongoDistributedLock("WriteOnlyTransaction", TimeSpan.FromSeconds(30), _database, _storageOptions))
             {
-                action.Invoke(_database);
+                foreach (var action in _commandQueue)
+                {
+                    action.Invoke(_database);
+                }
             }
         }
 
