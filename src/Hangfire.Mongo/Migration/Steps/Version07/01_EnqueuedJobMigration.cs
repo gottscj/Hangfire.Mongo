@@ -9,7 +9,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version07
     /// </summary>
     internal class EnqueuedJobMigration : IMongoMigrationStep
     {
-        public MongoSchema TargetSchema => MongoSchema.Version7;
+        public MongoSchema TargetSchema => MongoSchema.Version07;
 
         public long Sequence => 1;
 

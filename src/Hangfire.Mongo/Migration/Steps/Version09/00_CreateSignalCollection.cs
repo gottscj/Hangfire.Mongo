@@ -9,13 +9,15 @@ namespace Hangfire.Mongo.Migration.Steps.Version08
     /// </summary>
     internal class CreateSignalCollection : IMongoMigrationStep
     {
-        public MongoSchema TargetSchema => MongoSchema.Version9;
+        public MongoSchema TargetSchema => MongoSchema.Version09;
 
         public long Sequence => 0;
 
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
         {
             var name = $@"{storageOptions.Prefix}.signal";
+
+            database.DropCollection(name);
 
             var createOptions = new CreateCollectionOptions
             {
@@ -24,16 +26,6 @@ namespace Hangfire.Mongo.Migration.Steps.Version08
                 MaxDocuments = 1000
             };
             database.CreateCollection(name, createOptions);
-
-            // We have to create one document to get the trailing curser working
-            var dummySignal = new BsonDocument
-            {
-                ["Name"] = "dummy",
-                ["Signaled"] = false,
-                ["TimeStamp"] = DateTime.MinValue
-            };
-
-            database.GetCollection<BsonDocument>(name).InsertOne(dummySignal);
 
             return true;
         }

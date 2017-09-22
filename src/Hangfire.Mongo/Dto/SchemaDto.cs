@@ -1,12 +1,27 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using Hangfire.Mongo.Migration;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace Hangfire.Mongo.Dto
 {
-#pragma warning disable 1591
+    /// <summary>
+    /// Holds the schema version of the database
+    /// </summary>
     public class SchemaDto
     {
+        /// <summary>
+        /// The schema version
+        /// </summary>
         [BsonId]
-        public int Version { get; set; }
+        public MongoSchema Version { get; set; }
+
+        /// <summary>
+        /// The identifier of the database.
+        /// Will be initialized along with the database
+        /// and will nerver change.
+        /// </summary>
+        [BsonIgnoreIfNull]
+        public string Identifier { get; set; }
+
     }
-#pragma warning restore 1591
 }

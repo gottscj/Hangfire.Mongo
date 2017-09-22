@@ -1,6 +1,9 @@
 
 ## What's New (07/24/2017)
 
+### v0.5.4
+- Fix broken migration
+
 ### v0.5.3
 - Added new backup database strategy when migration
 - Fixed a bug that made backup incompatible with MongoDB 3.4

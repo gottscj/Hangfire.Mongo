@@ -19,7 +19,17 @@ namespace Hangfire.Mongo.Migration.Strategies
             _storageOptions = storageOptions;
         }
 
-        public virtual void Migrate(MongoSchema fromSchema, MongoSchema toSchema)
+
+        public virtual void Execute(MongoSchema fromSchema, MongoSchema toSchema)
+        {
+            // First we backup...
+            Backup(fromSchema, toSchema);
+            // ...then we migrate
+            Migrate(fromSchema, toSchema);
+        }
+
+
+        protected virtual void Backup(MongoSchema fromSchema, MongoSchema toSchema)
         {
             switch (_storageOptions.MigrationOptions.BackupStrategy)
             {
@@ -38,12 +48,13 @@ namespace Hangfire.Mongo.Migration.Strategies
                 default:
                     throw new ArgumentOutOfRangeException($@"Unknown backup strategy: {_storageOptions.MigrationOptions.BackupStrategy}", $@"{nameof(MongoMigrationOptions)}.{nameof(MongoMigrationOptions.BackupStrategy)}");
             }
+        }
 
-            // Now the database should be cleared for all hangfire collections
-            // - assume an empty database and run full migrations
+
+        protected virtual void Migrate(MongoSchema fromSchema, MongoSchema toSchema)
+        {
             var migrationRunner = new MongoMigrationRunner(_dbContext, _storageOptions);
-            migrationRunner.Execute(MongoSchema.None, toSchema);
-
+            migrationRunner.Execute(fromSchema, toSchema);
         }
 
 

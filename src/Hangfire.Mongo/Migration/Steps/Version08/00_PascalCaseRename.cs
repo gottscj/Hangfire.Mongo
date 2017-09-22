@@ -48,7 +48,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version08
             "Reason"
         };
 
-        public MongoSchema TargetSchema => MongoSchema.Version8;
+        public MongoSchema TargetSchema => MongoSchema.Version08;
 
         public long Sequence => 0;
 

@@ -66,10 +66,12 @@ namespace Hangfire.Mongo.Migration
                         throw new MongoMigrationException(migrationStep);
                     }
                 }
+
                 // We just completed a migration to the next schema.
                 // Update the schema info and continue.
-                _dbContext.Schema.DeleteMany(_ => true);
-                _dbContext.Schema.InsertOne(new SchemaDto { Version = (int)migrationGroup.Key });
+                var schemaDto = _dbContext.Schema.FindOneAndDelete(_ => true) ?? new SchemaDto();
+                schemaDto.Version = migrationGroup.Key;
+                _dbContext.Schema.InsertOne(schemaDto);
             }
         }
 
