@@ -54,14 +54,15 @@ namespace Hangfire.Mongo
         /// <param name="cancellationToken">Cancellation token</param>
         public void Execute(CancellationToken cancellationToken)
         {
-            using (HangfireDbContext connection = _storage.CreateAndOpenConnection())
+            DateTime now = DateTime.UtcNow;
+
+            using (var storageConnection = (MongoConnection)_storage.GetConnection())
             {
-                DateTime now = DateTime.UtcNow;
+                var database = storageConnection.Database;
 
-                RemoveExpiredRecord(connection.Job, _ => _.ExpireAt, now);
-                RemoveExpiredRecord(connection.StateData.OfType<ExpiringKeyValueDto>(), _ => _.ExpireAt, now);
+                RemoveExpiredRecord(database.Job, _ => _.ExpireAt, now);
+                RemoveExpiredRecord(database.StateData.OfType<ExpiringKeyValueDto>(), _ => _.ExpireAt, now);
             }
-
             cancellationToken.WaitHandle.WaitOne(_checkInterval);
         }
 

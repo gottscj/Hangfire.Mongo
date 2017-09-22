@@ -1579,14 +1579,13 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal(new[] { "5", "4", "3", "1" }, result);
             });
         }
+
         private void UseConnection(Action<HangfireDbContext, MongoConnection> action)
         {
-            using (var database = ConnectionUtils.CreateConnection())
+            var database = ConnectionUtils.CreateConnection();
+            using (var connection = new MongoConnection(database, _providers))
             {
-                using (var connection = new MongoConnection(database, _providers))
-                {
-                    action(database, connection);
-                }
+                action(database, connection);
             }
         }
 

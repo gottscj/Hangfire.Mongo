@@ -54,7 +54,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void ExpireJob_SetsJobExpirationData()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 JobDto job = new JobDto
                 {
@@ -90,7 +90,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void PersistJob_ClearsTheJobExpirationData()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 JobDto job = new JobDto
                 {
@@ -128,7 +128,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void SetJobState_AppendsAStateAndSetItToTheJob()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 JobDto job = new JobDto
                 {
@@ -180,7 +180,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void AddJobState_JustAddsANewRecordInATable()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 JobDto job = new JobDto
                 {
@@ -216,7 +216,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void AddToQueue_CallsEnqueue_OnTargetPersistentQueue()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var correctJobQueue = new Mock<IPersistentJobQueue>();
                 var correctProvider = new Mock<IPersistentJobQueueProvider>();
@@ -234,7 +234,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void IncrementCounter_AddsRecordToCounterTable_WithPositiveValue()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x => x.IncrementCounter("my-key"));
 
@@ -249,7 +249,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void IncrementCounter_WithExpiry_AddsARecord_WithExpirationTimeSet()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x => x.IncrementCounter("my-key", TimeSpan.FromDays(1)));
 
@@ -269,7 +269,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void IncrementCounter_WithExistingKey_AddsAnotherRecord()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -286,7 +286,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void DecrementCounter_AddsRecordToCounterTable_WithNegativeValue()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x => x.DecrementCounter("my-key"));
 
@@ -301,7 +301,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void DecrementCounter_WithExpiry_AddsARecord_WithExpirationTimeSet()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x => x.DecrementCounter("my-key", TimeSpan.FromDays(1)));
 
@@ -321,7 +321,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void DecrementCounter_WithExistingKey_AddsAnotherRecord()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -338,7 +338,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void AddToSet_AddsARecord_IfThereIsNo_SuchKeyAndValue()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x => x.AddToSet("my-key", "my-value"));
 
@@ -353,7 +353,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void AddToSet_AddsARecord_WhenKeyIsExists_ButValuesAreDifferent()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -370,7 +370,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void AddToSet_DoesNotAddARecord_WhenBothKeyAndValueAreExist()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -387,7 +387,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void AddToSet_WithScore_AddsARecordWithScore_WhenBothKeyAndValueAreNotExist()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x => x.AddToSet("my-key", "my-value", 3.2));
 
@@ -402,7 +402,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void AddToSet_WithScore_UpdatesAScore_WhenBothKeyAndValueAreExist()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -419,7 +419,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void RemoveFromSet_RemovesARecord_WithGivenKeyAndValue()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -436,7 +436,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void RemoveFromSet_DoesNotRemoveRecord_WithSameKey_AndDifferentValue()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -453,7 +453,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void RemoveFromSet_DoesNotRemoveRecord_WithSameValue_AndDifferentKey()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -470,7 +470,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void InsertToList_AddsARecord_WithGivenValues()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x => x.InsertToList("my-key", "my-value"));
 
@@ -484,7 +484,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void InsertToList_AddsAnotherRecord_WhenBothKeyAndValueAreExist()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -501,7 +501,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void RemoveFromList_RemovesAllRecords_WithGivenKeyAndValue()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -519,7 +519,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void RemoveFromList_DoesNotRemoveRecords_WithSameKey_ButDifferentValue()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -536,7 +536,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void RemoveFromList_DoesNotRemoveRecords_WithSameValue_ButDifferentKey()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -553,7 +553,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void TrimList_TrimsAList_ToASpecifiedRange()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -575,7 +575,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void TrimList_RemovesRecordsToEnd_IfKeepAndingAt_GreaterThanMaxElementIndex()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -594,7 +594,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void TrimList_RemovesAllRecords_WhenStartingFromValue_GreaterThanMaxElementIndex()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -611,7 +611,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void TrimList_RemovesAllRecords_IfStartFromGreaterThanEndingAt()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -628,7 +628,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void TrimList_RemovesRecords_OnlyOfAGivenKey()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x =>
                 {
@@ -645,7 +645,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void SetRangeInHash_ThrowsAnException_WhenKeyIsNull()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 ArgumentNullException exception = Assert.Throws<ArgumentNullException>(
                     () => Commit(database, x => x.SetRangeInHash(null, new Dictionary<string, string>())));
@@ -657,7 +657,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void SetRangeInHash_ThrowsAnException_WhenKeyValuePairsArgumentIsNull()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var exception = Assert.Throws<ArgumentNullException>(
                     () => Commit(database, x => x.SetRangeInHash("some-hash", null)));
@@ -669,7 +669,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void SetRangeInHash_MergesAllRecords()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Commit(database, x => x.SetRangeInHash("some-hash", new Dictionary<string, string>
                         {
@@ -688,7 +688,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void RemoveHash_ThrowsAnException_WhenKeyIsNull()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 Assert.Throws<ArgumentNullException>(
                     () => Commit(database, x => x.RemoveHash(null)));
@@ -698,7 +698,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void RemoveHash_RemovesAllHashRecords()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 // Arrange
                 Commit(database, x => x.SetRangeInHash("some-hash", new Dictionary<string, string>
@@ -719,7 +719,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void ExpireSet_SetsSetExpirationData()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var set1 = new SetDto { Key = "Set1", Value = "value1" };
                 database.StateData.InsertOne(set1);
@@ -741,7 +741,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void ExpireList_SetsListExpirationData()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var list1 = new ListDto { Key = "List1", Value = "value1" };
                 database.StateData.InsertOne(list1);
@@ -762,7 +762,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void ExpireHash_SetsHashExpirationData()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var hash1 = new HashDto { Key = "Hash1", Value = "value1" };
                 database.StateData.InsertOne(hash1);
@@ -784,7 +784,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void PersistSet_ClearsTheSetExpirationData()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var set1 = new SetDto { Key = "Set1", Value = "value1", ExpireAt = DateTime.UtcNow };
                 database.StateData.InsertOne(set1);
@@ -805,7 +805,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void PersistList_ClearsTheListExpirationData()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var list1 = new ListDto { Key = "List1", Value = "value1", ExpireAt = DateTime.UtcNow };
                 database.StateData.InsertOne(list1);
@@ -826,7 +826,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void PersistHash_ClearsTheHashExpirationData()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var hash1 = new HashDto { Key = "Hash1", Value = "value1", ExpireAt = DateTime.UtcNow };
                 database.StateData.InsertOne(hash1);
@@ -847,7 +847,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void AddRangeToSet_AddToExistingSetData()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var set1Val1 = new SetDto { Key = "Set1", Value = "value1", ExpireAt = DateTime.UtcNow };
                 database.StateData.InsertOne(set1Val1);
@@ -879,7 +879,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void RemoveSet_ClearsTheSetData()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var set1Val1 = new SetDto { Key = "Set1", Value = "value1", ExpireAt = DateTime.UtcNow };
                 database.StateData.InsertOne(set1Val1);
@@ -919,14 +919,6 @@ namespace Hangfire.Mongo.Tests
         private static dynamic GetTestHash(HangfireDbContext database, string key)
         {
             return database.StateData.OfType<HashDto>().Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).FirstOrDefault();
-        }
-
-        private void UseConnection(Action<HangfireDbContext> action)
-        {
-            using (HangfireDbContext connection = ConnectionUtils.CreateConnection())
-            {
-                action(connection);
-            }
         }
 
         private void Commit(HangfireDbContext connection, Action<MongoWriteOnlyTransaction> action)

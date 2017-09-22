@@ -19,7 +19,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var exception = Assert.Throws<ArgumentNullException>(
                     () => new MongoFetchedJob(null, ObjectId.GenerateNewId(), JobId, Queue));
@@ -31,7 +31,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenJobIdIsNull()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var exception = Assert.Throws<ArgumentNullException>(() => new MongoFetchedJob(database, ObjectId.GenerateNewId(), null, Queue));
 
@@ -42,7 +42,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenQueueIsNull()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var exception = Assert.Throws<ArgumentNullException>(
                     () => new MongoFetchedJob(database, ObjectId.GenerateNewId(), JobId, null));
@@ -54,7 +54,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_CorrectlySets_AllInstanceProperties()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var fetchedJob = new MongoFetchedJob(database, ObjectId.GenerateNewId(), JobId, Queue);
 
@@ -66,7 +66,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void RemoveFromQueue_ReallyDeletesTheJobFromTheQueue()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 // Arrange
                 var queue = "default";
@@ -86,7 +86,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void RemoveFromQueue_DoesNotDelete_UnrelatedJobs()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 // Arrange
                 CreateJobQueueRecord(database, "1", "default");
@@ -107,7 +107,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Requeue_SetsFetchedAtValueToNull()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 // Arrange
                 var queue = "default";
@@ -127,7 +127,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Dispose_SetsFetchedAtValueToNull_IfThereWereNoCallsToComplete()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 // Arrange
                 var queue = "default";
@@ -159,12 +159,5 @@ namespace Hangfire.Mongo.Tests
             return jobQueue.Id;
         }
 
-        private static void UseConnection(Action<HangfireDbContext> action)
-        {
-            using (var database = ConnectionUtils.CreateConnection())
-            {
-                action(database);
-            }
-        }
     }
 }

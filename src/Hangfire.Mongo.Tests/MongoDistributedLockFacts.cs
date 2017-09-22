@@ -18,7 +18,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenResourceIsNull()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var exception = Assert.Throws<ArgumentNullException>(
                     () => new MongoDistributedLock(null, TimeSpan.Zero, database, new MongoStorageOptions()));
@@ -30,7 +30,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenResourceIsEmpty()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var exception = Assert.Throws<ArgumentException>(
                     () => new MongoDistributedLock(string.Empty, TimeSpan.Zero, database, new MongoStorageOptions()));
@@ -42,7 +42,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenTimeoutIsToLong()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var exception = Assert.Throws<ArgumentException>(
                     () => new MongoDistributedLock("resource1", TimeSpan.MaxValue, database, new MongoStorageOptions()));
@@ -54,7 +54,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var exception = Assert.Throws<ArgumentNullException>(
                     () => new MongoDistributedLock("resource1", TimeSpan.Zero, null, new MongoStorageOptions()));
@@ -66,7 +66,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenStorageOptionsIsNull()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var exception = Assert.Throws<ArgumentNullException>(
                     () => new MongoDistributedLock("resource1", TimeSpan.Zero, database, null));
@@ -78,7 +78,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Ctor_SetLock_WhenResourceIsNotLocked()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 using (new MongoDistributedLock("resource1", TimeSpan.Zero, database, new MongoStorageOptions()))
                 {
@@ -92,7 +92,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Ctor_SetReleaseLock_WhenResourceIsNotLocked()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var filter = Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1");
                 using (new MongoDistributedLock("resource1", TimeSpan.Zero, database, new MongoStorageOptions()))
@@ -109,7 +109,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Ctor_AcquireLockWithinSameThread_WhenResourceIsLocked()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 using (new MongoDistributedLock("resource1", TimeSpan.Zero, database, new MongoStorageOptions()))
                 {
@@ -129,7 +129,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Ctor_ThrowsAnException_WhenResourceIsLocked()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 using (new MongoDistributedLock("resource1", TimeSpan.Zero, database, new MongoStorageOptions()))
                 {
@@ -151,7 +151,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase, MongoSignal]
         public void Ctor_WaitForLock_SignaledAtLockRelease()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var t = new Thread(() =>
                 {
@@ -177,7 +177,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Ctor_SetLockExpireAtWorks_WhenResourceIsNotLocked()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var storageOption = new MongoStorageOptions
                 {
@@ -194,14 +194,6 @@ namespace Hangfire.Mongo.Tests
                     Assert.True(lockEntry.ExpireAt > initialExpireAt);
                 }
             });
-        }
-
-        private static void UseConnection(Action<HangfireDbContext> action)
-        {
-            using (var database = ConnectionUtils.CreateConnection())
-            {
-                action(database);
-            }
         }
 
     }

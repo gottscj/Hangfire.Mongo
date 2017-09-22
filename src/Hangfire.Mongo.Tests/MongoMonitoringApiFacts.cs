@@ -290,11 +290,9 @@ namespace Hangfire.Mongo.Tests
 
         private void UseMonitoringApi(Action<HangfireDbContext, MongoMonitoringApi> action)
         {
-            using (var database = ConnectionUtils.CreateConnection())
-            {
-                var monitoringApi = new MongoMonitoringApi(database, _providers);
-                action(database, monitoringApi);
-            }
+            var database = ConnectionUtils.CreateConnection();
+            var monitoringApi = new MongoMonitoringApi(database, _providers);
+            action(database, monitoringApi);
         }
 
         private JobDto CreateJobInState(HangfireDbContext database, string jobId, string stateName, Func<JobDto, JobDto> visitor = null)
