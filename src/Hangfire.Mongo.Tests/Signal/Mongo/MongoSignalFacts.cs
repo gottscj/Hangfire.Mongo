@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Signal.Mongo;
 using Hangfire.Mongo.Tests.Utils;
@@ -8,7 +9,7 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests.Signal.Mongo
 {
-    [Collection("Database")]
+    [Collection("Signal")]
     public class MongoSignalFacts
     {
 
@@ -50,19 +51,20 @@ namespace Hangfire.Mongo.Tests.Signal.Mongo
             });
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Signal_ShouleStore_Always()
         {
             UseConnection(connection =>
             {
+                // make signal name unique to void conflict with other unit tests
+                var name = Guid.NewGuid().ToString();
                 var signal = new MongoSignal(connection.Signal);
-                signal.Set("thename");
+                signal.Set(name);
 
                 var signals = connection
-                    .Signal.Find(s => s.Signaled == true && s.Name == "thename")
-                        .ToList();
+                    .Signal.Count(s => s.Signaled == true && s.Name == name);
 
-                Assert.Equal(1, signals.Count);
+                Assert.Equal(1, signals);
             });
         }
 
@@ -138,6 +140,56 @@ namespace Hangfire.Mongo.Tests.Signal.Mongo
                 });
 
                 Assert.Equal("names", exception.ParamName);
+            });
+        }
+
+        [Fact]
+        public void Wait_TimesOut_WhenNotSignaled()
+        {
+            UseConnection(connection =>
+            {
+                // make signal name unique to void conflict with other unit tests
+                var name = Guid.NewGuid().ToString();
+                var signal = new MongoSignal(connection.Signal);
+
+                var result = signal.Wait(name, TimeSpan.FromSeconds(1));
+
+                Assert.False(result, "Expected wait to time out");
+            });
+        }
+
+        [Fact, MongoSignal]
+        public void Wait_Returns_WhenSet()
+        {
+            UseConnection(connection =>
+            {
+                // make signal name unique to void conflict with other unit tests
+                var name = Guid.NewGuid().ToString();
+                var signal = new MongoSignal(connection.Signal);
+
+                var task = Task.Run(() => signal.Wait(name, TimeSpan.FromSeconds(5)));
+
+                signal.Set(name);
+
+                Assert.True(task.GetAwaiter().GetResult(), "Expected wait to be set");
+            });
+        }
+
+        [Fact]
+        public void Wait_Returns_WhenCancelled()
+        {
+            UseConnection(connection =>
+            {
+                // make signal name unique to void conflict with other unit tests
+                var name = Guid.NewGuid().ToString();
+                var signal = new MongoSignal(connection.Signal);
+                var cts = new CancellationTokenSource();
+
+                var task = Task.Run(() => signal.Wait(name, cts.Token));
+
+                cts.Cancel();
+
+                Assert.False(task.GetAwaiter().GetResult(), "Expected wait to be cancelled");
             });
         }
 

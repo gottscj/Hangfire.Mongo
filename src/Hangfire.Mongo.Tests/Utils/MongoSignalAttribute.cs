@@ -1,6 +1,6 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
 using Hangfire.Mongo.Signal.Mongo;
 using Xunit.Sdk;
 
@@ -8,20 +8,18 @@ namespace Hangfire.Mongo.Tests.Utils
 {
     public class MongoSignalAttribute : BeforeAfterTestAttribute
     {
-        private static long Count = 0;
-        private static readonly object GlobalLock = new object();
+        private static readonly object _globalLock = new object();
 
-        private MongoSignalBackgroundProcess _mongoSignalManager;
-        private CancellationTokenSource _cancellationTokenSource;
+        private static long _count;
+        private static CancellationTokenSource _cancellationTokenSource;
 
         public override void Before(MethodInfo methodUnderTest)
         {
-
-            lock (GlobalLock)
+            lock (_globalLock)
             {
-                if (Count == 0)
+                _count += 1;
+                if (_count == 1)
                 {
-                    Count += 1;
                     Start();
                 }
             }
@@ -29,39 +27,49 @@ namespace Hangfire.Mongo.Tests.Utils
 
         public override void After(MethodInfo methodUnderTest)
         {
-            lock (GlobalLock)
+            lock (_globalLock)
             {
-                Count -= 1;
-                if (Count == 0)
+                _count -= 1;
+                if (_count == 0)
                 {
                     Stop();
                 }
             }
-            _cancellationTokenSource.Dispose();
-            _cancellationTokenSource = null;
         }
 
-        public void Start()
+        private void Start()
         {
+            var waitHandle = new AutoResetEvent(false);
             _cancellationTokenSource = new CancellationTokenSource();
-            Task.Run(() =>
+            var thread = new Thread(() =>
             {
-                var cancellationToken = _cancellationTokenSource.Token;
-                var signalCollection = ConnectionUtils.CreateStorage().Connection.Signal;
-                _mongoSignalManager = new MongoSignalBackgroundProcess(signalCollection);
-
-                while (!cancellationToken.IsCancellationRequested)
+                using (_cancellationTokenSource)
                 {
-                    _mongoSignalManager.Execute(cancellationToken);
-                }
+                    try
+                    {
+                        var cancellationToken = _cancellationTokenSource.Token;
+                        var signalCollection = ConnectionUtils.CreateStorage().Connection.Signal;
+                        var mongoSignalManager = new MongoSignalBackgroundProcess(signalCollection);
 
-                _cancellationTokenSource.Dispose();
-                _cancellationTokenSource = null;
-                _mongoSignalManager = null;
+                        while (!cancellationToken.IsCancellationRequested)
+                        {
+                            waitHandle.Set();
+                            mongoSignalManager.Execute(cancellationToken);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Expected
+                    }
+                }
             });
+            thread.Start();
+
+            // Wait for the signal manager to be airborne
+            waitHandle.WaitOne(TimeSpan.FromSeconds(5));
         }
 
-        public void Stop()
+        private void Stop()
         {
             _cancellationTokenSource.Cancel();
         }

@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Hangfire.Logging;
 using Hangfire.Mongo.Dto;
 using MongoDB.Driver;
@@ -42,7 +41,6 @@ namespace Hangfire.Mongo.Signal.Mongo
 
             using (var cursor = _signalCollection.FindSync(filter, options, cancellationToken))
             {
-                Logger.Debug($@"*** LISTEN ({Thread.CurrentThread.ManagedThreadId})");
                 cancellationToken.ThrowIfCancellationRequested();
                 var updateSignaled = Builders<SignalDto>.Update.Set(s => s.Signaled, false);
 
@@ -55,22 +53,21 @@ namespace Hangfire.Mongo.Signal.Mongo
                         cancellationToken);
                     if (signalDto == null)
                     {
-                        Logger.Debug($@"*** TRIGGERED ({Thread.CurrentThread.ManagedThreadId})");
+                        Logger.Debug($@"Signal {document.Name} was trigered");
                     }
                     else
                     {
-                        Logger.Debug($@"*** OWNED: {signalDto.Name} ({Thread.CurrentThread.ManagedThreadId})");
+                        Logger.Debug($@"Signal {document.Name} was triggered and owned");
                     }
                     EventWaitHandles
-                        .GetOrAdd(document.Name, n => new EventWaitHandle(false, EventResetMode.AutoReset))
+                        .GetOrAdd(document.Name, n => new AutoResetEvent(false))
                         .Set();
                 }, cancellationToken).ContinueWith(t =>
                 {
-                    // TODO: Log if canceled?
                     if (t.IsFaulted)
                     {
                         var messages = string.Join(Environment.NewLine, t.Exception.InnerExceptions.Select(e => e.Message));
-                        Logger.Debug($@"*** FAULT: {messages} ({Thread.CurrentThread.ManagedThreadId})");
+                        Logger.Warn($@"Signal listen is at fault: {messages}");
                     }
                 }).Wait(cancellationToken);
             }
@@ -88,12 +85,10 @@ namespace Hangfire.Mongo.Signal.Mongo
             }
 
             var update = Builders<SignalDto>.Update
-                .Set(s => s.Signaled, true)
-                .Set(s => s.Name, name)
+                .SetOnInsert(s => s.Signaled, true)
+                .SetOnInsert(s => s.Name, name)
                 .CurrentDate(s => s.TimeStamp);
             _signalCollection.UpdateOne(_ => false, update, new UpdateOptions { IsUpsert = true });
-
-            Logger.Debug($@"*** SET: {name} ({Thread.CurrentThread.ManagedThreadId})");
         }
 
         public void Wait(string name)
@@ -101,15 +96,15 @@ namespace Hangfire.Mongo.Signal.Mongo
             Wait(name, TimeSpan.FromMilliseconds(-1));
         }
 
-        public void Wait(string name, TimeSpan timeout)
+        public bool Wait(string name, TimeSpan timeout)
         {
             using (var cts = new CancellationTokenSource(timeout))
             {
-                Wait(name, cts.Token);
+                return Wait(name, cts.Token);
             }
         }
 
-        public void Wait(string name, CancellationToken cancellationToken)
+        public bool Wait(string name, CancellationToken cancellationToken)
         {
             if (name == null)
             {
@@ -120,10 +115,10 @@ namespace Hangfire.Mongo.Signal.Mongo
                 throw new ArgumentException("Name should not be empty", nameof(name));
             }
 
-            Wait(new[] { name }, cancellationToken);
+            return Wait(new[] { name }, cancellationToken);
         }
 
-        public void Wait(string[] names, CancellationToken cancellationToken)
+        public bool Wait(string[] names, CancellationToken cancellationToken)
         {
             if (names == null)
             {
@@ -135,13 +130,12 @@ namespace Hangfire.Mongo.Signal.Mongo
             }
 
             var waitHandles = names
-                .Select(n => EventWaitHandles.GetOrAdd(n, _ => new EventWaitHandle(false, EventResetMode.AutoReset)))
+                .Select(n => EventWaitHandles.GetOrAdd(n, _ => new AutoResetEvent(false)))
                 .Concat(new[] { cancellationToken.WaitHandle })
                 .ToArray();
 
-            Logger.Debug($@">>> WAIT: {string.Join(",", names)} ({Thread.CurrentThread.ManagedThreadId})");
-            WaitHandle.WaitAny(waitHandles);
-            Logger.Debug($@"<<< WAIT: {string.Join(",", names)} ({Thread.CurrentThread.ManagedThreadId})");
+            var result = WaitHandle.WaitAny(waitHandles);
+            return result < waitHandles.Length - 1;
         }
 
     }
