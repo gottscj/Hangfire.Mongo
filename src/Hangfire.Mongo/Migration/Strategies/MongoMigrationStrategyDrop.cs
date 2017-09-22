@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using Hangfire.Mongo.Database;
+﻿using Hangfire.Mongo.Database;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration.Strategies
@@ -18,19 +17,40 @@ namespace Hangfire.Mongo.Migration.Strategies
         }
 
 
+        protected override void Migrate(MongoSchema fromSchema, MongoSchema toSchema)
+        {
+            base.Execute(MongoSchema.None, toSchema);
+        }
+
+
         protected override void BackupStrategyNone(IMongoDatabase database, MongoSchema fromSchema, MongoSchema toSchema)
         {
-            var existingCollectionNames = ExistingHangfireCollectionNames(fromSchema).ToList();
-            foreach (var collectionName in existingCollectionNames)
-            {
-                _dbContext.Database.DropCollection(collectionName);
-            }
+            DropHangfireCollections(database, fromSchema);
         }
 
 
         protected override void BackupCollection(IMongoDatabase database, string collectionName, string backupCollectionName)
         {
             database.RenameCollection(collectionName, backupCollectionName);
+        }
+
+
+        protected override void BackupStrategyDatabase(IMongoClient client, IMongoDatabase database, MongoSchema fromSchema, MongoSchema toSchema)
+        {
+            base.BackupStrategyDatabase(client, database, fromSchema, toSchema);
+
+            // Now the database has been copied,
+            // drop  the hangfire collections.
+            DropHangfireCollections(database, fromSchema);
+        }
+
+
+        private void DropHangfireCollections(IMongoDatabase database, MongoSchema schema)
+        {
+            foreach (var collectionName in ExistingHangfireCollectionNames(schema))
+            {
+                _dbContext.Database.DropCollection(collectionName);
+            }
         }
 
     }

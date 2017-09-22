@@ -8,7 +8,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version05
     /// </summary>
     internal class CreateJobIdIndex : IMongoMigrationStep
     {
-        public MongoSchema TargetSchema => MongoSchema.Version5;
+        public MongoSchema TargetSchema => MongoSchema.Version05;
 
         public long Sequence => 0;
 

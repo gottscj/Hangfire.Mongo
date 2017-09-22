@@ -5,20 +5,6 @@ namespace Hangfire.Mongo.Migration
 {
 
     /// <summary>
-    /// All the hangfire mongo schema versions ever used
-    /// </summary>
-    internal enum MongoSchema
-    {
-        None = 0,
-        Version4 = 4,
-        Version5 = 5,
-        Version6 = 6,
-        Version7 = 7,
-        Version8 = 8,
-    }
-
-
-    /// <summary>
     /// Helpers for MongoSchema
     /// </summary>
     internal static class MongoSchemaExtentions
@@ -31,7 +17,7 @@ namespace Hangfire.Mongo.Migration
                 case MongoSchema.None:
                     throw new ArgumentException($@"The '{schema}' has no collections", nameof(schema));
 
-                case MongoSchema.Version4:
+                case MongoSchema.Version04:
                     return new[] {
                         "_identifiers", // A bug prevented the use of prefix
                         prefix + ".counter",
@@ -47,7 +33,7 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".state",
                     };
 
-                case MongoSchema.Version5:
+                case MongoSchema.Version05:
                     return new[] {
                         "_identifiers", // A bug prevented the use of prefix
                         prefix + ".counter",
@@ -63,7 +49,7 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".state",
                     };
 
-                case MongoSchema.Version6:
+                case MongoSchema.Version06:
                     return new[] {
                         prefix + ".job",
                         prefix + ".jobQueue",
@@ -73,14 +59,26 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".statedata"
                     };
 
-                case MongoSchema.Version7:
-                case MongoSchema.Version8:
+                case MongoSchema.Version07:
+                case MongoSchema.Version08:
                     return new[] {
                         prefix + ".job",
                         prefix + ".jobQueue",
                         prefix + ".locks",
                         prefix + ".schema",
                         prefix + ".server",
+                        prefix + ".stateData"
+                    };
+
+                case MongoSchema.Version09:
+                case MongoSchema.Version10:
+                    return new[] {
+                        prefix + ".job",
+                        prefix + ".jobQueue",
+                        prefix + ".locks",
+                        prefix + ".schema",
+                        prefix + ".server",
+                        prefix + ".signal",
                         prefix + ".stateData"
                     };
 

@@ -8,7 +8,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version07
     /// </summary>
     internal class StateDataRename : IMongoMigrationStep
     {
-        public MongoSchema TargetSchema => MongoSchema.Version7;
+        public MongoSchema TargetSchema => MongoSchema.Version07;
 
         public long Sequence => 0;
 

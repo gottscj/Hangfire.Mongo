@@ -105,10 +105,14 @@ namespace Hangfire.Mongo
         public override void SetJobParameter(string id, string name, string value)
         {
             if (id == null)
+            {
                 throw new ArgumentNullException(nameof(id));
+            }
 
             if (name == null)
+            {
                 throw new ArgumentNullException(nameof(name));
+            }
 
             var filter = new BsonDocument("_id", id);
             BsonValue bsonValue;
@@ -130,10 +134,14 @@ namespace Hangfire.Mongo
         public override string GetJobParameter(string id, string name)
         {
             if (id == null)
+            {
                 throw new ArgumentNullException(nameof(id));
+            }
 
             if (name == null)
+            {
                 throw new ArgumentNullException(nameof(name));
+            }
 
             var parameters = Database
                 .Job
@@ -150,7 +158,9 @@ namespace Hangfire.Mongo
         public override JobData GetJobData(string jobId)
         {
             if (jobId == null)
+            {
                 throw new ArgumentNullException(nameof(jobId));
+            }
 
             var jobData = Database
                 .Job
@@ -188,7 +198,9 @@ namespace Hangfire.Mongo
         public override StateData GetStateData(string jobId)
         {
             if (jobId == null)
+            {
                 throw new ArgumentNullException(nameof(jobId));
+            }
 
             var projection = Builders<JobDto>
                 .Projection
@@ -202,14 +214,18 @@ namespace Hangfire.Mongo
                 .FirstOrDefault();
 
             if (latest == null)
+            {
                 return null;
+            }
 
             var state = latest[nameof(JobDto.StateHistory)]
                 .AsBsonArray
                 .FirstOrDefault();
 
             if (state == null)
+            {
                 return null;
+            }
 
             return new StateData
             {
@@ -223,10 +239,14 @@ namespace Hangfire.Mongo
         public override void AnnounceServer(string serverId, ServerContext context)
         {
             if (serverId == null)
+            {
                 throw new ArgumentNullException(nameof(serverId));
+            }
 
             if (context == null)
+            {
                 throw new ArgumentNullException(nameof(context));
+            }
 
             var data = new ServerDataDto
             {

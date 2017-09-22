@@ -14,7 +14,7 @@ namespace Hangfire.Mongo.Migration.Strategies
         {
         }
 
-        public void Migrate(MongoSchema fromSchema, MongoSchema toSchema)
+        public void Execute(MongoSchema fromSchema, MongoSchema toSchema)
         {
             var assemblyName = GetType().GetTypeInfo().Assembly.GetName();
             throw new InvalidOperationException(

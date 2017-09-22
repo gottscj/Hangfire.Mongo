@@ -2,6 +2,6 @@
 {
     internal interface IMongoMigrationStrategy
     {
-        void Migrate(MongoSchema fromSchema, MongoSchema toSchema);
+        void Execute(MongoSchema fromSchema, MongoSchema toSchema);
     }
 }

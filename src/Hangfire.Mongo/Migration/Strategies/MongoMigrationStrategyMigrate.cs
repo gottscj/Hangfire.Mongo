@@ -18,18 +18,18 @@ namespace Hangfire.Mongo.Migration.Strategies
         }
 
 
-        public override void Migrate(MongoSchema fromSchema, MongoSchema toSchema)
+        public override void Execute(MongoSchema fromSchema, MongoSchema toSchema)
         {
-            if (fromSchema < MongoSchema.Version4)
+            if (fromSchema < MongoSchema.Version04)
             {
                 var assemblyName = GetType().GetTypeInfo().Assembly.GetName();
                 throw new InvalidOperationException(
-                    $"{Environment.NewLine}{assemblyName.Name} version: {assemblyName.Version}, does not support migration from schema versions prior to {MongoSchema.Version4}." +
+                    $"{Environment.NewLine}{assemblyName.Name} version: {assemblyName.Version}, does not support migration from schema versions prior to {MongoSchema.Version04}." +
                     $"{Environment.NewLine}Please resolve this manually (e.g. by droping the database)." +
                     $"{Environment.NewLine}Please see https://github.com/sergeyzwezdin/Hangfire.Mongo#migration for further information.");
             }
 
-            base.Migrate(fromSchema, toSchema);
+            base.Execute(fromSchema, toSchema);
         }
 
     }

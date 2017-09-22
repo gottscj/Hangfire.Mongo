@@ -8,7 +8,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
     /// </summary>
     internal class StateDataCreateIndex : IMongoMigrationStep
     {
-        public MongoSchema TargetSchema => MongoSchema.Version6;
+        public MongoSchema TargetSchema => MongoSchema.Version06;
 
         public long Sequence => 0;
 

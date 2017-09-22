@@ -10,7 +10,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
     /// </summary>
     internal class ScheduledJobMigration : IMongoMigrationStep
     {
-        public MongoSchema TargetSchema => MongoSchema.Version6;
+        public MongoSchema TargetSchema => MongoSchema.Version06;
 
         public long Sequence => 2;
 
