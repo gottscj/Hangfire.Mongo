@@ -7,13 +7,19 @@ namespace Hangfire.Mongo.Database
     /// <summary>
     /// Represents Mongo database context for Hangfire
     /// </summary>
-    public sealed class HangfireDbContext : IDisposable
+    public sealed class HangfireDbContext
     {
         private readonly string _prefix;
 
         internal MongoClient Client { get; }
 
         internal IMongoDatabase Database { get; }
+
+        private HangfireDbContext(string prefix)
+        {
+            _prefix = prefix;
+            ConnectionId = Guid.NewGuid().ToString();
+        }
 
         /// <summary>
         /// Constructs context with connection string and database name
@@ -22,14 +28,10 @@ namespace Hangfire.Mongo.Database
         /// <param name="databaseName">Database name</param>
         /// <param name="prefix">Collections prefix</param>
         public HangfireDbContext(string connectionString, string databaseName, string prefix = "hangfire")
+            : this(prefix)
         {
-            _prefix = prefix;
-
             Client = new MongoClient(connectionString);
-
             Database = Client.GetDatabase(databaseName);
-
-            ConnectionId = Guid.NewGuid().ToString();
         }
 
         /// <summary>
@@ -39,24 +41,21 @@ namespace Hangfire.Mongo.Database
         /// <param name="databaseName">Database name</param>
         /// <param name="prefix">Collections prefix</param>
         public HangfireDbContext(MongoClientSettings mongoClientSettings, string databaseName, string prefix = "hangfire")
+            : this(prefix)
         {
-            _prefix = prefix;
-
             var client = new MongoClient(mongoClientSettings);
-
             Database = client.GetDatabase(databaseName);
-
-            ConnectionId = Guid.NewGuid().ToString();
         }
 
         /// <summary>
         /// Constructs context with existing Mongo database connection
         /// </summary>
         /// <param name="database">Database connection</param>
-        public HangfireDbContext(IMongoDatabase database)
+        /// <param name="prefix">Collections prefix</param>
+        public HangfireDbContext(IMongoDatabase database, string prefix = "hangfire")
+            : this(prefix)
         {
             Database = database;
-            ConnectionId = Guid.NewGuid().ToString();
         }
 
         /// <summary>
@@ -101,11 +100,5 @@ namespace Hangfire.Mongo.Database
         /// </summary>
         public IMongoCollection<ServerDto> Server => Database.GetCollection<ServerDto>(_prefix + ".server");
 
-        /// <summary>
-        /// Disposes the object
-        /// </summary>
-        public void Dispose()
-        {
-        }
     }
 }

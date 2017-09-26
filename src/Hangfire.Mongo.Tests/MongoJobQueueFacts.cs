@@ -28,7 +28,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenOptionsValueIsNull()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var exception = Assert.Throws<ArgumentNullException>(() =>
                     new MongoJobQueue(database, null));
@@ -40,7 +40,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Dequeue_ShouldThrowAnException_WhenQueuesCollectionIsNull()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var queue = CreateJobQueue(database);
 
@@ -54,7 +54,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Dequeue_ShouldThrowAnException_WhenQueuesCollectionIsEmpty()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var queue = CreateJobQueue(database);
 
@@ -68,7 +68,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Dequeue_ThrowsOperationCanceled_WhenCancellationTokenIsSetAtTheBeginning()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 using (var cts = new CancellationTokenSource())
                 {
@@ -84,7 +84,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Dequeue_ShouldWaitIndefinitely_WhenThereAreNoJobs()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 using (var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200)))
                 {
@@ -100,7 +100,7 @@ namespace Hangfire.Mongo.Tests
         public void Dequeue_ShouldFetchAJob_FromTheSpecifiedQueue()
         {
             // Arrange
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var jobQueue = new JobQueueDto
                 {
@@ -125,7 +125,7 @@ namespace Hangfire.Mongo.Tests
         public void Dequeue_ShouldLeaveJobInTheQueue_ButSetItsFetchedAtValue()
         {
             // Arrange
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var job = new JobDto
                 {
@@ -161,7 +161,7 @@ namespace Hangfire.Mongo.Tests
         public void Dequeue_ShouldFetchATimedOutJobs_FromTheSpecifiedQueue()
         {
             // Arrange
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var job = new JobDto
                 {
@@ -193,7 +193,7 @@ namespace Hangfire.Mongo.Tests
         public void Dequeue_ShouldSetFetchedAt_OnlyForTheFetchedJob()
         {
             // Arrange
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var job1 = new JobDto
                 {
@@ -238,7 +238,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Dequeue_ShouldFetchJobs_OnlyFromSpecifiedQueues()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var job1 = new JobDto
                 {
@@ -264,7 +264,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Dequeue_ShouldFetchJobs_FromMultipleQueuesBasedOnQueuePriority()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var criticalJob = new JobDto
                 {
@@ -315,7 +315,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Enqueue_AddsAJobToTheQueue()
         {
-            UseConnection(database =>
+            ConnectionUtils.UseConnection(database =>
             {
                 var queue = CreateJobQueue(database);
 
@@ -339,12 +339,5 @@ namespace Hangfire.Mongo.Tests
             return new MongoJobQueue(database, new MongoStorageOptions());
         }
 
-        private static void UseConnection(Action<HangfireDbContext> action)
-        {
-            using (var database = ConnectionUtils.CreateConnection())
-            {
-                action(database);
-            }
-        }
     }
 }

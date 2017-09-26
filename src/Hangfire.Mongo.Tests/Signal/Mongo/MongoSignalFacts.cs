@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading;
-using Hangfire.Mongo.Database;
+using System.Threading.Tasks;
 using Hangfire.Mongo.Signal.Mongo;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Driver;
@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests.Signal.Mongo
 {
-    [Collection("Database")]
+    [Collection("Signal")]
     public class MongoSignalFacts
     {
 
@@ -23,7 +23,7 @@ namespace Hangfire.Mongo.Tests.Signal.Mongo
         [Fact]
         public void Signal_ThrowsAnException_WhenNameIsNull()
         {
-            UseConnection(connection =>
+            ConnectionUtils.UseConnection(connection =>
             {
                 var exception = Assert.Throws<ArgumentNullException>(() =>
                 {
@@ -38,7 +38,7 @@ namespace Hangfire.Mongo.Tests.Signal.Mongo
         [Fact]
         public void Signal_ThrowsAnException_WhenNameIsEmpty()
         {
-            UseConnection(connection =>
+            ConnectionUtils.UseConnection(connection =>
             {
                 var exception = Assert.Throws<ArgumentException>(() =>
                 {
@@ -50,26 +50,27 @@ namespace Hangfire.Mongo.Tests.Signal.Mongo
             });
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Signal_ShouleStore_Always()
         {
-            UseConnection(connection =>
+            ConnectionUtils.UseConnection(connection =>
             {
+                // make signal name unique to void conflict with other unit tests
+                var name = Guid.NewGuid().ToString();
                 var signal = new MongoSignal(connection.Signal);
-                signal.Set("thename");
+                signal.Set(name);
 
                 var signals = connection
-                    .Signal.Find(s => s.Signaled == true && s.Name == "thename")
-                        .ToList();
+                    .Signal.Count(s => s.Name == name);
 
-                Assert.Equal(1, signals.Count);
+                Assert.Equal(1, signals);
             });
         }
 
         [Fact]
         public void Wait_ThrowsAnException_WhenNameIsNull()
         {
-            UseConnection(connection =>
+            ConnectionUtils.UseConnection(connection =>
             {
                 var exception = Assert.Throws<ArgumentNullException>(() =>
                 {
@@ -84,7 +85,7 @@ namespace Hangfire.Mongo.Tests.Signal.Mongo
         [Fact]
         public void Wait_ThrowsAnException_WhenNameIsEmpty()
         {
-            UseConnection(connection =>
+            ConnectionUtils.UseConnection(connection =>
             {
                 var exception = Assert.Throws<ArgumentException>(() =>
                 {
@@ -99,7 +100,7 @@ namespace Hangfire.Mongo.Tests.Signal.Mongo
         [Fact]
         public void Wait_ThrowsAnException_WhenNamesIsNull()
         {
-            UseConnection(connection =>
+            ConnectionUtils.UseConnection(connection =>
             {
                 var exception = Assert.Throws<ArgumentNullException>(() =>
                 {
@@ -114,7 +115,7 @@ namespace Hangfire.Mongo.Tests.Signal.Mongo
         [Fact]
         public void Wait_ThrowsAnException_WhenNamesIsZeroLength()
         {
-            UseConnection(connection =>
+            ConnectionUtils.UseConnection(connection =>
             {
                 var exception = Assert.Throws<ArgumentException>(() =>
                 {
@@ -129,7 +130,7 @@ namespace Hangfire.Mongo.Tests.Signal.Mongo
         [Fact]
         public void Wait_ThrowsAnException_WhenNamesContainsEmptyName()
         {
-            UseConnection(connection =>
+            ConnectionUtils.UseConnection(connection =>
             {
                 var exception = Assert.Throws<ArgumentException>(() =>
                 {
@@ -141,12 +142,5 @@ namespace Hangfire.Mongo.Tests.Signal.Mongo
             });
         }
 
-        private static void UseConnection(Action<HangfireDbContext> action)
-        {
-            using (var connection = ConnectionUtils.CreateConnection())
-            {
-                action(connection);
-            }
-        }
     }
 }

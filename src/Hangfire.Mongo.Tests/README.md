@@ -7,7 +7,7 @@ We now have (.netcore) support for running unit test on macos and unix.
 
 Please use Visual Studio Code if you want to run unit tests on macos or unix systems.
 
-## MacOS
+## macOS
 Unit tests are not detected when using *Visual Studio for Mac*. They do however compile. Hopefully will this be supported soon.
 
 

@@ -48,6 +48,12 @@ namespace Hangfire.Mongo.Tests.Utils
         {
             return CreateStorage().Connection;
         }
+
+        public static void UseConnection(Action<HangfireDbContext> action)
+        {
+            var connection = CreateConnection();
+            action(connection);
+        }
     }
 
 }
