@@ -117,7 +117,7 @@ namespace Hangfire.Mongo
                 var stats = new StatisticsDto();
 
                 var countByStates = database.Job.Aggregate()
-                    .Match(Builders<JobDto>.Filter.Ne(_ => _.StateName, null))
+                    .Match(Builders<JobDto>.Filter.In(_ => _.StateName, new [] { EnqueuedState.StateName, FailedState.StateName, ProcessingState.StateName, ScheduledState.StateName }))
                     .Group(dto => new { dto.StateName }, dtos => new { StateName = dtos.First().StateName, Count = dtos.Count() })
                     .ToList().ToDictionary(kv => kv.StateName, kv => kv.Count);
 
