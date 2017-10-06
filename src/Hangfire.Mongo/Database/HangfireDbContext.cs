@@ -17,11 +17,8 @@ namespace Hangfire.Mongo.Database
 
         internal IMongoDatabase Database { get; }
 
-        private HangfireDbContext(string prefix)
+        static HangfireDbContext()
         {
-            _prefix = prefix;
-            ConnectionId = Guid.NewGuid().ToString();
-
             var conventionPack = new ConventionPack();
             conventionPack.Append(DefaultConventionPack.Instance);
             conventionPack.Append(AttributeConventionPack.Instance);
@@ -43,6 +40,12 @@ namespace Hangfire.Mongo.Database
             BsonClassMap.RegisterClassMap<SetDto>(cm => conventionRunner.Apply(cm));
             BsonClassMap.RegisterClassMap<SignalDto>(cm => conventionRunner.Apply(cm));
             BsonClassMap.RegisterClassMap<StateDto>(cm => conventionRunner.Apply(cm));
+        }
+
+        private HangfireDbContext(string prefix)
+        {
+            _prefix = prefix;
+            ConnectionId = Guid.NewGuid().ToString();
         }
 
         /// <summary>
