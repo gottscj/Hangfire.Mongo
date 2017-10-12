@@ -1,5 +1,7 @@
 ﻿using System;
 using Hangfire.Mongo.Dto;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Database
@@ -14,6 +16,31 @@ namespace Hangfire.Mongo.Database
         internal MongoClient Client { get; }
 
         internal IMongoDatabase Database { get; }
+
+        static HangfireDbContext()
+        {
+            var conventionPack = new ConventionPack();
+            conventionPack.Append(DefaultConventionPack.Instance);
+            conventionPack.Append(AttributeConventionPack.Instance);
+            var conventionRunner = new ConventionRunner(conventionPack);
+
+            BsonClassMap.RegisterClassMap<AggregatedCounterDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<CounterDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<DistributedLockDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<HashDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<JobDetailedDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<JobDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<JobQueueDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<KeyValueDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<ExpiringKeyValueDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<ListDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<SchemaDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<ServerDataDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<ServerDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<SetDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<SignalDto>(cm => conventionRunner.Apply(cm));
+            BsonClassMap.RegisterClassMap<StateDto>(cm => conventionRunner.Apply(cm));
+        }
 
         private HangfireDbContext(string prefix)
         {
