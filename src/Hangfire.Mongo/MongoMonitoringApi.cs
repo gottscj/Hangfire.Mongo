@@ -110,6 +110,14 @@ namespace Hangfire.Mongo
             });
         }
 
+        private static string[] _statisticsStateNames = new []
+        {
+            EnqueuedState.StateName,
+            FailedState.StateName,
+            ProcessingState.StateName,
+            ScheduledState.StateName
+        };
+
         public StatisticsDto GetStatistics()
         {
             return UseConnection(connection =>
@@ -117,7 +125,7 @@ namespace Hangfire.Mongo
                 var stats = new StatisticsDto();
 
                 var countByStates = connection.Job.Aggregate()
-                    .Match(Builders<JobDto>.Filter.Ne(_ => _.StateName, null))
+                    .Match(Builders<JobDto>.Filter.In(_ => _.StateName, _statisticsStateNames))
                     .Group(dto => new { dto.StateName }, dtos => new { StateName = dtos.First().StateName, Count = dtos.Count() })
                     .ToList().ToDictionary(kv => kv.StateName, kv => kv.Count);
 
