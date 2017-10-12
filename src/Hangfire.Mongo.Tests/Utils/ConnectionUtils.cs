@@ -12,12 +12,12 @@ namespace Hangfire.Mongo.Tests.Utils
         private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
         private const string DefaultConnectionStringTemplate = @"mongodb://localhost";
 
-        private static string GetDatabaseName()
+        public static string GetDatabaseName()
         {
             return Environment.GetEnvironmentVariable(DatabaseVariable) ?? DefaultDatabaseName;
         }
 
-        private static string GetConnectionString()
+        public static string GetConnectionString()
         {
             return string.Format(GetConnectionStringTemplate(), GetDatabaseName());
         }

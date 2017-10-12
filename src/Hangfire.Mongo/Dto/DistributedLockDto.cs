@@ -18,7 +18,6 @@ namespace Hangfire.Mongo.Dto
         /// <summary>
         /// The name of the resource being held.
         /// </summary>
-        [BsonElement(nameof(Resource))]
         public string Resource { get; set; }
 
         /// <summary>
@@ -26,7 +25,6 @@ namespace Hangfire.Mongo.Dto
         /// This is used if the lock is not maintained or 
         /// cleaned up by the owner (e.g. process was shut down).
         /// </summary>
-        [BsonElement(nameof(ExpireAt))]
         public DateTime ExpireAt { get; set; }
     }
 }
