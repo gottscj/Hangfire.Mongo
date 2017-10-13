@@ -171,10 +171,10 @@ namespace Hangfire.Mongo.Migration.Strategies
                 }
             });
 
-            var serverStatus = database.RunCommand<dynamic>(new BsonDocument("serverStatus", 1));
-            if (serverStatus?.version is string versionString)
+            var serverStatus = database.RunCommand<BsonDocument>(new BsonDocument("serverStatus", 1));
+            if (serverStatus.Contains("version"))
             {
-                var version = Version.Parse(versionString);
+                var version = Version.Parse(serverStatus["version"].AsString);
                 if (version < new Version(2, 6))
                 {
                     throw new InvalidOperationException("Hangfire.Mongo is not able to backup collections in MongoDB running a version prior to 2.6");
