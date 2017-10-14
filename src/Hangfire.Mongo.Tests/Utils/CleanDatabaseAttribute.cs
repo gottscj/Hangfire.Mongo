@@ -12,11 +12,31 @@ namespace Hangfire.Mongo.Tests.Utils
     {
         private static readonly object GlobalLock = new object();
 
+        public bool Initialized { get; set; }
+
+        public CleanDatabaseAttribute() : this(true)
+        {
+        }
+
+        public CleanDatabaseAttribute(bool initialized)
+        {
+            Initialized = initialized;
+        }
+
         public override void Before(MethodInfo methodUnderTest)
         {
             Monitor.Enter(GlobalLock);
 
-            RecreateDatabaseAndInstallObjects();
+            if (Initialized)
+            {
+                RecreateDatabaseAndInstallObjects();
+                return;
+            }
+
+            // Drop the database and do not run any
+            // migrations to initialize the database.
+            var client = new MongoClient(ConnectionUtils.GetConnectionString());
+            client.DropDatabase(ConnectionUtils.GetDatabaseName());
         }
 
         public override void After(MethodInfo methodUnderTest)
@@ -37,7 +57,6 @@ namespace Hangfire.Mongo.Tests.Utils
                     context.Job.DeleteMany(new BsonDocument());
                     context.JobQueue.DeleteMany(new BsonDocument());
                     context.Server.DeleteMany(new BsonDocument());
-
                 }
                 catch (MongoException ex)
                 {
