@@ -309,7 +309,9 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
-            using (new MongoDistributedLock("WriteOnlyTransaction", TimeSpan.FromSeconds(30), _connection, _options))
+            // TODO: Using this lock leads to deadlocks.
+            //       Investigate why and reintroduce when ready.
+            //using (new MongoDistributedLock("WriteOnlyTransaction", TimeSpan.FromSeconds(30), _connection, _options))
             {
                 foreach (var action in _commandQueue)
                 {
