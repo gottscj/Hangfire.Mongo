@@ -148,6 +148,45 @@ namespace Hangfire.Mongo.Migration.Strategies
         /// <param name="backupCollectionName">Tha name of the backup collection.</param>
         protected virtual void BackupCollection(IMongoDatabase database, string collectionName, string backupCollectionName)
         {
+            var aggregate = new BsonDocument(new Dictionary<string, object>
+            {
+                {
+                    "aggregate", collectionName
+                },
+                {
+                    "pipeline", new []
+                    {
+                        new Dictionary<string, object> { { "$match", new BsonDocument() } },
+                        new Dictionary<string, object> { { "$out", backupCollectionName } }
+                    }
+                },
+                {
+                    "allowDiskUse", true
+                },
+                {
+                    // As of MongoDB 3.4 cursor is no longer
+                    //  optional, but can be set to "empty".
+                    // https://docs.mongodb.com/manual/reference/command/aggregate/
+                    "cursor", new BsonDocument()
+                }
+            });
+
+            var serverStatus = database.RunCommand<BsonDocument>(new BsonDocument("serverStatus", 1));
+            if (serverStatus.Contains("version"))
+            {
+                var version = Version.Parse(serverStatus["version"].AsString);
+                if (version < new Version(2, 6))
+                {
+                    throw new InvalidOperationException("Hangfire.Mongo is not able to backup collections in MongoDB running a version prior to 2.6");
+                }
+                if (version >= new Version(3, 2))
+                {
+                    // The 'bypassDocumentValidation' was introduced in version 3.2
+                    // https://docs.mongodb.com/manual/release-notes/3.2/#rel-notes-document-validation
+                    aggregate["bypassDocumentValidation"] = true;
+                }
+            }
+
             var dbSource = database.GetCollection<BsonDocument>(collectionName);
             var indexes = dbSource.Indexes.List().ToList().Where(idx => idx["name"] != "_id_").ToList();
             if (indexes.Any())
@@ -170,32 +209,6 @@ namespace Hangfire.Mongo.Migration.Strategies
                     dbBackup.Indexes.CreateOne(newIndex, newOptions);
                 }
             }
-
-            var aggregate = new BsonDocument(new Dictionary<string, object>
-            {
-                {
-                    "aggregate", collectionName
-                },
-                {
-                    "pipeline", new []
-                    {
-                        new Dictionary<string, object> { { "$match", new BsonDocument() } },
-                        new Dictionary<string, object> { { "$out", backupCollectionName } }
-                    }
-                },
-                {
-                    "allowDiskUse", true
-                },
-                {
-                    "bypassDocumentValidation", true
-                },
-                {
-                    // As of MongoDB 3.4 cursor is no longer
-                    //  optional, but can be set to "empty".
-                    // https://docs.mongodb.com/manual/reference/command/aggregate/
-                    "cursor", new BsonDocument()
-                }
-            });
 
             database.RunCommand(new BsonDocumentCommand<BsonDocument>(aggregate));
         }

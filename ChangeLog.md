@@ -1,5 +1,11 @@
 
-## What's New (07/24/2017)
+## What's New (13/10/2017)
+
+### v0.5.5
+- Use default naming conventions for our Dto models  
+  This should hopefully eliminate all the camelCase issues
+- Optimized job aggregation to filter by only the status needed
+- Add version check when backing up collections
 
 ### v0.5.4
 - Fix broken migration

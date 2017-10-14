@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -12,6 +13,8 @@ using Hangfire.Mongo.StateHandlers;
 using Hangfire.Server;
 using Hangfire.States;
 using Hangfire.Storage;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -30,6 +33,31 @@ namespace Hangfire.Mongo
         private readonly MongoClientSettings _mongoClientSettings;
 
         private readonly MongoStorageOptions _storageOptions;
+
+
+        static MongoStorage()
+        {
+            // We will register all our Dto classes with the default conventions.
+            // By doing this, we can safely use strings for referencing class
+            // property names with risking to have a mismatch with any convention
+            // used by bson serializer.
+            var conventionPack = new ConventionPack();
+            conventionPack.Append(DefaultConventionPack.Instance);
+            conventionPack.Append(AttributeConventionPack.Instance);
+            var conventionRunner = new ConventionRunner(conventionPack);
+
+            var assembly = typeof(MongoStorage).GetTypeInfo().Assembly;
+            var classMaps = assembly.DefinedTypes
+                .Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericType && t.Namespace == "Hangfire.Mongo.Dto")
+                .Select(t => new BsonClassMap(t.AsType()));
+
+            foreach (var classMap in classMaps)
+            {
+                conventionRunner.Apply(classMap);
+                BsonClassMap.RegisterClassMap(classMap);
+            }
+        }
+
 
         /// <summary>
         /// Constructs Job Storage by database connection string and name

@@ -10,7 +10,6 @@ using Hangfire.Storage;
 using Hangfire.Storage.Monitoring;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using ServerDto = Hangfire.Storage.Monitoring.ServerDto;
 
 namespace Hangfire.Mongo
 {
@@ -57,18 +56,18 @@ namespace Hangfire.Mongo
             });
         }
 
-        public IList<ServerDto> Servers()
+        public IList<Storage.Monitoring.ServerDto> Servers()
         {
-            return UseConnection<IList<ServerDto>>(database =>
+            return UseConnection<IList<Storage.Monitoring.ServerDto>>(database =>
             {
                 var servers = database.Server.Find(new BsonDocument()).ToList();
 
-                var result = new List<ServerDto>();
+                var result = new List<Storage.Monitoring.ServerDto>();
 
                 foreach (var server in servers)
                 {
                     var data = JobHelper.FromJson<ServerDataDto>(server.Data);
-                    result.Add(new ServerDto
+                    result.Add(new Storage.Monitoring.ServerDto
                     {
                         Name = server.Id,
                         Heartbeat = server.LastHeartbeat,
@@ -110,6 +109,14 @@ namespace Hangfire.Mongo
             });
         }
 
+        private static string[] _statisticsStateNames = new[]
+        {
+            EnqueuedState.StateName,
+            FailedState.StateName,
+            ProcessingState.StateName,
+            ScheduledState.StateName
+        };
+
         public StatisticsDto GetStatistics()
         {
             return UseConnection(database =>
@@ -117,7 +124,7 @@ namespace Hangfire.Mongo
                 var stats = new StatisticsDto();
 
                 var countByStates = database.Job.Aggregate()
-                    .Match(Builders<JobDto>.Filter.In(_ => _.StateName, new [] { EnqueuedState.StateName, FailedState.StateName, ProcessingState.StateName, ScheduledState.StateName }))
+                    .Match(Builders<JobDto>.Filter.In(_ => _.StateName, _statisticsStateNames))
                     .Group(dto => new { dto.StateName }, dtos => new { StateName = dtos.First().StateName, Count = dtos.Count() })
                     .ToList().ToDictionary(kv => kv.StateName, kv => kv.Count);
 
