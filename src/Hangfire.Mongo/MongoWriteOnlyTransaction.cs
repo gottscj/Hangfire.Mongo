@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
@@ -40,21 +38,18 @@ namespace Hangfire.Mongo
 
         public override void ExpireJob(string jobId, TimeSpan expireIn)
         {
-            DebugWriteline();
             QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId),
                 Builders<JobDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(expireIn))));
         }
 
         public override void PersistJob(string jobId)
         {
-            DebugWriteline();
             QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId),
                 Builders<JobDto>.Update.Set(_ => _.ExpireAt, null)));
         }
 
         public override void SetJobState(string jobId, IState state)
         {
-            DebugWriteline();
             QueueCommand(x =>
             {
                 var update = Builders<JobDto>
@@ -74,7 +69,6 @@ namespace Hangfire.Mongo
 
         public override void AddJobState(string jobId, IState state)
         {
-            DebugWriteline();
             QueueCommand(x =>
             {
                 var update = Builders<JobDto>.Update
@@ -92,7 +86,6 @@ namespace Hangfire.Mongo
 
         public override void AddToQueue(string queue, string jobId)
         {
-            DebugWriteline();
             IPersistentJobQueueProvider provider = _queueProviders.GetProvider(queue);
             IPersistentJobQueue persistentQueue = provider.GetJobQueue(_database);
 
@@ -104,7 +97,6 @@ namespace Hangfire.Mongo
 
         public override void IncrementCounter(string key)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -120,7 +112,6 @@ namespace Hangfire.Mongo
 
         public override void IncrementCounter(string key, TimeSpan expireIn)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -137,7 +128,6 @@ namespace Hangfire.Mongo
 
         public override void DecrementCounter(string key)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -153,7 +143,6 @@ namespace Hangfire.Mongo
 
         public override void DecrementCounter(string key, TimeSpan expireIn)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -170,13 +159,11 @@ namespace Hangfire.Mongo
 
         public override void AddToSet(string key, string value)
         {
-            DebugWriteline();
             AddToSet(key, value, 0.0);
         }
 
         public override void AddToSet(string key, string value, double score)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -201,7 +188,6 @@ namespace Hangfire.Mongo
 
         public override void RemoveFromSet(string key, string value)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -216,7 +202,6 @@ namespace Hangfire.Mongo
 
         public override void InsertToList(string key, string value)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -232,7 +217,6 @@ namespace Hangfire.Mongo
 
         public override void RemoveFromList(string key, string value)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -247,7 +231,6 @@ namespace Hangfire.Mongo
 
         public override void TrimList(string key, int keepStartingFrom, int keepEndingAt)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -279,7 +262,6 @@ namespace Hangfire.Mongo
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -318,7 +300,6 @@ namespace Hangfire.Mongo
 
         public override void RemoveHash(string key)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -329,13 +310,8 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
-            DebugWriteline();
-            //using (new MongoDistributedLock("WriteOnlyTransaction", TimeSpan.FromSeconds(30), _database, _storageOptions))
+            using (new MongoDistributedLock("WriteOnlyTransaction", TimeSpan.FromSeconds(30), _database, _storageOptions))
             {
-                foreach (var item in _calls)
-                {
-                    Debug.WriteLine(item);
-                }
                 foreach (var action in _commandQueue)
                 {
                     action.Invoke(_database);
@@ -354,7 +330,6 @@ namespace Hangfire.Mongo
 
         public override void ExpireSet(string key, TimeSpan expireIn)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -369,7 +344,6 @@ namespace Hangfire.Mongo
 
         public override void ExpireList(string key, TimeSpan expireIn)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -383,7 +357,6 @@ namespace Hangfire.Mongo
 
         public override void ExpireHash(string key, TimeSpan expireIn)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -397,7 +370,6 @@ namespace Hangfire.Mongo
 
         public override void PersistSet(string key)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -411,7 +383,6 @@ namespace Hangfire.Mongo
 
         public override void PersistList(string key)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -425,7 +396,6 @@ namespace Hangfire.Mongo
 
         public override void PersistHash(string key)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -439,7 +409,6 @@ namespace Hangfire.Mongo
 
         public override void AddRangeToSet(string key, IList<string> items)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -477,7 +446,6 @@ namespace Hangfire.Mongo
 
         public override void RemoveSet(string key)
         {
-            DebugWriteline();
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -486,14 +454,7 @@ namespace Hangfire.Mongo
                 .OfType<SetDto>()
                 .DeleteMany(Builders<SetDto>.Filter.Eq(_ => _.Key, key)));
         }
-        private List<string> _calls = new List<string>();
-        private void DebugWriteline([CallerMemberName] string member = null, params object[] args)
-        {
-            Debug.WriteLine(DateTime.Now.ToString("hh:mm:ss:fff") + " " + member + $"args: {string.Join(",", args.Select(a => a.ToString()))}");
-            // _calls.Add(member);    
-        }
     }
-
 
 #pragma warning restore 1591
 }
