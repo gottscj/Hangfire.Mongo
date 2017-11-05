@@ -118,3 +118,7 @@ UpgradeLog*.XML
 
 artifacts/
 src/.vs
+
+src/\.idea/\.idea\.Hangfire\.Mongo/\.idea/
+
+src/\.idea/\.idea\.Hangfire\.Mongo/

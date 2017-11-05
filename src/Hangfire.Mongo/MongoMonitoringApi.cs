@@ -86,7 +86,7 @@ namespace Hangfire.Mongo
         {
             return UseConnection(connection =>
             {
-                JobDto job = connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId))
+                JobDto job = connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)))
                     .FirstOrDefault();
 
                 if (job == null)
@@ -110,7 +110,7 @@ namespace Hangfire.Mongo
             });
         }
 
-        private static string[] _statisticsStateNames = new []
+        private static readonly string[] StatisticsStateNames = new []
         {
             EnqueuedState.StateName,
             FailedState.StateName,
@@ -125,16 +125,16 @@ namespace Hangfire.Mongo
                 var stats = new StatisticsDto();
 
                 var countByStates = connection.Job.Aggregate()
-                    .Match(Builders<JobDto>.Filter.In(_ => _.StateName, _statisticsStateNames))
+                    .Match(Builders<JobDto>.Filter.In(_ => _.StateName, StatisticsStateNames))
                     .Group(dto => new { dto.StateName }, dtos => new { StateName = dtos.First().StateName, Count = dtos.Count() })
                     .ToList().ToDictionary(kv => kv.StateName, kv => kv.Count);
 
-                Func<string, int> getCountIfExists = name => countByStates.ContainsKey(name) ? countByStates[name] : 0;
+                int GetCountIfExists(string name) => countByStates.ContainsKey(name) ? countByStates[name] : 0;
 
-                stats.Enqueued = getCountIfExists(EnqueuedState.StateName);
-                stats.Failed = getCountIfExists(FailedState.StateName);
-                stats.Processing = getCountIfExists(ProcessingState.StateName);
-                stats.Scheduled = getCountIfExists(ScheduledState.StateName);
+                stats.Enqueued = GetCountIfExists(EnqueuedState.StateName);
+                stats.Failed = GetCountIfExists(FailedState.StateName);
+                stats.Processing = GetCountIfExists(ProcessingState.StateName);
+                stats.Scheduled = GetCountIfExists(ScheduledState.StateName);
 
                 stats.Servers = connection.Server.Count(new BsonDocument());
 
@@ -319,8 +319,9 @@ namespace Hangfire.Mongo
 
         private JobList<EnqueuedJobDto> EnqueuedJobs(HangfireDbContext connection, IEnumerable<string> jobIds)
         {
+            var jobObjectIds = jobIds.Select(ObjectId.Parse);
             var jobs = connection.Job
-                .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobIds))
+                .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobObjectIds))
                 .ToList();
 
             var filterBuilder = Builders<JobQueueDto>.Filter;
@@ -372,7 +373,7 @@ namespace Hangfire.Mongo
             {
                 var stateData = job.StateData;
                 var dto = selector(job, DeserializeJob(job.InvocationData, job.Arguments), stateData);
-                result.Add(new KeyValuePair<string, TDto>(job.Id, dto));
+                result.Add(new KeyValuePair<string, TDto>(job.Id.ToString(), dto));
             }
 
             return new JobList<TDto>(result);
@@ -403,8 +404,9 @@ namespace Hangfire.Mongo
 
         private JobList<FetchedJobDto> FetchedJobs(HangfireDbContext connection, IEnumerable<string> jobIds)
         {
+            var jobObjectIds = jobIds.Select(ObjectId.Parse);
             var jobs = connection.Job
-                .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobIds))
+                .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobObjectIds))
                 .ToList();
 
             var jobIdToJobQueueMap = connection.JobQueue
@@ -439,7 +441,7 @@ namespace Hangfire.Mongo
             foreach (var job in joinedJobs)
             {
                 result.Add(new KeyValuePair<string, FetchedJobDto>(
-                    job.Id,
+                    job.Id.ToString(),
                     new FetchedJobDto
                     {
                         Job = DeserializeJob(job.InvocationData, job.Arguments),
@@ -451,7 +453,7 @@ namespace Hangfire.Mongo
             return new JobList<FetchedJobDto>(result);
         }
 
-        private JobList<TDto> GetJobs<TDto>(HangfireDbContext connection, int from, int count, string stateName, Func<JobDetailedDto, Job, Dictionary<string, string>, TDto> selector)
+        private static JobList<TDto> GetJobs<TDto>(HangfireDbContext connection, int from, int count, string stateName, Func<JobDetailedDto, Job, Dictionary<string, string>, TDto> selector)
         {
             // only retrieve job ids
             var filter = Builders<JobDto>
@@ -460,6 +462,7 @@ namespace Hangfire.Mongo
 
             var jobs = connection.Job
                 .Find(filter)
+                .SortByDescending(_ => _.Id)
                 .Skip(from)
                 .Limit(count)
                 .ToList();

@@ -166,7 +166,7 @@ namespace Hangfire.Mongo.Tests
 
                 var parameters = database
                     .Job
-                    .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId))
+                    .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)))
                     .Project(j => j.Parameters)
                     .ToList()
                     .SelectMany(j => j)
@@ -190,7 +190,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                var result = connection.GetJobData("547527");
+                var result = connection.GetJobData(ObjectId.GenerateNewId().ToString());
                 Assert.Null(result);
             });
         }
@@ -204,7 +204,7 @@ namespace Hangfire.Mongo.Tests
 
                 var jobDto = new JobDto
                 {
-                    Id = ObjectId.GenerateNewId().ToString(),
+                    Id = ObjectId.GenerateNewId(),
                     InvocationData = JobHelper.ToJson(InvocationData.Serialize(job)),
                     Arguments = "[\"\\\"Arguments\\\"\"]",
                     StateName = "Succeeded",
@@ -212,7 +212,7 @@ namespace Hangfire.Mongo.Tests
                 };
                 database.Job.InsertOne(jobDto);
 
-                var result = connection.GetJobData(jobDto.Id);
+                var result = connection.GetJobData(jobDto.Id.ToString());
 
                 Assert.NotNull(result);
                 Assert.NotNull(result.Job);
@@ -237,7 +237,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                var result = connection.GetStateData("547527");
+                var result = connection.GetStateData(ObjectId.GenerateNewId().ToString());
                 Assert.Null(result);
             });
         }
@@ -259,7 +259,7 @@ namespace Hangfire.Mongo.Tests
                 };
                 var jobDto = new JobDto
                 {
-                    Id = 1.ToString(),
+                    Id = ObjectId.GenerateNewId(),
                     InvocationData = "",
                     Arguments = "",
                     StateName = "",
@@ -299,7 +299,7 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobDto = new JobDto
                 {
-                    Id = 1.ToString(),
+                    Id = ObjectId.GenerateNewId(),
                     InvocationData = JobHelper.ToJson(new InvocationData(null, null, null, null)),
                     Arguments = "[\"\\\"Arguments\\\"\"]",
                     StateName = "Succeeded",
@@ -345,15 +345,15 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobDto = new JobDto
                 {
-                    Id = 1.ToString(),
+                    Id = ObjectId.GenerateNewId(),
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
-                string jobId = jobDto.Id.ToString();
+                var jobId = jobDto.Id;
 
-                connection.SetJobParameter(jobId, "Name", "Value");
+                connection.SetJobParameter(jobId.ToString(), "Name", "Value");
 
                 var parameters = database
                     .Job
@@ -373,16 +373,16 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobDto = new JobDto
                 {
-                    Id = 1.ToString(),
+                    Id = ObjectId.GenerateNewId(),
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
-                string jobId = jobDto.Id.ToString();
+                var jobId = jobDto.Id;
 
-                connection.SetJobParameter(jobId, "Name", "Value");
-                connection.SetJobParameter(jobId, "Name", "AnotherValue");
+                connection.SetJobParameter(jobId.ToString(), "Name", "Value");
+                connection.SetJobParameter(jobId.ToString(), "Name", "AnotherValue");
 
                 var parameters = database
                     .Job
@@ -402,15 +402,15 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobDto = new JobDto
                 {
-                    Id = 1.ToString(),
+                    Id = ObjectId.GenerateNewId(),
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
-                string jobId = jobDto.Id.ToString();
+                var jobId = jobDto.Id;
 
-                connection.SetJobParameter(jobId, "Name", null);
+                connection.SetJobParameter(jobId.ToString(), "Name", null);
 
                 var parameters = database
                     .Job
@@ -452,7 +452,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                var value = connection.GetJobParameter("1", "hello");
+                var value = connection.GetJobParameter(ObjectId.GenerateNewId().ToString(), "hello");
                 Assert.Null(value);
             });
         }
@@ -464,17 +464,17 @@ namespace Hangfire.Mongo.Tests
             {
                 var jobDto = new JobDto
                 {
-                    Id = 1.ToString(),
+                    Id = ObjectId.GenerateNewId(),
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
+                
 
+                connection.SetJobParameter(jobDto.Id.ToString(), "name", "value");
 
-                connection.SetJobParameter(jobDto.Id, "name", "value");
-
-                var value = connection.GetJobParameter(jobDto.Id, "name");
+                var value = connection.GetJobParameter(jobDto.Id.ToString(), "name");
 
                 Assert.Equal("value", value);
             });
