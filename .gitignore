@@ -118,3 +118,5 @@ UpgradeLog*.XML
 
 artifacts/
 src/.vs
+
+src/\.idea/
