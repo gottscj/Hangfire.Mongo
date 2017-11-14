@@ -93,12 +93,14 @@ namespace Hangfire.Mongo
                     return null;
 
                 var history = job.StateHistory.Select(x => new StateHistoryDto
-                {
-                    StateName = x.Name,
-                    CreatedAt = x.CreatedAt,
-                    Reason = x.Reason,
-                    Data = x.Data
-                }).ToList();
+                    {
+                        StateName = x.Name,
+                        CreatedAt = x.CreatedAt,
+                        Reason = x.Reason,
+                        Data = x.Data
+                    })
+                    .Reverse()
+                    .ToList();
 
                 return new JobDetailsDto
                 {
