@@ -9,6 +9,7 @@ namespace Hangfire.Mongo.Dto
 #pragma warning disable 1591
     public class JobDto
     {
+        [BsonId]
         public ObjectId Id { get; set; }
 
         public string StateName { get; set; }
