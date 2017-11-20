@@ -9,7 +9,7 @@ namespace Hangfire.Mongo.Dto
     public class JobDetailedDto
     {
         [BsonId]
-        public string Id { get; set; }
+        public ObjectId Id { get; set; }
 
         public string InvocationData { get; set; }
 

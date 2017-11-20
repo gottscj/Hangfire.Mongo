@@ -11,7 +11,7 @@ namespace Hangfire.Mongo.Dto
         [BsonId]
         public ObjectId Id { get; set; }
 
-        public string JobId { get; set; }
+        public ObjectId JobId { get; set; }
 
         public string Queue { get; set; }
 

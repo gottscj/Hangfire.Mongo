@@ -36,7 +36,9 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 .Where(jobQueueJobId =>
                 {
                     return _database.Job.Find(j => j.Id == jobQueueJobId && j.StateHistory.Length > 0).Any();
-                }).ToArray();
+                })
+                .Select(jobQueueJobId => jobQueueJobId.ToString())
+                .ToArray();
         }
 
         public IEnumerable<string> GetFetchedJobIds(string queue, int from, int perPage)
@@ -51,7 +53,9 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 {
                     var job = _database.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueueJobId)).FirstOrDefault();
                     return job != null;
-                }).ToArray();
+                })
+                .Select(jobQueueJobId => jobQueueJobId.ToString())
+                .ToArray();
         }
 
         public EnqueuedAndFetchedCountDto GetEnqueuedAndFetchedCount(string queue)

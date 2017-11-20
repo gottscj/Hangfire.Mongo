@@ -78,7 +78,7 @@ namespace Hangfire.Mongo
 
             Database.Job.InsertOne(jobDto);
 
-            var jobId = jobDto.Id;
+            var jobId = jobDto.Id.ToString();
 
             return jobId;
         }
@@ -117,7 +117,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(name));
             }
 
-            var filter = new BsonDocument("_id", id);
+            var filter = new BsonDocument("_id", ObjectId.Parse(id));
             BsonValue bsonValue;
             if (value == null)
             {
@@ -127,7 +127,6 @@ namespace Hangfire.Mongo
             {
                 bsonValue = value;
             }
-
 
             var update = new BsonDocument("$set", new BsonDocument($"{nameof(JobDto.Parameters)}.{name}", bsonValue));
 
@@ -148,7 +147,7 @@ namespace Hangfire.Mongo
 
             var parameters = Database
                 .Job
-                .Find(j => j.Id == id)
+                .Find(j => j.Id == ObjectId.Parse(id))
                 .Project(job => job.Parameters)
                 .FirstOrDefault();
 
@@ -167,7 +166,7 @@ namespace Hangfire.Mongo
 
             var jobData = Database
                 .Job
-                .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId))
+                .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)))
                 .FirstOrDefault();
 
             if (jobData == null)
@@ -212,7 +211,7 @@ namespace Hangfire.Mongo
 
             var latest = Database
                 .Job
-                .Find(j => j.Id == jobId)
+                .Find(j => j.Id == ObjectId.Parse(jobId))
                 .Project(projection)
                 .FirstOrDefault();
 

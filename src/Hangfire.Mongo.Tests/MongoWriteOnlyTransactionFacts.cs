@@ -58,7 +58,7 @@ namespace Hangfire.Mongo.Tests
             {
                 JobDto job = new JobDto
                 {
-                    Id = 1.ToString(),
+                    Id = ObjectId.GenerateNewId(1),
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
@@ -67,15 +67,15 @@ namespace Hangfire.Mongo.Tests
 
                 JobDto anotherJob = new JobDto
                 {
-                    Id = 2.ToString(),
+                    Id = ObjectId.GenerateNewId(2),
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(anotherJob);
 
-                var jobId = job.Id;
-                var anotherJobId = anotherJob.Id;
+                var jobId = job.Id.ToString();
+                var anotherJobId = anotherJob.Id.ToString();
 
                 Commit(database, x => x.ExpireJob(jobId.ToString(), TimeSpan.FromDays(1)));
 
@@ -94,7 +94,7 @@ namespace Hangfire.Mongo.Tests
             {
                 JobDto job = new JobDto
                 {
-                    Id = 1.ToString(),
+                    Id = ObjectId.GenerateNewId(1),
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow,
@@ -104,7 +104,7 @@ namespace Hangfire.Mongo.Tests
 
                 JobDto anotherJob = new JobDto
                 {
-                    Id = 2.ToString(),
+                    Id = ObjectId.GenerateNewId(2),
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow,
@@ -112,8 +112,8 @@ namespace Hangfire.Mongo.Tests
                 };
                 database.Job.InsertOne(anotherJob);
 
-                var jobId = job.Id;
-                var anotherJobId = anotherJob.Id;
+                var jobId = job.Id.ToString();
+                var anotherJobId = anotherJob.Id.ToString();
 
                 Commit(database, x => x.PersistJob(jobId.ToString()));
 
@@ -132,7 +132,7 @@ namespace Hangfire.Mongo.Tests
             {
                 JobDto job = new JobDto
                 {
-                    Id = 1.ToString(),
+                    Id = ObjectId.GenerateNewId(1),
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
@@ -141,15 +141,15 @@ namespace Hangfire.Mongo.Tests
 
                 JobDto anotherJob = new JobDto
                 {
-                    Id = 2.ToString(),
+                    Id = ObjectId.GenerateNewId(2),
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(anotherJob);
 
-                var jobId = job.Id;
-                var anotherJobId = anotherJob.Id;
+                var jobId = job.Id.ToString();
+                var anotherJobId = anotherJob.Id.ToString();
                 var serializedData = new Dictionary<string, string> { { "Name", "Value" } };
 
                 var state = new Mock<IState>();
@@ -167,7 +167,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Null(anotherTestJob.StateName);
                 Assert.Equal(0, anotherTestJob.StateHistory.Length);
 
-                var jobWithStates = database.Job.Find(new BsonDocument()).ToList().FirstOrDefault();
+                var jobWithStates = database.Job.Find(new BsonDocument()).FirstOrDefault();
 
                 var jobState = jobWithStates.StateHistory.Single();
                 Assert.Equal("State", jobState.Name);
@@ -184,14 +184,14 @@ namespace Hangfire.Mongo.Tests
             {
                 JobDto job = new JobDto
                 {
-                    Id = 1.ToString(),
+                    Id = ObjectId.GenerateNewId(1),
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(job);
 
-                var jobId = job.Id;
+                var jobId = job.Id.ToString();
                 var serializedData = new Dictionary<string, string> { { "Name", "Value" } };
 
                 var state = new Mock<IState>();
@@ -199,7 +199,7 @@ namespace Hangfire.Mongo.Tests
                 state.Setup(x => x.Reason).Returns("Reason");
                 state.Setup(x => x.SerializeData()).Returns(serializedData);
 
-                Commit(database, x => x.AddJobState(jobId.ToString(), state.Object));
+                Commit(database, x => x.AddJobState(jobId, state.Object));
 
                 var testJob = GetTestJob(database, jobId);
                 Assert.Null(testJob.StateName);
@@ -903,7 +903,7 @@ namespace Hangfire.Mongo.Tests
 
         private static JobDto GetTestJob(HangfireDbContext database, string jobId)
         {
-            return database.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId)).FirstOrDefault();
+            return database.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId))).FirstOrDefault();
         }
 
         private static IList<SetDto> GetTestSet(HangfireDbContext database, string key)

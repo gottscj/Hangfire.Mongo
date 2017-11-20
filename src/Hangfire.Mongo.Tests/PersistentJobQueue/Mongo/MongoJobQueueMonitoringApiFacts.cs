@@ -110,7 +110,7 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
                 var enqueuedJobIds = mongoJobQueueMonitoringApi.GetEnqueuedJobIds(QueueName1, 0, 10).ToList();
 
                 Assert.Equal(1, enqueuedJobIds.Count);
-                Assert.Equal(jobQueueDto.JobId, enqueuedJobIds.First());
+                Assert.Equal(jobQueueDto.JobId.ToString(), enqueuedJobIds.First());
             });
         }
 
@@ -128,9 +128,9 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
                 var enqueuedJobIds = mongoJobQueueMonitoringApi.GetEnqueuedJobIds(QueueName1, 0, 10).ToList();
 
                 Assert.Equal(3, enqueuedJobIds.Count);
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto.JobId));
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto2.JobId));
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto3.JobId));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto.JobId.ToString()));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto2.JobId.ToString()));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto3.JobId.ToString()));
             });
         }
 
@@ -148,8 +148,8 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
                 var enqueuedJobIds = mongoJobQueueMonitoringApi.GetEnqueuedJobIds(QueueName1, 0, 10).ToList();
 
                 Assert.Equal(2, enqueuedJobIds.Count);
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto.JobId));
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto2.JobId));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto.JobId.ToString()));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto2.JobId.ToString()));
             });
         }
 
@@ -167,8 +167,8 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
                 var enqueuedJobIds = mongoJobQueueMonitoringApi.GetEnqueuedJobIds(QueueName1, 0, 2).ToList();
 
                 Assert.Equal(2, enqueuedJobIds.Count);
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto.JobId));
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto2.JobId));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto.JobId.ToString()));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto2.JobId.ToString()));
             });
         }
 
@@ -212,7 +212,7 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
                 var enqueuedJobIds = mongoJobQueueMonitoringApi.GetFetchedJobIds(QueueName1, 0, 10).ToList();
 
                 Assert.Equal(1, enqueuedJobIds.Count);
-                Assert.Equal(jobQueueDto.JobId, enqueuedJobIds.First());
+                Assert.Equal(jobQueueDto.JobId.ToString(), enqueuedJobIds.First());
             });
         }
 
@@ -230,9 +230,9 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
                 var enqueuedJobIds = mongoJobQueueMonitoringApi.GetFetchedJobIds(QueueName1, 0, 10).ToList();
 
                 Assert.Equal(3, enqueuedJobIds.Count);
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto.JobId));
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto2.JobId));
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto3.JobId));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto.JobId.ToString()));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto2.JobId.ToString()));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto3.JobId.ToString()));
             });
         }
 
@@ -250,8 +250,8 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
                 var enqueuedJobIds = mongoJobQueueMonitoringApi.GetFetchedJobIds(QueueName1, 0, 10).ToList();
 
                 Assert.Equal(2, enqueuedJobIds.Count);
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto.JobId));
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto2.JobId));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto.JobId.ToString()));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto2.JobId.ToString()));
             });
         }
 
@@ -269,8 +269,8 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
                 var enqueuedJobIds = mongoJobQueueMonitoringApi.GetFetchedJobIds(QueueName1, 0, 2).ToList();
 
                 Assert.Equal(2, enqueuedJobIds.Count);
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto.JobId));
-                Assert.True(enqueuedJobIds.Contains(jobQueueDto2.JobId));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto.JobId.ToString()));
+                Assert.True(enqueuedJobIds.Contains(jobQueueDto2.JobId.ToString()));
             });
         }
 

@@ -38,13 +38,13 @@ namespace Hangfire.Mongo
 
         public override void ExpireJob(string jobId, TimeSpan expireIn)
         {
-            QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId),
+            QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)),
                 Builders<JobDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(expireIn))));
         }
 
         public override void PersistJob(string jobId)
         {
-            QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, jobId),
+            QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)),
                 Builders<JobDto>.Update.Set(_ => _.ExpireAt, null)));
         }
 
@@ -63,7 +63,7 @@ namespace Hangfire.Mongo
                         Data = state.SerializeData()
                     });
 
-                x.Job.UpdateOne(j => j.Id == jobId, update);
+                x.Job.UpdateOne(j => j.Id == ObjectId.Parse(jobId), update);
             });
         }
 
@@ -80,7 +80,7 @@ namespace Hangfire.Mongo
                         Data = state.SerializeData()
                     });
 
-                x.Job.UpdateOne(j => j.Id == jobId, update);
+                x.Job.UpdateOne(j => j.Id == ObjectId.Parse(jobId), update);
             });
         }
 

@@ -115,7 +115,7 @@ namespace Hangfire.Mongo.Tests
                 // Arrange
                 connection.Job.InsertOne(new JobDto
                 {
-                    Id = 1.ToString(),
+                    Id = ObjectId.GenerateNewId(),
                     InvocationData = "",
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow,

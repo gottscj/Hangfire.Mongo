@@ -7,12 +7,13 @@ using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Signal;
 using Hangfire.Mongo.Signal.Mongo;
 using Hangfire.Storage;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 {
 #pragma warning disable 1591
-    public class MongoJobQueue : IPersistentJobQueue
+    internal class MongoJobQueue : IPersistentJobQueue
     {
         private readonly HangfireDbContext _database;
 
@@ -97,7 +98,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
         {
             _database.JobQueue.InsertOne(new JobQueueDto
             {
-                JobId = jobId,
+                JobId = ObjectId.Parse(jobId),
                 Queue = queue
             });
             _signal.Set($@"JobQueue.{queue}");

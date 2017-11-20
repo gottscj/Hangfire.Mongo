@@ -1,5 +1,9 @@
 
-## What's New (13/10/2017)
+## What's New (19/11/2017)
+
+### v0.5.6
+- Job state now shows correct in dashboard
+- Hangfire dashboard logs are now sorted descending
 
 ### v0.5.5
 - Use default naming conventions for our Dto models  
