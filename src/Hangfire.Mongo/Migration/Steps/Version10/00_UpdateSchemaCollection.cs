@@ -2,7 +2,7 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace Hangfire.Mongo.Migration.Steps.Version08
+namespace Hangfire.Mongo.Migration.Steps.Version10
 {
     /// <summary>
     /// Create signal capped collection

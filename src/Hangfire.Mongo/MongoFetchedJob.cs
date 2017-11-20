@@ -28,11 +28,11 @@ namespace Hangfire.Mongo
         /// <param name="id">Identifier</param>
         /// <param name="jobId">Job ID</param>
         /// <param name="queue">Queue name</param>
-        public MongoFetchedJob(HangfireDbContext connection, ObjectId id, string jobId, string queue)
+        public MongoFetchedJob(HangfireDbContext connection, ObjectId id, ObjectId jobId, string queue)
         {
             _connection = connection ?? throw new ArgumentNullException(nameof(connection));
             _id = id;
-            JobId = jobId ?? throw new ArgumentNullException(nameof(jobId));
+            JobId = jobId.ToString();
             Queue = queue ?? throw new ArgumentNullException(nameof(queue));
         }
 

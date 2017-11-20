@@ -1,8 +1,6 @@
-﻿using System;
-using MongoDB.Bson;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 
-namespace Hangfire.Mongo.Migration.Steps.Version08
+namespace Hangfire.Mongo.Migration.Steps.Version09
 {
     /// <summary>
     /// Create signal capped collection

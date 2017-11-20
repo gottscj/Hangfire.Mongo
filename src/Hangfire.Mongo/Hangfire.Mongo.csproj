@@ -1,29 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-	<PropertyGroup>
-		<VersionPrefix>0.5.5</VersionPrefix>
-		<TargetFrameworks>net45;net46;netstandard1.5</TargetFrameworks>
-		<NoWarn>$(NoWarn);CS0618</NoWarn>
-		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<AssemblyName>Hangfire.Mongo</AssemblyName>
-		<PackageId>Hangfire.Mongo</PackageId>
-		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-		<GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-		<GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-		<GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-		<GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-		<GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Copyright>Copyright 2016 © Sergey Zwezdin</Copyright>
-		<title>Hangfire MongoDB Storage</title>
-		<owners>Sergey Zwezdin</owners>
-		<Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
-		<PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-		<PackageReleaseNotes>0.5.5
+  <PropertyGroup>
+    <VersionPrefix>0.5.5</VersionPrefix>
+    <TargetFrameworks>net45;net46;netstandard1.5</TargetFrameworks>
+    <NoWarn>$(NoWarn);CS0618</NoWarn>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyName>Hangfire.Mongo</AssemblyName>
+    <PackageId>Hangfire.Mongo</PackageId>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Copyright>Copyright 2016 © Sergey Zwezdin</Copyright>
+    <title>Hangfire MongoDB Storage</title>
+    <owners>Sergey Zwezdin</owners>
+    <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
+    <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
+    <PackageReleaseNotes>0.5.5
 - Use default naming conventions for our Dto models
   This should hopefully eliminate all the camelCase issues
 - Optimized job aggregation to filter by only the status needed
@@ -116,22 +115,19 @@
 
 0.2.0
 - Initial public release</PackageReleaseNotes>
-		<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>
-		<PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
-		<Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<None Include="app.config" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Hangfire.Core" Version="1.6.17" />
-		<PackageReference Include="MongoDB.Driver" Version="2.3.0" />
-		<PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Reference Include="Microsoft.CSharp" />
-	</ItemGroup>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
+    <Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Hangfire.Core" Version="1.6.17" />
+    <PackageReference Include="MongoDB.Driver" Version="2.3.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
 </Project>
