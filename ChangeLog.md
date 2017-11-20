@@ -1,6 +1,9 @@
 
 ## What's New (19/11/2017)
 
+### v0.5.7
+- Fix for broken migration
+
 ### v0.5.6
 - Job state now shows correct in dashboard
 - Hangfire dashboard logs are now sorted descending

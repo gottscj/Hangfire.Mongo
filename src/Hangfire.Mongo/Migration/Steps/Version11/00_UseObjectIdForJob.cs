@@ -17,19 +17,20 @@ namespace Hangfire.Mongo.Migration.Steps.Version11
         {
             var jobsCollection = database.GetCollection<BsonDocument>(storageOptions.Prefix + ".job");
             SetFieldAsObjectId(jobsCollection, "_id");
-            
+
             var jobQueueCollection = database.GetCollection<BsonDocument>(storageOptions.Prefix + ".jobQueue");
             SetFieldAsObjectId(jobQueueCollection, "JobId");
-            
+
             return true;
         }
 
         private static void SetFieldAsObjectId(IMongoCollection<BsonDocument> collection, string fieldName)
         {
-            var documents = collection.Find(new BsonDocument()).ToList();
+            var filter = Builders<BsonDocument>.Filter.Exists(fieldName);
+            var documents = collection.Find(filter).ToList();
 
-            if(!documents.Any()) return;
-            
+            if (!documents.Any()) return;
+
             foreach (var doc in documents)
             {
                 var jobIdString = doc[fieldName].ToString();
