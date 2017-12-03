@@ -25,6 +25,14 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             FullMigration(null);
         }
 
+
+        [Fact]
+        public void FullMigration_FromSchema004_MigrationComplete()
+        {
+            FullMigration("Hangfire-Mongo-Schema-004.zip");
+        }
+        }
+
         #endregion
 
 

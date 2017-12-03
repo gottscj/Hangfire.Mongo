@@ -45,7 +45,10 @@ namespace Hangfire.Mongo.Migration.Steps.Version08
             "LastHeartbeat",
             "Score",
             "Name",
-            "Reason"
+            "Reason",
+            "ClientId",
+            "Heartbeat",
+            "LockCount"
         };
 
         public MongoSchema TargetSchema => MongoSchema.Version08;
