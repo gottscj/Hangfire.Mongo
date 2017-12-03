@@ -912,12 +912,12 @@ namespace Hangfire.Mongo.Tests
             return database.StateData.OfType<SetDto>().Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key)).ToList();
         }
 
-        private static dynamic GetTestList(HangfireDbContext database, string key)
+        private static ListDto GetTestList(HangfireDbContext database, string key)
         {
             return database.StateData.OfType<ListDto>().Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key)).FirstOrDefault();
         }
 
-        private static dynamic GetTestHash(HangfireDbContext database, string key)
+        private static HashDto GetTestHash(HangfireDbContext database, string key)
         {
             return database.StateData.OfType<HashDto>().Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).FirstOrDefault();
         }
