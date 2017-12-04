@@ -60,6 +60,13 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             FullMigration("Hangfire-Mongo-Schema-008.zip");
         }
 
+
+        [Fact]
+        public void FullMigration_FromSchema009_MigrationComplete()
+        {
+            FullMigration("Hangfire-Mongo-Schema-009.zip");
+        }
+
         #endregion
 
 

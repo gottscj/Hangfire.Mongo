@@ -5,7 +5,7 @@ using MongoDB.Driver;
 namespace Hangfire.Mongo.Migration.Steps.Version11
 {
     /// <summary>
-    /// Create signal capped collection
+    /// Use ObjectId for jobs on job and jobQueue collections
     /// </summary>
     internal class UseObjectIdForJob : IMongoMigrationStep
     {

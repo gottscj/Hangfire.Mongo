@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -36,15 +37,15 @@ namespace Hangfire.Mongo.Tests
 
             var storageOptions = new MongoStorageOptions
             {
-                //MigrationOptions = new MongoMigrationOptions
-                //{
-                //    Strategy = MongoMigrationStrategy.Migrate,
-                //    BackupStrategy = MongoBackupStrategy.Collections
-                //}
+                MigrationOptions = new MongoMigrationOptions
+                {
+                    Strategy = MongoMigrationStrategy.None,
+                    BackupStrategy = MongoBackupStrategy.None
+                }
             };
             var serverOptions = new BackgroundJobServerOptions
             {
-                ShutdownTimeout = TimeSpan.FromMinutes(1)
+                ShutdownTimeout = TimeSpan.FromSeconds(15)
             };
 
             JobStorage.Current = new MongoStorage(connectionString, databaseName, storageOptions);
@@ -87,17 +88,25 @@ namespace Hangfire.Mongo.Tests
 
             connection.AcquireDistributedLock("test-lock", TimeSpan.FromSeconds(30));
 
-
             // Create database snapshot in zip file
             var schemaVersion = (int)MongoMigrationManager.RequiredSchemaVersion;
-            using (var stream = new FileStream($@"Hangfire-Mongo-Schema-{schemaVersion}.zip", FileMode.Create))
+            using (var stream = new FileStream($@"Hangfire-Mongo-Schema-{schemaVersion:000}.zip", FileMode.Create))
             {
-                BackupDatabaseToStream(connectionString, databaseName, stream);
+                var allowedEmptyCollections = new List<string>();
+
+                if (MongoMigrationManager.RequiredSchemaVersion >= MongoSchema.Version09 &&
+                    MongoMigrationManager.RequiredSchemaVersion <= MongoSchema.Version11)
+                {
+                    // Signal collection work was initiated in schema version 9, 
+                    // and still not put to use in schema version 11.
+                    allowedEmptyCollections.Add($@"{storageOptions.Prefix}.signal");
+                }
+                BackupDatabaseToStream(connectionString, databaseName, stream, allowedEmptyCollections.ToArray());
             }
         }
 
 
-        public void BackupDatabaseToStream(string connectionString, string databaseName, Stream stream)
+        public void BackupDatabaseToStream(string connectionString, string databaseName, Stream stream, params string[] allowedEmptyCollections)
         {
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, true))
             {
@@ -111,7 +120,10 @@ namespace Hangfire.Mongo.Tests
                         var collection = context.Database.GetCollection<BsonDocument>(collectionName);
                         var jsonDocs = collection.Find(Builders<BsonDocument>.Filter.Empty)
                             .ToList()
-                            .Select(d => d.ToJson(JsonWriterSettings.Defaults));
+                            .Select(d => d.ToJson(JsonWriterSettings.Defaults))
+                            .ToList();
+
+                        Assert.True(jsonDocs.Any() || allowedEmptyCollections.Contains(collectionName), $@"Expected collection '{collectionName}' to contain documents");
 
                         using (var entryStream = collectionFile.Open())
                         {

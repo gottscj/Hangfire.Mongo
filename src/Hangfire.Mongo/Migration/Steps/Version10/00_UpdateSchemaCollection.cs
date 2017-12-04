@@ -5,7 +5,7 @@ using MongoDB.Driver;
 namespace Hangfire.Mongo.Migration.Steps.Version10
 {
     /// <summary>
-    /// Create signal capped collection
+    /// Update the schema collection adding a database identifier
     /// </summary>
     internal class UpdateSchemaCollection : IMongoMigrationStep
     {
