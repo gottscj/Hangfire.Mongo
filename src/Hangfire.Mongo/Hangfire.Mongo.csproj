@@ -134,7 +134,4 @@
     <PackageReference Include="MongoDB.Driver" Version="2.3.0" />
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
   </ItemGroup>
-  <ItemGroup>
-    <Reference Include="Microsoft.CSharp" />
-  </ItemGroup>
 </Project>
