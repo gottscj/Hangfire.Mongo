@@ -32,6 +32,20 @@ namespace Hangfire.Mongo.Migration
         /// <param name="migrationStep">
         /// The migration step that failed.
         /// </param>
+        /// <param name="message">Exception message</param>
+        public MongoMigrationException(IMongoMigrationStep migrationStep, string message)
+            : base($@"Migration failed in {migrationStep.GetType().FullName} - {message}")
+        {
+        }
+
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="T:Hangfire.Mongo.Migration.MongoMigrationException"/> class.
+        /// Generates the message based on the <paramref name="migrationStep"/>
+        /// </summary>
+        /// <param name="migrationStep">
+        /// The migration step that failed.
+        /// </param>
         /// <param name="innerException">
         /// The inner exception.
         /// </param>

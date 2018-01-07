@@ -44,7 +44,20 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
                 {
                     s.Remove("_id");
                     s.Remove("JobId");
-                    s["Data"] = new BsonDocument(JobHelper.FromJson<Dictionary<string, string>>(s["Data"].AsString));
+                    // We expect "Data" to be a string of raw JSON
+                    // - but it has been experienced that it wasn't
+                    if (s["Data"].IsString)
+                    {
+                        s["Data"] = new BsonDocument(JobHelper.FromJson<Dictionary<string, string>>(s["Data"].AsString));
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine(s["Data"].BsonType);
+                    }
+                    if (!s["Data"].IsBsonDocument)
+                    {
+                        throw new MongoMigrationException(this, "Expected JobState field 'Data' to be BsonDocument");
+                    }
                     return s;
                 }));
                 job.Remove("StateId");
