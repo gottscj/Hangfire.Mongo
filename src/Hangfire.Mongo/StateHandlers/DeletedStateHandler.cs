@@ -8,13 +8,13 @@ namespace Hangfire.Mongo.StateHandlers
     {
         public void Apply(ApplyStateContext context, IWriteOnlyTransaction transaction)
         {
-            transaction.InsertToList("deleted", context.BackgroundJob.Id);
-            transaction.TrimList("deleted", 0, 99);
+            transaction.InsertToList(State.Deleted, context.BackgroundJob.Id);
+            transaction.TrimList(State.Deleted, 0, 99);
         }
 
         public void Unapply(ApplyStateContext context, IWriteOnlyTransaction transaction)
         {
-            transaction.RemoveFromList("deleted", context.BackgroundJob.Id);
+            transaction.RemoveFromList(State.Deleted, context.BackgroundJob.Id);
         }
 
         public string StateName => DeletedState.StateName;
