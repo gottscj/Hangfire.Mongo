@@ -141,14 +141,16 @@ namespace Hangfire.Mongo
 
                 stats.Servers = connection.Server.Count(new BsonDocument());
 
-                long[] succeededItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (long)_.Value)
-                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (long)_.Value))
+                var statsSucceeded = $@"stats:{State.Succeeded}";
+                var succeededItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, statsSucceeded)).ToList().Select(_ => (long)_.Value)
+                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, statsSucceeded)).ToList().Select(_ => (long)_.Value))
                     .ToArray();
 
                 stats.Succeeded = succeededItems.Any() ? succeededItems.Sum() : 0;
 
-                long[] deletedItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value)
-                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value))
+                var statsDeleted = $@"stats:{State.Deleted}";
+                var deletedItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, statsDeleted)).ToList().Select(_ => (long)_.Value)
+                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, statsDeleted)).ToList().Select(_ => (long)_.Value))
                     .ToArray();
                 stats.Deleted = deletedItems.Any() ? deletedItems.Sum() : 0;
 
