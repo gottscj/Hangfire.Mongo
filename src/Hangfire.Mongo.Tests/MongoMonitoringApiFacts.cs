@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
@@ -131,7 +130,7 @@ namespace Hangfire.Mongo.Tests
 
                 var resultList = monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
 
-                Assert.Equal(1, resultList.Count);
+                Assert.Single(resultList);
             });
         }
 
@@ -209,7 +208,7 @@ namespace Hangfire.Mongo.Tests
 
                 var resultList = monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
 
-                Assert.Equal(1, resultList.Count);
+                Assert.Single(resultList);
             });
         }
 
@@ -230,7 +229,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Empty(resultList);
             });
         }
-        
+
         [Fact, CleanDatabase]
         public void FetchedJobs_ReturnsFetchedJobsOnly_WhenMultipleJobsExistsInFetchedAndUnfetchedStates()
         {
@@ -278,7 +277,7 @@ namespace Hangfire.Mongo.Tests
                         }
                     };
                     var succeededState = jobDto.StateHistory[0];
-                    jobDto.StateHistory = new[] {processingState, succeededState};
+                    jobDto.StateHistory = new[] { processingState, succeededState };
                     return jobDto;
                 });
 
@@ -296,7 +295,7 @@ namespace Hangfire.Mongo.Tests
 
                 var resultList = monitoringApi.ProcessingJobs(From, PerPage);
 
-                Assert.Equal(1, resultList.Count);
+                Assert.Single(resultList);
             });
         }
 
@@ -308,7 +307,7 @@ namespace Hangfire.Mongo.Tests
                 var failedJob0 = CreateJobInState(database, ObjectId.GenerateNewId(1), FailedState.StateName);
                 var failedJob1 = CreateJobInState(database, ObjectId.GenerateNewId(2), FailedState.StateName);
                 var failedJob2 = CreateJobInState(database, ObjectId.GenerateNewId(3), FailedState.StateName);
-                
+
 
                 var jobIds = new List<string>
                 {
@@ -321,16 +320,11 @@ namespace Hangfire.Mongo.Tests
                     .Returns(jobIds);
 
                 var resultList = monitoringApi.FailedJobs(From, PerPage);
-                
+
                 Assert.Equal(failedJob0.Id.ToString(), resultList[2].Key);
                 Assert.Equal(failedJob1.Id.ToString(), resultList[1].Key);
                 Assert.Equal(failedJob2.Id.ToString(), resultList[0].Key);
             });
-        }
-        
-        public static void SampleMethod(string arg)
-        {
-            Debug.WriteLine(arg);
         }
 
         private void UseMonitoringApi(Action<HangfireDbContext, MongoMonitoringApi> action)
@@ -344,12 +338,12 @@ namespace Hangfire.Mongo.Tests
 
         private JobDto CreateJobInState(HangfireDbContext database, ObjectId jobId, string stateName, Func<JobDto, JobDto> visitor = null)
         {
-            var job = Job.FromExpression(() => SampleMethod("wrong"));
-            
+            var job = Job.FromExpression(() => HangfireTestJobs.SampleMethod("wrong"));
+
             Dictionary<string, string> stateData;
             if (stateName == EnqueuedState.StateName)
             {
-                stateData = new Dictionary<string, string> {["EnqueuedAt"] = $"{DateTime.UtcNow:o}"};
+                stateData = new Dictionary<string, string> { ["EnqueuedAt"] = $"{DateTime.UtcNow:o}" };
             }
             else if (stateName == ProcessingState.StateName)
             {
@@ -389,7 +383,7 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "[\"\\\"Arguments\\\"\"]",
                 StateName = stateName,
                 CreatedAt = DateTime.UtcNow,
-                StateHistory = new []{jobState}
+                StateHistory = new[] { jobState }
             };
             if (visitor != null)
             {

@@ -86,7 +86,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
 
         #region Test Template
 
-        public void FullMigration(string seedFile)
+        private void FullMigration(string seedFile)
         {
             using (var connection = new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests"))
             {

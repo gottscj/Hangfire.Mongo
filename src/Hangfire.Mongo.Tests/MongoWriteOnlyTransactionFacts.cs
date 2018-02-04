@@ -151,9 +151,9 @@ namespace Hangfire.Mongo.Tests
 
                 var jobId = job.Id.ToString();
                 var anotherJobId = anotherJob.Id.ToString();
-	            var serializedData = new Dictionary<string, string> {{"Name", "Value"}};
+                var serializedData = new Dictionary<string, string> { { "Name", "Value" } };
 
-				var state = new Mock<IState>();
+                var state = new Mock<IState>();
                 state.Setup(x => x.Name).Returns("State");
                 state.Setup(x => x.Reason).Returns("Reason");
                 state.Setup(x => x.SerializeData()).Returns(serializedData);
@@ -162,18 +162,17 @@ namespace Hangfire.Mongo.Tests
 
                 var testJob = GetTestJob(database, jobId);
                 Assert.Equal("State", testJob.StateName);
-                Assert.Equal(1, testJob.StateHistory.Length);
+                Assert.Single(testJob.StateHistory);
 
                 var anotherTestJob = GetTestJob(database, anotherJobId);
                 Assert.Null(anotherTestJob.StateName);
-                Assert.Equal(0, anotherTestJob.StateHistory.Length);
+                Assert.Empty(anotherTestJob.StateHistory);
 
                 var jobWithStates = database.Job.Find(new BsonDocument()).FirstOrDefault();
-                
+
                 var jobState = jobWithStates.StateHistory.Single();
                 Assert.Equal("State", jobState.Name);
                 Assert.Equal("Reason", jobState.Reason);
-                Assert.NotNull(jobState.CreatedAt);
                 Assert.Equal(serializedData, jobState.Data);
             });
         }
@@ -193,9 +192,9 @@ namespace Hangfire.Mongo.Tests
                 database.Job.InsertOne(job);
 
                 var jobId = job.Id.ToString();
-	            var serializedData = new Dictionary<string, string> {{"Name", "Value"}};
+                var serializedData = new Dictionary<string, string> { { "Name", "Value" } };
 
-				var state = new Mock<IState>();
+                var state = new Mock<IState>();
                 state.Setup(x => x.Name).Returns("State");
                 state.Setup(x => x.Reason).Returns("Reason");
                 state.Setup(x => x.SerializeData()).Returns(serializedData);
@@ -209,7 +208,6 @@ namespace Hangfire.Mongo.Tests
                 var jobState = jobWithStates.StateHistory.Last();
                 Assert.Equal("State", jobState.Name);
                 Assert.Equal("Reason", jobState.Reason);
-                Assert.NotNull(jobState.CreatedAt);
                 Assert.Equal(serializedData, jobState.Data);
             });
         }
@@ -243,7 +241,7 @@ namespace Hangfire.Mongo.Tests
 
                 Assert.Equal("my-key", record.Key);
                 Assert.Equal(1L, record.Value);
-                Assert.Equal(null, record.ExpireAt);
+                Assert.Null(record.ExpireAt);
             });
         }
 
@@ -295,7 +293,7 @@ namespace Hangfire.Mongo.Tests
 
                 Assert.Equal("my-key", record.Key);
                 Assert.Equal(-1L, record.Value);
-                Assert.Equal(null, record.ExpireAt);
+                Assert.Null(record.ExpireAt);
             });
         }
 
@@ -863,7 +861,7 @@ namespace Hangfire.Mongo.Tests
                 Commit(database, x => x.AddRangeToSet(set1Val1.Key, values));
 
                 var testSet1 = GetTestSet(database, set1Val1.Key);
-                var valuesToTest = new List<string>(values) {"value1", "value2"};
+                var valuesToTest = new List<string>(values) { "value1", "value2" };
 
                 Assert.NotNull(testSet1);
                 // verify all values are present in testSet1
