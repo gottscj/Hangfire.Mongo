@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <VersionPrefix>0.5.7</VersionPrefix>
     <TargetFramework>netcoreapp1.1</TargetFramework>
@@ -18,14 +17,11 @@
     <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
   </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Hangfire.Mongo\Hangfire.Mongo.csproj" />
   </ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Hangfire.Core" Version="1.6.17" />
-		<PackageReference Include="MongoDB.Driver" Version="2.3.0" />
-	</ItemGroup>
-
+  <ItemGroup>
+    <PackageReference Include="Hangfire.Core" Version="1.6.17" />
+    <PackageReference Include="MongoDB.Driver" Version="2.5.0" />
+  </ItemGroup>
 </Project>

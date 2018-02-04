@@ -122,3 +122,4 @@ src/.vs
 src/\.idea/\.idea\.Hangfire\.Mongo/\.idea/
 
 src/\.idea/\.idea\.Hangfire\.Mongo/
+src/.idea/
