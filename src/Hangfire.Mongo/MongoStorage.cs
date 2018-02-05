@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Migration;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
@@ -13,6 +14,7 @@ using Hangfire.Mongo.StateHandlers;
 using Hangfire.Server;
 using Hangfire.States;
 using Hangfire.Storage;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
@@ -97,6 +99,8 @@ namespace Hangfire.Mongo
 
             var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
             QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
+
+            InitializationIndexes();
         }
 
         /// <summary>
@@ -222,6 +226,58 @@ namespace Hangfire.Mongo
                 obscuredConnectionString = $"mongodb://<username>:<password>@{servers}";
             }
             return $"Connection string: {obscuredConnectionString}, database name: {_databaseName}, prefix: {_storageOptions.Prefix}";
+        }
+
+        /// <summary>
+        /// Initializations the indexes.
+        /// </summary>
+        private void InitializationIndexes()
+        {
+            var db = Connection;
+
+            JobQueueDto jobQueueDto;
+            TryCreateIndexes(db.JobQueue, nameof(jobQueueDto.JobId), nameof(jobQueueDto.Queue), nameof(jobQueueDto.FetchedAt));
+
+            JobDto jobDto;
+            TryCreateIndexes(db.Job, nameof(jobDto.StateName), nameof(jobDto.ExpireAt));
+
+            KeyValueDto keyValueDto;
+            ExpiringKeyValueDto expiringKeyValueDto;
+            TryCreateIndexes(db.StateData, nameof(keyValueDto.Key), nameof(expiringKeyValueDto.ExpireAt), "_t");
+
+            DistributedLockDto distributedLockDto;
+            TryCreateIndexes(db.DistributedLock, nameof(distributedLockDto.Resource), nameof(distributedLockDto.ExpireAt));
+
+            ServerDto serverDto;
+            TryCreateIndexes(db.Server, nameof(serverDto.LastHeartbeat));
+
+            SignalDto signalDto;
+            TryCreateIndexes(db.Signal, nameof(signalDto.Signaled));
+        }
+
+        /// <summary>
+        /// Tries the create indexes.
+        /// </summary>
+        /// <typeparam name="TDocument">The type of the document.</typeparam>
+        /// <param name="collection">The collection.</param>
+        /// <param name="names">The names.</param>
+        private void TryCreateIndexes<TDocument>(IMongoCollection<TDocument> collection, params string[] names)
+        {
+            var list = collection.Indexes.List().ToList();
+            var exist_indexes = list.Select(o => o["name"].AsString).ToList();
+            foreach (var name in names)
+            {
+                if (exist_indexes.Any(v => v.Contains(name)))
+                    continue;
+
+                var index = new BsonDocumentIndexKeysDefinition<TDocument>(new BsonDocument(name, -1));
+                var options = new CreateIndexOptions
+                {
+                    Name = name,
+                    Sparse = true,
+                };
+                collection.Indexes.CreateOne(index, options);
+            }
         }
     }
 }
