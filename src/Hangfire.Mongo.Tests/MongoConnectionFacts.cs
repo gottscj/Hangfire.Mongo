@@ -124,7 +124,7 @@ namespace Hangfire.Mongo.Tests
             {
                 var exception = Assert.Throws<ArgumentNullException>(
                     () => connection.CreateExpiredJob(
-                        Job.FromExpression(() => SampleMethod("hello")),
+                        Job.FromExpression(() => HangfireTestJobs.SampleMethod("hello")),
                         null,
                         DateTime.UtcNow,
                         TimeSpan.Zero));
@@ -140,7 +140,7 @@ namespace Hangfire.Mongo.Tests
             {
                 var createdAt = new DateTime(2012, 12, 12, 0, 0, 0, 0, DateTimeKind.Utc);
                 var jobId = connection.CreateExpiredJob(
-                    Job.FromExpression(() => SampleMethod("Hello")),
+                    Job.FromExpression(() => HangfireTestJobs.SampleMethod("Hello")),
                     new Dictionary<string, string> { { "Key1", "Value1" }, { "Key2", "Value2" } },
                     createdAt,
                     TimeSpan.FromDays(1));
@@ -151,14 +151,14 @@ namespace Hangfire.Mongo.Tests
                 var databaseJob = database.Job.Find(new BsonDocument()).ToList().Single();
                 Assert.Equal(jobId, databaseJob.Id.ToString());
                 Assert.Equal(createdAt, databaseJob.CreatedAt);
-                Assert.Equal(null, databaseJob.StateName);
+                Assert.Null(databaseJob.StateName);
 
                 var invocationData = JobHelper.FromJson<InvocationData>(databaseJob.InvocationData);
                 invocationData.Arguments = databaseJob.Arguments;
 
                 var job = invocationData.Deserialize();
-                Assert.Equal(typeof(MongoConnectionFacts), job.Type);
-                Assert.Equal("SampleMethod", job.Method.Name);
+                Assert.Equal(typeof(HangfireTestJobs), job.Type);
+                Assert.Equal(nameof(HangfireTestJobs.SampleMethod), job.Method.Name);
                 Assert.Equal("Hello", job.Args[0]);
 
                 Assert.True(createdAt.AddDays(1).AddMinutes(-1) < databaseJob.ExpireAt);
@@ -200,7 +200,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                var job = Job.FromExpression(() => SampleMethod("wrong"));
+                var job = Job.FromExpression(() => HangfireTestJobs.SampleMethod("wrong"));
 
                 var jobDto = new JobDto
                 {
@@ -419,7 +419,7 @@ namespace Hangfire.Mongo.Tests
                     .FirstOrDefault();
 
                 Assert.NotNull(parameters);
-                Assert.Equal(null, parameters["Name"]);
+                Assert.Null(parameters["Name"]);
             });
         }
 
@@ -719,7 +719,7 @@ namespace Hangfire.Mongo.Tests
                 var result = connection.GetAllItemsFromSet("some-set");
 
                 Assert.NotNull(result);
-                Assert.Equal(0, result.Count);
+                Assert.Empty(result);
             });
         }
 
@@ -1580,6 +1580,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal(new[] { "5", "4", "3", "1" }, result);
             });
         }
+
         private void UseConnection(Action<HangfireDbContext, MongoConnection> action)
         {
             using (var database = ConnectionUtils.CreateConnection())
@@ -1591,10 +1592,7 @@ namespace Hangfire.Mongo.Tests
             }
         }
 
-        public static void SampleMethod(string arg)
-        {
-            Debug.WriteLine(arg);
-        }
     }
+
 #pragma warning restore 1591
 }

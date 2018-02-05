@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Threading;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
+using Hangfire.Mongo.Tests.Utils;
 using Hangfire.Server;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
@@ -18,11 +18,6 @@ namespace Hangfire.Mongo.Tests
     [Collection("Database")]
     public class MongoDatabaseFiller
     {
-        private static readonly EventWaitHandle RecurringEvent = new ManualResetEvent(false);
-        private static readonly EventWaitHandle ScheduleEvent = new ManualResetEvent(false);
-        private static readonly EventWaitHandle EnqueueEvent = new ManualResetEvent(false);
-        private static readonly EventWaitHandle ContinueWithEvent = new ManualResetEvent(false);
-
         [Fact]
         public void Clean_Database_Filled()
         {
@@ -53,27 +48,27 @@ namespace Hangfire.Mongo.Tests
             using (new BackgroundJobServer(serverOptions))
             {
                 // Recurring Job
-                RecurringJob.AddOrUpdate(() => ExecuteRecurringJob("Recurring job"), Cron.Minutely);
+                RecurringJob.AddOrUpdate(() => HangfireTestJobs.ExecuteRecurringJob("Recurring job"), Cron.Minutely);
 
                 // Scheduled job
-                BackgroundJob.Schedule(() => ExecuteScheduledJob("Scheduled job"), TimeSpan.FromSeconds(30));
+                BackgroundJob.Schedule(() => HangfireTestJobs.ExecuteScheduledJob("Scheduled job"), TimeSpan.FromSeconds(30));
 
                 // Enqueued job
-                BackgroundJob.Enqueue(() => ExecuteEnqueuedJob("Enqueued job"));
+                BackgroundJob.Enqueue(() => HangfireTestJobs.ExecuteEnqueuedJob("Enqueued job"));
 
                 // Continued job
-                var parentId = BackgroundJob.Schedule(() => ExecuteContinueWithJob("ContinueWith job", false), TimeSpan.FromSeconds(15));
-                BackgroundJob.ContinueWith(parentId, () => ExecuteContinueWithJob("ContinueWith job continued", true));
+                var parentId = BackgroundJob.Schedule(() => HangfireTestJobs.ExecuteContinueWithJob("ContinueWith job", false), TimeSpan.FromSeconds(15));
+                BackgroundJob.ContinueWith(parentId, () => HangfireTestJobs.ExecuteContinueWithJob("ContinueWith job continued", true));
 
                 // Now the waiting game starts
-                ScheduleEvent.WaitOne();
-                BackgroundJob.Schedule(() => ExecuteScheduledJob("Scheduled job (*)"), TimeSpan.FromMinutes(30));
+                HangfireTestJobs.ScheduleEvent.WaitOne();
+                BackgroundJob.Schedule(() => HangfireTestJobs.ExecuteScheduledJob("Scheduled job (*)"), TimeSpan.FromMinutes(30));
 
-                ContinueWithEvent.WaitOne();
-                RecurringEvent.WaitOne();
+                HangfireTestJobs.ContinueWithEvent.WaitOne();
+                HangfireTestJobs.RecurringEvent.WaitOne();
 
-                EnqueueEvent.WaitOne();
-                BackgroundJob.Enqueue(() => ExecuteEnqueuedJob("Enqueued job (*)"));
+                HangfireTestJobs.EnqueueEvent.WaitOne();
+                BackgroundJob.Enqueue(() => HangfireTestJobs.ExecuteEnqueuedJob("Enqueued job (*)"));
             }
 
 
@@ -106,7 +101,7 @@ namespace Hangfire.Mongo.Tests
         }
 
 
-        public void BackupDatabaseToStream(string connectionString, string databaseName, Stream stream, params string[] allowedEmptyCollections)
+        private void BackupDatabaseToStream(string connectionString, string databaseName, Stream stream, params string[] allowedEmptyCollections)
         {
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, true))
             {
@@ -134,37 +129,6 @@ namespace Hangfire.Mongo.Tests
                         }
                     }
                 }
-            }
-        }
-
-
-        public static void ExecuteRecurringJob(string argument)
-        {
-            Console.WriteLine(argument);
-            RecurringEvent.Set();
-        }
-
-
-        public static void ExecuteScheduledJob(string argument)
-        {
-            Console.WriteLine(argument);
-            ScheduleEvent.Set();
-        }
-
-
-        public static void ExecuteEnqueuedJob(string argument)
-        {
-            Console.WriteLine(argument);
-            EnqueueEvent.Set();
-        }
-
-
-        public static void ExecuteContinueWithJob(string argument, bool continued)
-        {
-            Console.WriteLine(argument);
-            if (continued)
-            {
-                ContinueWithEvent.Set();
             }
         }
 
