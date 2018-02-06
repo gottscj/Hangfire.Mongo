@@ -9,7 +9,7 @@
            "type": "coreclr",
            "request": "launch",
            "preLaunchTask": "Build Hangfire.Mongo.Sample.ASPNetCore",
-           "program": "${workspaceRoot}/src/Hangfire.Mongo.Sample.ASPNetCore/bin/Debug/netcoreapp1.1/Hangfire.Mongo.Sample.ASPNetCore.dll",
+           "program": "${workspaceRoot}/src/Hangfire.Mongo.Sample.ASPNetCore/bin/Debug/netcoreapp2.0/Hangfire.Mongo.Sample.ASPNetCore.dll",
            "args": [],
            "cwd": "${workspaceRoot}/src/Hangfire.Mongo.Sample.ASPNetCore",
            "stopAtEntry": false,
@@ -40,7 +40,7 @@
             "request": "launch",
             "preLaunchTask": "Build Hangfire.Mongo.Sample.NETCore",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceRoot}/src/Hangfire.Mongo.Sample.NETCore/bin/Debug/netcoreapp1.1/Hangfire.Mongo.Sample.NETCore.dll",
+            "program": "${workspaceRoot}/src/Hangfire.Mongo.Sample.NETCore/bin/Debug/netcoreapp2.0/Hangfire.Mongo.Sample.NETCore.dll",
             "args": [],
             "cwd": "${workspaceRoot}/src/Hangfire.Mongo.Sample.NETCore",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
