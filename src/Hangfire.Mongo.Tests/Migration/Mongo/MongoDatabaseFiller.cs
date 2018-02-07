@@ -90,10 +90,10 @@ namespace Hangfire.Mongo.Tests
                 var allowedEmptyCollections = new List<string>();
 
                 if (MongoMigrationManager.RequiredSchemaVersion >= MongoSchema.Version09 &&
-                    MongoMigrationManager.RequiredSchemaVersion <= MongoSchema.Version11)
+                    MongoMigrationManager.RequiredSchemaVersion <= MongoSchema.Version12)
                 {
                     // Signal collection work was initiated in schema version 9, 
-                    // and still not put to use in schema version 11.
+                    // and still not put to use in schema version 12.
                     allowedEmptyCollections.Add($@"{storageOptions.Prefix}.signal");
                 }
                 BackupDatabaseToStream(connectionString, databaseName, stream, allowedEmptyCollections.ToArray());

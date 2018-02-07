@@ -45,11 +45,16 @@
         /// Schema version 10
         /// </summary>
         Version10 = 10,
-        
+
         /// <summary>
         /// Schema version 11
         /// </summary>
         Version11 = 11,
+
+        /// <summary>
+        /// Schema version 11
+        /// </summary>
+        Version12 = 12,
     }
 
 }
