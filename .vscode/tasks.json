@@ -108,6 +108,8 @@
             "command": "dotnet",
             "args": [
                 "test",
+                "--filter",
+                "Category!=DataGeneration",
                 "${workspaceRoot}/src/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
             ],
             "osx": {
