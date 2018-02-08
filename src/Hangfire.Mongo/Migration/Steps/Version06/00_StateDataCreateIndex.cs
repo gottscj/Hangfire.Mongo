@@ -14,10 +14,11 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
 
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
         {
-            var db = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.statedata");
+            var indexBuilder = Builders<BsonDocument>.IndexKeys;
 
-            var index = new BsonDocumentIndexKeysDefinition<BsonDocument>(new BsonDocument("Key", 1));
-            db.Indexes.CreateOne(index);
+            var statedataCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.statedata");
+            statedataCollection.TryCreateIndexes(indexBuilder.Ascending, "Key");
+
             return true;
         }
     }

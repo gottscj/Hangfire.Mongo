@@ -14,20 +14,18 @@ namespace Hangfire.Mongo.Migration.Steps.Version05
 
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
         {
-            CreateJobIndex(database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobParameter"));
-            CreateJobIndex(database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobQueue"));
-            CreateJobIndex(database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.state"));
-            return true;
-        }
+            var indexBuilder = Builders<BsonDocument>.IndexKeys;
 
-        private static void CreateJobIndex(IMongoCollection<BsonDocument> collection)
-        {
-            var index = new BsonDocumentIndexKeysDefinition<BsonDocument>(new BsonDocument("JobId", -1));
-            var options = new CreateIndexOptions
-            {
-                Name = "JobId",
-            };
-            collection.Indexes.CreateOne(index, options);
+            var jobParameterCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobParameter");
+            jobParameterCollection.TryCreateIndexes(indexBuilder.Descending, "JobId");
+
+            var jobQueueCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobQueue");
+            jobQueueCollection.TryCreateIndexes(indexBuilder.Descending, "JobId");
+
+            var stateCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.state");
+            stateCollection.TryCreateIndexes(indexBuilder.Descending, "JobId");
+
+            return true;
         }
 
     }
