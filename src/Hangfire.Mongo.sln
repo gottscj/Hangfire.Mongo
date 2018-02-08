@@ -15,19 +15,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "description", "description"
 		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hangfire.Mongo", "Hangfire.Mongo\Hangfire.Mongo.csproj", "{FE0E1801-6CF8-443A-B244-CD49F7A7E722}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Mongo", "Hangfire.Mongo\Hangfire.Mongo.csproj", "{FE0E1801-6CF8-443A-B244-CD49F7A7E722}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{07E617A3-7D61-4AE2-A1A4-F18686F03D46}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hangfire.Mongo.Sample.ASPNetCore", "Hangfire.Mongo.Sample.ASPNetCore\Hangfire.Mongo.Sample.ASPNetCore.csproj", "{16773F2E-A5E4-4D96-8D83-DFFDB69068F6}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hangfire.Mongo.Sample.NETCore", "Hangfire.Mongo.Sample.NETCore\Hangfire.Mongo.Sample.NETCore.csproj", "{A19A6DBD-AEA1-4BD5-8F9E-5E95CA35AAA2}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{8BCEB541-B04C-4CAA-AB5D-EEC2AD62D672}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hangfire.Mongo.Tests", "Hangfire.Mongo.Tests\Hangfire.Mongo.Tests.csproj", "{237F15A4-26DB-4FBD-86AF-81E87AD5762A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Mongo.Tests", "Hangfire.Mongo.Tests\Hangfire.Mongo.Tests.csproj", "{237F15A4-26DB-4FBD-86AF-81E87AD5762A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Mongo.Sample", "Hangfire.Mongo.Sample\Hangfire.Mongo.Sample.csproj", "{52CA7083-638F-4A94-A00F-A7134A09F3CA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Mongo.Sample.ASPNetCore", "Hangfire.Mongo.Sample.ASPNetCore\Hangfire.Mongo.Sample.ASPNetCore.csproj", "{F7ACBB70-F6B6-4F94-9386-7B589D2491FB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Mongo.Sample.NETCore", "Hangfire.Mongo.Sample.NETCore\Hangfire.Mongo.Sample.NETCore.csproj", "{61B05A37-064F-44A7-A767-0BEF77B8528D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,14 +39,6 @@ Global
 		{FE0E1801-6CF8-443A-B244-CD49F7A7E722}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE0E1801-6CF8-443A-B244-CD49F7A7E722}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FE0E1801-6CF8-443A-B244-CD49F7A7E722}.Release|Any CPU.Build.0 = Release|Any CPU
-		{16773F2E-A5E4-4D96-8D83-DFFDB69068F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{16773F2E-A5E4-4D96-8D83-DFFDB69068F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{16773F2E-A5E4-4D96-8D83-DFFDB69068F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{16773F2E-A5E4-4D96-8D83-DFFDB69068F6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A19A6DBD-AEA1-4BD5-8F9E-5E95CA35AAA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A19A6DBD-AEA1-4BD5-8F9E-5E95CA35AAA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A19A6DBD-AEA1-4BD5-8F9E-5E95CA35AAA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A19A6DBD-AEA1-4BD5-8F9E-5E95CA35AAA2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{237F15A4-26DB-4FBD-86AF-81E87AD5762A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{237F15A4-26DB-4FBD-86AF-81E87AD5762A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{237F15A4-26DB-4FBD-86AF-81E87AD5762A}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -55,14 +47,22 @@ Global
 		{52CA7083-638F-4A94-A00F-A7134A09F3CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{52CA7083-638F-4A94-A00F-A7134A09F3CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{52CA7083-638F-4A94-A00F-A7134A09F3CA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7ACBB70-F6B6-4F94-9386-7B589D2491FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7ACBB70-F6B6-4F94-9386-7B589D2491FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7ACBB70-F6B6-4F94-9386-7B589D2491FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7ACBB70-F6B6-4F94-9386-7B589D2491FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61B05A37-064F-44A7-A767-0BEF77B8528D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61B05A37-064F-44A7-A767-0BEF77B8528D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61B05A37-064F-44A7-A767-0BEF77B8528D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61B05A37-064F-44A7-A767-0BEF77B8528D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{16773F2E-A5E4-4D96-8D83-DFFDB69068F6} = {07E617A3-7D61-4AE2-A1A4-F18686F03D46}
-		{A19A6DBD-AEA1-4BD5-8F9E-5E95CA35AAA2} = {07E617A3-7D61-4AE2-A1A4-F18686F03D46}
 		{237F15A4-26DB-4FBD-86AF-81E87AD5762A} = {8BCEB541-B04C-4CAA-AB5D-EEC2AD62D672}
 		{52CA7083-638F-4A94-A00F-A7134A09F3CA} = {07E617A3-7D61-4AE2-A1A4-F18686F03D46}
+		{F7ACBB70-F6B6-4F94-9386-7B589D2491FB} = {07E617A3-7D61-4AE2-A1A4-F18686F03D46}
+		{61B05A37-064F-44A7-A767-0BEF77B8528D} = {07E617A3-7D61-4AE2-A1A4-F18686F03D46}
 	EndGlobalSection
 EndGlobal

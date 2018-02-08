@@ -1,12 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net46;netstandard1.5;netcoreapp1.0</TargetFrameworks>
+    <TargetFrameworks>net46;net45;netstandard1.5;netcoreapp2.0</TargetFrameworks>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>Hangfire.Mongo.Tests</AssemblyName>
     <PackageId>Hangfire.Mongo.Tests</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
-    <RuntimeFrameworkVersion>1.1.2</RuntimeFrameworkVersion>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>

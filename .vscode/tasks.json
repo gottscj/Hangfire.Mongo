@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "taskName": "Build all",
+            "label": "Build all",
             "dependsOn": [
                 "Build Hangfire.Mongo",
                 "Build Hangfire.Mongo.Sample.NETCore",
@@ -20,7 +20,7 @@
             ]
         },
         {
-            "taskName": "Build Hangfire.Mongo",
+            "label": "Build Hangfire.Mongo",
             "command": "dotnet",
             "args": [
                 "build",
@@ -47,7 +47,7 @@
             ]
         },
         {
-            "taskName": "Build Hangfire.Mongo.Sample.NETCore",
+            "label": "Build Hangfire.Mongo.Sample.NETCore",
             "command": "dotnet",
             "args": [
                 "build",
@@ -62,7 +62,7 @@
             ]
         },
         {
-            "taskName": "Build Hangfire.Mongo.Sample.ASPNetCore",
+            "label": "Build Hangfire.Mongo.Sample.ASPNetCore",
             "command": "dotnet",
             "args": [
                 "build",
@@ -77,7 +77,7 @@
             ]
         },
         {
-            "taskName": "Build Hangfire.Mongo.Tests",
+            "label": "Build Hangfire.Mongo.Tests",
             "command": "dotnet",
             "args": [
                 "build",
@@ -86,13 +86,13 @@
             "osx": {
                 "args": [
                     "-f",
-                    "netcoreapp1.0"
+                    "netcoreapp2.0"
                 ]
             },
             "linux": {
                 "args": [
                     "-f",
-                    "netcoreapp1.0"
+                    "netcoreapp2.0"
                 ]
             },
             "group": {
@@ -104,22 +104,24 @@
             ]
         },
         {
-            "taskName": "Unit Test Hangfire.Mongo.Tests",
+            "label": "Unit Test Hangfire.Mongo.Tests",
             "command": "dotnet",
             "args": [
                 "test",
+                "--filter",
+                "Category!=DataGeneration",
                 "${workspaceRoot}/src/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
             ],
             "osx": {
                 "args": [
                     "-f",
-                    "netcoreapp1.0"
+                    "netcoreapp2.0"
                 ]
             },
             "linux": {
                 "args": [
                     "-f",
-                    "netcoreapp1.0"
+                    "netcoreapp2.0"
                 ]
             },
             "group": {

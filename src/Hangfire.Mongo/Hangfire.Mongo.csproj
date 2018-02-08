@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <VersionPrefix>0.5.7</VersionPrefix>
-    <TargetFrameworks>net45;net46;netstandard1.5</TargetFrameworks>
+    <TargetFrameworks>netstandard1.5;net46;net45</TargetFrameworks>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

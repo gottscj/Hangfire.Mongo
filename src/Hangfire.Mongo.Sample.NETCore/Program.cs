@@ -35,7 +35,7 @@ namespace Hangfire.Mongo.Sample.NETCore
                 Console.WriteLine("If you close this application before they are executed, ");
                 Console.WriteLine("they will be executed the next time you run this sample.");
                 Console.WriteLine();
-                Console.WriteLine("Press any key to exit...");
+                Console.WriteLine("Press [enter] to exit...");
 
                 Console.Read();
             }
