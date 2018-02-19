@@ -9,6 +9,7 @@ using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.Server;
+using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -207,7 +208,7 @@ namespace Hangfire.Mongo.Tests
                     Id = ObjectId.GenerateNewId(),
                     InvocationData = JobHelper.ToJson(InvocationData.Serialize(job)),
                     Arguments = "[\"\\\"Arguments\\\"\"]",
-                    StateName = "Succeeded",
+                    StateName = SucceededState.StateName,
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
@@ -216,7 +217,7 @@ namespace Hangfire.Mongo.Tests
 
                 Assert.NotNull(result);
                 Assert.NotNull(result.Job);
-                Assert.Equal("Succeeded", result.State);
+                Assert.Equal(SucceededState.StateName, result.State);
                 Assert.Equal("Arguments", result.Job.Args[0]);
                 Assert.Null(result.LoadException);
                 Assert.True(DateTime.UtcNow.AddMinutes(-1) < result.CreatedAt);
@@ -302,7 +303,7 @@ namespace Hangfire.Mongo.Tests
                     Id = ObjectId.GenerateNewId(),
                     InvocationData = JobHelper.ToJson(new InvocationData(null, null, null, null)),
                     Arguments = "[\"\\\"Arguments\\\"\"]",
-                    StateName = "Succeeded",
+                    StateName = SucceededState.StateName,
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
@@ -470,7 +471,7 @@ namespace Hangfire.Mongo.Tests
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
-                
+
 
                 connection.SetJobParameter(jobDto.Id.ToString(), "name", "value");
 

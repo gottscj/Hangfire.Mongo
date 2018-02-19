@@ -5,6 +5,7 @@ using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.PersistentJobQueue;
+using Hangfire.Mongo.StateHandlers;
 using Hangfire.States;
 using Hangfire.Storage;
 using Hangfire.Storage.Monitoring;
@@ -93,12 +94,12 @@ namespace Hangfire.Mongo
                     return null;
 
                 var history = job.StateHistory.Select(x => new StateHistoryDto
-                    {
-                        StateName = x.Name,
-                        CreatedAt = x.CreatedAt,
-                        Reason = x.Reason,
-                        Data = x.Data
-                    })
+                {
+                    StateName = x.Name,
+                    CreatedAt = x.CreatedAt,
+                    Reason = x.Reason,
+                    Data = x.Data
+                })
                     .Reverse()
                     .ToList();
 
@@ -112,7 +113,7 @@ namespace Hangfire.Mongo
             });
         }
 
-        private static readonly string[] StatisticsStateNames = new []
+        private static readonly string[] StatisticsStateNames = new[]
         {
             EnqueuedState.StateName,
             FailedState.StateName,
@@ -140,14 +141,16 @@ namespace Hangfire.Mongo
 
                 stats.Servers = connection.Server.Count(new BsonDocument());
 
-                long[] succeededItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (long)_.Value)
-                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (long)_.Value))
+                var statsSucceeded = $@"stats:{State.Succeeded}";
+                var succeededItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, statsSucceeded)).ToList().Select(_ => (long)_.Value)
+                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, statsSucceeded)).ToList().Select(_ => (long)_.Value))
                     .ToArray();
 
                 stats.Succeeded = succeededItems.Any() ? succeededItems.Sum() : 0;
 
-                long[] deletedItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value)
-                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value))
+                var statsDeleted = $@"stats:{State.Deleted}";
+                var deletedItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, statsDeleted)).ToList().Select(_ => (long)_.Value)
+                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, statsDeleted)).ToList().Select(_ => (long)_.Value))
                     .ToArray();
                 stats.Deleted = deletedItems.Any() ? deletedItems.Sum() : 0;
 
@@ -295,22 +298,22 @@ namespace Hangfire.Mongo
 
         public IDictionary<DateTime, long> SucceededByDatesCount()
         {
-            return UseConnection(connection => GetTimelineStats(connection, "succeeded"));
+            return UseConnection(connection => GetTimelineStats(connection, State.Succeeded));
         }
 
         public IDictionary<DateTime, long> FailedByDatesCount()
         {
-            return UseConnection(connection => GetTimelineStats(connection, "failed"));
+            return UseConnection(connection => GetTimelineStats(connection, State.Failed));
         }
 
         public IDictionary<DateTime, long> HourlySucceededJobs()
         {
-            return UseConnection(connection => GetHourlyTimelineStats(connection, "succeeded"));
+            return UseConnection(connection => GetHourlyTimelineStats(connection, State.Succeeded));
         }
 
         public IDictionary<DateTime, long> HourlyFailedJobs()
         {
-            return UseConnection(connection => GetHourlyTimelineStats(connection, "failed"));
+            return UseConnection(connection => GetHourlyTimelineStats(connection, State.Failed));
         }
 
         private T UseConnection<T>(Func<HangfireDbContext, T> action)
