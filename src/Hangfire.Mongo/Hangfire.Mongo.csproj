@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>0.5.7</VersionPrefix>
+    <VersionPrefix>0.5.8</VersionPrefix>
     <TargetFrameworks>netstandard1.5;net46;net45</TargetFrameworks>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -22,7 +22,15 @@
     <owners>Sergey Zwezdin</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>0.5.7
+    <PackageReleaseNotes>0.5.8
+- Fix for Hangfire Dashboard History Graph showinf incorrect counts
+- Added indexes to all our collections
+- Updated a few NuGet references
+- Cleaned up library references
+- Improve migration stability
+- Remove dependency to Microsoft.CSharp
+
+0.5.7
 - Fix for broken migration
 
 0.5.6
