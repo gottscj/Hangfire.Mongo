@@ -5,6 +5,7 @@ using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.PersistentJobQueue;
+using Hangfire.Mongo.StateHandlers;
 using Hangfire.States;
 using Hangfire.Storage;
 using Hangfire.Storage.Monitoring;
@@ -92,12 +93,12 @@ namespace Hangfire.Mongo
                     return null;
 
                 var history = job.StateHistory.Select(x => new StateHistoryDto
-                    {
-                        StateName = x.Name,
-                        CreatedAt = x.CreatedAt,
-                        Reason = x.Reason,
-                        Data = x.Data
-                    })
+                {
+                    StateName = x.Name,
+                    CreatedAt = x.CreatedAt,
+                    Reason = x.Reason,
+                    Data = x.Data
+                })
                     .Reverse()
                     .ToList();
 
@@ -139,14 +140,16 @@ namespace Hangfire.Mongo
 
                 stats.Servers = database.Server.Count(new BsonDocument());
 
-                long[] succeededItems = database.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (long)_.Value)
-                    .Concat(database.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:succeeded")).ToList().Select(_ => (long)_.Value))
+                var statsSucceeded = $@"stats:{State.Succeeded}";
+                var succeededItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, statsSucceeded)).ToList().Select(_ => (long)_.Value)
+                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, statsSucceeded)).ToList().Select(_ => (long)_.Value))
                     .ToArray();
 
                 stats.Succeeded = succeededItems.Any() ? succeededItems.Sum() : 0;
 
-                long[] deletedItems = database.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value)
-                    .Concat(database.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value))
+                var statsDeleted = $@"stats:{State.Deleted}";
+                long[] deletedItems = connection.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value)
+                    .Concat(connection.StateData.OfType<AggregatedCounterDto>().Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, "stats:deleted")).ToList().Select(_ => (long)_.Value))
                     .ToArray();
                 stats.Deleted = deletedItems.Any() ? deletedItems.Sum() : 0;
 
@@ -294,22 +297,22 @@ namespace Hangfire.Mongo
 
         public IDictionary<DateTime, long> SucceededByDatesCount()
         {
-            return UseConnection(database => GetTimelineStats(database, "succeeded"));
+            return UseConnection(connection => GetTimelineStats(connection, State.Succeeded));
         }
 
         public IDictionary<DateTime, long> FailedByDatesCount()
         {
-            return UseConnection(database => GetTimelineStats(database, "failed"));
+            return UseConnection(connection => GetTimelineStats(connection, State.Failed));
         }
 
         public IDictionary<DateTime, long> HourlySucceededJobs()
         {
-            return UseConnection(database => GetHourlyTimelineStats(database, "succeeded"));
+            return UseConnection(connection => GetHourlyTimelineStats(connection, State.Succeeded));
         }
 
         public IDictionary<DateTime, long> HourlyFailedJobs()
         {
-            return UseConnection(database => GetHourlyTimelineStats(database, "failed"));
+            return UseConnection(connection => GetHourlyTimelineStats(connection, State.Failed));
         }
 
         private T UseConnection<T>(Func<HangfireDbContext, T> action)
@@ -497,7 +500,7 @@ namespace Hangfire.Mongo
             return count;
         }
 
-        private Dictionary<DateTime, long> GetTimelineStats(HangfireDbContext database, string type)
+        private static Dictionary<DateTime, long> GetTimelineStats(HangfireDbContext connection, string type)
         {
             var endDate = DateTime.UtcNow.Date;
             var startDate = endDate.AddDays(-7);
@@ -512,28 +515,10 @@ namespace Hangfire.Mongo
             var stringDates = dates.Select(x => x.ToString("yyyy-MM-dd")).ToList();
             var keys = stringDates.Select(x => $"stats:{type}:{x}").ToList();
 
-            var valuesMap = database.StateData.OfType<AggregatedCounterDto>()
-                .Find(Builders<AggregatedCounterDto>.Filter.In(_ => _.Key, keys))
-                .ToList()
-                .GroupBy(x => x.Key)
-                .ToDictionary(x => x.Key, x => (long)x.Count());
-
-            foreach (var key in keys)
-            {
-                if (!valuesMap.ContainsKey(key)) valuesMap.Add(key, 0);
-            }
-
-            var result = new Dictionary<DateTime, long>();
-            for (var i = 0; i < stringDates.Count; i++)
-            {
-                var value = valuesMap[valuesMap.Keys.ElementAt(i)];
-                result.Add(dates[i], value);
-            }
-
-            return result;
+            return CreateTimeLineStats(connection, keys, dates);
         }
 
-        private Dictionary<DateTime, long> GetHourlyTimelineStats(HangfireDbContext database, string type)
+        private static Dictionary<DateTime, long> GetHourlyTimelineStats(HangfireDbContext connection, string type)
         {
             var endDate = DateTime.UtcNow;
             var dates = new List<DateTime>();
@@ -545,10 +530,35 @@ namespace Hangfire.Mongo
 
             var keys = dates.Select(x => $"stats:{type}:{x:yyyy-MM-dd-HH}").ToList();
 
-            var valuesMap = database.StateData.OfType<CounterDto>().Find(Builders<CounterDto>.Filter.In(_ => _.Key, keys))
+            return CreateTimeLineStats(connection, keys, dates);
+        }
+
+        private static Dictionary<DateTime, long> CreateTimeLineStats(HangfireDbContext connection,
+            ICollection<string> keys, IList<DateTime> dates)
+        {
+            var valuesMap = connection.StateData.OfType<CounterDto>()
+                .Find(Builders<CounterDto>.Filter.In(_ => _.Key, keys))
                 .ToList()
                 .GroupBy(x => x.Key, x => x)
-                .ToDictionary(x => x.Key, x => (long)x.Count());
+                .ToDictionary(x => x.Key, x => (long) x.Count());
+
+            var valuesMapAggregated = connection.StateData.OfType<AggregatedCounterDto>()
+                .Find(Builders<AggregatedCounterDto>.Filter.In(_ => _.Key, keys))
+                .ToList()
+                .GroupBy(x => x.Key)
+                .ToDictionary(x => x.Key, x => (long) x.Count());
+
+            foreach (var valuePair in valuesMapAggregated)
+            {
+                if (valuesMap.ContainsKey(valuePair.Key))
+                {
+                    valuesMap[valuePair.Key] += valuePair.Value;
+                }
+                else
+                {
+                    valuesMap[valuePair.Key] = valuePair.Value;
+                }
+            }
 
             foreach (var key in keys.Where(key => !valuesMap.ContainsKey(key)))
             {

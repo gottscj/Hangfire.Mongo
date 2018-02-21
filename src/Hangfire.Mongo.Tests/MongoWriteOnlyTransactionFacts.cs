@@ -161,18 +161,17 @@ namespace Hangfire.Mongo.Tests
 
                 var testJob = GetTestJob(database, jobId);
                 Assert.Equal("State", testJob.StateName);
-                Assert.Equal(1, testJob.StateHistory.Length);
+                Assert.Single(testJob.StateHistory);
 
                 var anotherTestJob = GetTestJob(database, anotherJobId);
                 Assert.Null(anotherTestJob.StateName);
-                Assert.Equal(0, anotherTestJob.StateHistory.Length);
+                Assert.Empty(anotherTestJob.StateHistory);
 
                 var jobWithStates = database.Job.Find(new BsonDocument()).FirstOrDefault();
 
                 var jobState = jobWithStates.StateHistory.Single();
                 Assert.Equal("State", jobState.Name);
                 Assert.Equal("Reason", jobState.Reason);
-                Assert.NotNull(jobState.CreatedAt);
                 Assert.Equal(serializedData, jobState.Data);
             });
         }
@@ -208,7 +207,6 @@ namespace Hangfire.Mongo.Tests
                 var jobState = jobWithStates.StateHistory.Last();
                 Assert.Equal("State", jobState.Name);
                 Assert.Equal("Reason", jobState.Reason);
-                Assert.NotNull(jobState.CreatedAt);
                 Assert.Equal(serializedData, jobState.Data);
             });
         }
@@ -242,7 +240,7 @@ namespace Hangfire.Mongo.Tests
 
                 Assert.Equal("my-key", record.Key);
                 Assert.Equal(1L, record.Value);
-                Assert.Equal(null, record.ExpireAt);
+                Assert.Null(record.ExpireAt);
             });
         }
 
@@ -294,7 +292,7 @@ namespace Hangfire.Mongo.Tests
 
                 Assert.Equal("my-key", record.Key);
                 Assert.Equal(-1L, record.Value);
-                Assert.Equal(null, record.ExpireAt);
+                Assert.Null(record.ExpireAt);
             });
         }
 
@@ -911,12 +909,12 @@ namespace Hangfire.Mongo.Tests
             return database.StateData.OfType<SetDto>().Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key)).ToList();
         }
 
-        private static dynamic GetTestList(HangfireDbContext database, string key)
+        private static ListDto GetTestList(HangfireDbContext database, string key)
         {
             return database.StateData.OfType<ListDto>().Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key)).FirstOrDefault();
         }
 
-        private static dynamic GetTestHash(HangfireDbContext database, string key)
+        private static HashDto GetTestHash(HangfireDbContext database, string key)
         {
             return database.StateData.OfType<HashDto>().Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).FirstOrDefault();
         }

@@ -5,7 +5,7 @@ using MongoDB.Driver;
 namespace Hangfire.Mongo.Migration.Steps.Version11
 {
     /// <summary>
-    /// Create signal capped collection
+    /// Use ObjectId for jobs on job and jobQueue collections
     /// </summary>
     internal class UseObjectIdForJob : IMongoMigrationStep
     {
@@ -15,10 +15,10 @@ namespace Hangfire.Mongo.Migration.Steps.Version11
 
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
         {
-            var jobsCollection = database.GetCollection<BsonDocument>(storageOptions.Prefix + ".job");
+            var jobsCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.job");
             SetFieldAsObjectId(jobsCollection, "_id");
 
-            var jobQueueCollection = database.GetCollection<BsonDocument>(storageOptions.Prefix + ".jobQueue");
+            var jobQueueCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobQueue");
             SetFieldAsObjectId(jobQueueCollection, "JobId");
 
             return true;

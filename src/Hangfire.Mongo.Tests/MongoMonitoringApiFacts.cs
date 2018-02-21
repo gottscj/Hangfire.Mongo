@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Linq;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
@@ -130,7 +130,7 @@ namespace Hangfire.Mongo.Tests
 
                 var resultList = monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
 
-                Assert.Equal(1, resultList.Count);
+                Assert.Single(resultList);
             });
         }
 
@@ -208,7 +208,7 @@ namespace Hangfire.Mongo.Tests
 
                 var resultList = monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
 
-                Assert.Equal(1, resultList.Count);
+                Assert.Single(resultList);
             });
         }
 
@@ -295,7 +295,7 @@ namespace Hangfire.Mongo.Tests
 
                 var resultList = monitoringApi.ProcessingJobs(From, PerPage);
 
-                Assert.Equal(1, resultList.Count);
+                Assert.Single(resultList);
             });
         }
 
@@ -307,7 +307,7 @@ namespace Hangfire.Mongo.Tests
                 var failedJob0 = CreateJobInState(database, ObjectId.GenerateNewId(1), FailedState.StateName);
                 var failedJob1 = CreateJobInState(database, ObjectId.GenerateNewId(2), FailedState.StateName);
                 var failedJob2 = CreateJobInState(database, ObjectId.GenerateNewId(3), FailedState.StateName);
-                
+
 
                 var jobIds = new List<string>
                 {
@@ -320,16 +320,151 @@ namespace Hangfire.Mongo.Tests
                     .Returns(jobIds);
 
                 var resultList = monitoringApi.FailedJobs(From, PerPage);
-                
+
                 Assert.Equal(failedJob0.Id.ToString(), resultList[2].Key);
                 Assert.Equal(failedJob1.Id.ToString(), resultList[1].Key);
                 Assert.Equal(failedJob2.Id.ToString(), resultList[0].Key);
             });
         }
         
-        public static void SampleMethod(string arg)
+        [Fact, CleanDatabase]
+        public void SucceededByDatesCount_ReturnsSuccededJobs_ForLastWeek()
         {
-            Debug.WriteLine(arg);
+            UseMonitoringApi((database, monitoringApi) =>
+            {
+                var date = DateTime.UtcNow.Date;
+                var counters = new List<CounterDto>();
+                var succededCount = 10L;
+                for (int i = 0; i < succededCount; i++)
+                {
+                    counters.Add(new CounterDto
+                    {
+                        Id = ObjectId.GenerateNewId(),
+                        // this might fail if we test during date change... seems unlikely
+                        // TODO, wrap Datetime in a mock friendly wrapper
+                        Key = $"stats:succeeded:{date:yyyy-MM-dd}", 
+                        Value = 1L
+                    });
+                }
+                
+                database.StateData.OfType<CounterDto>().InsertMany(counters);
+                database.StateData.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = $"stats:succeeded:{date:yyyy-MM-dd}", 
+                    Value = 1L
+                });
+                var results = monitoringApi.SucceededByDatesCount();
+                
+                Assert.Equal(succededCount + 1, results[date]);
+                Assert.Equal(8, results.Count);
+            });
+        }
+        
+        [Fact, CleanDatabase]
+        public void HourlySucceededJobs_ReturnsSuccededJobs_ForLast24Hours()
+        {
+            UseMonitoringApi((database, monitoringApi) =>
+            {
+                var now = DateTime.UtcNow;
+                var counters = new List<CounterDto>();
+                var succeededCount = 10L;
+                for (int i = 0; i < succeededCount; i++)
+                {
+                    counters.Add(new CounterDto
+                    {
+                        Id = ObjectId.GenerateNewId(),
+                        // this might fail if we test during hour change... still unlikely
+                        // TODO, wrap Datetime in a mock friendly wrapper
+                        Key = $"stats:succeeded:{now:yyyy-MM-dd-HH}", 
+                        Value = 1L
+                    });
+                }
+                
+                database.StateData.OfType<CounterDto>().InsertMany(counters);
+                database.StateData.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = $"stats:succeeded:{now:yyyy-MM-dd-HH}", 
+                    Value = 1L
+                });
+                
+                var results = monitoringApi.HourlySucceededJobs();
+                
+                Assert.Equal(succeededCount + 1, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
+                Assert.Equal(24, results.Count);
+
+            });
+        }
+        
+        [Fact, CleanDatabase]
+        public void FailedByDatesCount_ReturnsFailedJobs_ForLastWeek()
+        {
+            UseMonitoringApi((database, monitoringApi) =>
+            {
+                var date = DateTime.UtcNow.Date;
+                var counters = new List<CounterDto>();
+                var failedCount = 10L;
+                for (int i = 0; i < failedCount; i++)
+                {
+                    counters.Add(new CounterDto
+                    {
+                        Id = ObjectId.GenerateNewId(),
+                        // this might fail if we test during date change... seems unlikely
+                        Key = $"stats:failed:{date:yyyy-MM-dd}", 
+                        Value = 1L
+                    });
+                }
+                
+                database.StateData.OfType<CounterDto>().InsertMany(counters);
+                database.StateData.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = $"stats:failed:{date:yyyy-MM-dd}", 
+                    Value = 1L
+                });
+                var results = monitoringApi.FailedByDatesCount();
+                
+                Assert.Equal(failedCount + 1, results[date]);
+                Assert.Equal(8, results.Count);
+
+            });
+        }
+        
+        [Fact, CleanDatabase]
+        public void HourlyFailedJobs_ReturnsFailedJobs_ForLast24Hours()
+        {
+            UseMonitoringApi((database, monitoringApi) =>
+            {
+                var now = DateTime.UtcNow;
+                var counters = new List<CounterDto>();
+                var failedCount = 10L;
+                for (int i = 0; i < failedCount; i++)
+                {
+                    counters.Add(new CounterDto
+                    {
+                        Id = ObjectId.GenerateNewId(),
+                        // this might fail if we test during hour change... still unlikely
+                        // TODO, wrap Datetime in a mock friendly wrapper
+                        Key = $"stats:failed:{now:yyyy-MM-dd-HH}", 
+                        Value = 1L
+                    });
+                }
+                
+                database.StateData.OfType<CounterDto>().InsertMany(counters);
+                database.StateData.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Key = $"stats:failed:{now:yyyy-MM-dd-HH}", 
+                    Value = 1L
+                });
+                
+                var results = monitoringApi.HourlyFailedJobs();
+                
+                Assert.Equal(failedCount + 1, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
+                Assert.Equal(24, results.Count);
+
+            });
         }
 
         private void UseMonitoringApi(Action<HangfireDbContext, MongoMonitoringApi> action)
@@ -341,7 +476,7 @@ namespace Hangfire.Mongo.Tests
 
         private JobDto CreateJobInState(HangfireDbContext database, ObjectId jobId, string stateName, Func<JobDto, JobDto> visitor = null)
         {
-            var job = Job.FromExpression(() => SampleMethod("wrong"));
+            var job = Job.FromExpression(() => HangfireTestJobs.SampleMethod("wrong"));
 
             Dictionary<string, string> stateData;
             if (stateName == EnqueuedState.StateName)

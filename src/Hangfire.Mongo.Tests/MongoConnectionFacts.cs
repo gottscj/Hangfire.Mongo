@@ -9,6 +9,7 @@ using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.Server;
+using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -123,7 +124,7 @@ namespace Hangfire.Mongo.Tests
             {
                 var exception = Assert.Throws<ArgumentNullException>(
                     () => connection.CreateExpiredJob(
-                        Job.FromExpression(() => SampleMethod("hello")),
+                        Job.FromExpression(() => HangfireTestJobs.SampleMethod("hello")),
                         null,
                         DateTime.UtcNow,
                         TimeSpan.Zero));
@@ -139,7 +140,7 @@ namespace Hangfire.Mongo.Tests
             {
                 var createdAt = new DateTime(2012, 12, 12, 0, 0, 0, 0, DateTimeKind.Utc);
                 var jobId = connection.CreateExpiredJob(
-                    Job.FromExpression(() => SampleMethod("Hello")),
+                    Job.FromExpression(() => HangfireTestJobs.SampleMethod("Hello")),
                     new Dictionary<string, string> { { "Key1", "Value1" }, { "Key2", "Value2" } },
                     createdAt,
                     TimeSpan.FromDays(1));
@@ -150,14 +151,14 @@ namespace Hangfire.Mongo.Tests
                 var databaseJob = database.Job.Find(new BsonDocument()).ToList().Single();
                 Assert.Equal(jobId, databaseJob.Id.ToString());
                 Assert.Equal(createdAt, databaseJob.CreatedAt);
-                Assert.Equal(null, databaseJob.StateName);
+                Assert.Null(databaseJob.StateName);
 
                 var invocationData = JobHelper.FromJson<InvocationData>(databaseJob.InvocationData);
                 invocationData.Arguments = databaseJob.Arguments;
 
                 var job = invocationData.Deserialize();
-                Assert.Equal(typeof(MongoConnectionFacts), job.Type);
-                Assert.Equal("SampleMethod", job.Method.Name);
+                Assert.Equal(typeof(HangfireTestJobs), job.Type);
+                Assert.Equal(nameof(HangfireTestJobs.SampleMethod), job.Method.Name);
                 Assert.Equal("Hello", job.Args[0]);
 
                 Assert.True(createdAt.AddDays(1).AddMinutes(-1) < databaseJob.ExpireAt);
@@ -199,14 +200,14 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection((database, connection) =>
             {
-                var job = Job.FromExpression(() => SampleMethod("wrong"));
+                var job = Job.FromExpression(() => HangfireTestJobs.SampleMethod("wrong"));
 
                 var jobDto = new JobDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     InvocationData = JobHelper.ToJson(InvocationData.Serialize(job)),
                     Arguments = "[\"\\\"Arguments\\\"\"]",
-                    StateName = "Succeeded",
+                    StateName = SucceededState.StateName,
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
@@ -215,7 +216,7 @@ namespace Hangfire.Mongo.Tests
 
                 Assert.NotNull(result);
                 Assert.NotNull(result.Job);
-                Assert.Equal("Succeeded", result.State);
+                Assert.Equal(SucceededState.StateName, result.State);
                 Assert.Equal("Arguments", result.Job.Args[0]);
                 Assert.Null(result.LoadException);
                 Assert.True(DateTime.UtcNow.AddMinutes(-1) < result.CreatedAt);
@@ -301,7 +302,7 @@ namespace Hangfire.Mongo.Tests
                     Id = ObjectId.GenerateNewId(),
                     InvocationData = JobHelper.ToJson(new InvocationData(null, null, null, null)),
                     Arguments = "[\"\\\"Arguments\\\"\"]",
-                    StateName = "Succeeded",
+                    StateName = SucceededState.StateName,
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
@@ -418,7 +419,7 @@ namespace Hangfire.Mongo.Tests
                     .FirstOrDefault();
 
                 Assert.NotNull(parameters);
-                Assert.Equal(null, parameters["Name"]);
+                Assert.Null(parameters["Name"]);
             });
         }
 
@@ -469,7 +470,7 @@ namespace Hangfire.Mongo.Tests
                     CreatedAt = DateTime.UtcNow
                 };
                 database.Job.InsertOne(jobDto);
-                
+
 
                 connection.SetJobParameter(jobDto.Id.ToString(), "name", "value");
 
@@ -718,7 +719,7 @@ namespace Hangfire.Mongo.Tests
                 var result = connection.GetAllItemsFromSet("some-set");
 
                 Assert.NotNull(result);
-                Assert.Equal(0, result.Count);
+                Assert.Empty(result);
             });
         }
 
@@ -1589,9 +1590,6 @@ namespace Hangfire.Mongo.Tests
             }
         }
 
-        public static void SampleMethod(string arg)
-        {
-            Debug.WriteLine(arg);
-        }
     }
+
 }

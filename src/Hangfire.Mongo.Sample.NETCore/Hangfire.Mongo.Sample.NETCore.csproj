@@ -1,14 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <VersionPrefix>0.5.7</VersionPrefix>
-    <TargetFramework>netcoreapp1.1</TargetFramework>
-    <DebugType>portable</DebugType>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
     <AssemblyName>Hangfire.Mongo.Sample.NETCore</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>Hangfire.Mongo.Sample.NETCore</PackageId>
-    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
-    <Version>0.5.7</Version>
+    <Version>0.5.8</Version>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <Copyright>Copyright © 2014-2017 Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Copyright>
     <Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
@@ -18,14 +14,11 @@
     <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
   </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Hangfire.Mongo\Hangfire.Mongo.csproj" />
   </ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Hangfire.Core" Version="1.6.17" />
-		<PackageReference Include="MongoDB.Driver" Version="2.3.0" />
-	</ItemGroup>
-
+  <ItemGroup>
+    <PackageReference Include="Hangfire.Core" Version="1.6.17" />
+    <PackageReference Include="MongoDB.Driver" Version="2.5.0" />
+  </ItemGroup>
 </Project>

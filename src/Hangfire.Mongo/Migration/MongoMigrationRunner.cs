@@ -61,9 +61,20 @@ namespace Hangfire.Mongo.Migration
             {
                 foreach (var migrationStep in migrationGroup)
                 {
-                    if (!migrationStep.Execute(_dbContext.Database, _storageOptions, this))
+                    try
                     {
-                        throw new MongoMigrationException(migrationStep);
+                        if (!migrationStep.Execute(_dbContext.Database, _storageOptions, this))
+                        {
+                            throw new MongoMigrationException(migrationStep);
+                        }
+                    }
+                    catch (MongoMigrationException)
+                    {
+                        throw;
+                    }
+                    catch (Exception e)
+                    {
+                        throw new MongoMigrationException(migrationStep, e);
                     }
                 }
 
