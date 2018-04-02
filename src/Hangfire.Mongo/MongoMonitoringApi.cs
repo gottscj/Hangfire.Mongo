@@ -547,7 +547,7 @@ namespace Hangfire.Mongo
                 .Find(Builders<AggregatedCounterDto>.Filter.In(_ => _.Key, keys))
                 .ToList()
                 .GroupBy(x => x.Key)
-                .ToDictionary(x => x.Key, x => (long) x.Count());
+                .ToDictionary(x => x.Key, x => x.Sum(v => (long)v.Value));
 
             foreach (var valuePair in valuesMapAggregated)
             {
