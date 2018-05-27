@@ -1,8 +1,13 @@
 
 ## What's New (19/11/2017)
 
+### v0.5.10
+- Fix for Hangfire Dashboard History Graph showing incorrect counts
+- Update to latest Hangfire
+- Update to latest MongoDB
+
 ### v0.5.9
-- Fix for Hangfire Dashboard History Graph showinf incorrect counts
+- Fix for Hangfire Dashboard History Graph showing incorrect counts
 - Added indexes to all our collections
 - Updated a few NuGet references
 - Cleaned up library references
