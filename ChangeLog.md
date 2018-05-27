@@ -1,13 +1,16 @@
 
 ## What's New (19/11/2017)
 
-### v0.5.8
+### v0.5.9
 - Fix for Hangfire Dashboard History Graph showinf incorrect counts
 - Added indexes to all our collections
 - Updated a few NuGet references
 - Cleaned up library references
 - Improve migration stability
 - Remove dependency to Microsoft.CSharp
+
+### v0.5.8
+- Broken release
 
 ### v0.5.7
 - Fix for broken migration
