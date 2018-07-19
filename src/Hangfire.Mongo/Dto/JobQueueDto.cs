@@ -16,7 +16,6 @@ namespace Hangfire.Mongo.Dto
         public string Queue { get; set; }
 
         public DateTime? FetchedAt { get; set; }
-
     }
 #pragma warning restore 1591
 }

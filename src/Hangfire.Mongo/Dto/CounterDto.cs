@@ -1,7 +1,7 @@
 ﻿namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
-    public class CounterDto : ExpiringKeyValueDto
+    public class CounterDto : KeyValueDto
     {
     }
 #pragma warning restore 1591

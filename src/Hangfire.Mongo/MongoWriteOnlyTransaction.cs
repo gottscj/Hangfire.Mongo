@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.PersistentJobQueue;
@@ -37,13 +38,13 @@ namespace Hangfire.Mongo
 
         public override void ExpireJob(string jobId, TimeSpan expireIn)
         {
-            QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)),
+            QueueCommand(x => x.JobGraph.OfType<JobDto>().UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)),
                 Builders<JobDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(expireIn))));
         }
 
         public override void PersistJob(string jobId)
         {
-            QueueCommand(x => x.Job.UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)),
+            QueueCommand(x => x.JobGraph.OfType<JobDto>().UpdateMany(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)),
                 Builders<JobDto>.Update.Set(_ => _.ExpireAt, null)));
         }
 
@@ -62,7 +63,7 @@ namespace Hangfire.Mongo
                         Data = state.SerializeData()
                     });
 
-                x.Job.UpdateOne(j => j.Id == ObjectId.Parse(jobId), update);
+                x.JobGraph.OfType<JobDto>().UpdateOne(j => j.Id == ObjectId.Parse(jobId), update);
             });
         }
 
@@ -79,7 +80,7 @@ namespace Hangfire.Mongo
                         Data = state.SerializeData()
                     });
 
-                x.Job.UpdateOne(j => j.Id == ObjectId.Parse(jobId), update);
+                x.JobGraph.OfType<JobDto>().UpdateOne(j => j.Id == ObjectId.Parse(jobId), update);
             });
         }
 
@@ -101,7 +102,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData.InsertOne(new CounterDto
+            QueueCommand(x => x.JobGraph.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = key,
@@ -116,7 +117,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData.InsertOne(new CounterDto
+            QueueCommand(x => x.JobGraph.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = key,
@@ -132,7 +133,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData.InsertOne(new CounterDto
+            QueueCommand(x => x.JobGraph.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = key,
@@ -147,7 +148,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData.InsertOne(new CounterDto
+            QueueCommand(x => x.JobGraph.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = key,
@@ -170,11 +171,11 @@ namespace Hangfire.Mongo
 
             var builder = Builders<SetDto>.Update;
             var set = builder.Set(_ => _.Score, score);
-            var setTypesOnInsert = builder.SetOnInsert("_t", new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(SetDto) });
+            var setTypesOnInsert = builder.SetOnInsert("_t", new[] { nameof(JobGraphDto), nameof(KeyValueDto), nameof(SetDto) });
             var setExpireAt = builder.SetOnInsert(_ => _.ExpireAt, null);
             var update = builder.Combine(set, setTypesOnInsert, setExpireAt);
 
-            QueueCommand(x => x.StateData
+            QueueCommand(x => x.JobGraph
                 .OfType<SetDto>()
                 .UpdateOne(
                     Builders<SetDto>.Filter.Eq(_ => _.Key, key) & Builders<SetDto>.Filter.Eq(_ => _.Value, value),
@@ -192,7 +193,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData
+            QueueCommand(x => x.JobGraph
                 .OfType<SetDto>()
                 .DeleteMany(
                     Builders<SetDto>.Filter.Eq(_ => _.Key, key) &
@@ -206,7 +207,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData.InsertOne(new ListDto
+            QueueCommand(x => x.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = key,
@@ -221,7 +222,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData
+            QueueCommand(x => x.JobGraph
                 .OfType<ListDto>()
                 .DeleteMany(
                     Builders<ListDto>.Filter.Eq(_ => _.Key, key) &
@@ -240,7 +241,7 @@ namespace Hangfire.Mongo
                 int start = keepStartingFrom + 1;
                 int end = keepEndingAt + 1;
 
-                ObjectId[] items = ((IEnumerable<ListDto>)x.StateData.OfType<ListDto>()
+                ObjectId[] items = ((IEnumerable<ListDto>)x.JobGraph.OfType<ListDto>()
                         .Find(new BsonDocument())
                         .Project(Builders<ListDto>.Projection.Include(_ => _.Key))
                         .Project(_ => _)
@@ -251,7 +252,7 @@ namespace Hangfire.Mongo
                     .Select(_ => _.Data)
                     .ToArray();
 
-                x.StateData
+                x.JobGraph
                     .OfType<ListDto>()
                     .DeleteMany(Builders<ListDto>.Filter.Eq(_ => _.Key, key) &
                                 Builders<ListDto>.Filter.In(_ => _.Id, items));
@@ -271,7 +272,7 @@ namespace Hangfire.Mongo
             }
 
             var builder = Builders<HashDto>.Update;
-            var setTypesOnInsert = builder.SetOnInsert("_t", new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(HashDto) });
+            var setTypesOnInsert = builder.SetOnInsert("_t", new[] { nameof(JobGraphDto), nameof(KeyValueDto), nameof(HashDto) });
             var setExpireAt = builder.SetOnInsert(_ => _.ExpireAt, null);
 
             foreach (var keyValuePair in keyValuePairs)
@@ -283,7 +284,7 @@ namespace Hangfire.Mongo
                 {
                     var set = builder.Set(_ => _.Value, value);
                     var update = builder.Combine(set, setTypesOnInsert, setExpireAt);
-                    x.StateData.OfType<HashDto>()
+                    x.JobGraph.OfType<HashDto>()
                         .UpdateMany(
                             Builders<HashDto>.Filter.Eq(_ => _.Key, key) &
                             Builders<HashDto>.Filter.Eq(_ => _.Field, field),
@@ -303,7 +304,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData.OfType<HashDto>().DeleteMany(Builders<HashDto>.Filter.Eq(_ => _.Key, key)));
+            QueueCommand(x => x.JobGraph.OfType<HashDto>().DeleteMany(Builders<HashDto>.Filter.Eq(_ => _.Key, key)));
         }
 
         public override void Commit()
@@ -336,7 +337,7 @@ namespace Hangfire.Mongo
             }
 
             QueueCommand(x => x
-                .StateData
+                .JobGraph
                 .OfType<SetDto>()
                 .UpdateMany(Builders<SetDto>.Filter.Eq(_ => _.Key, key),
                 Builders<SetDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(expireIn))));
@@ -349,7 +350,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData
+            QueueCommand(x => x.JobGraph
                 .OfType<ListDto>()
                 .UpdateMany(Builders<ListDto>.Filter.Eq(_ => _.Key, key),
                 Builders<ListDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(expireIn))));
@@ -362,7 +363,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData
+            QueueCommand(x => x.JobGraph
                 .OfType<HashDto>()
                 .UpdateMany(Builders<HashDto>.Filter.Eq(_ => _.Key, key),
                 Builders<HashDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(expireIn))));
@@ -375,7 +376,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData
+            QueueCommand(x => x.JobGraph
                 .OfType<SetDto>()
                 .UpdateMany(Builders<SetDto>.Filter.Eq(_ => _.Key, key),
                     Builders<SetDto>.Update.Set(_ => _.ExpireAt, null)));
@@ -388,7 +389,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData
+            QueueCommand(x => x.JobGraph
                 .OfType<ListDto>()
                 .UpdateMany(Builders<ListDto>.Filter.Eq(_ => _.Key, key),
                     Builders<ListDto>.Update.Set(_ => _.ExpireAt, null)));
@@ -401,7 +402,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            QueueCommand(x => x.StateData
+            QueueCommand(x => x.JobGraph
                 .OfType<HashDto>()
                 .UpdateMany(Builders<HashDto>.Filter.Eq(_ => _.Key, key),
                     Builders<HashDto>.Update.Set(_ => _.ExpireAt, null)));
@@ -420,7 +421,7 @@ namespace Hangfire.Mongo
             var builder = Builders<SetDto>.Update;
 
 
-            var setTypesOnInsert = builder.SetOnInsert("_t", new[] { nameof(KeyValueDto), nameof(ExpiringKeyValueDto), nameof(SetDto) });
+            var setTypesOnInsert = builder.SetOnInsert("_t", new[] {  nameof(JobGraphDto), nameof(KeyValueDto), nameof(SetDto) });
             var setExpireAt = builder.SetOnInsert(_ => _.ExpireAt, null);
             var set = builder.Set(_ => _.Score, 0.0);
             var update = builder.Combine(set, setTypesOnInsert, setExpireAt);
@@ -429,7 +430,7 @@ namespace Hangfire.Mongo
             {
                 QueueCommand(x =>
                 {
-                    x.StateData
+                    x.JobGraph
                         .OfType<SetDto>()
                         .UpdateMany(
                             Builders<SetDto>.Filter.Eq(_ => _.Key, key) &
@@ -450,7 +451,7 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(key));
             }
-            QueueCommand(x => x.StateData
+            QueueCommand(x => x.JobGraph
                 .OfType<SetDto>()
                 .DeleteMany(Builders<SetDto>.Filter.Eq(_ => _.Key, key)));
         }

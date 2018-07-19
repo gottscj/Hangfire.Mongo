@@ -38,7 +38,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 .ToList()
                 .Where(jobQueueJobId =>
                 {
-                    return _connection.Job.Find(j => j.Id == jobQueueJobId && j.StateHistory.Length > 0).Any();
+                    return _connection.JobGraph.OfType<JobDto>().Find(j => j.Id == jobQueueJobId && j.StateHistory.Length > 0).Any();
                 })
                 .Select(jobQueueJobId => jobQueueJobId.ToString())
                 .ToArray();
@@ -54,7 +54,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 .ToList()
                 .Where(jobQueueJobId =>
                 {
-                    var job = _connection.Job.Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueueJobId)).FirstOrDefault();
+                    var job = _connection.JobGraph.OfType<JobDto>().Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueueJobId)).FirstOrDefault();
                     return job != null;
                 })
                 .Select(jobQueueJobId => jobQueueJobId.ToString())

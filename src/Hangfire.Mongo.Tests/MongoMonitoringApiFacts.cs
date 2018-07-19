@@ -348,8 +348,8 @@ namespace Hangfire.Mongo.Tests
                     });
                 }
                 
-                database.StateData.OfType<CounterDto>().InsertMany(counters);
-                database.StateData.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                database.JobGraph.OfType<CounterDto>().InsertMany(counters);
+                database.JobGraph.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = $"stats:succeeded:{date:yyyy-MM-dd}", 
@@ -382,8 +382,8 @@ namespace Hangfire.Mongo.Tests
                     });
                 }
                 
-                database.StateData.OfType<CounterDto>().InsertMany(counters);
-                database.StateData.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                database.JobGraph.OfType<CounterDto>().InsertMany(counters);
+                database.JobGraph.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = $"stats:succeeded:{now:yyyy-MM-dd-HH}", 
@@ -417,8 +417,8 @@ namespace Hangfire.Mongo.Tests
                     });
                 }
                 
-                database.StateData.OfType<CounterDto>().InsertMany(counters);
-                database.StateData.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                database.JobGraph.OfType<CounterDto>().InsertMany(counters);
+                database.JobGraph.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = $"stats:failed:{date:yyyy-MM-dd}", 
@@ -452,8 +452,8 @@ namespace Hangfire.Mongo.Tests
                     });
                 }
                 
-                database.StateData.OfType<CounterDto>().InsertMany(counters);
-                database.StateData.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                database.JobGraph.OfType<CounterDto>().InsertMany(counters);
+                database.JobGraph.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = $"stats:failed:{now:yyyy-MM-dd-HH}", 
@@ -530,7 +530,7 @@ namespace Hangfire.Mongo.Tests
             {
                 jobDto = visitor(jobDto);
             }
-            database.Job.InsertOne(jobDto);
+            database.JobGraph.InsertOne(jobDto);
 
             var jobQueueDto = new JobQueueDto
             {

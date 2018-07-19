@@ -52,9 +52,14 @@
         Version11 = 11,
 
         /// <summary>
-        /// Schema version 11
+        /// Schema version 12
         /// </summary>
         Version12 = 12,
+        
+        /// <summary>
+        /// Schema Version 13
+        /// </summary>
+        Version13 = 13,
     }
 
 }

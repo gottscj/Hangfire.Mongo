@@ -283,7 +283,7 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
                 StateHistory = new[] { new StateDto() }
             };
 
-            connection.Job.InsertOne(job);
+            connection.JobGraph.InsertOne(job);
 
             var jobQueue = new JobQueueDto
             {

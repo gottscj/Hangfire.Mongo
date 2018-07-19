@@ -64,7 +64,7 @@ namespace Hangfire.Mongo
                     var database = storageConnection.Database;
 
                     var recordsToAggregate = database
-                        .StateData
+                        .JobGraph
                         .OfType<CounterDto>()
                         .Find(new BsonDocument())
                         .Limit(NumberOfRecordsInSinglePass)
@@ -81,7 +81,7 @@ namespace Hangfire.Mongo
                     foreach (var item in recordsToMerge)
                     {
                         AggregatedCounterDto aggregatedItem = database
-                            .StateData
+                            .JobGraph
                             .OfType<AggregatedCounterDto>()
                             .Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key))
                             .FirstOrDefault();
@@ -89,7 +89,7 @@ namespace Hangfire.Mongo
                         if (aggregatedItem != null)
                         {
                             database
-                                .StateData
+                                .JobGraph
                                 .OfType<AggregatedCounterDto>()
                                 .UpdateOne(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, item.Key),
                                 Builders<AggregatedCounterDto>.Update.Combine(
@@ -99,7 +99,7 @@ namespace Hangfire.Mongo
                         else
                         {
                             database
-                                .StateData
+                                .JobGraph
                                 .InsertOne(new AggregatedCounterDto
                             {
                                 Id = ObjectId.GenerateNewId(),
@@ -111,7 +111,7 @@ namespace Hangfire.Mongo
                     }
 
                     removedCount = database
-                        .StateData
+                        .JobGraph
                         .OfType<CounterDto>()
                         .DeleteMany(Builders<CounterDto>.Filter.In(_ => _.Id, recordsToAggregate.Select(_ => _.Id)))
                         .DeletedCount;

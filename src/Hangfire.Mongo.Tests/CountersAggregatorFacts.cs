@@ -18,7 +18,7 @@ namespace Hangfire.Mongo.Tests
             using (var connection = (MongoConnection)storage.GetConnection())
             {
                 // Arrange
-                connection.Database.StateData.InsertOne(new CounterDto
+                connection.Database.JobGraph.InsertOne(new CounterDto
                 {
                     Key = "key",
                     Value = 1L,
@@ -33,7 +33,7 @@ namespace Hangfire.Mongo.Tests
                 aggregator.Execute(cts.Token);
 
                 // Assert
-                Assert.Equal(1, connection.Database.StateData.OfType<AggregatedCounterDto>().Count(new BsonDocument()));
+                Assert.Equal(1, connection.Database.JobGraph.OfType<AggregatedCounterDto>().Count(new BsonDocument()));
             }
         }
     }

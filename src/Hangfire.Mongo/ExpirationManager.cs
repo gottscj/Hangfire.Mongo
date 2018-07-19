@@ -61,8 +61,7 @@ namespace Hangfire.Mongo
             {
                 DateTime now = DateTime.UtcNow;
 
-                RemoveExpiredRecord(connection.Job, _ => _.ExpireAt, now);
-                RemoveExpiredRecord(connection.StateData.OfType<ExpiringKeyValueDto>(), _ => _.ExpireAt, now);
+                RemoveExpiredRecord(connection.JobGraph, _ => _.ExpireAt, now);
             }
 
             cancellationToken.WaitHandle.WaitOne(_checkInterval);
