@@ -57,6 +57,12 @@ namespace Hangfire.Mongo.Database
         public string ConnectionId { get; private set; }
 
         /// <summary>
+        /// Reference to tailable collection which contains signal dtos for enqueued job items
+        /// </summary>
+        public IMongoCollection<JobEnqueuedDto> EnqueuedJobs =>
+            Database.GetCollection<JobEnqueuedDto>(_prefix + ".enqueuedJobs");
+        
+        /// <summary>
         /// Reference to job graph collection
         /// </summary>
         public IMongoCollection<BaseJobDto> JobGraph => Database.GetCollection<BaseJobDto>(_prefix + ".jobGraph");

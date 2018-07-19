@@ -11,6 +11,7 @@ using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Moq;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests
@@ -21,18 +22,20 @@ namespace Hangfire.Mongo.Tests
     {
         private readonly HangfireDbContext _dbContext;
         private readonly MongoConnection _connection;
+		private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphore;
 
         public MongoConnectionFacts()
         {
+		    _jobQueueSemaphore = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
             _dbContext = ConnectionUtils.CreateDbContext();
-            _connection = new MongoConnection(_dbContext, new MongoStorageOptions());
+            _connection = new MongoConnection(_dbContext, new MongoStorageOptions(), _jobQueueSemaphore.Object);
         }
         
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoConnection(null, null));
+                () => new MongoConnection(null, null, _jobQueueSemaphore.Object));
 
             Assert.Equal("database", exception.ParamName);
         }
@@ -40,7 +43,8 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Ctor_ThrowsAnException_WhenProvidersCollectionIsNull()
         {
-            var exception = Assert.Throws<ArgumentNullException>(() => new MongoConnection(_dbContext, null));
+            var exception = Assert.Throws<ArgumentNullException>(
+                () => new MongoConnection(_dbContext, null, _jobQueueSemaphore.Object));
 
             Assert.Equal("storageOptions", exception.ParamName);
         }

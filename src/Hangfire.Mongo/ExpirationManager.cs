@@ -65,13 +65,5 @@ namespace Hangfire.Mongo
 
             cancellationToken.WaitHandle.WaitOne(_checkInterval);
         }
-
-        /// <summary>
-        /// Returns text representation of the object
-        /// </summary>
-        public override string ToString()
-        {
-            return "Mongo Expiration Manager";
-        }
     }
 }

@@ -21,6 +21,7 @@ namespace Hangfire.Mongo
 
         private readonly MongoStorageOptions _storageOptions;
 
+        private readonly JobQueueSemaphore _jobQueueSemaphore;
         private readonly HangfireDbContext _dbContext;
 
         /// <summary>
@@ -83,7 +84,7 @@ namespace Hangfire.Mongo
             _storageOptions = storageOptions;
 
             _dbContext = new HangfireDbContext(mongoClientSettings, databaseName, _storageOptions.Prefix);
-            
+             _jobQueueSemaphore = new JobQueueSemaphore();
             using (var migrationManager = new MongoMigrationManager(storageOptions, _dbContext))
             {
                 
@@ -106,7 +107,7 @@ namespace Hangfire.Mongo
         /// <returns>Storage connection</returns>
         public override IStorageConnection GetConnection()
         {
-            return new MongoConnection(_dbContext, _storageOptions);
+            return new MongoConnection(_dbContext, _storageOptions, _jobQueueSemaphore);
         }
 
         /// <summary>
@@ -116,6 +117,7 @@ namespace Hangfire.Mongo
         public override IEnumerable<IServerComponent> GetComponents()
         {
             yield return new ExpirationManager(_dbContext, _storageOptions.JobExpirationCheckInterval);
+            yield return new EnqueuedJobsObserver(_dbContext, _jobQueueSemaphore);
         }
 
         /// <summary>

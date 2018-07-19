@@ -82,7 +82,7 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".signal",
                         prefix + ".stateData"
                     };
-
+                
                 case MongoSchema.Version13:
                 case MongoSchema.Version14:
                 return new[]
@@ -101,6 +101,15 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".locks",
                         prefix + ".schema",
                         prefix + ".server"
+                    };
+                case MongoSchema.Version17:
+                    return new[]
+                    {
+                        prefix + ".jobGraph",
+                        prefix + ".locks",
+                        prefix + ".schema",
+                        prefix + ".server",
+                        prefix + ".enqueuedJobs"
                     };
                 default:
                     throw new ArgumentException($@"Unknown schema: '{schema}'", nameof(schema));

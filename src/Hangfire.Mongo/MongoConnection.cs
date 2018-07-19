@@ -16,45 +16,39 @@ namespace Hangfire.Mongo
     /// <summary>
     /// MongoDB database connection for Hangfire
     /// </summary>
-    public class MongoConnection : JobStorageConnection
+    internal class MongoConnection : JobStorageConnection
     {
         private readonly MongoStorageOptions _storageOptions;
-
-        private readonly HangfireDbContext _database;
+        private readonly MongoJobFetcher _jobFetcher;
         
-        /// <summary>
-        /// Ctor using default storage options
-        /// </summary>
-        public MongoConnection(HangfireDbContext database)
-
-            : this(database, new MongoStorageOptions())
-        {
-        }
-
+        private readonly HangfireDbContext _dbContext;
+        
 #pragma warning disable 1591
         public MongoConnection(
             HangfireDbContext database,
-            MongoStorageOptions storageOptions)
+            MongoStorageOptions storageOptions,
+            IJobQueueSemaphore jobQueueSemaphore)
         {
-            _database = database ?? throw new ArgumentNullException(nameof(database));
+            _dbContext = database ?? throw new ArgumentNullException(nameof(database));
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
+            _jobFetcher = new MongoJobFetcher(database, storageOptions, jobQueueSemaphore);
         }
 
         public override IWriteOnlyTransaction CreateWriteTransaction()
         {
-            return new MongoWriteOnlyTransaction(_database);
+            return new MongoWriteOnlyTransaction(_dbContext);
         }
 
         public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
         {
-            return new MongoDistributedLock($"Hangfire:{resource}", timeout, _database, _storageOptions);
+            return new MongoDistributedLock($"Hangfire:{resource}", timeout, _dbContext, _storageOptions);
         }
 
         public override string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
             TimeSpan expireIn)
         {
             string jobId;
-            using (var transaction = new MongoWriteOnlyTransaction(_database))
+            using (var transaction = new MongoWriteOnlyTransaction(_dbContext))
             {
                 jobId = transaction.CreateExpiredJob(job, parameters, createdAt, expireIn);
                 transaction.Commit();
@@ -68,13 +62,12 @@ namespace Hangfire.Mongo
             if (queues == null || queues.Length == 0)
                 throw new ArgumentNullException(nameof(queues));
 
-            var jobQueue = new MongoJobQueue(_database, _storageOptions);
-            return jobQueue.Dequeue(queues, cancellationToken);
+            return _jobFetcher.FetchNextJob(queues, cancellationToken);
         }
 
         public override void SetJobParameter(string id, string name, string value)
         {
-            using (var transaction = new MongoWriteOnlyTransaction(_database))
+            using (var transaction = new MongoWriteOnlyTransaction(_dbContext))
             {
                 transaction.SetJobParameter(id, name, value);
                 transaction.Commit();
@@ -93,7 +86,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(name));
             }
 
-            var parameters = _database
+            var parameters = _dbContext
                 .JobGraph
                 .OfType<JobDto>()
                 .Find(j => j.Id == ObjectId.Parse(id))
@@ -113,7 +106,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(jobId));
             }
 
-            var jobData = _database
+            var jobData = _dbContext
                 .JobGraph
                 .OfType<JobDto>()
                 .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)))
@@ -154,7 +147,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(jobId));
             }
             
-            var job = _database
+            var job = _dbContext
                 .JobGraph
                 .OfType<JobDto>()
                 .Find(j => j.Id == ObjectId.Parse(jobId))
@@ -200,7 +193,7 @@ namespace Hangfire.Mongo
                 [nameof(ServerDto.LastHeartbeat)] = DateTime.UtcNow
             });
 
-            _database.Server.UpdateOne(new BsonDocument("_id", serverId), set, new UpdateOptions {IsUpsert = true});
+            _dbContext.Server.UpdateOne(new BsonDocument("_id", serverId), set, new UpdateOptions {IsUpsert = true});
         }
 
         public override void RemoveServer(string serverId)
@@ -210,7 +203,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(serverId));
             }
 
-            _database.Server.DeleteMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId));
+            _dbContext.Server.DeleteMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId));
         }
 
         public override void Heartbeat(string serverId)
@@ -220,7 +213,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(serverId));
             }
 
-            _database.Server.UpdateMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId),
+            _dbContext.Server.UpdateMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId),
                 Builders<ServerDto>.Update.Set(_ => _.LastHeartbeat, DateTime.UtcNow));
         }
 
@@ -231,7 +224,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentException("The `timeOut` value must be positive.", nameof(timeOut));
             }
 
-            return (int)_database
+            return (int)_dbContext
                 .Server
                 .DeleteMany(Builders<ServerDto>.Filter.Lt(_ => _.LastHeartbeat, DateTime.UtcNow.Add(timeOut.Negate())))
                 .DeletedCount;
@@ -244,7 +237,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var result = _database
+            var result = _dbContext
                 .JobGraph
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{key}"))
@@ -268,7 +261,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentException("The `toScore` value must be higher or equal to the `fromScore` value.");
             }
             
-            return _database
+            return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{key}") &
@@ -281,7 +274,7 @@ namespace Hangfire.Mongo
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
-            using (var transaction = new MongoWriteOnlyTransaction(_database))
+            using (var transaction = new MongoWriteOnlyTransaction(_dbContext))
             {
                 transaction.SetRangeInHash(key, keyValuePairs);
                 transaction.Commit();
@@ -295,7 +288,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var hash = _database
+            var hash = _dbContext
                 .JobGraph
                 .OfType<HashDto>()
                 .Find(new BsonDocument(nameof(KeyJobDto.Key), key))
@@ -311,7 +304,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            return _database
+            return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{key}"))
@@ -325,7 +318,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            return _database
+            return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{key}"))
@@ -343,7 +336,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var values = _database
+            var values = _dbContext
                 .JobGraph
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{key}") &
@@ -361,7 +354,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var counter = _database
+            var counter = _dbContext
                 .JobGraph
                 .OfType<CounterDto>()
                 .Find(new BsonDocument(nameof(KeyJobDto.Key), key))
@@ -377,7 +370,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var hash = _database
+            var hash = _dbContext
                 .JobGraph
                 .OfType<HashDto>()
                 .Find(new BsonDocument(nameof(KeyJobDto.Key), key))
@@ -393,7 +386,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var result = _database
+            var result = _dbContext
                 .JobGraph
                 .OfType<HashDto>()
                 .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
@@ -422,7 +415,7 @@ namespace Hangfire.Mongo
                 new BsonDocument($"{nameof(HashDto.Fields)}.{name}", new BsonDocument("$exists", true))
             });
             
-            var result = _database
+            var result = _dbContext
                 .JobGraph
                 .OfType<HashDto>()
                 .Find(hashWithField)
@@ -438,7 +431,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            return _database
+            return _dbContext
                 .JobGraph
                 .OfType<ListDto>()
                 .Find(new BsonDocument(nameof(ListDto.Item), key))
@@ -452,7 +445,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var result = _database
+            var result = _dbContext
                 .JobGraph
                 .OfType<ListDto>()
                 .Find(new BsonDocument(nameof(ListDto.Item), key))
@@ -470,7 +463,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            return _database
+            return _dbContext
                 .JobGraph
                 .OfType<ListDto>()
                 .Find(new BsonDocument(nameof(ListDto.Item), key))
@@ -488,7 +481,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            return _database
+            return _dbContext
                 .JobGraph
                 .OfType<ListDto>()
                 .Find(new BsonDocument(nameof(ListDto.Item), key))

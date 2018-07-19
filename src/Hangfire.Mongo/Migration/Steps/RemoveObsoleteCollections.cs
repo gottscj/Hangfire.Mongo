@@ -25,7 +25,6 @@ namespace Hangfire.Mongo.Migration.Steps
             return true;
         }
 
-
         protected IEnumerable<string> ObsoleteCollectionNames(IMongoDatabase database, MongoStorageOptions storageOptions)
         {
             var mongoSchemas = Enum.GetValues(typeof(MongoSchema)).Cast<MongoSchema>().OrderBy(v => v).ToList();

@@ -25,6 +25,8 @@ namespace Hangfire.Mongo.Dto
         [BsonElement(nameof(CreatedAt))]
         [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime CreatedAt { get; set; }
+        
+        
     }
 #pragma warning restore 1591
 }
