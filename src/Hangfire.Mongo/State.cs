@@ -1,4 +1,4 @@
-﻿namespace Hangfire.Mongo.StateHandlers
+﻿namespace Hangfire.Mongo
 {
 
     internal class State

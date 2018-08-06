@@ -261,7 +261,7 @@ namespace Hangfire.Mongo.Tests
         {
             var count = connection
                 .JobGraph
-                .OfType<KeyValueDto>()
+                .OfType<KeyJobDto>()
                 .Count(new BsonDocument());
 
             return count == 0;
@@ -274,7 +274,7 @@ namespace Hangfire.Mongo.Tests
 
         private static void Commit(HangfireDbContext connection, Action<MongoWriteOnlyTransaction> action)
         {
-            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection, _queueProviders, new MongoStorageOptions()))
+            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection, _queueProviders))
             {
                 action(transaction);
                 transaction.Commit();

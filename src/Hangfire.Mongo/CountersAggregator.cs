@@ -74,7 +74,7 @@ namespace Hangfire.Mongo
                         .GroupBy(_ => _.Key).Select(_ => new
                         {
                             Key = _.Key,
-                            Value = _.Sum(x => (long)x.Value),
+                            Value = _.Sum(x => x.Value),
                             ExpireAt = _.Max(x => x.ExpireAt)
                         });
 

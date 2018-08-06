@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Hangfire.Mongo.Dto;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -12,39 +16,49 @@ namespace Hangfire.Mongo.Migration.Steps.Version13
         
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
         {
-            var jobGraphCollectionName = storageOptions.Prefix + ".jobGraph";
+            var stateDataFindTask = database
+                .GetCollection<BsonDocument>(storageOptions.Prefix + ".stateData")
+                .Find(new BsonDocument())
+                .ToListAsync();
+
+            var jobFindTask = database
+                .GetCollection<BsonDocument>(storageOptions.Prefix + ".job")
+                .Find(new BsonDocument())
+                .ToListAsync();
+
+            // run in parallel, make sure we dont deadlock if we have a synchronization context
+            Task.Run(() => Task.WhenAll(stateDataFindTask, jobFindTask)).GetAwaiter().GetResult();
+
+            var jobs = jobFindTask.Result;
+            var stateData = stateDataFindTask.Result;
             
-            var stateDataCopy = new Dictionary<string,object>
+            foreach (var data in stateData)
             {
-                {"aggregate" , storageOptions.Prefix + ".stateData"},
-                {"pipeline", new []
-                    {
-                        new Dictionary<string, object> { { "$match" , new BsonDocument() }},
-                        new Dictionary<string, object> { { "$out" , jobGraphCollectionName}}
-                    }
+                var typeName = "";
+                if (data.TryGetValue("_t", out var typeValue))
+                {
+                    typeName = typeValue is BsonArray ? data["_t"].AsBsonArray.Last().AsString : data["_t"].AsString;
                 }
-            };
+                else
+                {
+                    throw new InvalidOperationException($"Expected '_t' element in stateData entity, got: {data.ToJson()}");
+                }
+                
+                data["_t"] = new BsonArray(new []{nameof(BaseJobDto), nameof(KeyJobDto), typeName});
+            }
             
-            var jobsCopy = new Dictionary<string,object>
+            foreach (var job in jobs)
             {
-                {"aggregate" , storageOptions.Prefix + ".job"},
-                {"pipeline", new []
-                    {
-                        new Dictionary<string, object> { { "$match" , new BsonDocument() }},
-                        new Dictionary<string, object> { { "$out" , jobGraphCollectionName}}
-                    }
-                }
-            };
-            
-            var stateDataCommand = new BsonDocumentCommand<BsonDocument>(new BsonDocument(stateDataCopy));
-            var jobCommand = new BsonDocumentCommand<BsonDocument>(new BsonDocument(jobsCopy));
-            database.RunCommand(stateDataCommand);
-            database.RunCommand(jobCommand);
-            
-            var indexBuilder = Builders<BsonDocument>.IndexKeys;
-            var jobGraph = database.GetCollection<BsonDocument>(jobGraphCollectionName);
-            jobGraph.TryCreateIndexes(indexBuilder.Descending, "StateName", "ExpireAt", "_t");
-            jobGraph.TryCreateIndexes(indexBuilder.Ascending, "Key");
+                job["_t"] = new BsonArray(new[] {nameof(BaseJobDto), nameof(JobDto)});
+            }
+
+            var jobGraphEntities = jobs.Concat(stateData);
+            if(jobGraphEntities.Any())
+            {
+                database
+                .GetCollection<BsonDocument>(storageOptions.Prefix + ".jobGraph")
+                .InsertMany(jobGraphEntities);
+            }
             
             return true;
         }

@@ -13,7 +13,7 @@ namespace Hangfire.Mongo.Dto
         typeof(SetDto),
         typeof(HashDto),
         typeof(JobDto))]
-    public class JobGraphDto
+    public class BaseJobDto
     {
         [BsonId]
         public ObjectId Id { get; set; }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
-    public class JobDto : JobGraphDto
+    public class JobDto : BaseJobDto
     {
         public string StateName { get; set; }
 

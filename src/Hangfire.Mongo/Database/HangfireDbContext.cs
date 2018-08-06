@@ -59,7 +59,7 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to job graph collection
         /// </summary>
-        public IMongoCollection<JobGraphDto> JobGraph => Database.GetCollection<JobGraphDto>(_prefix + ".jobGraph");
+        public IMongoCollection<BaseJobDto> JobGraph => Database.GetCollection<BaseJobDto>(_prefix + ".jobGraph");
 
         /// <summary>
         /// Reference to collection which contains distributed locks

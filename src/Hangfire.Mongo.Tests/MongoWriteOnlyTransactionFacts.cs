@@ -31,7 +31,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_IfConnectionIsNull()
         {
-            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(null, _queueProviders, new MongoStorageOptions()));
+            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(null, _queueProviders));
 
             Assert.Equal("connection", exception.ParamName);
         }
@@ -39,17 +39,9 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Ctor_ThrowsAnException_IfProvidersCollectionIsNull()
         {
-            var exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(ConnectionUtils.CreateConnection(), null, new MongoStorageOptions()));
+            var exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(ConnectionUtils.CreateConnection(), null));
 
             Assert.Equal("queueProviders", exception.ParamName);
-        }
-
-        [Fact, CleanDatabase]
-        public void Ctor_ThrowsAnException_IfMongoStorageOptionsIsNull()
-        {
-            var exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(ConnectionUtils.CreateConnection(), _queueProviders, null));
-
-            Assert.Equal("options", exception.ParamName);
         }
 
         [Fact, CleanDatabase]
@@ -930,7 +922,7 @@ namespace Hangfire.Mongo.Tests
 
         private void Commit(HangfireDbContext connection, Action<MongoWriteOnlyTransaction> action)
         {
-            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection, _queueProviders, new MongoStorageOptions()))
+            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection, _queueProviders))
             {
                 action(transaction);
                 transaction.Commit();

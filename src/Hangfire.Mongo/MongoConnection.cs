@@ -47,7 +47,7 @@ namespace Hangfire.Mongo
 
         public override IWriteOnlyTransaction CreateWriteTransaction()
         {
-            return new MongoWriteOnlyTransaction(Database, _queueProviders, _storageOptions);
+            return new MongoWriteOnlyTransaction(Database, _queueProviders);
         }
 
         public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
@@ -336,12 +336,12 @@ namespace Hangfire.Mongo
                       Builders<SetDto>.Filter.Lte(_ => _.Score, toScore))
                 .SortBy(_ => _.Score)
                 .Project(_ => _.Value)
-                .FirstOrDefault() as string;
+                .FirstOrDefault();
         }
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
-            using (var transaction = new MongoWriteOnlyTransaction(Database, _queueProviders, _storageOptions))
+            using (var transaction = new MongoWriteOnlyTransaction(Database, _queueProviders))
             {
                 transaction.SetRangeInHash(key, keyValuePairs);
                 transaction.Commit();
@@ -546,7 +546,7 @@ namespace Hangfire.Mongo
                 .SortByDescending(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
-                .Project(_ => (string)_.Value)
+                .Project(_ => _.Value)
                 .ToList();
         }
 
@@ -562,7 +562,7 @@ namespace Hangfire.Mongo
                 .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
                 .SortByDescending(_ => _.Id)
-                .Project(_ => (string)_.Value)
+                .Project(_ => _.Value)
                 .ToList();
         }
     }
