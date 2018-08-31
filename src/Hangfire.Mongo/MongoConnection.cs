@@ -351,12 +351,15 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var result = Database
+            var result = new Dictionary<string, string>();
+
+            foreach (var hashDto in Database
                 .StateData
                 .OfType<HashDto>()
-                .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
-                .ToList()
-                .ToDictionary(x => x.Field, x => (string)x.Value);
+                .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).ToList())
+            {
+                result[hashDto.Field] = (string) hashDto.Value;
+            }
 
             return result.Count != 0 ? result : null;
         }
