@@ -179,18 +179,6 @@ namespace Hangfire.Mongo
         }
 
         /// <summary>
-        /// Returns collection of state handers
-        /// </summary>
-        /// <returns>Collection of state handers</returns>
-        public override IEnumerable<IStateHandler> GetStateHandlers()
-        {
-            yield return new FailedStateHandler();
-            yield return new ProcessingStateHandler();
-            yield return new SucceededStateHandler();
-            yield return new DeletedStateHandler();
-        }
-
-        /// <summary>
         /// Writes storage options to log
         /// </summary>
         /// <param name="logger">Logger</param>
@@ -206,7 +194,9 @@ namespace Hangfire.Mongo
         /// <returns>Database context</returns>
         public HangfireDbContext CreateAndOpenConnection()
         {
-            return _connectionString != null ? new HangfireDbContext(_connectionString, _databaseName, _storageOptions.Prefix) : new HangfireDbContext(_mongoClientSettings, _databaseName, _storageOptions.Prefix);
+            return _connectionString != null
+                ? new HangfireDbContext(_connectionString, _databaseName, _storageOptions.Prefix)
+                : new HangfireDbContext(_mongoClientSettings, _databaseName, _storageOptions.Prefix);
         }
 
         /// <summary>

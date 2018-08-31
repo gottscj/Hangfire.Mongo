@@ -50,15 +50,6 @@ namespace Hangfire.Mongo.Database
             ConnectionId = Guid.NewGuid().ToString();
         }
 
-        /// <summary>
-        /// Constructs context with existing Mongo database connection
-        /// </summary>
-        /// <param name="database">Database connection</param>
-        public HangfireDbContext(IMongoDatabase database)
-        {
-            Database = database;
-            ConnectionId = Guid.NewGuid().ToString();
-        }
 
         /// <summary>
         /// Mongo database connection identifier
