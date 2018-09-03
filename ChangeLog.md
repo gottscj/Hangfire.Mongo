@@ -1,5 +1,11 @@
 
-## What's New (19/11/2017)
+## What's New (03/09/2018)
+
+### v0.5.11
+- Fixed duplicate key exception in advanced setups (#70)
+- Fixed DeadLock on concurrent envorinment (#139)
+- Update to latest Hangfire
+- Update to latest MongoDB
 
 ### v0.5.10
 - Fix for Hangfire Dashboard History Graph showing incorrect counts
