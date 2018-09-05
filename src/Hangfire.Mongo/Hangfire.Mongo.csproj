@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>0.5.10</VersionPrefix>
+    <VersionPrefix>0.5.11</VersionPrefix>
     <TargetFrameworks>net46;net45;netstandard1.5</TargetFrameworks>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -22,7 +22,13 @@
     <owners>Sergey Zwezdin</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>v0.5.10
+    <PackageReleaseNotes>0.5.11
+- Fixed duplicate key exception in advanced setups (#70)
+- Fixed DeadLock on concurrent envorinment (#139)
+- Update to latest Hangfire
+- Update to latest MongoDB
+
+0.5.10
 - Fix for Hangfire Dashboard History Graph showing incorrect counts
 - Update to latest Hangfire
 - Update to latest MongoDB
