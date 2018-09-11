@@ -313,7 +313,7 @@ namespace Hangfire.Mongo
                 .Project(_ => _.Value)
                 .ToList();
 
-            return new HashSet<string>(result.Cast<string>());
+            return new HashSet<string>(result);
         }
 
         public override string GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore)
@@ -358,11 +358,11 @@ namespace Hangfire.Mongo
             var result = new Dictionary<string, string>();
 
             foreach (var hashDto in Database
-                .StateData
+                .JobGraph
                 .OfType<HashDto>()
                 .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).ToList())
             {
-                result[hashDto.Field] = (string) hashDto.Value;
+                result[hashDto.Field] = hashDto.Value;
             }
 
             return result.Count != 0 ? result : null;
@@ -396,7 +396,7 @@ namespace Hangfire.Mongo
                 .SortBy(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
-                .Project(dto => (string)dto.Value)
+                .Project(dto => dto.Value)
                 .ToList();
         }
 
@@ -441,7 +441,7 @@ namespace Hangfire.Mongo
 
             var values = counterQuery
                 .Concat(aggregatedCounterQuery)
-                .Select(c => (long)c)
+                .Select(c => c)
                 .ToArray();
 
             return values.Any() ? values.Sum() : 0;
@@ -497,7 +497,7 @@ namespace Hangfire.Mongo
                 .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key) & Builders<HashDto>.Filter.Eq(_ => _.Field, name))
                 .FirstOrDefault();
 
-            return result?.Value as string;
+            return result?.Value;
         }
 
         public override long GetListCount(string key)
