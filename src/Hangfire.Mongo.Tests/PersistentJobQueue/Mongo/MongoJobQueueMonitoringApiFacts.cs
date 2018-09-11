@@ -296,7 +296,7 @@ namespace Hangfire.Mongo.Tests.PersistentJobQueue.Mongo
                 jobQueue.FetchedAt = DateTime.UtcNow.AddDays(-1);
             }
 
-            connection.JobQueue.InsertOne(jobQueue);
+            connection.JobGraph.InsertOne(jobQueue);
 
             return jobQueue;
         }

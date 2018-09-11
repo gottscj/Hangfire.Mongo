@@ -68,12 +68,6 @@ namespace Hangfire.Mongo.Database
             .GetCollection<DistributedLockDto>(_prefix + ".locks");
 
         /// <summary>
-        /// Reference to collection which contains jobs queues
-        /// </summary>
-        public IMongoCollection<JobQueueDto> JobQueue =>
-            Database.GetCollection<JobQueueDto>(_prefix + ".jobQueue");
-
-        /// <summary>
         /// Reference to collection which contains schemas
         /// </summary>
         public IMongoCollection<SchemaDto> Schema => Database.GetCollection<SchemaDto>(_prefix + ".schema");

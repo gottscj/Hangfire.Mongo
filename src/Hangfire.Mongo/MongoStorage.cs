@@ -147,6 +147,7 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Queue providers collection
         /// </summary>
+        [Obsolete("We are removing support for external queue providers in 0.5.13")]
         public PersistentJobQueueProviderCollection QueueProviders { get; }
 
         /// <summary>

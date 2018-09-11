@@ -90,7 +90,6 @@ namespace Hangfire.Mongo.Migration
                 case MongoSchema.Version13:
                     return new[]
                     {
-                        prefix + ".jobQueue",
                         prefix + ".jobGraph",
                         prefix + ".locks",
                         prefix + ".schema",

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
-    public class JobDto : BaseJobDto
+    public class JobDto : ExpiringJobDto
     {
         public string StateName { get; set; }
 
@@ -17,6 +17,8 @@ namespace Hangfire.Mongo.Dto
         public StateDto[] StateHistory { get; set; } = new StateDto[0];
 
         public DateTime CreatedAt { get; set; }
+        
+        
     }
 #pragma warning restore 1591
 }

@@ -12,13 +12,12 @@ namespace Hangfire.Mongo.Dto
         typeof(ListDto),
         typeof(SetDto),
         typeof(HashDto),
-        typeof(JobDto))]
+        typeof(JobDto),
+        typeof(KeyJobDto))]
     public class BaseJobDto
     {
         [BsonId]
         public ObjectId Id { get; set; }
-        
-        public DateTime? ExpireAt { get; set; }
     }
 #pragma warning restore 1591
 }

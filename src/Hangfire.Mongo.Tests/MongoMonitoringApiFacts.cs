@@ -22,22 +22,20 @@ namespace Hangfire.Mongo.Tests
         private const string FetchedStateName = "Fetched";
         private const int From = 0;
         private const int PerPage = 5;
-        private readonly Mock<IPersistentJobQueue> _queue;
-        private readonly Mock<IPersistentJobQueueProvider> _provider;
         private readonly Mock<IPersistentJobQueueMonitoringApi> _persistentJobQueueMonitoringApi;
         private readonly PersistentJobQueueProviderCollection _providers;
 
         public MongoMonitoringApiFacts()
         {
-            _queue = new Mock<IPersistentJobQueue>();
+            var queue = new Mock<IPersistentJobQueue>();
             _persistentJobQueueMonitoringApi = new Mock<IPersistentJobQueueMonitoringApi>();
 
-            _provider = new Mock<IPersistentJobQueueProvider>();
-            _provider.Setup(x => x.GetJobQueue(It.IsNotNull<HangfireDbContext>())).Returns(_queue.Object);
-            _provider.Setup(x => x.GetJobQueueMonitoringApi(It.IsNotNull<HangfireDbContext>()))
+            var provider = new Mock<IPersistentJobQueueProvider>();
+            provider.Setup(x => x.GetJobQueue(It.IsNotNull<HangfireDbContext>())).Returns(queue.Object);
+            provider.Setup(x => x.GetJobQueueMonitoringApi(It.IsNotNull<HangfireDbContext>()))
                 .Returns(_persistentJobQueueMonitoringApi.Object);
 
-            _providers = new PersistentJobQueueProviderCollection(_provider.Object);
+            _providers = new PersistentJobQueueProviderCollection(provider.Object);
         }
 
         [Fact, CleanDatabase]
@@ -105,11 +103,9 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var jobIds = new List<string>();
-
                 _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
-                    .Returns(jobIds);
+                    .Returns(new List<string>());
 
                 var resultList = monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
 
@@ -183,11 +179,9 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var jobIds = new List<string>();
-
                 _persistentJobQueueMonitoringApi.Setup(x => x
                     .GetFetchedJobIds(DefaultQueue, From, PerPage))
-                    .Returns(jobIds);
+                    .Returns(new List<string>());
 
                 var resultList = monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
 
@@ -544,7 +538,7 @@ namespace Hangfire.Mongo.Tests
                 jobQueueDto.FetchedAt = DateTime.UtcNow;
             }
 
-            database.JobQueue.InsertOne(jobQueueDto);
+            database.JobGraph.InsertOne(jobQueueDto);
 
             return jobDto;
         }

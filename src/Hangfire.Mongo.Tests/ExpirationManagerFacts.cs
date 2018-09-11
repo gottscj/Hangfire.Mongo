@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Hangfire.Mongo.Database;
@@ -261,7 +261,7 @@ namespace Hangfire.Mongo.Tests
         {
             var count = connection
                 .JobGraph
-                .OfType<KeyJobDto>()
+                .OfType<ExpiringJobDto>()
                 .Count(new BsonDocument());
 
             return count == 0;

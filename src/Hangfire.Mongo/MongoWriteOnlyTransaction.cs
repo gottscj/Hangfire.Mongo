@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.PersistentJobQueue;
@@ -19,6 +18,8 @@ namespace Hangfire.Mongo
 
     public sealed class MongoWriteOnlyTransaction : JobStorageTransaction
     {
+        private static readonly ILog Logger = LogProvider.For<MongoWriteOnlyTransaction>();
+        
         private readonly HangfireDbContext _connection;
 
         private readonly PersistentJobQueueProviderCollection _queueProviders;
@@ -195,7 +196,7 @@ namespace Hangfire.Mongo
                 ["$set"] = new BsonDocument(nameof(SetDto.Score), score),
                 ["$setOnInsert"] = new BsonDocument
                 {
-                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(KeyJobDto), nameof(SetDto)},
+                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(SetDto)},
                     [nameof(KeyJobDto.ExpireAt)] = BsonNull.Value
                 }
             };
@@ -268,20 +269,29 @@ namespace Hangfire.Mongo
             var start = keepStartingFrom + 1;
             var end = keepEndingAt + 1;
 
-            var listIds = ((IEnumerable<ListDto>) _connection.JobGraph.OfType<ListDto>()
-                    .Find(new BsonDocument())
-                    .Project(Builders<ListDto>.Projection.Include(_ => _.Key))
-                    .Project(_ => _)
-                    .ToList())
-                .Reverse()
-                .Select((data, i) => new {Index = i + 1, Data = data.Id})
-                .Where(_ => ((_.Index >= start) && (_.Index <= end)) == false)
-                .Select(_ => _.Data);
+            // get all ids
+            var allIds = _connection.JobGraph.OfType<ListDto>()
+                .Find(new BsonDocument())
+                .Project(doc => doc.Id)
+                .ToList();
+            
+            // Add LisDto's scheduled for insertion writemodels collection, add it here.
+            allIds
+                .AddRange(_writeModels.OfType<InsertOneModel<BsonDocument>>()
+                    .Where(model => ListDtoHasKey(key, model))
+                    .Select(model => model.Document["_id"].AsObjectId));
+
+            var toTrim = allIds
+                .OrderByDescending(id => id.Timestamp)    
+                .Select((id, i) => new {Index = i + 1, Id = id})
+                .Where(_ => (_.Index >= start && (_.Index <= end)) == false)
+                .Select(_ => _.Id)
+                .ToList();
 
             var filter = new BsonDocument("$and", new BsonArray
             {
                 new BsonDocument(nameof(KeyJobDto.Key), key),
-                new BsonDocument("$in", new BsonArray(listIds)),
+                new BsonDocument("_id", new BsonDocument("$in", new BsonArray(toTrim))),
                 new BsonDocument("_t", nameof(ListDto))
             });
 
@@ -317,7 +327,7 @@ namespace Hangfire.Mongo
                     ["$set"] = new BsonDocument(nameof(HashDto.Value), value),
                     ["$setOnInsert"] = new BsonDocument
                     {
-                        ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(KeyJobDto), nameof(HashDto)},
+                        ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(HashDto)},
                         [nameof(HashDto.ExpireAt)] = BsonNull.Value
                     }
                 };
@@ -341,21 +351,15 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
-            Console.ForegroundColor = ConsoleColor.DarkCyan;
-            foreach (var tuple in _jobsToEnqueue)
+            if (Logger.IsDebugEnabled())
             {
-                Console.WriteLine($"Enqueuing Job ({tuple.Item2}), on queue: '{tuple.Item1}'\r\n");
-                Debug.WriteLine($"Enqueuing Job ({tuple.Item2}), on queue: '{tuple.Item1}'\r\n");
-            }
+                foreach (var tuple in _jobsToEnqueue)
+                {
+                    Logger.Debug($"Enqueuing Job ({tuple.Item2}), on queue: '{tuple.Item1}'\r\n");
+                }
 
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine($"\r\nCommit:\r\n {string.Join("\r\n", _writeModels.Select(SerializeWriteModel))}");
-            Console.ResetColor();
-            Debug.WriteLine($"\r\nCommit:\r\n {string.Join("\r\n", _writeModels.Select(SerializeWriteModel))}");
-            var writeTask = _connection
-                .Database
-                .GetCollection<BsonDocument>(_connection.JobGraph.CollectionNamespace.CollectionName)
-                .BulkWriteAsync(_writeModels);
+                Logger.Debug($"\r\nCommit:\r\n {string.Join("\r\n", _writeModels.Select(SerializeWriteModel))}");
+            }
 
             var writeTasks = _jobsToEnqueue.Select(t =>
             {
@@ -366,7 +370,16 @@ namespace Hangfire.Mongo
                 return Task.Run(() => persistentQueue.Enqueue(queue, jobId));
             }).ToList();
 
-            writeTasks.Add(writeTask);
+            if (_writeModels.Any())
+            {
+                var writeTask = _connection
+                    .Database
+                    .GetCollection<BsonDocument>(_connection.JobGraph.CollectionNamespace.CollectionName)
+                    .BulkWriteAsync(_writeModels);
+
+                writeTasks.Add(writeTask);
+            }
+           
 
             // make sure to run tasks on default task scheduler
             Task.Run(() => Task.WhenAll(writeTasks)).GetAwaiter().GetResult();
@@ -445,7 +458,7 @@ namespace Hangfire.Mongo
             });
 
             var update = new BsonDocument("$set",
-                new BsonDocument(nameof(BaseJobDto.ExpireAt), DateTime.UtcNow.Add(expireIn)));
+                new BsonDocument(nameof(SetDto.ExpireAt), DateTime.UtcNow.Add(expireIn)));
 
             var writeModel = new UpdateManyModel<BsonDocument>(filter, update);
             _writeModels.Add(writeModel);
@@ -465,7 +478,7 @@ namespace Hangfire.Mongo
             });
 
             var update = new BsonDocument("$set",
-                new BsonDocument(nameof(BaseJobDto.ExpireAt), DateTime.UtcNow.Add(expireIn)));
+                new BsonDocument(nameof(ListDto.ExpireAt), DateTime.UtcNow.Add(expireIn)));
             var writeModel = new UpdateManyModel<BsonDocument>(filter, update);
             _writeModels.Add(writeModel);
         }
@@ -484,7 +497,7 @@ namespace Hangfire.Mongo
             });
 
             var update = new BsonDocument("$set",
-                new BsonDocument(nameof(BaseJobDto.ExpireAt), DateTime.UtcNow.Add(expireIn)));
+                new BsonDocument(nameof(HashDto.ExpireAt), DateTime.UtcNow.Add(expireIn)));
             var writeModel = new UpdateManyModel<BsonDocument>(filter, update);
             _writeModels.Add(writeModel);
         }
@@ -504,7 +517,7 @@ namespace Hangfire.Mongo
             });
 
             var update = new BsonDocument("$set",
-                new BsonDocument(nameof(BaseJobDto.ExpireAt), BsonNull.Value));
+                new BsonDocument(nameof(SetDto.ExpireAt), BsonNull.Value));
 
             var writeModel = new UpdateManyModel<BsonDocument>(filter, update);
             _writeModels.Add(writeModel);
@@ -524,7 +537,7 @@ namespace Hangfire.Mongo
             });
 
             var update = new BsonDocument("$set",
-                new BsonDocument(nameof(BaseJobDto.ExpireAt), BsonNull.Value));
+                new BsonDocument(nameof(ListDto.ExpireAt), BsonNull.Value));
 
             var writeModel = new UpdateManyModel<BsonDocument>(filter, update);
             _writeModels.Add(writeModel);
@@ -544,7 +557,7 @@ namespace Hangfire.Mongo
             });
 
             var update = new BsonDocument("$set",
-                new BsonDocument(nameof(BaseJobDto.ExpireAt), BsonNull.Value));
+                new BsonDocument(nameof(HashDto.ExpireAt), BsonNull.Value));
 
             var writeModel = new UpdateManyModel<BsonDocument>(filter, update);
             _writeModels.Add(writeModel);
@@ -568,7 +581,7 @@ namespace Hangfire.Mongo
                 ["$set"] = new BsonDocument(nameof(SetDto.Score), 0.0),
                 ["$setOnInsert"] = new BsonDocument
                 {
-                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(KeyJobDto), nameof(SetDto)},
+                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(SetDto)},
                     [nameof(SetDto.ExpireAt)] = BsonNull.Value
                 }
             };
@@ -611,6 +624,12 @@ namespace Hangfire.Mongo
                 new BsonDocument("_id", ObjectId.Parse(jobId)),
                 new BsonDocument("_t", nameof(JobDto))
             });
+        }
+
+        private static bool ListDtoHasKey(string key, InsertOneModel<BsonDocument> model)
+        {
+            return model.Document["_t"].AsBsonArray.Last().AsString == nameof(ListDto) &&
+                   model.Document[nameof(ListDto.Key)].AsString == key;
         }
     }
 

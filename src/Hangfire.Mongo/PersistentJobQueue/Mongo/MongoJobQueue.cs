@@ -59,7 +59,10 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
                 foreach (var queue in queues)
                 {
-                    fetchedJob = _connection.JobQueue.FindOneAndUpdate(
+                    fetchedJob = _connection
+                        .JobGraph
+                        .OfType<JobQueueDto>()
+                        .FindOneAndUpdate(
                             fetchCondition & filter.Eq(_ => _.Queue, queue),
                             Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, DateTime.UtcNow),
                             options,
@@ -91,10 +94,12 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
         public void Enqueue(string queue, string jobId)
         {
-            _connection.JobQueue.InsertOne(new JobQueueDto
+            _connection.JobGraph.InsertOne(new JobQueueDto
             {
                 JobId = ObjectId.Parse(jobId),
-                Queue = queue
+                Queue = queue,
+                Id = ObjectId.GenerateNewId(),
+                FetchedAt = null
             });
         }
     }

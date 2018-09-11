@@ -314,7 +314,9 @@ namespace Hangfire.Mongo
                 .ToList();
 
             var filterBuilder = Builders<JobQueueDto>.Filter;
-            var enqueuedJobs = _dbContext.JobQueue
+            var enqueuedJobs = _dbContext
+                .JobGraph
+                .OfType<JobQueueDto>()
                 .Find(filterBuilder.In(_ => _.JobId, jobs.Select(job => job.Id)) &
                       (filterBuilder.Not(filterBuilder.Exists(_ => _.FetchedAt)) |
                        filterBuilder.Eq(_ => _.FetchedAt, null)))
@@ -402,7 +404,7 @@ namespace Hangfire.Mongo
                 .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobObjectIds))
                 .ToList();
 
-            var jobIdToJobQueueMap = connection.JobQueue
+            var jobIdToJobQueueMap = connection.JobGraph.OfType<JobQueueDto>()
                 .Find(Builders<JobQueueDto>.Filter.In(_ => _.JobId, jobs.Select(job => job.Id))
                       & Builders<JobQueueDto>.Filter.Exists(_ => _.FetchedAt)
                       & Builders<JobQueueDto>.Filter.Not(Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)))

@@ -8,7 +8,7 @@ using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration.Steps.Version13
 {
-    internal class CombineJobsAndStateData : IMongoMigrationStep
+    internal class CombineJobsStateDataAndJobQueue : IMongoMigrationStep
     {
         public MongoSchema TargetSchema => MongoSchema.Version13;
 
@@ -25,12 +25,18 @@ namespace Hangfire.Mongo.Migration.Steps.Version13
                 .GetCollection<BsonDocument>(storageOptions.Prefix + ".job")
                 .Find(new BsonDocument())
                 .ToListAsync();
+            
+            var jobQueueFindTask = database
+                .GetCollection<BsonDocument>(storageOptions.Prefix + ".jobQueue")
+                .Find(new BsonDocument())
+                .ToListAsync();
 
             // run in parallel, make sure we dont deadlock if we have a synchronization context
-            Task.Run(() => Task.WhenAll(stateDataFindTask, jobFindTask)).GetAwaiter().GetResult();
+            Task.Run(() => Task.WhenAll(stateDataFindTask, jobFindTask, jobQueueFindTask)).GetAwaiter().GetResult();
 
             var jobs = jobFindTask.Result;
             var stateData = stateDataFindTask.Result;
+            var jobQueue = jobQueueFindTask.Result;
             
             foreach (var data in stateData)
             {
@@ -44,15 +50,20 @@ namespace Hangfire.Mongo.Migration.Steps.Version13
                     throw new InvalidOperationException($"Expected '_t' element in stateData entity, got: {data.ToJson()}");
                 }
                 
-                data["_t"] = new BsonArray(new []{nameof(BaseJobDto), nameof(KeyJobDto), typeName});
+                data["_t"] = new BsonArray(new []{nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), typeName});
             }
             
             foreach (var job in jobs)
             {
-                job["_t"] = new BsonArray(new[] {nameof(BaseJobDto), nameof(JobDto)});
+                job["_t"] = new BsonArray(new[] {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(JobDto)});
             }
 
-            var jobGraphEntities = jobs.Concat(stateData);
+            foreach (var jobQ in jobQueue)
+            {
+                jobQ["_t"] = new BsonArray{nameof(BaseJobDto), nameof(JobQueueDto)};
+            }
+
+            var jobGraphEntities = jobs.Concat(stateData).Concat(jobQueue);
             if(jobGraphEntities.Any())
             {
                 database

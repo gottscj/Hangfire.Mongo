@@ -14,15 +14,12 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
         public MongoJobQueueMonitoringApi(HangfireDbContext connection)
         {
-            if (connection == null)
-                throw new ArgumentNullException(nameof(connection));
-
-            _connection = connection;
+            _connection = connection ?? throw new ArgumentNullException(nameof(connection));
         }
 
         public IEnumerable<string> GetQueues()
         {
-            return _connection.JobQueue
+            return _connection.JobGraph.OfType<JobQueueDto>()
                 .Find(new BsonDocument())
                 .Project(_ => _.Queue)
                 .ToList().Distinct().ToList();
@@ -30,7 +27,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
         public IEnumerable<string> GetEnqueuedJobIds(string queue, int from, int perPage)
         {
-            return _connection.JobQueue
+            return _connection.JobGraph.OfType<JobQueueDto>()
                 .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null))
                 .Skip(from)
                 .Limit(perPage)
@@ -46,7 +43,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
         public IEnumerable<string> GetFetchedJobIds(string queue, int from, int perPage)
         {
-            return _connection.JobQueue
+            return _connection.JobGraph.OfType<JobQueueDto>()
                 .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null))
                 .Skip(from)
                 .Limit(perPage)
@@ -63,10 +60,10 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
         public EnqueuedAndFetchedCountDto GetEnqueuedAndFetchedCount(string queue)
         {
-            int enqueuedCount = (int)_connection.JobQueue.Count(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
+            int enqueuedCount = (int)_connection.JobGraph.OfType<JobQueueDto>().Count(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
                                                 Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null));
 
-            int fetchedCount = (int)_connection.JobQueue.Count(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
+            int fetchedCount = (int)_connection.JobGraph.OfType<JobQueueDto>().Count(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
                                                 Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null));
 
             return new EnqueuedAndFetchedCountDto

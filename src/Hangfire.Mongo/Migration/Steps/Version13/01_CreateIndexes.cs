@@ -13,11 +13,9 @@ namespace Hangfire.Mongo.Migration.Steps.Version13
             var indexBuilder = Builders<BsonDocument>.IndexKeys;
             
             var jobGraphCollection = database.GetCollection<BsonDocument>(storageOptions.Prefix + ".jobGraph");
-            jobGraphCollection.TryCreateIndexes(indexBuilder.Descending, "StateName", "ExpireAt", "_t");
+            jobGraphCollection.TryCreateIndexes(indexBuilder.Descending, "StateName", "ExpireAt", "_t", "Queue",
+                "FetchedAt");
             jobGraphCollection.TryCreateIndexes(indexBuilder.Ascending, "Key");
-            
-            var jobQueueCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobQueue");
-            jobQueueCollection.TryCreateIndexes(indexBuilder.Descending, "Queue", "FetchedAt");
             
             var locksCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.locks");
             locksCollection.TryCreateIndexes(indexBuilder.Descending, "Resource", "ExpireAt");
