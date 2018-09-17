@@ -128,7 +128,7 @@ namespace Hangfire.Mongo
 
             var update = new BsonDocument("$set", new BsonDocument($"{nameof(JobDto.Parameters)}.{name}", bsonValue));
 
-            Database.JobGraph.OfType<JobDto>().FindOneAndUpdate(filter, update);
+            Database.JobGraph.OfType<JobDto>().UpdateOne(filter, update);
         }
 
         public override string GetJobParameter(string id, string name)
@@ -355,17 +355,13 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var result = new Dictionary<string, string>();
-
-            foreach (var hashDto in Database
+            var hash = Database
                 .JobGraph
                 .OfType<HashDto>()
-                .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).ToList())
-            {
-                result[hashDto.Field] = hashDto.Value;
-            }
+                .Find(new BsonDocument(nameof(KeyJobDto.Key), key))
+                .FirstOrDefault();
 
-            return result.Count != 0 ? result : null;
+            return hash?.Fields;
         }
 
         public override long GetSetCount(string key)
@@ -425,26 +421,13 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var counterQuery = Database
+            var counter = Database
                 .JobGraph
                 .OfType<CounterDto>()
-                .Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, key))
-                .Project(_ => _.Value)
-                .ToList();
+                .Find(new BsonDocument(nameof(KeyJobDto.Key), key))
+                .FirstOrDefault();
 
-            var aggregatedCounterQuery = Database
-                .JobGraph
-                .OfType<AggregatedCounterDto>()
-                .Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, key))
-                .Project(_ => _.Value)
-                .ToList();
-
-            var values = counterQuery
-                .Concat(aggregatedCounterQuery)
-                .Select(c => c)
-                .ToArray();
-
-            return values.Any() ? values.Sum() : 0;
+            return counter?.Value ?? 0;
         }
 
         public override long GetHashCount(string key)
@@ -454,11 +437,13 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            return Database
+            var hash = Database
                 .JobGraph
                 .OfType<HashDto>()
-                .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
-                .Count();
+                .Find(new BsonDocument(nameof(KeyJobDto.Key), key))
+                .FirstOrDefault();
+
+            return hash?.Fields.Count ?? 0;
         }
 
         public override TimeSpan GetHashTtl(string key)
@@ -491,13 +476,19 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(name));
             }
 
+            var hashWithField = new BsonDocument("$and", new BsonArray
+            {
+                new BsonDocument(nameof(KeyJobDto.Key), key),
+                new BsonDocument($"{nameof(HashDto.Fields)}.{name}", new BsonDocument("$exists", true))
+            });
+            
             var result = Database
                 .JobGraph
                 .OfType<HashDto>()
-                .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key) & Builders<HashDto>.Filter.Eq(_ => _.Field, name))
+                .Find(hashWithField)
                 .FirstOrDefault();
 
-            return result?.Value;
+            return result?.Fields[name];
         }
 
         public override long GetListCount(string key)

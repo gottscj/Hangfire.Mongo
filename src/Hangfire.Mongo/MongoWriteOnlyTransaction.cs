@@ -104,74 +104,57 @@ namespace Hangfire.Mongo
 
         public override void IncrementCounter(string key)
         {
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            var counterDto = new CounterDto
-            {
-                Id = ObjectId.GenerateNewId(),
-                Key = key,
-                Value = +1L
-            };
-            var writeModel = new InsertOneModel<BsonDocument>(counterDto.ToBsonDocument());
-            _writeModels.Add(writeModel);
+            SetCounter(key, 1, null);
         }
 
         public override void IncrementCounter(string key, TimeSpan expireIn)
         {
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            var counterDto = new CounterDto
-            {
-                Id = ObjectId.GenerateNewId(),
-                Key = key,
-                Value = +1L,
-                ExpireAt = DateTime.UtcNow.Add(expireIn)
-            };
-            var writeModel = new InsertOneModel<BsonDocument>(counterDto.ToBsonDocument());
-            _writeModels.Add(writeModel);
+            SetCounter(key, 1, expireIn);
         }
-
-        public override void DecrementCounter(string key)
+        
+       public override void DecrementCounter(string key)
         {
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            var counterDto = new CounterDto
-            {
-                Id = ObjectId.GenerateNewId(),
-                Key = key,
-                Value = -1L
-            };
-            var writeModel = new InsertOneModel<BsonDocument>(counterDto.ToBsonDocument());
-            _writeModels.Add(writeModel);
+            SetCounter(key, -1, null);
         }
 
         public override void DecrementCounter(string key, TimeSpan expireIn)
         {
+           SetCounter(key, -1, expireIn);
+        }
+        
+        private void SetCounter(string key, long amount, TimeSpan? expireIn)
+        {
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var counterDto = new CounterDto
+            var filter = new BsonDocument("$and", new BsonArray
             {
-                Id = ObjectId.GenerateNewId(),
-                Key = key,
-                Value = -1L,
-                ExpireAt = DateTime.UtcNow.Add(expireIn)
+                new BsonDocument(nameof(CounterDto.Key), key),
+                new BsonDocument("_t", nameof(CounterDto)),
+            });
+            
+            BsonValue bsonDate = BsonNull.Value;
+            if (expireIn != null)
+            {
+                bsonDate = BsonValue.Create(DateTime.UtcNow.Add(expireIn.Value));
+            }
+            
+            var update = new BsonDocument
+            {
+                ["$inc"] = new BsonDocument(nameof(CounterDto.Value), amount),
+                ["$set"] = new BsonDocument(nameof(KeyJobDto.ExpireAt), bsonDate),
+                ["$setOnInsert"] = new BsonDocument
+                {
+                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(CounterDto)},
+                }
             };
-            var writeModel = new InsertOneModel<BsonDocument>(counterDto.ToBsonDocument());
+            
+            var writeModel = new UpdateOneModel<BsonDocument>(filter, update){IsUpsert = true};
             _writeModels.Add(writeModel);
         }
-
+        
         public override void AddToSet(string key, string value)
         {
             AddToSet(key, value, 0.0);
@@ -219,7 +202,7 @@ namespace Hangfire.Mongo
                 new BsonDocument("_t", nameof(SetDto))
             });
 
-            var writeModel = new DeleteManyModel<BsonDocument>(filter);
+            var writeModel = new DeleteOneModel<BsonDocument>(filter);
             _writeModels.Add(writeModel);
         }
 
@@ -311,30 +294,33 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(keyValuePairs));
             }
 
-            foreach (var keyValuePair in keyValuePairs)
+           var fields = new BsonDocument();
+            
+            foreach (var pair in keyValuePairs)
             {
-                var field = keyValuePair.Key;
-                var value = keyValuePair.Value;
-                var filter = new BsonDocument("$and", new BsonArray
-                {
-                    new BsonDocument(nameof(HashDto.Key), key),
-                    new BsonDocument(nameof(HashDto.Field), field),
-                    new BsonDocument("_t", nameof(HashDto))
-                });
-
-                var update = new BsonDocument
-                {
-                    ["$set"] = new BsonDocument(nameof(HashDto.Value), value),
-                    ["$setOnInsert"] = new BsonDocument
-                    {
-                        ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(HashDto)},
-                        [nameof(HashDto.ExpireAt)] = BsonNull.Value
-                    }
-                };
-
-                var writeModel = new UpdateManyModel<BsonDocument>(filter, update){IsUpsert = true};
-                _writeModels.Add(writeModel);
+                var field = pair.Key;
+                var value = pair.Value;
+                fields[$"{nameof(HashDto.Fields)}.{field}"] = value;
             }
+            
+            var update = new BsonDocument
+            {
+                ["$set"] = fields,
+                ["$setOnInsert"] = new BsonDocument
+                {
+                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(HashDto)},
+                    [nameof(HashDto.ExpireAt)] = BsonNull.Value
+                }
+            };
+            
+            var filter = new BsonDocument("$and", new BsonArray
+            {
+                new BsonDocument(nameof(HashDto.Key), key),
+                new BsonDocument("_t", nameof(HashDto))
+            });
+
+            var writeModel = new UpdateOneModel<BsonDocument>(filter, update){IsUpsert = true};
+            _writeModels.Add(writeModel);
         }
 
         public override void RemoveHash(string key)
@@ -438,7 +424,7 @@ namespace Hangfire.Mongo
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-
+            
             return $"{writeModel.ModelType}: {serializedDoc}";
         }
         // New methods to support Hangfire pro feature - batches.
@@ -498,7 +484,7 @@ namespace Hangfire.Mongo
 
             var update = new BsonDocument("$set",
                 new BsonDocument(nameof(HashDto.ExpireAt), DateTime.UtcNow.Add(expireIn)));
-            var writeModel = new UpdateManyModel<BsonDocument>(filter, update);
+            var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
             _writeModels.Add(writeModel);
         }
 
@@ -559,7 +545,7 @@ namespace Hangfire.Mongo
             var update = new BsonDocument("$set",
                 new BsonDocument(nameof(HashDto.ExpireAt), BsonNull.Value));
 
-            var writeModel = new UpdateManyModel<BsonDocument>(filter, update);
+            var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
             _writeModels.Add(writeModel);
         }
 
@@ -594,10 +580,9 @@ namespace Hangfire.Mongo
                     new BsonDocument(nameof(SetDto.Value), item),
                     new BsonDocument("_t", nameof(SetDto))
                 });
-                var writeModel = new UpdateManyModel<BsonDocument>(filter, update) {IsUpsert = true};
+                var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
                 _writeModels.Add(writeModel);
             }
-
         }
 
         public override void RemoveSet(string key)

@@ -137,26 +137,23 @@ namespace Hangfire.Mongo
             stats.Servers = _dbContext.Server.Count(new BsonDocument());
 
             var statsSucceeded = $@"stats:{State.Succeeded}";
-            var succeededItems = _dbContext.JobGraph.OfType<CounterDto>()
-                .Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, statsSucceeded)).ToList().Select(_ => (long) _.Value)
-                .Concat(_dbContext.JobGraph.OfType<AggregatedCounterDto>()
-                    .Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, statsSucceeded)).ToList()
-                    .Select(_ => (long) _.Value))
-                .ToArray();
-
-            stats.Succeeded = succeededItems.Any() ? succeededItems.Sum() : 0;
+            var succeededCounter = _dbContext.JobGraph.OfType<CounterDto>()
+                .Find(new BsonDocument(nameof(KeyJobDto.Key), statsSucceeded))
+                .FirstOrDefault();
+                
+            stats.Succeeded = succeededCounter?.Value ?? 0;
 
             var statsDeleted = $@"stats:{State.Deleted}";
-            var deletedItems = _dbContext.JobGraph.OfType<CounterDto>()
-                .Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, statsDeleted)).ToList().Select(_ => (long) _.Value)
-                .Concat(_dbContext.JobGraph.OfType<AggregatedCounterDto>()
-                    .Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, statsDeleted)).ToList()
-                    .Select(_ => (long) _.Value))
-                .ToArray();
-            stats.Deleted = deletedItems.Any() ? deletedItems.Sum() : 0;
+            var deletedCounter = _dbContext.JobGraph.OfType<CounterDto>()
+                .Find(new BsonDocument(nameof(KeyJobDto.Key), statsDeleted))
+                .FirstOrDefault();
+            
+            stats.Deleted = deletedCounter?.Value ?? 0;
 
-            stats.Recurring = _dbContext.JobGraph.OfType<SetDto>()
-                .Count(Builders<SetDto>.Filter.Eq(_ => _.Key, "recurring-jobs"));
+            stats.Recurring = _dbContext
+                .JobGraph
+                .OfType<SetDto>()
+                .Count(new BsonDocument(nameof(KeyJobDto.Key), "recurring-jobs"));
 
             stats.Queues = _queueProviders
                 .SelectMany(x => x.GetJobQueueMonitoringApi(_dbContext).GetQueues())
@@ -507,7 +504,7 @@ namespace Hangfire.Mongo
             }
 
             var stringDates = dates.Select(x => x.ToString("yyyy-MM-dd")).ToList();
-            var keys = stringDates.Select(x => $"stats:{type}:{x}").ToList();
+            var keys = stringDates.Select(x => $"stats:{type}:{x}");
 
             return CreateTimeLineStats(keys, dates);
         }
@@ -522,36 +519,19 @@ namespace Hangfire.Mongo
                 endDate = endDate.AddHours(-1);
             }
 
-            var keys = dates.Select(x => $"stats:{type}:{x:yyyy-MM-dd-HH}").ToList();
+            var keys = dates.Select(x => $"stats:{type}:{x:yyyy-MM-dd-HH}");
 
             return CreateTimeLineStats(keys, dates);
         }
 
-        private Dictionary<DateTime, long> CreateTimeLineStats(ICollection<string> keys, IList<DateTime> dates)
+        private Dictionary<DateTime, long> CreateTimeLineStats(IEnumerable<string> keys, IList<DateTime> dates)
         {
+            var bsonKeys = BsonArray.Create(keys);
             var valuesMap = _dbContext.JobGraph.OfType<CounterDto>()
-                .Find(Builders<CounterDto>.Filter.In(_ => _.Key, keys))
+                .Find(new BsonDocument(nameof(CounterDto.Key), new BsonDocument("$in", bsonKeys)))
                 .ToList()
-                .GroupBy(x => x.Key, x => x)
-                .ToDictionary(x => x.Key, x => (long) x.Count());
-
-            var valuesMapAggregated = _dbContext.JobGraph.OfType<AggregatedCounterDto>()
-                .Find(Builders<AggregatedCounterDto>.Filter.In(_ => _.Key, keys))
-                .ToList()
-                .GroupBy(x => x.Key)
-                .ToDictionary(x => x.Key, x => x.Sum(v => (long) v.Value));
-
-            foreach (var valuePair in valuesMapAggregated)
-            {
-                if (valuesMap.ContainsKey(valuePair.Key))
-                {
-                    valuesMap[valuePair.Key] += valuePair.Value;
-                }
-                else
-                {
-                    valuesMap[valuePair.Key] = valuePair.Value;
-                }
-            }
+                .GroupBy(counter => counter.Key, counter => counter)
+                .ToDictionary(counter => counter.Key, grouping => grouping.Sum(c => c.Value));
 
             foreach (var key in keys.Where(key => !valuesMap.ContainsKey(key)))
             {
