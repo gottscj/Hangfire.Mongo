@@ -50,17 +50,17 @@ namespace Hangfire.Mongo.Migration.Steps.Version13
                     throw new InvalidOperationException($"Expected '_t' element in stateData entity, got: {data.ToJson()}");
                 }
                 
-                data["_t"] = new BsonArray(new []{nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), typeName});
+                data["_t"] = new BsonArray(new []{"BaseJobDto", "ExpiringJobDto", "KeyJobDto", typeName});
             }
             
             foreach (var job in jobs)
             {
-                job["_t"] = new BsonArray(new[] {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(JobDto)});
+                job["_t"] = new BsonArray(new[] {"BaseJobDto", "ExpiringJobDto", "JobDto"});
             }
 
             foreach (var jobQ in jobQueue)
             {
-                jobQ["_t"] = new BsonArray{nameof(BaseJobDto), nameof(JobQueueDto)};
+                jobQ["_t"] = new BsonArray{"BaseJobDto", "JobQueueDto"};
             }
 
             var jobGraphEntities = jobs.Concat(stateData).Concat(jobQueue);
