@@ -5,11 +5,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
-using Hangfire.Mongo.PersistentJobQueue;
-using Hangfire.Mongo.PersistentJobQueue.Mongo;
-using Hangfire.Mongo.StateHandlers;
 using Hangfire.Server;
-using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
@@ -94,9 +90,6 @@ namespace Hangfire.Mongo
 
             Connection = new HangfireDbContext(connectionString, databaseName, storageOptions.Prefix);
             Connection.Init(_storageOptions);
-
-            var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
-            QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }
 
         /// <summary>
@@ -135,9 +128,6 @@ namespace Hangfire.Mongo
             _storageOptions = storageOptions;
 
             Connection = new HangfireDbContext(mongoClientSettings, databaseName, _storageOptions.Prefix);
-
-            var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
-            QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }
 
         /// <summary>
@@ -146,17 +136,12 @@ namespace Hangfire.Mongo
         public HangfireDbContext Connection { get; }
 
         /// <summary>
-        /// Queue providers collection
-        /// </summary>
-        public PersistentJobQueueProviderCollection QueueProviders { get; }
-
-        /// <summary>
         /// Returns Monitoring API object
         /// </summary>
         /// <returns>Monitoring API object</returns>
         public override IMonitoringApi GetMonitoringApi()
         {
-            return new MongoMonitoringApi(Connection, QueueProviders);
+            return new MongoMonitoringApi(Connection);
         }
 
         /// <summary>
@@ -165,7 +150,7 @@ namespace Hangfire.Mongo
         /// <returns>Storage connection</returns>
         public override IStorageConnection GetConnection()
         {
-            return new MongoConnection(Connection, _storageOptions, QueueProviders);
+            return new MongoConnection(Connection, _storageOptions);
         }
 
         /// <summary>
@@ -175,7 +160,6 @@ namespace Hangfire.Mongo
         public override IEnumerable<IServerComponent> GetComponents()
         {
             yield return new ExpirationManager(this, _storageOptions.JobExpirationCheckInterval);
-            yield return new CountersAggregator(this, _storageOptions.CountersAggregateInterval);
         }
 
         /// <summary>

@@ -1,9 +1,11 @@
-﻿namespace Hangfire.Mongo.Dto
+﻿using System.Collections.Generic;
+
+namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
-    public class HashDto : ExpiringKeyValueDto
+    public class HashDto : KeyJobDto
     {
-        public string Field { get; set; }
+        public Dictionary<string, string> Fields { get; set; }
     }
 #pragma warning restore 1591
 }

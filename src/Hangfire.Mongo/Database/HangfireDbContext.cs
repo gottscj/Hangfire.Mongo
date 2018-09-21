@@ -57,27 +57,15 @@ namespace Hangfire.Mongo.Database
         public string ConnectionId { get; private set; }
 
         /// <summary>
-        /// Reference to collection which contains various state information
+        /// Reference to job graph collection
         /// </summary>
-        public IMongoCollection<KeyValueDto> StateData =>
-            Database.GetCollection<KeyValueDto>(_prefix + ".stateData");
+        public IMongoCollection<BaseJobDto> JobGraph => Database.GetCollection<BaseJobDto>(_prefix + ".jobGraph");
 
         /// <summary>
         /// Reference to collection which contains distributed locks
         /// </summary>
         public IMongoCollection<DistributedLockDto> DistributedLock => Database
             .GetCollection<DistributedLockDto>(_prefix + ".locks");
-
-        /// <summary>
-        /// Reference to collection which contains jobs
-        /// </summary>
-        public IMongoCollection<JobDto> Job => Database.GetCollection<JobDto>(_prefix + ".job");
-
-        /// <summary>
-        /// Reference to collection which contains jobs queues
-        /// </summary>
-        public IMongoCollection<JobQueueDto> JobQueue =>
-            Database.GetCollection<JobQueueDto>(_prefix + ".jobQueue");
 
         /// <summary>
         /// Reference to collection which contains schemas

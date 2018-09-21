@@ -1,17 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson.Serialization.IdGenerators;
 
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
-    public class JobDto
+    public class JobDto : ExpiringJobDto
     {
-        [BsonId]
-        public ObjectId Id { get; set; }
-
         public string StateName { get; set; }
 
         public string InvocationData { get; set; }
@@ -23,8 +17,6 @@ namespace Hangfire.Mongo.Dto
         public StateDto[] StateHistory { get; set; } = new StateDto[0];
 
         public DateTime CreatedAt { get; set; }
-
-        public DateTime? ExpireAt { get; set; }
     }
 #pragma warning restore 1591
 }

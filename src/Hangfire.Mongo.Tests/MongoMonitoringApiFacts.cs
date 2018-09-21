@@ -22,24 +22,7 @@ namespace Hangfire.Mongo.Tests
         private const string FetchedStateName = "Fetched";
         private const int From = 0;
         private const int PerPage = 5;
-        private readonly Mock<IPersistentJobQueue> _queue;
-        private readonly Mock<IPersistentJobQueueProvider> _provider;
-        private readonly Mock<IPersistentJobQueueMonitoringApi> _persistentJobQueueMonitoringApi;
-        private readonly PersistentJobQueueProviderCollection _providers;
-
-        public MongoMonitoringApiFacts()
-        {
-            _queue = new Mock<IPersistentJobQueue>();
-            _persistentJobQueueMonitoringApi = new Mock<IPersistentJobQueueMonitoringApi>();
-
-            _provider = new Mock<IPersistentJobQueueProvider>();
-            _provider.Setup(x => x.GetJobQueue(It.IsNotNull<HangfireDbContext>())).Returns(_queue.Object);
-            _provider.Setup(x => x.GetJobQueueMonitoringApi(It.IsNotNull<HangfireDbContext>()))
-                .Returns(_persistentJobQueueMonitoringApi.Object);
-
-            _providers = new PersistentJobQueueProviderCollection(_provider.Object);
-        }
-
+        
         [Fact, CleanDatabase]
         public void GetStatistics_ReturnsZero_WhenNoJobsExist()
         {
@@ -105,12 +88,6 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var jobIds = new List<string>();
-
-                _persistentJobQueueMonitoringApi.Setup(x => x
-                    .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
-                    .Returns(jobIds);
-
                 var resultList = monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
 
                 Assert.Empty(resultList);
@@ -122,13 +99,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var unfetchedJob = CreateJobInState(database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
-
-                var jobIds = new List<string> { unfetchedJob.Id.ToString() };
-                _persistentJobQueueMonitoringApi.Setup(x => x
-                    .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
-                    .Returns(jobIds);
-
+                CreateJobInState(database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
                 var resultList = monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
 
                 Assert.Single(resultList);
@@ -140,13 +111,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var fetchedJob = CreateJobInState(database, ObjectId.GenerateNewId(1), FetchedStateName);
-
-                var jobIds = new List<string> { fetchedJob.Id.ToString() };
-                _persistentJobQueueMonitoringApi.Setup(x => x
-                    .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
-                    .Returns(jobIds);
-
+                CreateJobInState(database, ObjectId.GenerateNewId(1), FetchedStateName);
                 var resultList = monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
 
                 Assert.Empty(resultList);
@@ -158,19 +123,9 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var unfetchedJob = CreateJobInState(database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
-                var unfetchedJob2 = CreateJobInState(database, ObjectId.GenerateNewId(2), EnqueuedState.StateName);
-                var fetchedJob = CreateJobInState(database, ObjectId.GenerateNewId(3), FetchedStateName);
-
-                var jobIds = new List<string>
-                {
-                    unfetchedJob.Id.ToString(),
-                    unfetchedJob2.Id.ToString(),
-                    fetchedJob.Id.ToString()
-                };
-                _persistentJobQueueMonitoringApi.Setup(x => x
-                    .GetEnqueuedJobIds(DefaultQueue, From, PerPage))
-                    .Returns(jobIds);
+                CreateJobInState(database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
+                CreateJobInState(database, ObjectId.GenerateNewId(2), EnqueuedState.StateName);
+                CreateJobInState(database, ObjectId.GenerateNewId(3), FetchedStateName);
 
                 var resultList = monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
 
@@ -183,12 +138,6 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var jobIds = new List<string>();
-
-                _persistentJobQueueMonitoringApi.Setup(x => x
-                    .GetFetchedJobIds(DefaultQueue, From, PerPage))
-                    .Returns(jobIds);
-
                 var resultList = monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
 
                 Assert.Empty(resultList);
@@ -200,13 +149,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var fetchedJob = CreateJobInState(database, ObjectId.GenerateNewId(1), FetchedStateName);
-
-                var jobIds = new List<string> { fetchedJob.Id.ToString() };
-                _persistentJobQueueMonitoringApi.Setup(x => x
-                    .GetFetchedJobIds(DefaultQueue, From, PerPage))
-                    .Returns(jobIds);
-
+                CreateJobInState(database, ObjectId.GenerateNewId(1), FetchedStateName);
                 var resultList = monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
 
                 Assert.Single(resultList);
@@ -218,13 +161,7 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var unfetchedJob = CreateJobInState(database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
-
-                var jobIds = new List<string> { unfetchedJob.Id.ToString() };
-                _persistentJobQueueMonitoringApi.Setup(x => x
-                    .GetFetchedJobIds(DefaultQueue, From, PerPage))
-                    .Returns(jobIds);
-
+                CreateJobInState(database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
                 var resultList = monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
 
                 Assert.Empty(resultList);
@@ -236,19 +173,9 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var fetchedJob = CreateJobInState(database, ObjectId.GenerateNewId(1), FetchedStateName);
-                var fetchedJob2 = CreateJobInState(database, ObjectId.GenerateNewId(2), FetchedStateName);
-                var unfetchedJob = CreateJobInState(database, ObjectId.GenerateNewId(3), EnqueuedState.StateName);
-
-                var jobIds = new List<string>
-                {
-                    fetchedJob.Id.ToString(),
-                    fetchedJob2.Id.ToString(),
-                    unfetchedJob.Id.ToString()
-                };
-                _persistentJobQueueMonitoringApi.Setup(x => x
-                    .GetFetchedJobIds(DefaultQueue, From, PerPage))
-                    .Returns(jobIds);
+                CreateJobInState(database, ObjectId.GenerateNewId(1), FetchedStateName);
+                CreateJobInState(database, ObjectId.GenerateNewId(2), FetchedStateName);
+                CreateJobInState(database, ObjectId.GenerateNewId(3), EnqueuedState.StateName);
 
                 var resultList = monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
 
@@ -261,9 +188,9 @@ namespace Hangfire.Mongo.Tests
         {
             UseMonitoringApi((database, monitoringApi) =>
             {
-                var processingJob = CreateJobInState(database, ObjectId.GenerateNewId(1), ProcessingState.StateName);
+                CreateJobInState(database, ObjectId.GenerateNewId(1), ProcessingState.StateName);
 
-                var succeededJob = CreateJobInState(database, ObjectId.GenerateNewId(2), SucceededState.StateName, jobDto =>
+                CreateJobInState(database, ObjectId.GenerateNewId(2), SucceededState.StateName, jobDto =>
                 {
                     var processingState = new StateDto()
                     {
@@ -282,17 +209,7 @@ namespace Hangfire.Mongo.Tests
                     return jobDto;
                 });
 
-                var enqueuedJob = CreateJobInState(database, ObjectId.GenerateNewId(3), EnqueuedState.StateName);
-
-                var jobIds = new List<string>
-                {
-                    processingJob.Id.ToString(),
-                    succeededJob.Id.ToString(),
-                    enqueuedJob.Id.ToString()
-                };
-                _persistentJobQueueMonitoringApi.Setup(x => x
-                        .GetFetchedJobIds(DefaultQueue, From, PerPage))
-                    .Returns(jobIds);
+                CreateJobInState(database, ObjectId.GenerateNewId(3), EnqueuedState.StateName);
 
                 var resultList = monitoringApi.ProcessingJobs(From, PerPage);
 
@@ -309,17 +226,6 @@ namespace Hangfire.Mongo.Tests
                 var failedJob1 = CreateJobInState(database, ObjectId.GenerateNewId(2), FailedState.StateName);
                 var failedJob2 = CreateJobInState(database, ObjectId.GenerateNewId(3), FailedState.StateName);
 
-
-                var jobIds = new List<string>
-                {
-                    failedJob0.Id.ToString(),
-                    failedJob1.Id.ToString(),
-                    failedJob2.Id.ToString()
-                };
-                _persistentJobQueueMonitoringApi.Setup(x => x
-                        .GetFetchedJobIds(DefaultQueue, From, PerPage))
-                    .Returns(jobIds);
-
                 var resultList = monitoringApi.FailedJobs(From, PerPage);
 
                 Assert.Equal(failedJob0.Id.ToString(), resultList[2].Key);
@@ -334,30 +240,20 @@ namespace Hangfire.Mongo.Tests
             UseMonitoringApi((database, monitoringApi) =>
             {
                 var date = DateTime.UtcNow.Date;
-                var counters = new List<CounterDto>();
                 var succededCount = 10L;
-                for (int i = 0; i < succededCount; i++)
-                {
-                    counters.Add(new CounterDto
-                    {
-                        Id = ObjectId.GenerateNewId(),
-                        // this might fail if we test during date change... seems unlikely
-                        // TODO, wrap Datetime in a mock friendly wrapper
-                        Key = $"stats:succeeded:{date:yyyy-MM-dd}", 
-                        Value = 1L
-                    });
-                }
                 
-                database.StateData.OfType<CounterDto>().InsertMany(counters);
-                database.StateData.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
+                    // this might fail if we test during date change... seems unlikely
+                    // TODO, wrap Datetime in a mock friendly wrapper
                     Key = $"stats:succeeded:{date:yyyy-MM-dd}", 
-                    Value = 1L
+                    Value = succededCount
                 });
-                var results = monitoringApi.SucceededByDatesCount();
                 
-                Assert.Equal(succededCount + 1, results[date]);
+           var results = monitoringApi.SucceededByDatesCount();
+                
+                Assert.Equal(succededCount, results[date]);
                 Assert.Equal(8, results.Count);
             });
         }
@@ -368,31 +264,20 @@ namespace Hangfire.Mongo.Tests
             UseMonitoringApi((database, monitoringApi) =>
             {
                 var now = DateTime.UtcNow;
-                var counters = new List<CounterDto>();
-                var succeededCount = 10L;
-                for (int i = 0; i < succeededCount; i++)
-                {
-                    counters.Add(new CounterDto
-                    {
-                        Id = ObjectId.GenerateNewId(),
-                        // this might fail if we test during hour change... still unlikely
-                        // TODO, wrap Datetime in a mock friendly wrapper
-                        Key = $"stats:succeeded:{now:yyyy-MM-dd-HH}", 
-                        Value = 1L
-                    });
-                }
                 
-                database.StateData.OfType<CounterDto>().InsertMany(counters);
-                database.StateData.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                var succeededCount = 10L;
+                database.JobGraph.InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
+                    // this might fail if we test during hour change... still unlikely
+                    // TODO, wrap Datetime in a mock friendly wrapper
                     Key = $"stats:succeeded:{now:yyyy-MM-dd-HH}", 
-                    Value = 1L
+                    Value = succeededCount
                 });
                 
                 var results = monitoringApi.HourlySucceededJobs();
                 
-                Assert.Equal(succeededCount + 1, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
+                Assert.Equal(succeededCount, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
                 Assert.Equal(24, results.Count);
 
             });
@@ -404,29 +289,19 @@ namespace Hangfire.Mongo.Tests
             UseMonitoringApi((database, monitoringApi) =>
             {
                 var date = DateTime.UtcNow.Date;
-                var counters = new List<CounterDto>();
                 var failedCount = 10L;
-                for (int i = 0; i < failedCount; i++)
-                {
-                    counters.Add(new CounterDto
-                    {
-                        Id = ObjectId.GenerateNewId(),
-                        // this might fail if we test during date change... seems unlikely
-                        Key = $"stats:failed:{date:yyyy-MM-dd}", 
-                        Value = 1L
-                    });
-                }
                 
-                database.StateData.OfType<CounterDto>().InsertMany(counters);
-                database.StateData.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
+                    // this might fail if we test during date change... seems unlikely
                     Key = $"stats:failed:{date:yyyy-MM-dd}", 
-                    Value = 1L
+                    Value = failedCount
                 });
+                
                 var results = monitoringApi.FailedByDatesCount();
                 
-                Assert.Equal(failedCount + 1, results[date]);
+                Assert.Equal(failedCount, results[date]);
                 Assert.Equal(8, results.Count);
 
             });
@@ -438,31 +313,20 @@ namespace Hangfire.Mongo.Tests
             UseMonitoringApi((database, monitoringApi) =>
             {
                 var now = DateTime.UtcNow;
-                var counters = new List<CounterDto>();
                 var failedCount = 10L;
-                for (int i = 0; i < failedCount; i++)
-                {
-                    counters.Add(new CounterDto
-                    {
-                        Id = ObjectId.GenerateNewId(),
-                        // this might fail if we test during hour change... still unlikely
-                        // TODO, wrap Datetime in a mock friendly wrapper
-                        Key = $"stats:failed:{now:yyyy-MM-dd-HH}", 
-                        Value = 1L
-                    });
-                }
-                
-                database.StateData.OfType<CounterDto>().InsertMany(counters);
-                database.StateData.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+              
+                database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
+                    // this might fail if we test during hour change... still unlikely
+                    // TODO, wrap Datetime in a mock friendly wrapper
                     Key = $"stats:failed:{now:yyyy-MM-dd-HH}", 
-                    Value = 1L
+                    Value = failedCount
                 });
-                
+               
                 var results = monitoringApi.HourlyFailedJobs();
                 
-                Assert.Equal(failedCount + 1, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
+                Assert.Equal(failedCount, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
                 Assert.Equal(24, results.Count);
 
             });
@@ -472,7 +336,7 @@ namespace Hangfire.Mongo.Tests
         {
             using (var database = ConnectionUtils.CreateConnection())
             {
-                var connection = new MongoMonitoringApi(database, _providers);
+                var connection = new MongoMonitoringApi(database);
                 action(database, connection);
             }
         }
@@ -530,7 +394,7 @@ namespace Hangfire.Mongo.Tests
             {
                 jobDto = visitor(jobDto);
             }
-            database.Job.InsertOne(jobDto);
+            database.JobGraph.InsertOne(jobDto);
 
             var jobQueueDto = new JobQueueDto
             {
@@ -544,7 +408,7 @@ namespace Hangfire.Mongo.Tests
                 jobQueueDto.FetchedAt = DateTime.UtcNow;
             }
 
-            database.JobQueue.InsertOne(jobQueueDto);
+            database.JobGraph.InsertOne(jobQueueDto);
 
             return jobDto;
         }

@@ -52,7 +52,7 @@ namespace Hangfire.Mongo
         public void RemoveFromQueue()
         {
             _connection
-               .JobQueue
+               .JobGraph.OfType<JobQueueDto>()
                .DeleteOne(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, _id));
 
             _removedFromQueue = true;
@@ -63,7 +63,7 @@ namespace Hangfire.Mongo
         /// </summary>
         public void Requeue()
         {
-            _connection.JobQueue.FindOneAndUpdate(
+            _connection.JobGraph.OfType<JobQueueDto>().FindOneAndUpdate(
                 Builders<JobQueueDto>.Filter.Eq(_ => _.Id, _id),
                 Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null));
 
