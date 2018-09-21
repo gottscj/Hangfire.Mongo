@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
@@ -22,17 +21,11 @@ namespace Hangfire.Mongo
         
         private readonly HangfireDbContext _connection;
 
-        private readonly PersistentJobQueueProviderCollection _queueProviders;
-
         private readonly IList<WriteModel<BsonDocument>> _writeModels = new List<WriteModel<BsonDocument>>();
 
-        private readonly IList<Tuple<string, string>> _jobsToEnqueue = new List<Tuple<string, string>>();
-
-        public MongoWriteOnlyTransaction(HangfireDbContext connection,
-            PersistentJobQueueProviderCollection queueProviders)
+        public MongoWriteOnlyTransaction(HangfireDbContext connection)
         {
             _connection = connection ?? throw new ArgumentNullException(nameof(connection));
-            _queueProviders = queueProviders ?? throw new ArgumentNullException(nameof(queueProviders));
         }
 
         public override void Dispose()
@@ -99,7 +92,16 @@ namespace Hangfire.Mongo
 
         public override void AddToQueue(string queue, string jobId)
         {
-            _jobsToEnqueue.Add(Tuple.Create(queue, jobId));
+            var jobQueueDocument = new JobQueueDto
+            {
+                JobId = ObjectId.Parse(jobId),
+                Queue = queue,
+                Id = ObjectId.GenerateNewId(),
+                FetchedAt = null
+            }.ToBsonDocument();
+            
+            var writeModel = new InsertOneModel<BsonDocument>(jobQueueDocument);
+            _writeModels.Add(writeModel);
         }
 
         public override void IncrementCounter(string key)
@@ -339,36 +341,21 @@ namespace Hangfire.Mongo
         {
             if (Logger.IsDebugEnabled())
             {
-                foreach (var tuple in _jobsToEnqueue)
-                {
-                    Logger.Debug($"Enqueuing Job ({tuple.Item2}), on queue: '{tuple.Item1}'\r\n");
-                }
-
                 Logger.Debug($"\r\nCommit:\r\n {string.Join("\r\n", _writeModels.Select(SerializeWriteModel))}");
             }
 
-            var writeTasks = _jobsToEnqueue.Select(t =>
+            if (!_writeModels.Any())
             {
-                var queue = t.Item1;
-                var jobId = t.Item2;
-                IPersistentJobQueueProvider provider = _queueProviders.GetProvider(queue);
-                IPersistentJobQueue persistentQueue = provider.GetJobQueue(_connection);
-                return Task.Run(() => persistentQueue.Enqueue(queue, jobId));
-            }).ToList();
-
-            if (_writeModels.Any())
-            {
-                var writeTask = _connection
-                    .Database
-                    .GetCollection<BsonDocument>(_connection.JobGraph.CollectionNamespace.CollectionName)
-                    .BulkWriteAsync(_writeModels);
-
-                writeTasks.Add(writeTask);
+                return;
             }
-           
-
+            
+            var writeTask = _connection
+                .Database
+                .GetCollection<BsonDocument>(_connection.JobGraph.CollectionNamespace.CollectionName)
+                .BulkWriteAsync(_writeModels);
+            
             // make sure to run tasks on default task scheduler
-            Task.Run(() => Task.WhenAll(writeTasks)).GetAwaiter().GetResult();
+            Task.Run(() => writeTask).GetAwaiter().GetResult();
         }
 
         private string SerializeWriteModel(WriteModel<BsonDocument> writeModel)

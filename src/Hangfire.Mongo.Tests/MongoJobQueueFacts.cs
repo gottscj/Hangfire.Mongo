@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Threading;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
@@ -312,22 +311,6 @@ namespace Hangfire.Mongo.Tests
 
                 Assert.NotNull(@default.JobId);
                 Assert.Equal("default", @default.Queue);
-            });
-        }
-
-        [Fact, CleanDatabase]
-        public void Enqueue_AddsAJobToTheQueue()
-        {
-            UseConnection(connection =>
-            {
-                var queue = CreateJobQueue(connection);
-                var jobId = ObjectId.GenerateNewId().ToString();
-                queue.Enqueue("default", jobId);
-
-                var record = connection.JobGraph.OfType<JobQueueDto>().Find(new BsonDocument()).ToList().Single();
-                Assert.Equal(jobId, record.JobId.ToString());
-                Assert.Equal("default", record.Queue);
-                Assert.Null(record.FetchedAt);
             });
         }
 

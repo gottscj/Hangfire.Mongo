@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -18,12 +17,10 @@ namespace Hangfire.Mongo.Tests
         private readonly MongoStorage _storage;
 
         private readonly CancellationToken _token;
-        private static PersistentJobQueueProviderCollection _queueProviders;
 
         public ExpirationManagerFacts()
         {
             _storage = ConnectionUtils.CreateStorage();
-            _queueProviders = _storage.QueueProviders;
 
             _token = new CancellationToken(true);
         }
@@ -273,7 +270,7 @@ namespace Hangfire.Mongo.Tests
 
         private static void Commit(HangfireDbContext connection, Action<MongoWriteOnlyTransaction> action)
         {
-            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection, _queueProviders))
+            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection))
             {
                 action(transaction);
                 transaction.Commit();

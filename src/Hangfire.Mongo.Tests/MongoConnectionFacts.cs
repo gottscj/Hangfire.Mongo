@@ -5,14 +5,12 @@ using System.Threading;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.Server;
 using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Moq;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests
@@ -21,24 +19,11 @@ namespace Hangfire.Mongo.Tests
     [Collection("Database")]
     public class MongoConnectionFacts
     {
-        private readonly Mock<IPersistentJobQueue> _queue;
-        private readonly PersistentJobQueueProviderCollection _providers;
-
-        public MongoConnectionFacts()
-        {
-            _queue = new Mock<IPersistentJobQueue>();
-
-            var provider = new Mock<IPersistentJobQueueProvider>();
-            provider.Setup(x => x.GetJobQueue(It.IsNotNull<HangfireDbContext>())).Returns(_queue.Object);
-
-            _providers = new PersistentJobQueueProviderCollection(provider.Object);
-        }
-
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoConnection(null, _providers));
+                () => new MongoConnection(null, null));
 
             Assert.Equal("database", exception.ParamName);
         }
@@ -49,7 +34,7 @@ namespace Hangfire.Mongo.Tests
             var exception = Assert.Throws<ArgumentNullException>(
                 () => new MongoConnection(ConnectionUtils.CreateConnection(), null));
 
-            Assert.Equal("queueProviders", exception.ParamName);
+            Assert.Equal("storageOptions", exception.ParamName);
         }
 
         [Fact, CleanDatabase]
@@ -59,24 +44,19 @@ namespace Hangfire.Mongo.Tests
             {
                 var token = new CancellationToken();
                 var queues = new[] { "default" };
+                var jobQueueDto = new JobQueueDto
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    Queue = "default",
+                    FetchedAt = null,
+                    JobId = ObjectId.GenerateNewId()
+                };
+                
+                database.JobGraph.InsertOne(jobQueueDto);
+                
+                var fetchedJob = connection.FetchNextJob(queues, token);
 
-                connection.FetchNextJob(queues, token);
-
-                _queue.Verify(x => x.Dequeue(queues, token));
-            });
-        }
-
-        [Fact, CleanDatabase]
-        public void FetchNextJob_Throws_IfMultipleProvidersResolved()
-        {
-            UseConnection((database, connection) =>
-            {
-                var token = new CancellationToken();
-                var anotherProvider = new Mock<IPersistentJobQueueProvider>();
-                _providers.Add(anotherProvider.Object, new[] { "critical" });
-
-                Assert.Throws<InvalidOperationException>(
-                    () => connection.FetchNextJob(new[] { "critical", "default" }, token));
+                Assert.Equal(fetchedJob.JobId, jobQueueDto.JobId.ToString());
             });
         }
 
@@ -1563,7 +1543,7 @@ namespace Hangfire.Mongo.Tests
         {
             using (var database = ConnectionUtils.CreateConnection())
             {
-                using (var connection = new MongoConnection(database, _providers))
+                using (var connection = new MongoConnection(database, new MongoStorageOptions()))
                 {
                     action(database, connection);
                 }

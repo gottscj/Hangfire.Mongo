@@ -10,7 +10,7 @@ using MongoDB.Driver;
 namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 {
 #pragma warning disable 1591
-    internal class MongoJobQueue : IPersistentJobQueue
+    internal class MongoJobQueue
     {
         private readonly MongoStorageOptions _storageOptions;
 
@@ -90,17 +90,6 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
             }
 
             return new MongoFetchedJob(_connection, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
-        }
-
-        public void Enqueue(string queue, string jobId)
-        {
-            _connection.JobGraph.InsertOne(new JobQueueDto
-            {
-                JobId = ObjectId.Parse(jobId),
-                Queue = queue,
-                Id = ObjectId.GenerateNewId(),
-                FetchedAt = null
-            });
         }
     }
 #pragma warning disable 1591

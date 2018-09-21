@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.States;
 using MongoDB.Bson;
@@ -17,31 +16,12 @@ namespace Hangfire.Mongo.Tests
     [Collection("Database")]
     public class MongoWriteOnlyTransactionFacts
     {
-        private readonly PersistentJobQueueProviderCollection _queueProviders;
-
-        public MongoWriteOnlyTransactionFacts()
-        {
-            Mock<IPersistentJobQueueProvider> defaultProvider = new Mock<IPersistentJobQueueProvider>();
-            defaultProvider.Setup(x => x.GetJobQueue(It.IsNotNull<HangfireDbContext>()))
-                .Returns(new Mock<IPersistentJobQueue>().Object);
-
-            _queueProviders = new PersistentJobQueueProviderCollection(defaultProvider.Object);
-        }
-
         [Fact]
         public void Ctor_ThrowsAnException_IfConnectionIsNull()
         {
-            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(null, _queueProviders));
+            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(null));
 
             Assert.Equal("connection", exception.ParamName);
-        }
-
-        [Fact, CleanDatabase]
-        public void Ctor_ThrowsAnException_IfProvidersCollectionIsNull()
-        {
-            var exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(ConnectionUtils.CreateConnection(), null));
-
-            Assert.Equal("queueProviders", exception.ParamName);
         }
 
         [Fact, CleanDatabase]
@@ -209,16 +189,16 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var correctJobQueue = new Mock<IPersistentJobQueue>();
-                var correctProvider = new Mock<IPersistentJobQueueProvider>();
-                correctProvider.Setup(x => x.GetJobQueue(It.IsNotNull<HangfireDbContext>()))
-                    .Returns(correctJobQueue.Object);
+                var jobId = ObjectId.GenerateNewId().ToString();
+                Commit(database, x => x.AddToQueue("default", jobId));
 
-                _queueProviders.Add(correctProvider.Object, new[] { "default" });
-
-                Commit(database, x => x.AddToQueue("default", "1"));
-
-                correctJobQueue.Verify(x => x.Enqueue("default", "1"));
+                var jobQueueDto = database
+                    .JobGraph
+                    .OfType<JobQueueDto>()
+                    .Find(j => j.Queue == "default" && j.JobId == ObjectId.Parse(jobId))
+                    .FirstOrDefault();
+                
+                Assert.NotNull(jobQueueDto);
             });
         }
 
@@ -924,7 +904,7 @@ namespace Hangfire.Mongo.Tests
 
         private void Commit(HangfireDbContext connection, Action<MongoWriteOnlyTransaction> action)
         {
-            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection, _queueProviders))
+            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection))
             {
                 action(transaction);
                 transaction.Commit();
