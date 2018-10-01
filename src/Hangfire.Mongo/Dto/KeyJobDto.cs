@@ -1,9 +1,11 @@
 ﻿namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
-    public class ListDto : KeyJobDto
+
+    public abstract class KeyJobDto : ExpiringJobDto
     {
-        public string Value { get; set; }
+        public string Key { get; set; }
     }
+
 #pragma warning restore 1591
 }

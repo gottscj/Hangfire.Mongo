@@ -105,7 +105,7 @@ namespace Hangfire.Mongo.Tests
                     Queue = "default"
                 };
 
-                connection.JobQueue.InsertOne(jobQueue);
+                connection.JobGraph.InsertOne(jobQueue);
 
                 var queue = CreateJobQueue(connection);
 
@@ -130,14 +130,14 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
-                connection.Job.InsertOne(job);
+                connection.JobGraph.InsertOne(job);
 
                 var jobQueue = new JobQueueDto
                 {
                     JobId = job.Id,
                     Queue = "default"
                 };
-                connection.JobQueue.InsertOne(jobQueue);
+                connection.JobGraph.InsertOne(jobQueue);
 
                 var queue = CreateJobQueue(connection);
 
@@ -147,7 +147,7 @@ namespace Hangfire.Mongo.Tests
                 // Assert
                 Assert.NotNull(payload);
 
-                var fetchedAt = connection.JobQueue
+                var fetchedAt = connection.JobGraph.OfType<JobQueueDto>()
                     .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.JobId, ObjectId.Parse(payload.JobId)))
                     .FirstOrDefault()
                     .FetchedAt;
@@ -169,7 +169,7 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
-                connection.Job.InsertOne(job);
+                connection.JobGraph.InsertOne(job);
 
                 var jobQueue = new JobQueueDto
                 {
@@ -177,7 +177,7 @@ namespace Hangfire.Mongo.Tests
                     Queue = "default",
                     FetchedAt = DateTime.UtcNow.AddDays(-1)
                 };
-                connection.JobQueue.InsertOne(jobQueue);
+                connection.JobGraph.InsertOne(jobQueue);
 
                 var queue = CreateJobQueue(connection);
 
@@ -201,7 +201,7 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
-                connection.Job.InsertOne(job1);
+                connection.JobGraph.InsertOne(job1);
 
                 var job2 = new JobDto
                 {
@@ -209,15 +209,15 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
-                connection.Job.InsertOne(job2);
+                connection.JobGraph.InsertOne(job2);
 
-                connection.JobQueue.InsertOne(new JobQueueDto
+                connection.JobGraph.InsertOne(new JobQueueDto
                 {
                     JobId = job1.Id,
                     Queue = "default"
                 });
 
-                connection.JobQueue.InsertOne(new JobQueueDto
+                connection.JobGraph.InsertOne(new JobQueueDto
                 {
                     JobId = job2.Id,
                     Queue = "default"
@@ -230,7 +230,7 @@ namespace Hangfire.Mongo.Tests
 
                 // Assert
                 var otherJobFetchedAt = connection
-                    .JobQueue.Find(Builders<JobQueueDto>.Filter.Ne(_ => _.JobId, ObjectId.Parse(payload.JobId)))
+                    .JobGraph.OfType<JobQueueDto>().Find(Builders<JobQueueDto>.Filter.Ne(_ => _.JobId, ObjectId.Parse(payload.JobId)))
                     .FirstOrDefault()
                     .FetchedAt;
 
@@ -249,9 +249,9 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
-                connection.Job.InsertOne(job1);
+                connection.JobGraph.InsertOne(job1);
 
-                connection.JobQueue.InsertOne(new JobQueueDto
+                connection.JobGraph.InsertOne(new JobQueueDto
                 {
                     JobId = job1.Id,
                     Queue = "critical"
@@ -275,7 +275,7 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
-                connection.Job.InsertOne(criticalJob);
+                connection.JobGraph.InsertOne(criticalJob);
 
                 var defaultJob = new JobDto
                 {
@@ -283,15 +283,15 @@ namespace Hangfire.Mongo.Tests
                     Arguments = "",
                     CreatedAt = DateTime.UtcNow
                 };
-                connection.Job.InsertOne(defaultJob);
+                connection.JobGraph.InsertOne(defaultJob);
 
-                connection.JobQueue.InsertOne(new JobQueueDto
+                connection.JobGraph.InsertOne(new JobQueueDto
                 {
                     JobId = defaultJob.Id,
                     Queue = "default"
                 });
 
-                connection.JobQueue.InsertOne(new JobQueueDto
+                connection.JobGraph.InsertOne(new JobQueueDto
                 {
                     JobId = criticalJob.Id,
                     Queue = "critical"
@@ -324,7 +324,7 @@ namespace Hangfire.Mongo.Tests
                 var jobId = ObjectId.GenerateNewId().ToString();
                 queue.Enqueue("default", jobId);
 
-                var record = connection.JobQueue.Find(new BsonDocument()).ToList().Single();
+                var record = connection.JobGraph.OfType<JobQueueDto>().Find(new BsonDocument()).ToList().Single();
                 Assert.Equal(jobId, record.JobId.ToString());
                 Assert.Equal("default", record.Queue);
                 Assert.Null(record.FetchedAt);

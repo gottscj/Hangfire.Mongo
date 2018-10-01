@@ -6,17 +6,13 @@ namespace Hangfire.Mongo.Dto
 {
 
 #pragma warning disable 1591
-    public class JobQueueDto
+    public class JobQueueDto : BaseJobDto
     {
-        [BsonId]
-        public ObjectId Id { get; set; }
-
         public ObjectId JobId { get; set; }
 
         public string Queue { get; set; }
 
         public DateTime? FetchedAt { get; set; }
-
     }
 #pragma warning restore 1591
 }

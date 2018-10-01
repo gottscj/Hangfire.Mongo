@@ -47,7 +47,7 @@ namespace Hangfire.Mongo
 
         public override IWriteOnlyTransaction CreateWriteTransaction()
         {
-            return new MongoWriteOnlyTransaction(Database, _queueProviders, _storageOptions);
+            return new MongoWriteOnlyTransaction(Database, _queueProviders);
         }
 
         public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
@@ -68,6 +68,7 @@ namespace Hangfire.Mongo
 
             var jobDto = new JobDto
             {
+                Id = ObjectId.GenerateNewId(),
                 InvocationData = JobHelper.ToJson(invocationData),
                 Arguments = invocationData.Arguments,
                 Parameters = parameters.ToDictionary(kv => kv.Key, kv => kv.Value),
@@ -75,7 +76,7 @@ namespace Hangfire.Mongo
                 ExpireAt = createdAt.Add(expireIn)
             };
 
-            Database.Job.InsertOne(jobDto);
+            Database.JobGraph.InsertOne(jobDto);
 
             var jobId = jobDto.Id.ToString();
 
@@ -127,7 +128,7 @@ namespace Hangfire.Mongo
 
             var update = new BsonDocument("$set", new BsonDocument($"{nameof(JobDto.Parameters)}.{name}", bsonValue));
 
-            Database.Job.FindOneAndUpdate(filter, update);
+            Database.JobGraph.OfType<JobDto>().FindOneAndUpdate(filter, update);
         }
 
         public override string GetJobParameter(string id, string name)
@@ -143,7 +144,8 @@ namespace Hangfire.Mongo
             }
 
             var parameters = Database
-                .Job
+                .JobGraph
+                .OfType<JobDto>()
                 .Find(j => j.Id == ObjectId.Parse(id))
                 .Project(job => job.Parameters)
                 .FirstOrDefault();
@@ -162,7 +164,8 @@ namespace Hangfire.Mongo
             }
 
             var jobData = Database
-                .Job
+                .JobGraph
+                .OfType<JobDto>()
                 .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)))
                 .FirstOrDefault();
 
@@ -207,7 +210,8 @@ namespace Hangfire.Mongo
                 .Slice(j => j.StateHistory, -1);
 
             var latest = Database
-                .Job
+                .JobGraph
+                .OfType<JobDto>()
                 .Find(j => j.Id == ObjectId.Parse(jobId))
                 .Project(projection)
                 .FirstOrDefault();
@@ -302,14 +306,14 @@ namespace Hangfire.Mongo
             }
 
             var result = Database
-                .StateData
+                .JobGraph
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
                 .SortBy(_ => _.Id)
                 .Project(_ => _.Value)
                 .ToList();
 
-            return new HashSet<string>(result.Cast<string>());
+            return new HashSet<string>(result);
         }
 
         public override string GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore)
@@ -325,19 +329,19 @@ namespace Hangfire.Mongo
             }
 
             return Database
-                .StateData
+                .JobGraph
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key) &
                       Builders<SetDto>.Filter.Gte(_ => _.Score, fromScore) &
                       Builders<SetDto>.Filter.Lte(_ => _.Score, toScore))
                 .SortBy(_ => _.Score)
                 .Project(_ => _.Value)
-                .FirstOrDefault() as string;
+                .FirstOrDefault();
         }
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
-            using (var transaction = new MongoWriteOnlyTransaction(Database, _queueProviders, _storageOptions))
+            using (var transaction = new MongoWriteOnlyTransaction(Database, _queueProviders))
             {
                 transaction.SetRangeInHash(key, keyValuePairs);
                 transaction.Commit();
@@ -354,11 +358,11 @@ namespace Hangfire.Mongo
             var result = new Dictionary<string, string>();
 
             foreach (var hashDto in Database
-                .StateData
+                .JobGraph
                 .OfType<HashDto>()
                 .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).ToList())
             {
-                result[hashDto.Field] = (string) hashDto.Value;
+                result[hashDto.Field] = hashDto.Value;
             }
 
             return result.Count != 0 ? result : null;
@@ -372,7 +376,7 @@ namespace Hangfire.Mongo
             }
 
             return Database
-                .StateData
+                .JobGraph
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
                 .Count();
@@ -386,13 +390,13 @@ namespace Hangfire.Mongo
             }
 
             return Database
-                .StateData
+                .JobGraph
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key))
                 .SortBy(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
-                .Project(dto => (string)dto.Value)
+                .Project(dto => dto.Value)
                 .ToList();
         }
 
@@ -404,7 +408,7 @@ namespace Hangfire.Mongo
             }
 
             var values = Database
-                .StateData
+                .JobGraph
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Eq(_ => _.Key, key) &
                       Builders<SetDto>.Filter.Not(Builders<SetDto>.Filter.Eq(_ => _.ExpireAt, null)))
@@ -422,14 +426,14 @@ namespace Hangfire.Mongo
             }
 
             var counterQuery = Database
-                .StateData
+                .JobGraph
                 .OfType<CounterDto>()
                 .Find(Builders<CounterDto>.Filter.Eq(_ => _.Key, key))
                 .Project(_ => _.Value)
                 .ToList();
 
             var aggregatedCounterQuery = Database
-                .StateData
+                .JobGraph
                 .OfType<AggregatedCounterDto>()
                 .Find(Builders<AggregatedCounterDto>.Filter.Eq(_ => _.Key, key))
                 .Project(_ => _.Value)
@@ -437,7 +441,7 @@ namespace Hangfire.Mongo
 
             var values = counterQuery
                 .Concat(aggregatedCounterQuery)
-                .Select(c => (long)c)
+                .Select(c => c)
                 .ToArray();
 
             return values.Any() ? values.Sum() : 0;
@@ -451,7 +455,7 @@ namespace Hangfire.Mongo
             }
 
             return Database
-                .StateData
+                .JobGraph
                 .OfType<HashDto>()
                 .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
                 .Count();
@@ -465,7 +469,7 @@ namespace Hangfire.Mongo
             }
 
             var result = Database
-                .StateData
+                .JobGraph
                 .OfType<HashDto>()
                 .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
                 .SortBy(dto => dto.ExpireAt)
@@ -488,12 +492,12 @@ namespace Hangfire.Mongo
             }
 
             var result = Database
-                .StateData
+                .JobGraph
                 .OfType<HashDto>()
                 .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key) & Builders<HashDto>.Filter.Eq(_ => _.Field, name))
                 .FirstOrDefault();
 
-            return result?.Value as string;
+            return result?.Value;
         }
 
         public override long GetListCount(string key)
@@ -504,7 +508,7 @@ namespace Hangfire.Mongo
             }
 
             return Database
-                .StateData
+                .JobGraph
                 .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
                 .Count();
@@ -518,7 +522,7 @@ namespace Hangfire.Mongo
             }
 
             var result = Database
-                .StateData
+                .JobGraph
                 .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
                 .SortBy(_ => _.ExpireAt)
@@ -536,13 +540,13 @@ namespace Hangfire.Mongo
             }
 
             return Database
-                .StateData
+                .JobGraph
                 .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
                 .SortByDescending(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
-                .Project(_ => (string)_.Value)
+                .Project(_ => _.Value)
                 .ToList();
         }
 
@@ -554,11 +558,11 @@ namespace Hangfire.Mongo
             }
 
             return Database
-                .StateData
+                .JobGraph
                 .OfType<ListDto>()
                 .Find(Builders<ListDto>.Filter.Eq(_ => _.Key, key))
                 .SortByDescending(_ => _.Id)
-                .Project(_ => (string)_.Value)
+                .Project(_ => _.Value)
                 .ToList();
         }
     }

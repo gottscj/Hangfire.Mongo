@@ -61,8 +61,11 @@ namespace Hangfire.Mongo
             {
                 DateTime now = DateTime.UtcNow;
 
-                RemoveExpiredRecord(connection.Job, _ => _.ExpireAt, now);
-                RemoveExpiredRecord(connection.StateData.OfType<ExpiringKeyValueDto>(), _ => _.ExpireAt, now);
+                Logger.DebugFormat("Removing outdated records from table '{0}'...", connection.JobGraph.CollectionNamespace.CollectionName);
+
+                connection
+                    .JobGraph
+                    .OfType<ExpiringJobDto>().DeleteMany(Builders<ExpiringJobDto>.Filter.Lt(_ => _.ExpireAt, now));
             }
 
             cancellationToken.WaitHandle.WaitOne(_checkInterval);
@@ -74,13 +77,6 @@ namespace Hangfire.Mongo
         public override string ToString()
         {
             return "Mongo Expiration Manager";
-        }
-
-        private static void RemoveExpiredRecord<TEntity, TField>(IMongoCollection<TEntity> collection, Expression<Func<TEntity, TField>> expression, TField now)
-        {
-            Logger.DebugFormat("Removing outdated records from table '{0}'...", collection.CollectionNamespace.CollectionName);
-
-            collection.DeleteMany(Builders<TEntity>.Filter.Lt(expression, now));
         }
     }
 }

@@ -7,7 +7,6 @@ using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
-using Hangfire.Mongo.StateHandlers;
 using Hangfire.Server;
 using Hangfire.States;
 using Hangfire.Storage;
@@ -148,6 +147,7 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Queue providers collection
         /// </summary>
+        [Obsolete("We are removing support for external queue providers in 0.5.13")]
         public PersistentJobQueueProviderCollection QueueProviders { get; }
 
         /// <summary>

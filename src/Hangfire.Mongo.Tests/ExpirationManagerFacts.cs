@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Hangfire.Mongo.Database;
@@ -83,7 +83,7 @@ namespace Hangfire.Mongo.Tests
             using (var connection = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.StateData.InsertOne(new CounterDto
+                connection.JobGraph.InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
@@ -97,7 +97,7 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                var count = connection.StateData.OfType<CounterDto>().Count(new BsonDocument());
+                var count = connection.JobGraph.OfType<CounterDto>().Count(new BsonDocument());
                 Assert.Equal(0, count);
             }
         }
@@ -108,7 +108,7 @@ namespace Hangfire.Mongo.Tests
             using (var connection = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.Job.InsertOne(new JobDto
+                connection.JobGraph.InsertOne(new JobDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     InvocationData = "",
@@ -123,7 +123,7 @@ namespace Hangfire.Mongo.Tests
                 manager.Execute(_token);
 
                 // Assert
-                var count = connection.Job.Count(new BsonDocument());
+                var count = connection.JobGraph.OfType<JobDto>().Count(new BsonDocument());
                 Assert.Equal(0, count);
             }
         }
@@ -134,7 +134,7 @@ namespace Hangfire.Mongo.Tests
             using (var connection = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.StateData.InsertOne(new ListDto
+                connection.JobGraph.InsertOne(new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
@@ -148,7 +148,7 @@ namespace Hangfire.Mongo.Tests
 
                 // Assert
                 var count = connection
-                    .StateData
+                    .JobGraph
                     .OfType<ListDto>()
                     .Count(new BsonDocument());
                 Assert.Equal(0, count);
@@ -161,7 +161,7 @@ namespace Hangfire.Mongo.Tests
             using (var connection = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.StateData.InsertOne(new SetDto
+                connection.JobGraph.InsertOne(new SetDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
@@ -177,7 +177,7 @@ namespace Hangfire.Mongo.Tests
 
                 // Assert
                 var count = connection
-                    .StateData
+                    .JobGraph
                     .OfType<SetDto>()
                     .Count(new BsonDocument());
                 Assert.Equal(0, count);
@@ -190,7 +190,7 @@ namespace Hangfire.Mongo.Tests
             using (var connection = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.StateData.InsertOne(new HashDto
+                connection.JobGraph.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
@@ -206,7 +206,7 @@ namespace Hangfire.Mongo.Tests
 
                 // Assert
                 var count = connection
-                    .StateData
+                    .JobGraph
                     .OfType<HashDto>()
                     .Count(new BsonDocument());
                 Assert.Equal(0, count);
@@ -220,7 +220,7 @@ namespace Hangfire.Mongo.Tests
             using (var connection = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.StateData.InsertOne(new AggregatedCounterDto
+                connection.JobGraph.InsertOne(new AggregatedCounterDto
                 {
                     Key = "key",
                     Value = 1,
@@ -234,7 +234,7 @@ namespace Hangfire.Mongo.Tests
 
                 // Assert
                 Assert.Equal(0, connection
-                    .StateData
+                    .JobGraph
                     .OfType<CounterDto>()
                     .Find(new BsonDocument()).Count());
             }
@@ -260,8 +260,8 @@ namespace Hangfire.Mongo.Tests
         private static bool IsEntryExpired(HangfireDbContext connection)
         {
             var count = connection
-                .StateData
-                .OfType<ExpiringKeyValueDto>()
+                .JobGraph
+                .OfType<ExpiringJobDto>()
                 .Count(new BsonDocument());
 
             return count == 0;
@@ -274,7 +274,7 @@ namespace Hangfire.Mongo.Tests
 
         private static void Commit(HangfireDbContext connection, Action<MongoWriteOnlyTransaction> action)
         {
-            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection, _queueProviders, new MongoStorageOptions()))
+            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection, _queueProviders))
             {
                 action(transaction);
                 transaction.Commit();

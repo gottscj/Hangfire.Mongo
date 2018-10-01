@@ -68,7 +68,7 @@ namespace Hangfire.Mongo.Tests
                 processingJob.RemoveFromQueue();
 
                 // Assert
-                var count = connection.JobQueue.Count(new BsonDocument());
+                var count = connection.JobGraph.OfType<JobQueueDto>().Count(new BsonDocument());
                 Assert.Equal(0, count);
             });
         }
@@ -89,7 +89,7 @@ namespace Hangfire.Mongo.Tests
                 fetchedJob.RemoveFromQueue();
 
                 // Assert
-                var count = connection.JobQueue.Count(new BsonDocument());
+                var count = connection.JobGraph.OfType<JobQueueDto>().Count(new BsonDocument());
                 Assert.Equal(3, count);
             });
         }
@@ -109,7 +109,7 @@ namespace Hangfire.Mongo.Tests
                 processingJob.Requeue();
 
                 // Assert
-                var record = connection.JobQueue.Find(new BsonDocument()).ToList().Single();
+                var record = connection.JobGraph.OfType<JobQueueDto>().Find(new BsonDocument()).ToList().Single();
                 Assert.Null(record.FetchedAt);
             });
         }
@@ -129,7 +129,7 @@ namespace Hangfire.Mongo.Tests
                 processingJob.Dispose();
 
                 // Assert
-                var record = connection.JobQueue.Find(new BsonDocument()).ToList().Single();
+                var record = connection.JobGraph.OfType<JobQueueDto>().Find(new BsonDocument()).ToList().Single();
                 Assert.Null(record.FetchedAt);
             });
         }
@@ -144,7 +144,7 @@ namespace Hangfire.Mongo.Tests
                 FetchedAt = DateTime.UtcNow
             };
 
-            connection.JobQueue.InsertOne(jobQueue);
+            connection.JobGraph.InsertOne(jobQueue);
 
             return jobQueue.Id;
         }
