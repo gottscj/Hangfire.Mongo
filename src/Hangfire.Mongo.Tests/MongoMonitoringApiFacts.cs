@@ -328,30 +328,20 @@ namespace Hangfire.Mongo.Tests
             UseMonitoringApi((database, monitoringApi) =>
             {
                 var date = DateTime.UtcNow.Date;
-                var counters = new List<CounterDto>();
                 var succededCount = 10L;
-                for (int i = 0; i < succededCount; i++)
-                {
-                    counters.Add(new CounterDto
-                    {
-                        Id = ObjectId.GenerateNewId(),
-                        // this might fail if we test during date change... seems unlikely
-                        // TODO, wrap Datetime in a mock friendly wrapper
-                        Key = $"stats:succeeded:{date:yyyy-MM-dd}", 
-                        Value = 1L
-                    });
-                }
                 
-                database.JobGraph.OfType<CounterDto>().InsertMany(counters);
-                database.JobGraph.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
+                    // this might fail if we test during date change... seems unlikely
+                    // TODO, wrap Datetime in a mock friendly wrapper
                     Key = $"stats:succeeded:{date:yyyy-MM-dd}", 
-                    Value = 1L
+                    Value = succededCount
                 });
-                var results = monitoringApi.SucceededByDatesCount();
                 
-                Assert.Equal(succededCount + 1, results[date]);
+           var results = monitoringApi.SucceededByDatesCount();
+                
+                Assert.Equal(succededCount, results[date]);
                 Assert.Equal(8, results.Count);
             });
         }
@@ -362,31 +352,20 @@ namespace Hangfire.Mongo.Tests
             UseMonitoringApi((database, monitoringApi) =>
             {
                 var now = DateTime.UtcNow;
-                var counters = new List<CounterDto>();
-                var succeededCount = 10L;
-                for (int i = 0; i < succeededCount; i++)
-                {
-                    counters.Add(new CounterDto
-                    {
-                        Id = ObjectId.GenerateNewId(),
-                        // this might fail if we test during hour change... still unlikely
-                        // TODO, wrap Datetime in a mock friendly wrapper
-                        Key = $"stats:succeeded:{now:yyyy-MM-dd-HH}", 
-                        Value = 1L
-                    });
-                }
                 
-                database.JobGraph.OfType<CounterDto>().InsertMany(counters);
-                database.JobGraph.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                var succeededCount = 10L;
+                database.JobGraph.InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
+                    // this might fail if we test during hour change... still unlikely
+                    // TODO, wrap Datetime in a mock friendly wrapper
                     Key = $"stats:succeeded:{now:yyyy-MM-dd-HH}", 
-                    Value = 1L
+                    Value = succeededCount
                 });
                 
                 var results = monitoringApi.HourlySucceededJobs();
                 
-                Assert.Equal(succeededCount + 1, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
+                Assert.Equal(succeededCount, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
                 Assert.Equal(24, results.Count);
 
             });
@@ -398,29 +377,19 @@ namespace Hangfire.Mongo.Tests
             UseMonitoringApi((database, monitoringApi) =>
             {
                 var date = DateTime.UtcNow.Date;
-                var counters = new List<CounterDto>();
                 var failedCount = 10L;
-                for (int i = 0; i < failedCount; i++)
-                {
-                    counters.Add(new CounterDto
-                    {
-                        Id = ObjectId.GenerateNewId(),
-                        // this might fail if we test during date change... seems unlikely
-                        Key = $"stats:failed:{date:yyyy-MM-dd}", 
-                        Value = 1L
-                    });
-                }
                 
-                database.JobGraph.OfType<CounterDto>().InsertMany(counters);
-                database.JobGraph.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+                database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
+                    // this might fail if we test during date change... seems unlikely
                     Key = $"stats:failed:{date:yyyy-MM-dd}", 
-                    Value = 1L
+                    Value = failedCount
                 });
+                
                 var results = monitoringApi.FailedByDatesCount();
                 
-                Assert.Equal(failedCount + 1, results[date]);
+                Assert.Equal(failedCount, results[date]);
                 Assert.Equal(8, results.Count);
 
             });
@@ -432,31 +401,20 @@ namespace Hangfire.Mongo.Tests
             UseMonitoringApi((database, monitoringApi) =>
             {
                 var now = DateTime.UtcNow;
-                var counters = new List<CounterDto>();
                 var failedCount = 10L;
-                for (int i = 0; i < failedCount; i++)
-                {
-                    counters.Add(new CounterDto
-                    {
-                        Id = ObjectId.GenerateNewId(),
-                        // this might fail if we test during hour change... still unlikely
-                        // TODO, wrap Datetime in a mock friendly wrapper
-                        Key = $"stats:failed:{now:yyyy-MM-dd-HH}", 
-                        Value = 1L
-                    });
-                }
-                
-                database.JobGraph.OfType<CounterDto>().InsertMany(counters);
-                database.JobGraph.OfType<AggregatedCounterDto>().InsertOne(new AggregatedCounterDto
+              
+                database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
                 {
                     Id = ObjectId.GenerateNewId(),
+                    // this might fail if we test during hour change... still unlikely
+                    // TODO, wrap Datetime in a mock friendly wrapper
                     Key = $"stats:failed:{now:yyyy-MM-dd-HH}", 
-                    Value = 1L
+                    Value = failedCount
                 });
-                
+               
                 var results = monitoringApi.HourlyFailedJobs();
                 
-                Assert.Equal(failedCount + 1, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
+                Assert.Equal(failedCount, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
                 Assert.Equal(24, results.Count);
 
             });

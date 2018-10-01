@@ -666,6 +666,8 @@ namespace Hangfire.Mongo.Tests
                 var servers = database.Server.Find(new BsonDocument()).ToList()
                     .ToDictionary(x => x.Id, x => x.LastHeartbeat);
 
+                Assert.True(servers.ContainsKey("server1"));
+                Assert.True(servers.ContainsKey("server2"));
                 Assert.NotEqual(2012, servers["server1"].Value.Year);
                 Assert.Equal(2012, servers["server2"].Value.Year);
             });
@@ -816,8 +818,10 @@ namespace Hangfire.Mongo.Tests
                             { "Key2", "Value2" }
                         });
 
-                var result = database.JobGraph.OfType<HashDto>().Find(Builders<HashDto>.Filter.Eq(_ => _.Key, "some-hash")).ToList()
-                    .ToDictionary(x => x.Field, x => x.Value);
+                var result = database.JobGraph.OfType<HashDto>()
+                    .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, "some-hash"))
+                    .First()
+                    .Fields;
 
                 Assert.Equal("Value1", result["Key1"]);
                 Assert.Equal("Value2", result["Key2"]);
@@ -851,22 +855,20 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "some-hash",
-                    Field = "Key1",
-                    Value = "Value1"
-                });
-                database.JobGraph.InsertOne(new HashDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    Key = "some-hash",
-                    Field = "Key2",
-                    Value = "Value2"
+                    Fields = new Dictionary<string, string>
+                    {
+                        ["Key1"] = "Value1",
+                        ["Key2"] = "Value2",
+                    },
                 });
                 database.JobGraph.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "another-hash",
-                    Field = "Key3",
-                    Value = "Value3"
+                    Fields = new Dictionary<string, string>
+                    {
+                        ["Key3"] = "Value3"
+                    },
                 });
 
                 // Act
@@ -1080,7 +1082,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "counter-1",
-                    Value = 1L
+                    Value = 2L
                 });
                 database.JobGraph.InsertOne(new CounterDto
                 {
@@ -1088,44 +1090,12 @@ namespace Hangfire.Mongo.Tests
                     Key = "counter-2",
                     Value = 1L
                 });
-                database.JobGraph.InsertOne(new CounterDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    Key = "counter-1",
-                    Value = 1L
-                });
-
+                
                 // Act
                 var result = connection.GetCounter("counter-1");
 
                 // Assert
                 Assert.Equal(2, result);
-            });
-        }
-
-        [Fact, CleanDatabase]
-        public void GetCounter_IncludesValues_FromCounterAggregateTable()
-        {
-            UseConnection((database, connection) =>
-            {
-                // Arrange
-                database.JobGraph.InsertOne(new AggregatedCounterDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    Key = "counter-1",
-                    Value = 12L
-                });
-                database.JobGraph.InsertOne(new AggregatedCounterDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    Key = "counter-2",
-                    Value = 15L
-                });
-
-                // Act
-                var result = connection.GetCounter("counter-1");
-
-                Assert.Equal(12, result);
             });
         }
 
@@ -1157,20 +1127,23 @@ namespace Hangfire.Mongo.Tests
                 database.JobGraph.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
+                    Fields = new Dictionary<string, string>
+                    {
+                        ["field-1"] = "field-1-value",
+                        ["field-2"] = "field-2-value",
+                        
+                    },
                     Key = "hash-1",
-                    Field = "field-1"
-                });
-                database.JobGraph.InsertOne(new HashDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    Key = "hash-1",
-                    Field = "field-2"
                 });
                 database.JobGraph.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-2",
-                    Field = "field-1"
+                    Fields = new Dictionary<string, string>
+                    {
+                        ["field-1"] = "field-1-value",
+                        
+                    },
                 });
 
                 // Act
@@ -1211,14 +1184,22 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
-                    Field = "field",
+                    Fields = new Dictionary<string, string>
+                    {
+                        ["field-1"] = "field-1-value",
+                        
+                    },
                     ExpireAt = DateTime.UtcNow.AddHours(1)
                 });
                 database.JobGraph.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-2",
-                    Field = "field",
+                    Fields = new Dictionary<string, string>
+                    {
+                        ["field-1"] = "field-1-value",
+                        
+                    },
                     ExpireAt = null
                 });
 
@@ -1275,22 +1256,20 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-1",
-                    Field = "field-1",
-                    Value = "1"
-                });
-                database.JobGraph.InsertOne(new HashDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    Key = "hash-1",
-                    Field = "field-2",
-                    Value = "2"
+                    Fields = new Dictionary<string, string>
+                    {
+                        ["field-1"] = "1",
+                        ["field-2"] = "2",
+                    },
                 });
                 database.JobGraph.InsertOne(new HashDto
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "hash-2",
-                    Field = "field-1",
-                    Value = "3"
+                    Fields = new Dictionary<string, string>
+                    {
+                        ["field-1"] = "2"
+                    },
                 });
 
                 // Act

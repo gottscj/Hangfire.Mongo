@@ -194,8 +194,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     Id = ObjectId.GenerateNewId(),
                     Key = "key",
-                    Field = "field",
-                    Value = "",
+                    Fields = new Dictionary<string, string> {["field"] = ""},
                     ExpireAt = DateTime.UtcNow.AddMonths(-1)
                 });
 
@@ -220,7 +219,7 @@ namespace Hangfire.Mongo.Tests
             using (var connection = ConnectionUtils.CreateConnection())
             {
                 // Arrange
-                connection.JobGraph.InsertOne(new AggregatedCounterDto
+                connection.JobGraph.InsertOne(new CounterDto
                 {
                     Key = "key",
                     Value = 1,
