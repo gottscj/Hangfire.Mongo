@@ -142,6 +142,7 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Database context
         /// </summary>
+        [Obsolete("We are removing access to HangfireDbContext in 0.5.13, please open an issue on our github page if you need this functionality")]
         public HangfireDbContext Connection { get; }
 
         /// <summary>
@@ -191,6 +192,7 @@ namespace Hangfire.Mongo
         /// Opens connection to database
         /// </summary>
         /// <returns>Database context</returns>
+        [Obsolete("We are removing access to HangfireDbContext in 0.5.13, please open an issue on our github page if you need this functionality")]
         public HangfireDbContext CreateAndOpenConnection()
         {
             return _connectionString != null
