@@ -203,27 +203,19 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(jobId));
             }
-
-            var projection = Builders<JobDto>
-                .Projection
-                .Include(j => j.StateHistory)
-                .Slice(j => j.StateHistory, -1);
-
-            var latest = Database
+            
+            var job = Database
                 .JobGraph
                 .OfType<JobDto>()
                 .Find(j => j.Id == ObjectId.Parse(jobId))
-                .Project(projection)
                 .FirstOrDefault();
 
-            if (latest == null)
+            if (job == null)
             {
                 return null;
             }
 
-            var state = latest[nameof(JobDto.StateHistory)]
-                .AsBsonArray
-                .FirstOrDefault();
+            var state = job.StateHistory.LastOrDefault();
 
             if (state == null)
             {
@@ -232,10 +224,9 @@ namespace Hangfire.Mongo
 
             return new StateData
             {
-                Name = state[nameof(StateDto.Name)] == BsonNull.Value ? null : state[nameof(StateDto.Name)].AsString,
-                Reason = state[nameof(StateDto.Reason)] == BsonNull.Value ? null : state[nameof(StateDto.Reason)].AsString,
-                Data = state[nameof(StateDto.Data)] == BsonNull.Value ? new Dictionary<string, string>() :
-                    state[nameof(StateDto.Data)].AsBsonDocument.Elements.ToDictionary(e => e.Name, e => e.Value.AsString)
+                Name = state.Name,
+                Reason = state.Reason,
+                Data = state.Data
             };
         }
 
