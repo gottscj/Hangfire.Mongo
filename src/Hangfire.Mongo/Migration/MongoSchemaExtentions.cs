@@ -93,7 +93,8 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".jobGraph",
                         prefix + ".locks",
                         prefix + ".schema",
-                        prefix + ".server"
+                        prefix + ".server",
+                        prefix + ".signal"
                     };
 
                 default:
