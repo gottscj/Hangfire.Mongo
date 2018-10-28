@@ -1,5 +1,11 @@
 
-## What's New (03/09/2018)
+## What's New (28/10/2018)
+
+### v0.5.12
+- Using $dec and $inc operators for counters
+- Merging HashDto fields into one document
+- Deprecating  direct db access and queueproviders
+- Removed use of $slice (#151) 
 
 ### v0.5.11
 - Fixed duplicate key exception in advanced setups (#70)
