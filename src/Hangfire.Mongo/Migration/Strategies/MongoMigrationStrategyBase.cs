@@ -171,7 +171,7 @@ namespace Hangfire.Mongo.Migration.Strategies
                 }
             });
 
-            var serverStatus = database.RunCommand<BsonDocument>(new BsonDocument("serverStatus", 1));
+            var serverStatus = database.RunCommand<BsonDocument>(new BsonDocument("buildinfo", 1));
             if (serverStatus.Contains("version"))
             {
                 var version = Version.Parse(serverStatus["version"].AsString);
