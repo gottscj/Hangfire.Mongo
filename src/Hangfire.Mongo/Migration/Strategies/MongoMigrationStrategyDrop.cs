@@ -49,7 +49,7 @@ namespace Hangfire.Mongo.Migration.Strategies
         {
             foreach (var collectionName in ExistingHangfireCollectionNames(schema))
             {
-                _dbContext.Database.DropCollection(collectionName);
+                DbContext.Database.DropCollection(collectionName);
             }
         }
 
