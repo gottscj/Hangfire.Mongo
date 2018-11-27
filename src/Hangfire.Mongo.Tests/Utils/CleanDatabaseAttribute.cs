@@ -50,8 +50,7 @@ namespace Hangfire.Mongo.Tests.Utils
             {
                 try
                 {
-                    context.Init(new MongoStorageOptions());
-
+                 
                     context.DistributedLock.DeleteMany(new BsonDocument());
                     context.JobGraph.DeleteMany(new BsonDocument());
                     context.Server.DeleteMany(new BsonDocument());

@@ -27,18 +27,23 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
         public IEnumerable<string> GetEnqueuedJobIds(string queue, int from, int perPage)
         {
-            return _connection.JobGraph.OfType<JobQueueDto>()
+            var jobIds = _connection.JobGraph.OfType<JobQueueDto>()
                 .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null))
                 .Skip(from)
                 .Limit(perPage)
                 .Project(_ => _.JobId)
+                .ToList();
+
+            var enqueuedJobIds = _connection
+                .JobGraph
+                .OfType<JobDto>()
+                .Find(Builders<JobDto>.Filter.In(j => j.Id, jobIds))
+                .Project(_ => new { _.Id, _.StateHistory})
                 .ToList()
-                .Where(jobQueueJobId =>
-                {
-                    return _connection.JobGraph.OfType<JobDto>().Find(j => j.Id == jobQueueJobId && j.StateHistory.Length > 0).Any();
-                })
-                .Select(jobQueueJobId => jobQueueJobId.ToString())
-                .ToArray();
+                .Where(_ => _.StateHistory.Length > 0)
+                .Select(_ => _.Id.ToString());
+            
+            return enqueuedJobIds;
         }
 
         public IEnumerable<string> GetFetchedJobIds(string queue, int from, int perPage)

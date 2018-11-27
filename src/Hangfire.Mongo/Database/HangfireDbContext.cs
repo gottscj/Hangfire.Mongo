@@ -78,16 +78,6 @@ namespace Hangfire.Mongo.Database
         public IMongoCollection<ServerDto> Server => Database.GetCollection<ServerDto>(_prefix + ".server");
 
         /// <summary>
-        /// Initializes intial collections schema for Hangfire
-        /// </summary>
-        public void Init(MongoStorageOptions storageOptions)
-        {
-            var migrationManager = new MongoMigrationManager(storageOptions);
-            migrationManager.Migrate(this);
-        }
-
-
-        /// <summary>
         /// Disposes the object
         /// </summary>
         public void Dispose()

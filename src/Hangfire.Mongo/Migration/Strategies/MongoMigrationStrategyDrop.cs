@@ -11,8 +11,8 @@ namespace Hangfire.Mongo.Migration.Strategies
     internal class MongoMigrationStrategyDrop : MongoMigrationStrategyBase
     {
 
-        public MongoMigrationStrategyDrop(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
-            : base(dbContext, storageOptions)
+        public MongoMigrationStrategyDrop(HangfireDbContext dbContext, MongoStorageOptions storageOptions, MongoMigrationRunner migrationRunner)
+            : base(dbContext, storageOptions, migrationRunner)
         {
         }
 
@@ -49,9 +49,8 @@ namespace Hangfire.Mongo.Migration.Strategies
         {
             foreach (var collectionName in ExistingHangfireCollectionNames(schema))
             {
-                DbContext.Database.DropCollection(collectionName);
+                database.DropCollection(collectionName);
             }
         }
-
     }
 }

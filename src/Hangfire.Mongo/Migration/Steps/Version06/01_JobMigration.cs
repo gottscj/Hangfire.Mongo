@@ -15,16 +15,19 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
 
         public long Sequence => 1;
 
-        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
+        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions,
+            IMongoMigrationBag migrationBag)
         {
             var jobCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.job");
-            var jobParametersCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobParameter");
+            var jobParametersCollection =
+                database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobParameter");
             var stateCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.state");
 
-            var filter = Builders<BsonDocument>.Filter.Type("_id", BsonType.Int32);
+            var filter = Builders<BsonDocument>.Filter.Empty;
             var jobs = jobCollection.Find(filter).ToList();
 
             var jobIdMapping = jobs
+                    .Where(j => j["_id"].IsInt32)
                 .Select(j => j["_id"].AsInt32)
                 .Distinct()
                 .ToDictionary(jid => jid, jid => new BsonObjectId(ObjectId.GenerateNewId()).ToString());
@@ -39,7 +42,8 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
                     .SortBy(s => s["CreatedAt"])
                     .ToList();
                 job["_id"] = jobIdMapping[id];
-                job["Parameters"] = new BsonDocument(jobParameters.ToDictionary(jp => jp["Name"].AsString, jp => jp["Value"].AsString));
+                job["Parameters"] =
+                    new BsonDocument(jobParameters.ToDictionary(jp => jp["Name"].AsString, jp => jp["Value"].AsString));
                 job["StateHistory"] = new BsonArray(jobStates.Select(s =>
                 {
                     s.Remove("_id");
@@ -48,16 +52,19 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
                     // - but it has been experienced that it wasn't
                     if (s["Data"].IsString)
                     {
-                        s["Data"] = new BsonDocument(JobHelper.FromJson<Dictionary<string, string>>(s["Data"].AsString));
+                        s["Data"] = new BsonDocument(
+                            JobHelper.FromJson<Dictionary<string, string>>(s["Data"].AsString));
                     }
                     else
                     {
                         System.Diagnostics.Debug.WriteLine(s["Data"].BsonType);
                     }
+
                     if (!s["Data"].IsBsonDocument)
                     {
                         throw new MongoMigrationException(this, "Expected JobState field 'Data' to be BsonDocument");
                     }
+
                     return s;
                 }));
                 job.Remove("StateId");

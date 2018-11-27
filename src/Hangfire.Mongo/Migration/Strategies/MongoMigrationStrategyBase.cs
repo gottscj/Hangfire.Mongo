@@ -9,13 +9,15 @@ namespace Hangfire.Mongo.Migration.Strategies
 {
     internal abstract class MongoMigrationStrategyBase : IMongoMigrationStrategy
     {
-        protected readonly HangfireDbContext DbContext;
-        protected readonly MongoStorageOptions StorageOptions;
+        private readonly HangfireDbContext _dbContext;
+        private readonly MongoStorageOptions _storageOptions;
+        private readonly MongoMigrationRunner _migrationRunner;
 
-        public MongoMigrationStrategyBase(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
+        protected MongoMigrationStrategyBase(HangfireDbContext dbContext, MongoStorageOptions storageOptions, MongoMigrationRunner migrationRunner)
         {
-            DbContext = dbContext;
-            StorageOptions = storageOptions;
+            _dbContext = dbContext;
+            _storageOptions = storageOptions;
+            _migrationRunner = migrationRunner;
         }
 
 
@@ -28,32 +30,31 @@ namespace Hangfire.Mongo.Migration.Strategies
         }
 
 
-        protected virtual void Backup(MongoSchema fromSchema, MongoSchema toSchema)
+        private void Backup(MongoSchema fromSchema, MongoSchema toSchema)
         {
-            switch (StorageOptions.MigrationOptions.BackupStrategy)
+            switch (_storageOptions.MigrationOptions.BackupStrategy)
             {
                 case MongoBackupStrategy.None:
-                    BackupStrategyNone(DbContext.Database, fromSchema, toSchema);
+                    BackupStrategyNone(_dbContext.Database, fromSchema, toSchema);
                     break;
 
                 case MongoBackupStrategy.Collections:
-                    BackupStrategyCollection(DbContext.Database, fromSchema, toSchema);
+                    BackupStrategyCollection(_dbContext.Database, fromSchema, toSchema);
                     break;
 
                 case MongoBackupStrategy.Database:
-                    BackupStrategyDatabase(DbContext.Client, DbContext.Database, fromSchema, toSchema);
+                    BackupStrategyDatabase(_dbContext.Client, _dbContext.Database, fromSchema, toSchema);
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException($@"Unknown backup strategy: {StorageOptions.MigrationOptions.BackupStrategy}", $@"{nameof(MongoMigrationOptions)}.{nameof(MongoMigrationOptions.BackupStrategy)}");
+                    throw new ArgumentOutOfRangeException($@"Unknown backup strategy: {_storageOptions.MigrationOptions.BackupStrategy}", $@"{nameof(MongoMigrationOptions)}.{nameof(MongoMigrationOptions.BackupStrategy)}");
             }
         }
 
 
         protected virtual void Migrate(MongoSchema fromSchema, MongoSchema toSchema)
         {
-            var migrationRunner = new MongoMigrationRunner(DbContext, StorageOptions);
-            migrationRunner.Execute(fromSchema, toSchema);
+            _migrationRunner.Execute(fromSchema, toSchema);
         }
 
 
@@ -62,7 +63,7 @@ namespace Hangfire.Mongo.Migration.Strategies
         }
 
 
-        protected virtual void BackupStrategyCollection(IMongoDatabase database, MongoSchema fromSchema, MongoSchema toSchema)
+        private void BackupStrategyCollection(IMongoDatabase database, MongoSchema fromSchema, MongoSchema toSchema)
         {
             var existingCollectionNames = ExistingHangfireCollectionNames(fromSchema).ToList();
             var backupCollectionNames =
@@ -108,7 +109,7 @@ namespace Hangfire.Mongo.Migration.Strategies
         protected IEnumerable<string> ExistingHangfireCollectionNames(MongoSchema schema)
         {
             var existingCollectionNames = ExistingDatabaseCollectionNames().ToList();
-            return schema.CollectionNames(StorageOptions.Prefix).Where(c => existingCollectionNames.Contains(c));
+            return schema.CollectionNames(_storageOptions.Prefix).Where(c => existingCollectionNames.Contains(c));
         }
 
 
@@ -117,7 +118,7 @@ namespace Hangfire.Mongo.Migration.Strategies
         /// </summary>
         protected IEnumerable<string> ExistingDatabaseCollectionNames()
         {
-            return DbContext.Database.ListCollections().ToList().Select(c => c["name"].AsString);
+            return _dbContext.Database.ListCollections().ToList().Select(c => c["name"].AsString);
         }
 
 
@@ -126,7 +127,7 @@ namespace Hangfire.Mongo.Migration.Strategies
         /// </summary>
         protected string GetBackupDatabaseName(string databaseName, MongoSchema schema)
         {
-            return $@"{databaseName}-{(int)schema}-{StorageOptions.MigrationOptions.BackupPostfix}";
+            return $@"{databaseName}-{(int)schema}-{_storageOptions.MigrationOptions.BackupPostfix}";
         }
 
 
@@ -135,7 +136,7 @@ namespace Hangfire.Mongo.Migration.Strategies
         /// </summary>
         protected string GetBackupCollectionName(string collectionName, MongoSchema schema)
         {
-            return $@"{collectionName}.{(int)schema}.{StorageOptions.MigrationOptions.BackupPostfix}";
+            return $@"{collectionName}.{(int)schema}.{_storageOptions.MigrationOptions.BackupPostfix}";
         }
 
 

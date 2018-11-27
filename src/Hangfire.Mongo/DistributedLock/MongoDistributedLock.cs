@@ -22,7 +22,7 @@ namespace Hangfire.Mongo.DistributedLock
 
         private readonly string _resource;
 
-        private readonly HangfireDbContext _database;
+        private readonly IMongoCollection<DistributedLockDto> _locks;
 
         private readonly MongoStorageOptions _storageOptions;
 
@@ -38,14 +38,29 @@ namespace Hangfire.Mongo.DistributedLock
         /// </summary>
         /// <param name="resource">Lock resource</param>
         /// <param name="timeout">Lock timeout</param>
-        /// <param name="database">Lock database</param>
+        /// <param name="dbContext">Lock Database</param>
         /// <param name="storageOptions">Database options</param>
-        /// <exception cref="DistributedLockTimeoutException">Thrown if lock is not acuired within the timeout</exception>
+        /// <exception cref="DistributedLockTimeoutException">Thrown if lock is not acquired within the timeout</exception>
         /// <exception cref="MongoDistributedLockException">Thrown if other mongo specific issue prevented the lock to be acquired</exception>
-        public MongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext database, MongoStorageOptions storageOptions)
+        public MongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext dbContext,
+            MongoStorageOptions storageOptions) : this(resource, timeout, dbContext?.DistributedLock, storageOptions)
+        {
+
+        }
+
+        /// <summary>
+        /// Creates MongoDB distributed lock
+        /// </summary>
+        /// <param name="resource">Lock resource</param>
+        /// <param name="timeout">Lock timeout</param>
+        /// <param name="locks">Lock collection</param>
+        /// <param name="storageOptions">Database options</param>
+        /// <exception cref="DistributedLockTimeoutException">Thrown if lock is not acquired within the timeout</exception>
+        /// <exception cref="MongoDistributedLockException">Thrown if other mongo specific issue prevented the lock to be acquired</exception>
+        public MongoDistributedLock(string resource, TimeSpan timeout, IMongoCollection<DistributedLockDto> locks, MongoStorageOptions storageOptions)
         {
             _resource = resource ?? throw new ArgumentNullException(nameof(resource));
-            _database = database ?? throw new ArgumentNullException(nameof(database));
+            _locks = locks ?? throw new ArgumentNullException(nameof(locks));
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
 
             if (string.IsNullOrEmpty(resource))
@@ -133,7 +148,7 @@ namespace Hangfire.Mongo.DistributedLock
                         IsUpsert = true,
                         ReturnDocument = ReturnDocument.Before
                     };
-                    var result = _database.DistributedLock.FindOneAndUpdate(filter, update, options);
+                    var result = _locks.FindOneAndUpdate(filter, update, options);
 
                     // If result is null, it means we acquired the lock
                     if (result == null)
@@ -174,7 +189,7 @@ namespace Hangfire.Mongo.DistributedLock
             try
             {
                 // Remove resource lock
-                _database.DistributedLock.DeleteOne(
+                _locks.DeleteOne(
                     Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource));
             }
             catch (Exception ex)
@@ -189,7 +204,7 @@ namespace Hangfire.Mongo.DistributedLock
             try
             {
                 // Delete expired locks
-                _database.DistributedLock.DeleteOne(
+                _locks.DeleteOne(
                     Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource) &
                     Builders<DistributedLockDto>.Filter.Lt(_ => _.ExpireAt, DateTime.UtcNow));
             }
@@ -216,7 +231,7 @@ namespace Hangfire.Mongo.DistributedLock
                     {
                         var filter = Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource);
                         var update = Builders<DistributedLockDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime));
-                        _database.DistributedLock.FindOneAndUpdate(filter, update);
+                        _locks.FindOneAndUpdate(filter, update);
                     }
                     catch (Exception ex)
                     {

@@ -12,8 +12,8 @@ namespace Hangfire.Mongo.Migration.Strategies
     internal class MongoMigrationStrategyMigrate : MongoMigrationStrategyBase
     {
 
-        public MongoMigrationStrategyMigrate(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
-            : base(dbContext, storageOptions)
+        public MongoMigrationStrategyMigrate(HangfireDbContext dbContext, MongoStorageOptions storageOptions, MongoMigrationRunner migrationRunner)
+            : base(dbContext, storageOptions, migrationRunner)
         {
         }
 

@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.Migration;
 using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.Mongo.PersistentJobQueue.Mongo;
 using Hangfire.Server;
@@ -92,8 +93,12 @@ namespace Hangfire.Mongo
             _storageOptions = storageOptions;
 
             Connection = new HangfireDbContext(connectionString, databaseName, storageOptions.Prefix);
-            Connection.Init(_storageOptions);
 
+            using (var migrationManager = new MongoMigrationManager(storageOptions, Connection))
+            {
+                migrationManager.Migrate();
+            }
+            
             var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
             QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }
