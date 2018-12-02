@@ -9,6 +9,7 @@ using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
+using MongoDB.Driver;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests.Migration.Mongo
@@ -54,10 +55,18 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                 migrationManager.Migrate();
 
                 // ASSERT
+                AssertDataIntegrity(dbContext);
             }
         }
 
-
+        private static void AssertDataIntegrity(HangfireDbContext dbContext)
+        {
+            var jobGraphDtos = dbContext.JobGraph.Find(new BsonDocument()).ToList();
+            var locks = dbContext.DistributedLock.Find(new BsonDocument()).ToList();
+            var schema = dbContext.Schema.Find(new BsonDocument()).ToList();
+            var servers = dbContext.Server.Find(new BsonDocument()).ToList();
+        }
+        
         #region Private Helper Methods
 
         private static void SeedCollectionFromZipArchive(HangfireDbContext connection, string fileName)
