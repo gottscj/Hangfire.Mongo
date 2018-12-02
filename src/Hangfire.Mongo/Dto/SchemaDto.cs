@@ -11,6 +11,7 @@ namespace Hangfire.Mongo.Dto
         /// The schema version
         /// </summary>
         [BsonId]
+        [BsonElement(nameof(Version))]
         public MongoSchema Version { get; set; }
 
         /// <summary>
@@ -19,6 +20,7 @@ namespace Hangfire.Mongo.Dto
         /// and will nerver change.
         /// </summary>
         [BsonIgnoreIfNull]
+        [BsonElement(nameof(Identifier))]
         public string Identifier { get; set; }
 
     }

@@ -327,9 +327,9 @@ namespace Hangfire.Mongo
                 .Select(job =>
                 {
                     var state = job.StateHistory.LastOrDefault();
-                    return new JobDetailedDto
+                    return new JobSummary
                     {
-                        Id = job.Id,
+                        Id = job.Id.ToString(),
                         InvocationData = job.InvocationData,
                         Arguments = job.Arguments,
                         CreatedAt = job.CreatedAt,
@@ -354,8 +354,8 @@ namespace Hangfire.Mongo
                 });
         }
 
-        private static JobList<TDto> DeserializeJobs<TDto>(ICollection<JobDetailedDto> jobs,
-            Func<JobDetailedDto, Job, Dictionary<string, string>, TDto> selector)
+        private static JobList<TDto> DeserializeJobs<TDto>(ICollection<JobSummary> jobs,
+            Func<JobSummary, Job, Dictionary<string, string>, TDto> selector)
         {
             var result = new List<KeyValuePair<string, TDto>>(jobs.Count);
 
@@ -363,7 +363,7 @@ namespace Hangfire.Mongo
             {
                 var stateData = job.StateData;
                 var dto = selector(job, DeserializeJob(job.InvocationData, job.Arguments), stateData);
-                result.Add(new KeyValuePair<string, TDto>(job.Id.ToString(), dto));
+                result.Add(new KeyValuePair<string, TDto>(job.Id, dto));
             }
 
             return new JobList<TDto>(result);
@@ -409,13 +409,13 @@ namespace Hangfire.Mongo
 
             IEnumerable<JobDto> jobsFiltered = jobs.Where(job => jobIdToJobQueueMap.ContainsKey(job.Id));
 
-            List<JobDetailedDto> joinedJobs = jobsFiltered
+            List<JobSummary> joinedJobs = jobsFiltered
                 .Select(job =>
                 {
                     var state = job.StateHistory.FirstOrDefault(s => s.Name == job.StateName);
-                    return new JobDetailedDto
+                    return new JobSummary
                     {
-                        Id = job.Id,
+                        Id = job.Id.ToString(),
                         InvocationData = job.InvocationData,
                         Arguments = job.Arguments,
                         CreatedAt = job.CreatedAt,
@@ -446,7 +446,7 @@ namespace Hangfire.Mongo
         }
 
         private JobList<TDto> GetJobs<TDto>(int from, int count, string stateName,
-            Func<JobDetailedDto, Job, Dictionary<string, string>, TDto> selector)
+            Func<JobSummary, Job, Dictionary<string, string>, TDto> selector)
         {
             // only retrieve job ids
             var filter = Builders<JobDto>
@@ -467,9 +467,9 @@ namespace Hangfire.Mongo
                 {
                     var state = job.StateHistory.FirstOrDefault(s => s.Name == stateName);
 
-                    return new JobDetailedDto
+                    return new JobSummary
                     {
-                        Id = job.Id,
+                        Id = job.Id.ToString(),
                         InvocationData = job.InvocationData,
                         Arguments = job.Arguments,
                         CreatedAt = job.CreatedAt,

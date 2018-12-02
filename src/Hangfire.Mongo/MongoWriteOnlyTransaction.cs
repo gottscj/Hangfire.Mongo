@@ -382,22 +382,18 @@ namespace Hangfire.Mongo
 
             var registry = _connection.JobGraph.Settings.SerializerRegistry;
 
-            var jsonSettings = new JsonWriterSettings
-            {
-                Indent = true
-            };
             switch (writeModel.ModelType)
             {
                 case WriteModelType.InsertOne:
-                    serializedDoc = ((InsertOneModel<BsonDocument>) writeModel).Document.ToJson(jsonSettings);
+                    serializedDoc = ((InsertOneModel<BsonDocument>) writeModel).Document.ToJson();
                     break;
                 case WriteModelType.DeleteOne:
                     serializedDoc = ((DeleteOneModel<BsonDocument>) writeModel).Filter.Render(serializer, registry)
-                        .ToJson(jsonSettings);
+                        .ToJson();
                     break;
                 case WriteModelType.DeleteMany:
                     serializedDoc = ((DeleteManyModel<BsonDocument>) writeModel).Filter.Render(serializer, registry)
-                        .ToJson(jsonSettings);
+                        .ToJson();
                     break;
                 case WriteModelType.ReplaceOne:
 
@@ -405,21 +401,21 @@ namespace Hangfire.Mongo
                     {
                         ["Filter"] = ((ReplaceOneModel<BsonDocument>) writeModel).Filter.Render(serializer, registry),
                         ["Replacement"] = ((ReplaceOneModel<BsonDocument>) writeModel).Replacement
-                    }.ToJson(jsonSettings);
+                    }.ToJson();
                     break;
                 case WriteModelType.UpdateOne:
                     serializedDoc = new Dictionary<string, BsonDocument>
                     {
                         ["Filter"] = ((UpdateOneModel<BsonDocument>) writeModel).Filter.Render(serializer, registry),
                         ["Update"] = ((UpdateOneModel<BsonDocument>) writeModel).Update.Render(serializer, registry)
-                    }.ToJson(jsonSettings);
+                    }.ToJson();
                     break;
                 case WriteModelType.UpdateMany:
                     serializedDoc = new Dictionary<string, BsonDocument>
                     {
                         ["Filter"] = ((UpdateManyModel<BsonDocument>) writeModel).Filter.Render(serializer, registry),
                         ["Update"] = ((UpdateManyModel<BsonDocument>) writeModel).Update.Render(serializer, registry)
-                    }.ToJson(jsonSettings);
+                    }.ToJson();
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
