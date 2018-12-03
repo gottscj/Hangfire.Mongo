@@ -326,7 +326,7 @@ namespace Hangfire.Mongo.Tests
 
         private static void UseConnection(Action<HangfireDbContext> action)
         {
-            using (var connection = ConnectionUtils.CreateConnection())
+            using (var connection = ConnectionUtils.CreateDbContext())
             {
                 action(connection);
             }

@@ -162,7 +162,4 @@
     <PackageReference Include="MongoDB.Driver" Version="2.7.2" />
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="PersistentJobQueue\Mongo" />
-  </ItemGroup>
 </Project>

@@ -9,7 +9,7 @@ using MongoDB.Driver;
 namespace Hangfire.Mongo
 {
 #pragma warning disable 1591
-    internal class MongoJobQueue
+    internal sealed class MongoJobQueue : IDisposable
     {
         private readonly MongoStorageOptions _storageOptions;
 
@@ -89,6 +89,11 @@ namespace Hangfire.Mongo
             }
 
             return new MongoFetchedJob(_dbContext, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
+        }
+
+        public void Dispose()
+        {
+            // nop
         }
     }
 #pragma warning disable 1591

@@ -466,8 +466,7 @@ namespace Hangfire.Mongo
 
             foreach (var job in joinedJobs)
             {
-                result.Add(new KeyValuePair<string, FetchedJobDto>(
-                    job.Id.ToString(),
+                result.Add(new KeyValuePair<string, FetchedJobDto>(job.Id,
                     new FetchedJobDto
                     {
                         Job = DeserializeJob(job.InvocationData, job.Arguments),

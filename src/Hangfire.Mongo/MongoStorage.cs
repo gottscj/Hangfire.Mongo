@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Text.RegularExpressions;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
 using Hangfire.Server;
 using Hangfire.Storage;
-using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -19,45 +15,14 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoStorage : JobStorage
     {
-        private readonly string _connectionString;
-
-        private static readonly Regex ConnectionStringCredentials = new Regex("mongodb://(.*?)@", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
         private readonly string _databaseName;
 
         private readonly MongoClientSettings _mongoClientSettings;
 
         private readonly MongoStorageOptions _storageOptions;
 
-<<<<<<< HEAD
-=======
         private readonly HangfireDbContext _dbContext;
 
-        static MongoStorage()
-        {
-            // We will register all our Dto classes with the default conventions.
-            // By doing this, we can safely use strings for referencing class
-            // property names with risking to have a mismatch with any convention
-            // used by bson serializer.
-            var conventionPack = new ConventionPack();
-            conventionPack.Append(DefaultConventionPack.Instance);
-            conventionPack.Append(AttributeConventionPack.Instance);
-            var conventionRunner = new ConventionRunner(conventionPack);
-
-            var assembly = typeof(MongoStorage).GetTypeInfo().Assembly;
-            var classMaps = assembly.DefinedTypes
-                .Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericType && t.Namespace == "Hangfire.Mongo.Dto")
-                .Select(t => new BsonClassMap(t.AsType()));
-
-            foreach (var classMap in classMaps)
-            {
-                conventionRunner.Apply(classMap);
-                BsonClassMap.RegisterClassMap(classMap);
-            }
-        }
-
-
->>>>>>> Removing Obsolete interfaces and logic
         /// <summary>
         /// Constructs Job Storage by database connection string and name
         /// </summary>
@@ -75,30 +40,8 @@ namespace Hangfire.Mongo
         /// <param name="databaseName">Database name</param>
         /// <param name="storageOptions">Storage options</param>
         public MongoStorage(string connectionString, string databaseName, MongoStorageOptions storageOptions)
+            : this(MongoClientSettings.FromConnectionString(connectionString),databaseName, storageOptions)
         {
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                throw new ArgumentNullException(nameof(connectionString));
-            }
-            if (string.IsNullOrWhiteSpace(databaseName))
-            {
-                throw new ArgumentNullException(nameof(databaseName));
-            }
-            if (storageOptions == null)
-            {
-                throw new ArgumentNullException(nameof(storageOptions));
-            }
-
-            _connectionString = connectionString;
-            _databaseName = databaseName;
-            _storageOptions = storageOptions;
-
-            _dbContext = new HangfireDbContext(connectionString, databaseName, storageOptions.Prefix);
-
-            using (var migrationManager = new MongoMigrationManager(storageOptions, _dbContext))
-            {
-                migrationManager.Migrate();
-            }
             
         }
 
@@ -138,6 +81,11 @@ namespace Hangfire.Mongo
             _storageOptions = storageOptions;
 
             _dbContext = new HangfireDbContext(mongoClientSettings, databaseName, _storageOptions.Prefix);
+            
+            using (var migrationManager = new MongoMigrationManager(storageOptions, _dbContext))
+            {
+                migrationManager.Migrate();
+            }
         }
 
         /// <summary>
@@ -164,7 +112,7 @@ namespace Hangfire.Mongo
         /// <returns>Collection of server components</returns>
         public override IEnumerable<IServerComponent> GetComponents()
         {
-            yield return new ExpirationManager(this, _storageOptions.JobExpirationCheckInterval);
+            yield return new ExpirationManager(_dbContext, _storageOptions.JobExpirationCheckInterval);
         }
 
         /// <summary>
@@ -178,29 +126,13 @@ namespace Hangfire.Mongo
         }
 
         /// <summary>
-        /// Opens connection to database
-        /// </summary>
-        /// <returns>Database context</returns>
-        [Obsolete("We are removing access to HangfireDbContext in 0.5.13, please open an issue on our github page if you need this functionality")]
-        public HangfireDbContext CreateAndOpenConnection()
-        {
-            return _connectionString != null
-                ? new HangfireDbContext(_connectionString, _databaseName, _storageOptions.Prefix)
-                : new HangfireDbContext(_mongoClientSettings, _databaseName, _storageOptions.Prefix);
-        }
-
-        /// <summary>
         /// Returns text representation of the object
         /// </summary>
         public override string ToString()
         {
             // Obscure the username and password for display purposes
             string obscuredConnectionString = "mongodb://";
-            if (_connectionString != null)
-            {
-                obscuredConnectionString = ConnectionStringCredentials.Replace(_connectionString, "mongodb://<username>:<password>@");
-            }
-            else if (_mongoClientSettings != null && _mongoClientSettings.Servers != null)
+            if (_mongoClientSettings != null && _mongoClientSettings.Servers != null)
             {
                 var servers = string.Join(",", _mongoClientSettings.Servers.Select(s => $"{s.Host}:{s.Port}"));
                 obscuredConnectionString = $"mongodb://<username>:<password>@{servers}";

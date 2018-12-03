@@ -332,7 +332,7 @@ namespace Hangfire.Mongo.Tests
 
         private void UseMonitoringApi(Action<HangfireDbContext, MongoMonitoringApi> action)
         {
-            using (var database = ConnectionUtils.CreateConnection())
+            using (var database = ConnectionUtils.CreateDbContext())
             {
                 var connection = new MongoMonitoringApi(database);
                 action(database, connection);

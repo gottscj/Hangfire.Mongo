@@ -21,7 +21,7 @@ namespace Hangfire.Mongo.Tests
         {
             ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(null));
 
-            Assert.Equal("connection", exception.ParamName);
+            Assert.Equal("dbContext", exception.ParamName);
         }
 
         [Fact, CleanDatabase]
@@ -896,7 +896,7 @@ namespace Hangfire.Mongo.Tests
 
         private void UseConnection(Action<HangfireDbContext> action)
         {
-            using (HangfireDbContext connection = ConnectionUtils.CreateConnection())
+            using (HangfireDbContext connection = ConnectionUtils.CreateDbContext())
             {
                 action(connection);
             }

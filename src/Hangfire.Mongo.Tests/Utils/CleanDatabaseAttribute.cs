@@ -46,7 +46,7 @@ namespace Hangfire.Mongo.Tests.Utils
 
         private static void RecreateDatabaseAndInstallObjects()
         {
-            using (var context = ConnectionUtils.CreateConnection())
+            using (var context = ConnectionUtils.CreateDbContext())
             {
                 try
                 {

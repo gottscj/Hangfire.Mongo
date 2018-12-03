@@ -40,8 +40,6 @@ namespace Hangfire.Mongo
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
         }
 
-       
-
         public override IWriteOnlyTransaction CreateWriteTransaction()
         {
             return new MongoWriteOnlyTransaction(_database);
@@ -55,27 +53,12 @@ namespace Hangfire.Mongo
         public override string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
             TimeSpan expireIn)
         {
-            if (job == null)
-                throw new ArgumentNullException(nameof(job));
-
-            if (parameters == null)
-                throw new ArgumentNullException(nameof(parameters));
-
-            var invocationData = InvocationData.Serialize(job);
-
-            var jobDto = new JobDto
+            string jobId;
+            using (var transaction = new MongoWriteOnlyTransaction(_database))
             {
-                Id = ObjectId.GenerateNewId(),
-                InvocationData = JobHelper.ToJson(invocationData),
-                Arguments = invocationData.Arguments,
-                Parameters = parameters.ToDictionary(kv => kv.Key, kv => kv.Value),
-                CreatedAt = createdAt,
-                ExpireAt = createdAt.Add(expireIn)
-            };
-
-            _database.JobGraph.InsertOne(jobDto);
-
-            var jobId = jobDto.Id.ToString();
+                jobId = transaction.CreateExpiredJob(job, parameters, createdAt, expireIn);
+                transaction.Commit();
+            }
 
             return jobId;
         }
@@ -91,30 +74,11 @@ namespace Hangfire.Mongo
 
         public override void SetJobParameter(string id, string name, string value)
         {
-            if (id == null)
+            using (var transaction = new MongoWriteOnlyTransaction(_database))
             {
-                throw new ArgumentNullException(nameof(id));
+                transaction.SetJobParameter(id, name, value);
+                transaction.Commit();
             }
-
-            if (name == null)
-            {
-                throw new ArgumentNullException(nameof(name));
-            }
-
-            var filter = new BsonDocument("_id", ObjectId.Parse(id));
-            BsonValue bsonValue;
-            if (value == null)
-            {
-                bsonValue = BsonNull.Value;
-            }
-            else
-            {
-                bsonValue = value;
-            }
-
-            var update = new BsonDocument("$set", new BsonDocument($"{nameof(JobDto.Parameters)}.{name}", bsonValue));
-
-            _database.JobGraph.OfType<JobDto>().UpdateOne(filter, update);
         }
 
         public override string GetJobParameter(string id, string name)

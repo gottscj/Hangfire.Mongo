@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
-using MongoDB.Bson.IO;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -39,6 +39,35 @@ namespace Hangfire.Mongo
 
             var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
             _writeModels.Add(writeModel);
+        }
+        
+        public string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
+            TimeSpan expireIn)
+        {
+            if (job == null)
+                throw new ArgumentNullException(nameof(job));
+
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters));
+
+            var invocationData = InvocationData.Serialize(job);
+
+            var jobDto = new JobDto
+            {
+                Id = ObjectId.GenerateNewId(),
+                InvocationData = JobHelper.ToJson(invocationData),
+                Arguments = invocationData.Arguments,
+                Parameters = parameters.ToDictionary(kv => kv.Key, kv => kv.Value),
+                CreatedAt = createdAt,
+                ExpireAt = createdAt.Add(expireIn)
+            };
+
+            var writeModel = new InsertOneModel<BsonDocument>(jobDto.ToBsonDocument());
+            _writeModels.Add(writeModel);
+
+            var jobId = jobDto.Id.ToString();
+
+            return jobId;
         }
 
         public override void PersistJob(string jobId)
@@ -86,6 +115,41 @@ namespace Hangfire.Mongo
 
             var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
 
+            _writeModels.Add(writeModel);
+        }
+        
+        public void SetJobParameter(string id, string name, string value)
+        {
+            if (id == null)
+            {
+                throw new ArgumentNullException(nameof(id));
+            }
+
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            var filter = new BsonDocument("$and", new BsonArray
+            {
+                new BsonDocument("_id", ObjectId.Parse(id)),
+                new BsonDocument("_t", nameof(JobDto))
+            });
+            
+            BsonValue bsonValue;
+            if (value == null)
+            {
+                bsonValue = BsonNull.Value;
+            }
+            else
+            {
+                bsonValue = value;
+            }
+
+            var update = new BsonDocument("$set", new BsonDocument($"{nameof(JobDto.Parameters)}.{name}", bsonValue));
+            
+            var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
+            
             _writeModels.Add(writeModel);
         }
 
