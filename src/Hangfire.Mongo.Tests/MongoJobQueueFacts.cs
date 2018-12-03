@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Linq;
 using System.Threading;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.PersistentJobQueue.Mongo;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -18,12 +16,12 @@ namespace Hangfire.Mongo.Tests
         private static readonly string[] DefaultQueues = { "default" };
 
         [Fact]
-        public void Ctor_ThrowsAnException_WhenConnectionIsNull()
+        public void Ctor_ThrowsAnException_WhenDbContextIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(() =>
                 new MongoJobQueue(null, new MongoStorageOptions()));
 
-            Assert.Equal("connection", exception.ParamName);
+            Assert.Equal("dbContext", exception.ParamName);
         }
 
         [Fact]
@@ -106,11 +104,11 @@ namespace Hangfire.Mongo.Tests
                 };
 
                 connection.JobGraph.InsertOne(jobQueue);
-
+                var token = CreateTimingOutCancellationToken();
                 var queue = CreateJobQueue(connection);
 
                 // Act
-                MongoFetchedJob payload = (MongoFetchedJob)queue.Dequeue(DefaultQueues, CreateTimingOutCancellationToken());
+                MongoFetchedJob payload = (MongoFetchedJob)queue.Dequeue(DefaultQueues, token);
 
                 // Assert
                 Assert.Equal(jobQueue.JobId.ToString(), payload.JobId);
@@ -315,29 +313,13 @@ namespace Hangfire.Mongo.Tests
             });
         }
 
-        [Fact, CleanDatabase]
-        public void Enqueue_AddsAJobToTheQueue()
-        {
-            UseConnection(connection =>
-            {
-                var queue = CreateJobQueue(connection);
-                var jobId = ObjectId.GenerateNewId().ToString();
-                queue.Enqueue("default", jobId);
-
-                var record = connection.JobGraph.OfType<JobQueueDto>().Find(new BsonDocument()).ToList().Single();
-                Assert.Equal(jobId, record.JobId.ToString());
-                Assert.Equal("default", record.Queue);
-                Assert.Null(record.FetchedAt);
-            });
-        }
-
         private static CancellationToken CreateTimingOutCancellationToken()
         {
             var source = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             return source.Token;
         }
 
-        private static MongoJobQueue CreateJobQueue(HangfireDbContext connection)
+        private MongoJobQueue CreateJobQueue(HangfireDbContext connection)
         {
             return new MongoJobQueue(connection, new MongoStorageOptions());
         }

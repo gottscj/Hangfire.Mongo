@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.PersistentJobQueue;
 using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
@@ -20,19 +18,13 @@ namespace Hangfire.Mongo
     {
         private static readonly ILog Logger = LogProvider.For<MongoWriteOnlyTransaction>();
         
-        private readonly HangfireDbContext _connection;
-
-        private readonly PersistentJobQueueProviderCollection _queueProviders;
+        private readonly HangfireDbContext _dbContext;
 
         private readonly IList<WriteModel<BsonDocument>> _writeModels = new List<WriteModel<BsonDocument>>();
 
-        private readonly IList<Tuple<string, string>> _jobsToEnqueue = new List<Tuple<string, string>>();
-
-        public MongoWriteOnlyTransaction(HangfireDbContext connection,
-            PersistentJobQueueProviderCollection queueProviders)
+        public MongoWriteOnlyTransaction(HangfireDbContext dbContext)
         {
-            _connection = connection ?? throw new ArgumentNullException(nameof(connection));
-            _queueProviders = queueProviders ?? throw new ArgumentNullException(nameof(queueProviders));
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
         public override void Dispose()
@@ -99,7 +91,16 @@ namespace Hangfire.Mongo
 
         public override void AddToQueue(string queue, string jobId)
         {
-            _jobsToEnqueue.Add(Tuple.Create(queue, jobId));
+            var jobQueueDto = new JobQueueDto
+            {
+                JobId = ObjectId.Parse(jobId),
+                Queue = queue,
+                Id = ObjectId.GenerateNewId(),
+                FetchedAt = null
+            }.ToBsonDocument();
+            
+            var writeModel = new InsertOneModel<BsonDocument>(jobQueueDto);
+            _writeModels.Add(writeModel);
         }
 
         public override void IncrementCounter(string key)
@@ -253,7 +254,7 @@ namespace Hangfire.Mongo
             var end = keepEndingAt + 1;
 
             // get all ids
-            var allIds = _connection.JobGraph.OfType<ListDto>()
+            var allIds = _dbContext.JobGraph.OfType<ListDto>()
                 .Find(new BsonDocument())
                 .Project(doc => doc.Id)
                 .ToList();
@@ -339,48 +340,28 @@ namespace Hangfire.Mongo
         {
             if (Logger.IsDebugEnabled())
             {
-                foreach (var tuple in _jobsToEnqueue)
-                {
-                    Logger.Debug($"Enqueuing Job ({tuple.Item2}), on queue: '{tuple.Item1}'\r\n");
-                }
-
                 Logger.Debug($"\r\nCommit:\r\n {string.Join("\r\n", _writeModels.Select(SerializeWriteModel))}");
             }
 
-            var writeTasks = _jobsToEnqueue.Select(t =>
-            {
-                var queue = t.Item1;
-                var jobId = t.Item2;
-                IPersistentJobQueueProvider provider = _queueProviders.GetProvider(queue);
-                IPersistentJobQueue persistentQueue = provider.GetJobQueue(_connection);
-                return Task.Run(() => persistentQueue.Enqueue(queue, jobId));
-            }).ToList();
-
             if (_writeModels.Any())
             {
-                var writeTask = _connection
+                _dbContext
                     .Database
-                    .GetCollection<BsonDocument>(_connection.JobGraph.CollectionNamespace.CollectionName)
-                    .BulkWriteAsync(_writeModels);
-
-                writeTasks.Add(writeTask);
+                    .GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName)
+                    .BulkWrite(_writeModels);
             }
-           
-
-            // make sure to run tasks on default task scheduler
-            Task.Run(() => Task.WhenAll(writeTasks)).GetAwaiter().GetResult();
         }
 
         private string SerializeWriteModel(WriteModel<BsonDocument> writeModel)
         {
             string serializedDoc;
 
-            var serializer = _connection
+            var serializer = _dbContext
                 .Database
-                .GetCollection<BsonDocument>(_connection.JobGraph.CollectionNamespace.CollectionName)
+                .GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName)
                 .DocumentSerializer;
 
-            var registry = _connection.JobGraph.Settings.SerializerRegistry;
+            var registry = _dbContext.JobGraph.Settings.SerializerRegistry;
 
             switch (writeModel.ModelType)
             {

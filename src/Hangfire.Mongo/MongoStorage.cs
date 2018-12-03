@@ -6,10 +6,7 @@ using System.Text.RegularExpressions;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
-using Hangfire.Mongo.PersistentJobQueue;
-using Hangfire.Mongo.PersistentJobQueue.Mongo;
 using Hangfire.Server;
-using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
@@ -32,6 +29,35 @@ namespace Hangfire.Mongo
 
         private readonly MongoStorageOptions _storageOptions;
 
+<<<<<<< HEAD
+=======
+        private readonly HangfireDbContext _dbContext;
+
+        static MongoStorage()
+        {
+            // We will register all our Dto classes with the default conventions.
+            // By doing this, we can safely use strings for referencing class
+            // property names with risking to have a mismatch with any convention
+            // used by bson serializer.
+            var conventionPack = new ConventionPack();
+            conventionPack.Append(DefaultConventionPack.Instance);
+            conventionPack.Append(AttributeConventionPack.Instance);
+            var conventionRunner = new ConventionRunner(conventionPack);
+
+            var assembly = typeof(MongoStorage).GetTypeInfo().Assembly;
+            var classMaps = assembly.DefinedTypes
+                .Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericType && t.Namespace == "Hangfire.Mongo.Dto")
+                .Select(t => new BsonClassMap(t.AsType()));
+
+            foreach (var classMap in classMaps)
+            {
+                conventionRunner.Apply(classMap);
+                BsonClassMap.RegisterClassMap(classMap);
+            }
+        }
+
+
+>>>>>>> Removing Obsolete interfaces and logic
         /// <summary>
         /// Constructs Job Storage by database connection string and name
         /// </summary>
@@ -67,15 +93,13 @@ namespace Hangfire.Mongo
             _databaseName = databaseName;
             _storageOptions = storageOptions;
 
-            Connection = new HangfireDbContext(connectionString, databaseName, storageOptions.Prefix);
+            _dbContext = new HangfireDbContext(connectionString, databaseName, storageOptions.Prefix);
 
-            using (var migrationManager = new MongoMigrationManager(storageOptions, Connection))
+            using (var migrationManager = new MongoMigrationManager(storageOptions, _dbContext))
             {
                 migrationManager.Migrate();
             }
             
-            var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
-            QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }
 
         /// <summary>
@@ -113,23 +137,8 @@ namespace Hangfire.Mongo
             _databaseName = databaseName;
             _storageOptions = storageOptions;
 
-            Connection = new HangfireDbContext(mongoClientSettings, databaseName, _storageOptions.Prefix);
-
-            var defaultQueueProvider = new MongoJobQueueProvider(_storageOptions);
-            QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
+            _dbContext = new HangfireDbContext(mongoClientSettings, databaseName, _storageOptions.Prefix);
         }
-
-        /// <summary>
-        /// Database context
-        /// </summary>
-        [Obsolete("We are removing access to HangfireDbContext in 0.5.13, please open an issue on our github page if you need this functionality")]
-        public HangfireDbContext Connection { get; }
-
-        /// <summary>
-        /// Queue providers collection
-        /// </summary>
-        [Obsolete("We are removing support for external queue providers in 0.5.13")]
-        public PersistentJobQueueProviderCollection QueueProviders { get; }
 
         /// <summary>
         /// Returns Monitoring API object
@@ -137,7 +146,7 @@ namespace Hangfire.Mongo
         /// <returns>Monitoring API object</returns>
         public override IMonitoringApi GetMonitoringApi()
         {
-            return new MongoMonitoringApi(Connection, QueueProviders);
+            return new MongoMonitoringApi(_dbContext);
         }
 
         /// <summary>
@@ -146,7 +155,7 @@ namespace Hangfire.Mongo
         /// <returns>Storage connection</returns>
         public override IStorageConnection GetConnection()
         {
-            return new MongoConnection(Connection, _storageOptions, QueueProviders);
+            return new MongoConnection(_dbContext, _storageOptions);
         }
 
         /// <summary>
