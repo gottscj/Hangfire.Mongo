@@ -17,6 +17,7 @@ namespace Hangfire.Mongo.Dto
     public class BaseJobDto
     {
         [BsonId]
+        [BsonElement("_id")]
         public ObjectId Id { get; set; }
     }
 #pragma warning restore 1591

@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 
-namespace Hangfire.Mongo.Dto
+namespace Hangfire.Mongo
 {
 #pragma warning disable 1591
-    public class JobDetailedDto
+    public class JobSummary
     {
-        [BsonId]
-        public ObjectId Id { get; set; }
+        public string Id { get; set; }
 
         public string InvocationData { get; set; }
 
@@ -20,8 +18,6 @@ namespace Hangfire.Mongo.Dto
         public DateTime? ExpireAt { get; set; }
 
         public DateTime? FetchedAt { get; set; }
-
-        public ObjectId StateId { get; set; }
 
         public string StateName { get; set; }
 
