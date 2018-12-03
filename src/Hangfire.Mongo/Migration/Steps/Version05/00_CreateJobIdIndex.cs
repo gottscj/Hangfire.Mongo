@@ -6,7 +6,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version05
     /// <summary>
     /// Create index for statedate collection
     /// </summary>
-    internal class CreateJobIdIndex : IMongoMigrationStep
+    internal class CreateJobIdIndex : IndexMigration, IMongoMigrationStep
     {
         public MongoSchema TargetSchema => MongoSchema.Version05;
 
@@ -17,13 +17,14 @@ namespace Hangfire.Mongo.Migration.Steps.Version05
             var indexBuilder = Builders<BsonDocument>.IndexKeys;
 
             var jobParameterCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobParameter");
-            jobParameterCollection.TryCreateIndexes(indexBuilder.Descending, "JobId");
+            TryCreateIndexes(jobParameterCollection, indexBuilder.Descending, "JobId");
 
             var jobQueueCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobQueue");
-            jobQueueCollection.TryCreateIndexes(indexBuilder.Descending, "JobId");
+            
+            TryCreateIndexes(jobQueueCollection, indexBuilder.Descending, "JobId");
 
             var stateCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.state");
-            stateCollection.TryCreateIndexes(indexBuilder.Descending, "JobId");
+            TryCreateIndexes(stateCollection, indexBuilder.Descending, "JobId");
 
             return true;
         }

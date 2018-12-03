@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Hangfire.Mongo.Database;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -10,13 +9,15 @@ namespace Hangfire.Mongo.Migration.Strategies
 {
     internal abstract class MongoMigrationStrategyBase : IMongoMigrationStrategy
     {
-        protected readonly HangfireDbContext _dbContext;
-        protected readonly MongoStorageOptions _storageOptions;
+        private readonly HangfireDbContext _dbContext;
+        private readonly MongoStorageOptions _storageOptions;
+        private readonly MongoMigrationRunner _migrationRunner;
 
-        public MongoMigrationStrategyBase(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
+        protected MongoMigrationStrategyBase(HangfireDbContext dbContext, MongoStorageOptions storageOptions, MongoMigrationRunner migrationRunner)
         {
             _dbContext = dbContext;
             _storageOptions = storageOptions;
+            _migrationRunner = migrationRunner;
         }
 
 
@@ -29,7 +30,7 @@ namespace Hangfire.Mongo.Migration.Strategies
         }
 
 
-        protected virtual void Backup(MongoSchema fromSchema, MongoSchema toSchema)
+        private void Backup(MongoSchema fromSchema, MongoSchema toSchema)
         {
             switch (_storageOptions.MigrationOptions.BackupStrategy)
             {
@@ -53,8 +54,7 @@ namespace Hangfire.Mongo.Migration.Strategies
 
         protected virtual void Migrate(MongoSchema fromSchema, MongoSchema toSchema)
         {
-            var migrationRunner = new MongoMigrationRunner(_dbContext, _storageOptions);
-            migrationRunner.Execute(fromSchema, toSchema);
+            _migrationRunner.Execute(fromSchema, toSchema);
         }
 
 
@@ -63,7 +63,7 @@ namespace Hangfire.Mongo.Migration.Strategies
         }
 
 
-        protected virtual void BackupStrategyCollection(IMongoDatabase database, MongoSchema fromSchema, MongoSchema toSchema)
+        private void BackupStrategyCollection(IMongoDatabase database, MongoSchema fromSchema, MongoSchema toSchema)
         {
             var existingCollectionNames = ExistingHangfireCollectionNames(fromSchema).ToList();
             var backupCollectionNames =
