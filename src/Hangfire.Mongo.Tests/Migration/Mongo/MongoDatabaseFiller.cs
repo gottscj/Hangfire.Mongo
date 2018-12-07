@@ -18,7 +18,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
     [Collection("Database")]
     public class MongoDatabaseFiller
     {
-        [Fact, Trait("Category", "DataGeneration")]
+        //[Fact, Trait("Category", "DataGeneration")]
         public void Clean_Database_Filled()
         {
             var connectionString = "mongodb://localhost";

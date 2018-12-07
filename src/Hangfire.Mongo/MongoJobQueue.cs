@@ -4,22 +4,21 @@ using Hangfire.Annotations;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Storage;
-using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace Hangfire.Mongo.PersistentJobQueue.Mongo
+namespace Hangfire.Mongo
 {
 #pragma warning disable 1591
-    internal class MongoJobQueue : IPersistentJobQueue
+    internal sealed class MongoJobQueue : IDisposable
     {
         private readonly MongoStorageOptions _storageOptions;
 
-        private readonly HangfireDbContext _connection;
+        private readonly HangfireDbContext _dbContext;
 
-        public MongoJobQueue(HangfireDbContext connection, MongoStorageOptions storageOptions)
+        public MongoJobQueue(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
-            _connection = connection ?? throw new ArgumentNullException(nameof(connection));
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
         [NotNull]
@@ -59,7 +58,7 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
 
                 foreach (var queue in queues)
                 {
-                    fetchedJob = _connection
+                    fetchedJob = _dbContext
                         .JobGraph
                         .OfType<JobQueueDto>()
                         .FindOneAndUpdate(
@@ -89,18 +88,12 @@ namespace Hangfire.Mongo.PersistentJobQueue.Mongo
                 fetchConditionsIndex = (fetchConditionsIndex + 1) % fetchConditions.Length;
             }
 
-            return new MongoFetchedJob(_connection, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
+            return new MongoFetchedJob(_dbContext, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
         }
 
-        public void Enqueue(string queue, string jobId)
+        public void Dispose()
         {
-            _connection.JobGraph.InsertOne(new JobQueueDto
-            {
-                JobId = ObjectId.Parse(jobId),
-                Queue = queue,
-                Id = ObjectId.GenerateNewId(),
-                FetchedAt = null
-            });
+            // nop
         }
     }
 #pragma warning disable 1591
