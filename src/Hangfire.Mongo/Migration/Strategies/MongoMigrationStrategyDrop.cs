@@ -19,7 +19,7 @@ namespace Hangfire.Mongo.Migration.Strategies
 
         protected override void Migrate(MongoSchema fromSchema, MongoSchema toSchema)
         {
-            base.Execute(MongoSchema.None, toSchema);
+            base.Migrate(MongoSchema.None, toSchema);
         }
 
 
