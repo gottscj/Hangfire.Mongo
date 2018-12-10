@@ -1,4 +1,5 @@
 ﻿using System;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace Hangfire.Mongo.Dto
 {
@@ -9,6 +10,7 @@ namespace Hangfire.Mongo.Dto
 
         public string[] Queues { get; set; }
 
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime? StartedAt { get; set; }
     }
 #pragma warning restore 1591

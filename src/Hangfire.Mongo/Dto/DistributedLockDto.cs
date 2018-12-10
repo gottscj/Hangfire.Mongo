@@ -25,6 +25,7 @@ namespace Hangfire.Mongo.Dto
         /// This is used if the lock is not maintained or 
         /// cleaned up by the owner (e.g. process was shut down).
         /// </summary>
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime ExpireAt { get; set; }
     }
 }

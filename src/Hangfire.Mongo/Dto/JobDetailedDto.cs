@@ -15,10 +15,13 @@ namespace Hangfire.Mongo.Dto
 
         public string Arguments { get; set; }
 
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime CreatedAt { get; set; }
 
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime? ExpireAt { get; set; }
 
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime? FetchedAt { get; set; }
 
         public ObjectId StateId { get; set; }

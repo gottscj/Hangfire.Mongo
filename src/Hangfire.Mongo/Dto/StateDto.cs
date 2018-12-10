@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace Hangfire.Mongo.Dto
 {
@@ -10,6 +11,7 @@ namespace Hangfire.Mongo.Dto
 
         public string Reason { get; set; }
 
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime CreatedAt { get; set; }
 
         public Dictionary<string, string> Data { get; set; }
