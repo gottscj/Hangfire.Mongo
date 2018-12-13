@@ -14,6 +14,7 @@ namespace Hangfire.Mongo.Dto
         public string Data { get; set; }
 
         [BsonElement(nameof(LastHeartbeat))]
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime? LastHeartbeat { get; set; }
     }
 #pragma warning restore 1591
