@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>0.5.12</VersionPrefix>
+    <VersionPrefix>0.5.13</VersionPrefix>
     <TargetFrameworks>net46;net45;netstandard1.5</TargetFrameworks>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -22,7 +22,21 @@
     <owners>Sergey Zwezdin</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>0.5.12
+    <PackageReleaseNotes>0.5.13
+- Use 'buildinfo' command instead of 'serverStatus' to get the server version. Because the 'buildinfo' command does not require - root privileges.
+- Add missing migration for HashDto.Field removal 
+- Add data integrity tests
+- Update to "MongoDB.Driver" Version="2.7.2"
+- Update to "Hangfire.Core" Version="1.6.21"
+- Use separate collection for migration locks as the ".locks" collection might be dropped by if the migration strategy is "Drop"
+- Making migration support CosmosDB
+- Fix if client is using camelcase convention
+- Removing Obsolete interfaces and logic
+- Obsolete access to DbContext and queue providers
+- Fix migration option combi migrationstrategy.drop and backupstrategy.none
+- Fix timezone issue with conflicting bsonserializer settings
+
+0.5.12
 - Using $dec and $inc operators for counters
 - Merging HashDto fields into one document
 - Deprecating  direct db access and queueproviders
@@ -158,8 +172,8 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Hangfire.Core" Version="1.6.20" />
-    <PackageReference Include="MongoDB.Driver" Version="2.7.0" />
+    <PackageReference Include="Hangfire.Core" Version="1.6.21" />
+    <PackageReference Include="MongoDB.Driver" Version="2.7.2" />
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
   </ItemGroup>
 </Project>

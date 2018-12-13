@@ -45,9 +45,9 @@ namespace Hangfire.Mongo.Tests.Utils
             return new MongoStorage(GetConnectionString(), GetDatabaseName(), storageOptions);
         }
 
-        public static HangfireDbContext CreateConnection()
+        public static HangfireDbContext CreateDbContext()
         {
-            return CreateStorage().Connection;
+            return new HangfireDbContext(GetConnectionString(), GetDatabaseName());
         }
     }
 #pragma warning restore 1591

@@ -24,7 +24,11 @@ namespace Hangfire.Mongo.Migration.Steps.Version13
             foreach (var countersByKey in counters.GroupBy(c => c["Key"].AsString))
             {
                 var key = countersByKey.Key;
-                var sum = countersByKey.Sum(c => c["Value"].AsInt64);
+                var sum = countersByKey.Sum(c =>
+                {
+                    var value = c["Value"];
+                    return value.IsInt32 ? value.AsInt32 : value.AsInt64;
+                });
                 BsonValue expireAt = BsonNull.Value;
                 if (countersByKey.Any(c =>  c.Contains("ExpireAt") && c["ExpireAt"] != BsonNull.Value))
                 {

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading;
-using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
@@ -32,9 +31,9 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoDistributedLock("resource1", TimeSpan.Zero, null, new MongoStorageOptions()));
+                () => new MongoDistributedLock("resource1", TimeSpan.Zero, (HangfireDbContext)null, new MongoStorageOptions()));
 
-            Assert.Equal("database", exception.ParamName);
+            Assert.Equal("locks", exception.ParamName);
         }
 
         [Fact, CleanDatabase]
@@ -166,7 +165,7 @@ namespace Hangfire.Mongo.Tests
 
         private static void UseConnection(Action<HangfireDbContext> action)
         {
-            using (var connection = ConnectionUtils.CreateConnection())
+            using (var connection = ConnectionUtils.CreateDbContext())
             {
                 action(connection);
             }

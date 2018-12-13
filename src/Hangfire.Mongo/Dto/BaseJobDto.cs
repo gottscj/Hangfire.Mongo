@@ -12,10 +12,12 @@ namespace Hangfire.Mongo.Dto
         typeof(ListDto),
         typeof(SetDto),
         typeof(HashDto),
+        typeof(JobQueueDto),
         typeof(JobDto))]
     public class BaseJobDto
     {
         [BsonId]
+        [BsonElement("_id")]
         public ObjectId Id { get; set; }
     }
 #pragma warning restore 1591

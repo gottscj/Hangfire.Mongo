@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using System.Linq;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration.Steps.Version07
@@ -32,10 +33,26 @@ namespace Hangfire.Mongo.Migration.Steps.Version07
                 }
                 else
                 {
-                    database.RenameCollection(oldName, newName);
+                    RenameCollection(database, oldName, newName);
                 }
             }
             return true;
+        }
+
+        private static void RenameCollection(IMongoDatabase database, string oldName, string newName)
+        {
+            var stateData = database
+                .GetCollection<BsonDocument>(oldName)
+                .FindSync(new BsonDocument())
+                .ToList();
+            
+            if(stateData.Any())
+            {
+                database
+                    .GetCollection<BsonDocument>(newName)
+                    .InsertMany(stateData);
+            }
+            database.DropCollection(oldName);
         }
     }
 }

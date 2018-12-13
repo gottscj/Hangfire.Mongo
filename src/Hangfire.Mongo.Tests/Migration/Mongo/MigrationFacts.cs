@@ -9,6 +9,7 @@ using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
+using MongoDB.Driver;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests.Migration.Mongo
@@ -16,100 +17,27 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
     [Collection("Database")]
     public class MigrationFacts
     {
-
-        #region Migration Unit Tests
-
-        [Fact]
-        public void FullMigration_NewDatabase_MigrationComplete()
+        [Theory]
+        [InlineData(null)]
+        [InlineData("Hangfire-Mongo-Schema-004.zip")]
+        [InlineData("Hangfire-Mongo-Schema-005.zip")]
+        [InlineData("Hangfire-Mongo-Schema-006.zip")]
+        [InlineData("Hangfire-Mongo-Schema-007.zip")]
+        [InlineData("Hangfire-Mongo-Schema-008.zip")]
+        [InlineData("Hangfire-Mongo-Schema-009.zip")]
+        [InlineData("Hangfire-Mongo-Schema-010.zip")]
+        [InlineData("Hangfire-Mongo-Schema-011.zip")]
+        [InlineData("Hangfire-Mongo-Schema-012.zip")]
+        [InlineData("Hangfire-Mongo-Schema-013.zip")]
+        public void Migrate_Full_Success(string seedFile)
         {
-            FullMigration(null);
-        }
-
-
-        [Fact]
-        public void FullMigration_FromSchema004_MigrationComplete()
-        {
-            FullMigration("Hangfire-Mongo-Schema-004.zip");
-        }
-
-
-        [Fact]
-        public void FullMigration_FromSchema005_MigrationComplete()
-        {
-            FullMigration("Hangfire-Mongo-Schema-005.zip");
-        }
-
-
-        [Fact]
-        public void FullMigration_FromSchema006_MigrationComplete()
-        {
-            FullMigration("Hangfire-Mongo-Schema-006.zip");
-        }
-
-
-        [Fact]
-        public void FullMigration_FromSchema007_MigrationComplete()
-        {
-            FullMigration("Hangfire-Mongo-Schema-007.zip");
-        }
-
-
-        [Fact]
-        public void FullMigration_FromSchema008_MigrationComplete()
-        {
-            FullMigration("Hangfire-Mongo-Schema-008.zip");
-        }
-
-
-        [Fact]
-        public void FullMigration_FromSchema009_MigrationComplete()
-        {
-            FullMigration("Hangfire-Mongo-Schema-009.zip");
-        }
-
-
-        [Fact]
-        public void FullMigration_FromSchema010_MigrationComplete()
-        {
-            FullMigration("Hangfire-Mongo-Schema-010.zip");
-        }
-
-
-        [Fact]
-        public void FullMigration_FromSchema011_MigrationComplete()
-        {
-            FullMigration("Hangfire-Mongo-Schema-011.zip");
-        }
-
-
-        [Fact]
-        public void FullMigration_FromSchema012_MigrationComplete()
-        {
-            FullMigration("Hangfire-Mongo-Schema-012.zip");
-        }
-        
-        
-        [Fact]
-        public void FullMigration_FromSchema013_MigrationComplete()
-        {
-            FullMigration("Hangfire-Mongo-Schema-013.zip");
-        }
-        
-
-        #endregion
-
-
-        #region Test Template
-
-        private void FullMigration(string seedFile)
-        {
-            using (var connection = new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests"))
+            using (var dbContext = new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests"))
             {
                 // ARRANGE
-                connection.Client.DropDatabase(connection.Database.DatabaseNamespace.DatabaseName);
+                dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
                 if (seedFile != null)
                 {
-                    SeedCollectionFromZipArchive(connection, Path.Combine("Migration", seedFile));
+                    SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", seedFile));
                 }
 
                 var storageOptions = new MongoStorageOptions
@@ -121,18 +49,52 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                     }
                 };
 
-                var migrationManager = new MongoMigrationManager(storageOptions);
+                var migrationManager = new MongoMigrationManager(storageOptions, dbContext);
 
                 // ACT
-                migrationManager.Migrate(connection);
+                migrationManager.Migrate();
 
                 // ASSERT
+                AssertDataIntegrity(dbContext);
+            }
+        }
+        
+        [Fact]
+        public void Migrate_DropNoBackup_Success()
+        {
+            using (var dbContext = new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests"))
+            {
+                // ARRANGE
+                dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
+                SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", "Hangfire-Mongo-Schema-006.zip"));
+
+                var storageOptions = new MongoStorageOptions
+                {
+                    MigrationOptions = new MongoMigrationOptions
+                    {
+                        Strategy = MongoMigrationStrategy.Drop,
+                        BackupStrategy = MongoBackupStrategy.None
+                    }
+                };
+
+                var migrationManager = new MongoMigrationManager(storageOptions, dbContext);
+
+                // ACT
+                migrationManager.Migrate();
+
+                // ASSERT
+                AssertDataIntegrity(dbContext);
             }
         }
 
-        #endregion
-
-
+        private static void AssertDataIntegrity(HangfireDbContext dbContext)
+        {
+            var jobGraphDtos = dbContext.JobGraph.Find(new BsonDocument()).ToList();
+            var locks = dbContext.DistributedLock.Find(new BsonDocument()).ToList();
+            var schema = dbContext.Schema.Find(new BsonDocument()).ToList();
+            var servers = dbContext.Server.Find(new BsonDocument()).ToList();
+        }
+        
         #region Private Helper Methods
 
         private static void SeedCollectionFromZipArchive(HangfireDbContext connection, string fileName)

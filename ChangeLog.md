@@ -1,5 +1,19 @@
 
-## What's New (28/10/2018)
+## What's New (13/12/2018)
+
+### v0.5.13
+- Use 'buildinfo' command instead of 'serverStatus' to get the server version. Because the 'buildinfo' command does not require - root privileges.
+- Add missing migration for HashDto.Field removal 
+- Add data integrity tests
+- Update to "MongoDB.Driver" Version="2.7.2"
+- Update to "Hangfire.Core" Version="1.6.21"
+- Use separate collection for migration locks as the ".locks" collection might be dropped by if the migration strategy is "Drop"
+- Making migration support CosmosDB
+- Fix if client is using camelcase convention
+- Removing Obsolete interfaces and logic
+- Obsolete access to DbContext and queue providers
+- Fix migration option combi migrationstrategy.drop and backupstrategy.none
+- Fix timezone issue with conflicting bsonserializer settings 
 
 ### v0.5.12
 - Using $dec and $inc operators for counters

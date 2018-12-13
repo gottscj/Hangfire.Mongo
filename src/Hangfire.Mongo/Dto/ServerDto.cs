@@ -7,10 +7,14 @@ namespace Hangfire.Mongo.Dto
     public class ServerDto
     {
         [BsonId]
+        [BsonElement("_id")]
         public string Id { get; set; }
 
+        [BsonElement(nameof(Data))]
         public string Data { get; set; }
 
+        [BsonElement(nameof(LastHeartbeat))]
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime? LastHeartbeat { get; set; }
     }
 #pragma warning restore 1591

@@ -15,123 +15,102 @@ namespace Hangfire.Mongo.Tests
     {
         private static readonly ObjectId JobId = ObjectId.GenerateNewId();
         private const string Queue = "queue";
-
+        private readonly HangfireDbContext _dbContext = ConnectionUtils.CreateDbContext();
 
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
-            UseConnection(connection =>
-            {
-                var exception = Assert.Throws<ArgumentNullException>(
-                    () => new MongoFetchedJob(null, ObjectId.GenerateNewId(), JobId, Queue));
+            var exception = Assert.Throws<ArgumentNullException>(
+                () => new MongoFetchedJob(null, ObjectId.GenerateNewId(), JobId, Queue));
 
-                Assert.Equal("connection", exception.ParamName);
-            });
+            Assert.Equal("connection", exception.ParamName);
         }
 
         [Fact]
         public void Ctor_ThrowsAnException_WhenQueueIsNull()
         {
-            UseConnection(connection =>
-            {
-                var exception = Assert.Throws<ArgumentNullException>(
-                    () => new MongoFetchedJob(connection, ObjectId.GenerateNewId(), JobId, null));
+            var exception = Assert.Throws<ArgumentNullException>(
+                () => new MongoFetchedJob(_dbContext, ObjectId.GenerateNewId(), JobId, null));
 
-                Assert.Equal("queue", exception.ParamName);
-            });
+            Assert.Equal("queue", exception.ParamName);
         }
 
         [Fact]
         public void Ctor_CorrectlySets_AllInstanceProperties()
         {
-            UseConnection(connection =>
-            {
-                var fetchedJob = new MongoFetchedJob(connection, ObjectId.GenerateNewId(), JobId, Queue);
+            var fetchedJob = new MongoFetchedJob(_dbContext, ObjectId.GenerateNewId(), JobId, Queue);
 
-                Assert.Equal(JobId.ToString(), fetchedJob.JobId);
-                Assert.Equal(Queue, fetchedJob.Queue);
-            });
+            Assert.Equal(JobId.ToString(), fetchedJob.JobId);
+            Assert.Equal(Queue, fetchedJob.Queue);
         }
 
         [Fact, CleanDatabase]
         public void RemoveFromQueue_ReallyDeletesTheJobFromTheQueue()
         {
-            UseConnection(connection =>
-            {
-                // Arrange
-                var queue = "default";
-                var jobId = ObjectId.GenerateNewId();
-                var id = CreateJobQueueRecord(connection, jobId, queue);
-                var processingJob = new MongoFetchedJob(connection, id, jobId, queue);
+            // Arrange
+            var queue = "default";
+            var jobId = ObjectId.GenerateNewId();
+            var id = CreateJobQueueRecord(_dbContext, jobId, queue);
+            var processingJob = new MongoFetchedJob(_dbContext, id, jobId, queue);
 
-                // Act
-                processingJob.RemoveFromQueue();
+            // Act
+            processingJob.RemoveFromQueue();
 
-                // Assert
-                var count = connection.JobGraph.OfType<JobQueueDto>().Count(new BsonDocument());
-                Assert.Equal(0, count);
-            });
+            // Assert
+            var count = _dbContext.JobGraph.OfType<JobQueueDto>().Count(new BsonDocument());
+            Assert.Equal(0, count);
         }
 
         [Fact, CleanDatabase]
         public void RemoveFromQueue_DoesNotDelete_UnrelatedJobs()
         {
-            UseConnection(connection =>
-            {
-                // Arrange
-                CreateJobQueueRecord(connection, ObjectId.GenerateNewId(1), "default");
-                CreateJobQueueRecord(connection, ObjectId.GenerateNewId(2), "critical");
-                CreateJobQueueRecord(connection, ObjectId.GenerateNewId(3), "default");
+            // Arrange
+            CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(1), "default");
+            CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(2), "critical");
+            CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(3), "default");
 
-                var fetchedJob = new MongoFetchedJob(connection, ObjectId.GenerateNewId(), ObjectId.GenerateNewId(999), "default");
+            var fetchedJob = new MongoFetchedJob(_dbContext, ObjectId.GenerateNewId(), ObjectId.GenerateNewId(999), "default");
 
-                // Act
-                fetchedJob.RemoveFromQueue();
+            // Act
+            fetchedJob.RemoveFromQueue();
 
-                // Assert
-                var count = connection.JobGraph.OfType<JobQueueDto>().Count(new BsonDocument());
-                Assert.Equal(3, count);
-            });
+            // Assert
+            var count = _dbContext.JobGraph.OfType<JobQueueDto>().Count(new BsonDocument());
+            Assert.Equal(3, count);
         }
 
         [Fact, CleanDatabase]
         public void Requeue_SetsFetchedAtValueToNull()
         {
-            UseConnection(connection =>
-            {
-                // Arrange
-                var queue = "default";
-                var jobId = ObjectId.GenerateNewId();
-                var id = CreateJobQueueRecord(connection, jobId, queue);
-                var processingJob = new MongoFetchedJob(connection, id, jobId, queue);
+            // Arrange
+            var queue = "default";
+            var jobId = ObjectId.GenerateNewId();
+            var id = CreateJobQueueRecord(_dbContext, jobId, queue);
+            var processingJob = new MongoFetchedJob(_dbContext, id, jobId, queue);
 
-                // Act
-                processingJob.Requeue();
+            // Act
+            processingJob.Requeue();
 
-                // Assert
-                var record = connection.JobGraph.OfType<JobQueueDto>().Find(new BsonDocument()).ToList().Single();
-                Assert.Null(record.FetchedAt);
-            });
+            // Assert
+            var record = _dbContext.JobGraph.OfType<JobQueueDto>().Find(new BsonDocument()).ToList().Single();
+            Assert.Null(record.FetchedAt);
         }
 
         [Fact, CleanDatabase]
         public void Dispose_SetsFetchedAtValueToNull_IfThereWereNoCallsToComplete()
         {
-            UseConnection(connection =>
-            {
-                // Arrange
-                var queue = "default";
-                var jobId = ObjectId.GenerateNewId();
-                var id = CreateJobQueueRecord(connection, jobId, queue);
-                var processingJob = new MongoFetchedJob(connection, id, jobId, queue);
+            // Arrange
+            var queue = "default";
+            var jobId = ObjectId.GenerateNewId();
+            var id = CreateJobQueueRecord(_dbContext, jobId, queue);
+            var processingJob = new MongoFetchedJob(_dbContext, id, jobId, queue);
 
-                // Act
-                processingJob.Dispose();
+            // Act
+            processingJob.Dispose();
 
-                // Assert
-                var record = connection.JobGraph.OfType<JobQueueDto>().Find(new BsonDocument()).ToList().Single();
-                Assert.Null(record.FetchedAt);
-            });
+            // Assert
+            var record = _dbContext.JobGraph.OfType<JobQueueDto>().Find(new BsonDocument()).ToList().Single();
+            Assert.Null(record.FetchedAt);
         }
 
         private static ObjectId CreateJobQueueRecord(HangfireDbContext connection, ObjectId jobId, string queue)
@@ -147,14 +126,6 @@ namespace Hangfire.Mongo.Tests
             connection.JobGraph.InsertOne(jobQueue);
 
             return jobQueue.Id;
-        }
-
-        private static void UseConnection(Action<HangfireDbContext> action)
-        {
-            using (var connection = ConnectionUtils.CreateConnection())
-            {
-                action(connection);
-            }
         }
     }
 #pragma warning restore 1591

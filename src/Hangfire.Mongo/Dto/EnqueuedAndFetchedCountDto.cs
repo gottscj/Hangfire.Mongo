@@ -1,4 +1,4 @@
-namespace Hangfire.Mongo.PersistentJobQueue
+namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
     public class EnqueuedAndFetchedCountDto
