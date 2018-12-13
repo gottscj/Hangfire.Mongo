@@ -13,7 +13,7 @@
 - Removing Obsolete interfaces and logic
 - Obsolete access to DbContext and queue providers
 - Fix migration option combi migrationstrategy.drop and backupstrategy.none
-- Fix timezone issue with conflicting bsonserializer settings
+- Fix timezone issue with conflicting bsonserializer settings 
 
 ### v0.5.12
 - Using $dec and $inc operators for counters
