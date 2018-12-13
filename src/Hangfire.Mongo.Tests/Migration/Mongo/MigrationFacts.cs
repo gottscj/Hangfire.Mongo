@@ -29,7 +29,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         [InlineData("Hangfire-Mongo-Schema-011.zip")]
         [InlineData("Hangfire-Mongo-Schema-012.zip")]
         [InlineData("Hangfire-Mongo-Schema-013.zip")]
-        public void FullMigrationTheory(string seedFile)
+        public void Migrate_Full_Success(string seedFile)
         {
             using (var dbContext = new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests"))
             {
@@ -45,6 +45,34 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                     MigrationOptions = new MongoMigrationOptions
                     {
                         Strategy = MongoMigrationStrategy.Migrate,
+                        BackupStrategy = MongoBackupStrategy.None
+                    }
+                };
+
+                var migrationManager = new MongoMigrationManager(storageOptions, dbContext);
+
+                // ACT
+                migrationManager.Migrate();
+
+                // ASSERT
+                AssertDataIntegrity(dbContext);
+            }
+        }
+        
+        [Fact]
+        public void Migrate_DropNoBackup_Success()
+        {
+            using (var dbContext = new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests"))
+            {
+                // ARRANGE
+                dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
+                SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", "Hangfire-Mongo-Schema-006.zip"));
+
+                var storageOptions = new MongoStorageOptions
+                {
+                    MigrationOptions = new MongoMigrationOptions
+                    {
+                        Strategy = MongoMigrationStrategy.Drop,
                         BackupStrategy = MongoBackupStrategy.None
                     }
                 };
