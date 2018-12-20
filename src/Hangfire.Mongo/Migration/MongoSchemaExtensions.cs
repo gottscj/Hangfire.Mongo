@@ -82,9 +82,10 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".signal",
                         prefix + ".stateData"
                     };
-                
-                case MongoSchema.Version13:                   
+
+                case MongoSchema.Version13:
                 case MongoSchema.Version14:
+                case MongoSchema.Version15:
                     return new[]
                     {
                         prefix + ".jobGraph",
