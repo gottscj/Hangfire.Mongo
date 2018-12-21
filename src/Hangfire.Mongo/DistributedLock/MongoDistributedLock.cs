@@ -163,9 +163,10 @@ namespace Hangfire.Mongo.DistributedLock
                             now = Wait(timeout);
                         }
                     }
-                    catch (MongoDuplicateKeyException)
+                    catch (MongoCommandException)
                     {
-                        // this can occur if two processes attempt to acquire a lock on the same resource simultaneously
+                        // this can occur if two processes attempt to acquire a lock on the same resource simultaneously.
+                        // unfortunately there doesn't appear to be a more specific exception type to catch.
                         now = Wait(timeout);
                     }
                 }
