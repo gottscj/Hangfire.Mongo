@@ -148,19 +148,26 @@ namespace Hangfire.Mongo.DistributedLock
                         IsUpsert = true,
                         ReturnDocument = ReturnDocument.Before
                     };
-                    var result = _locks.FindOneAndUpdate(filter, update, options);
 
-                    // If result is null, it means we acquired the lock
-                    if (result == null)
+                    try
                     {
-                        isLockAcquired = true;
+                        var result = _locks.FindOneAndUpdate(filter, update, options);
+                        
+                        // If result is null, it means we acquired the lock
+                        if (result == null)
+                        {
+                            isLockAcquired = true;
+                        }
+                        else
+                        {
+                            now = Wait(timeout);
+                        }
                     }
-                    else
+                    catch (MongoCommandException)
                     {
-                        var waitTime = (int)timeout.TotalMilliseconds / 10;
-                        // Sleep for a while and then check if the lock has been released.
-                        Thread.Sleep(waitTime);
-                        now = DateTime.Now;
+                        // this can occur if two processes attempt to acquire a lock on the same resource simultaneously.
+                        // unfortunately there doesn't appear to be a more specific exception type to catch.
+                        now = Wait(timeout);
                     }
                 }
 
@@ -239,6 +246,17 @@ namespace Hangfire.Mongo.DistributedLock
                     }
                 }
             }, null, timerInterval, timerInterval);
+        }
+
+        /// <summary>
+        /// Waits the specified timeout, then returns the current time
+        /// </summary>
+        /// <returns></returns>
+        private DateTime Wait(TimeSpan timeout)
+        {
+            var waitTime = (int)timeout.TotalMilliseconds / 10;
+            Thread.Sleep(waitTime);
+            return DateTime.Now;
         }
 
     }
