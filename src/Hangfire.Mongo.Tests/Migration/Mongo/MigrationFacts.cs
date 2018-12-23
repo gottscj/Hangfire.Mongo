@@ -92,9 +92,21 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         private static void AssertDataIntegrity(HangfireDbContext dbContext)
         {
             var jobGraphDtos = dbContext.JobGraph.Find(new BsonDocument()).ToList();
+            AssertCollectionNotEmpty(jobGraphDtos, nameof(dbContext.JobGraph));
+            
             var locks = dbContext.DistributedLock.Find(new BsonDocument()).ToList();
+            AssertCollectionNotEmpty(locks, nameof(dbContext.DistributedLock));
+            
             var schema = dbContext.Schema.Find(new BsonDocument()).ToList();
+            AssertCollectionNotEmpty(schema, nameof(dbContext.Schema));
+            
             var servers = dbContext.Server.Find(new BsonDocument()).ToList();
+            AssertCollectionNotEmpty(servers, nameof(dbContext.Server));
+        }
+
+        private static void AssertCollectionNotEmpty(IEnumerable<object> collection, string collectionName)
+        {
+            Assert.True(collection.Any(), $"Expected '{collectionName}' to have items");
         }
         
         #region Private Helper Methods
@@ -112,7 +124,6 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                 }
             }
         }
-
 
         private static void SeedCollectionFromJson(HangfireDbContext connection, string collectionName, TextReader json)
         {

@@ -110,7 +110,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "key",
+                Item = "key",
                 ExpireAt = DateTime.UtcNow.AddMonths(-1)
             });
 
@@ -134,9 +134,8 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "key",
+                Key = "key:",
                 Score = 0,
-                Value = "",
                 ExpireAt = DateTime.UtcNow.AddMonths(-1)
             });
 

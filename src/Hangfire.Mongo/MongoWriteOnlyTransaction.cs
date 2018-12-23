@@ -232,11 +232,9 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(SetDto.Key), key),
-                new BsonDocument(nameof(SetDto.Value), value),
+                new BsonDocument(nameof(SetDto.Key), $"{key}:{value}"),
                 new BsonDocument("_t", nameof(SetDto)),
             });
             var update = new BsonDocument
@@ -262,8 +260,7 @@ namespace Hangfire.Mongo
 
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(KeyJobDto.Key), key),
-                new BsonDocument(nameof(SetDto.Value), value),
+                new BsonDocument(nameof(KeyJobDto.Key), $"{key}:{value}"),
                 new BsonDocument("_t", nameof(SetDto))
             });
 
@@ -281,7 +278,7 @@ namespace Hangfire.Mongo
             var listDto = new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = key,
+                Item = key,
                 Value = value
             };
 
@@ -298,7 +295,7 @@ namespace Hangfire.Mongo
 
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(KeyJobDto.Key), key),
+                new BsonDocument(nameof(ListDto.Item), key),
                 new BsonDocument(nameof(ListDto.Value), value),
                 new BsonDocument("_t", nameof(ListDto))
             });
@@ -326,7 +323,7 @@ namespace Hangfire.Mongo
             // Add LisDto's scheduled for insertion writemodels collection, add it here.
             allIds
                 .AddRange(_writeModels.OfType<InsertOneModel<BsonDocument>>()
-                    .Where(model => ListDtoHasKey(key, model))
+                    .Where(model => ListDtoHasItem(key, model))
                     .Select(model => model.Document["_id"].AsObjectId));
 
             var toTrim = allIds
@@ -338,7 +335,7 @@ namespace Hangfire.Mongo
 
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(KeyJobDto.Key), key),
+                new BsonDocument(nameof(ListDto.Item), key),
                 new BsonDocument("_id", new BsonDocument("$in", new BsonArray(toTrim))),
                 new BsonDocument("_t", nameof(ListDto))
             });
@@ -480,7 +477,7 @@ namespace Hangfire.Mongo
 
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(KeyJobDto.Key), key),
+                new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", $"^{key}")),
                 new BsonDocument("_t", nameof(SetDto))
             });
 
@@ -500,7 +497,7 @@ namespace Hangfire.Mongo
 
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(KeyJobDto.Key), key),
+                new BsonDocument(nameof(ListDto.Item), key),
                 new BsonDocument("_t", nameof(ListDto))
             });
 
@@ -539,7 +536,7 @@ namespace Hangfire.Mongo
 
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(KeyJobDto.Key), key),
+                new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", $"^{key}")),
                 new BsonDocument("_t", nameof(SetDto))
             });
 
@@ -559,7 +556,7 @@ namespace Hangfire.Mongo
 
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(KeyJobDto.Key), key),
+                new BsonDocument(nameof(ListDto.Item), key),
                 new BsonDocument("_t", nameof(ListDto))
             });
 
@@ -617,8 +614,7 @@ namespace Hangfire.Mongo
             {
                 var filter = new BsonDocument("$and", new BsonArray
                 {
-                    new BsonDocument(nameof(KeyJobDto.Key), key),
-                    new BsonDocument(nameof(SetDto.Value), item),
+                    new BsonDocument(nameof(KeyJobDto.Key), $"{key}:{item}"),
                     new BsonDocument("_t", nameof(SetDto))
                 });
                 var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
@@ -635,7 +631,7 @@ namespace Hangfire.Mongo
 
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(KeyJobDto.Key), key),
+                new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", $"^{key}")),
                 new BsonDocument("_t", nameof(SetDto))
             });
 
@@ -652,10 +648,10 @@ namespace Hangfire.Mongo
             });
         }
 
-        private static bool ListDtoHasKey(string key, InsertOneModel<BsonDocument> model)
+        private static bool ListDtoHasItem(string key, InsertOneModel<BsonDocument> model)
         {
             return model.Document["_t"].AsBsonArray.Last().AsString == nameof(ListDto) &&
-                   model.Document[nameof(ListDto.Key)].AsString == key;
+                   model.Document[nameof(ListDto.Item)].AsString == key;
         }
     }
 

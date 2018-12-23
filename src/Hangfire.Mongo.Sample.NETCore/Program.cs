@@ -22,7 +22,7 @@ namespace Hangfire.Mongo.Sample.NETCore
             var conventionPack = new ConventionPack {new CamelCaseElementNameConvention()}; 
             ConventionRegistry.Register("CamelCase", conventionPack, t => true);
             
-//            GlobalConfiguration.Configuration.UseLogProvider(new ColouredConsoleLogProvider());
+            GlobalConfiguration.Configuration.UseLogProvider(new ColouredConsoleLogProvider());
             JobStorage.Current = new MongoStorage(
                 "mongodb://localhost",
                 "Mongo-Hangfire-Sample-NETCore",

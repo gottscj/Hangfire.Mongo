@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
@@ -14,16 +15,20 @@ namespace Hangfire.Mongo.Tests
     {
         public class Signal
         {
-            private static readonly AutoResetEvent ResetEvent = new AutoResetEvent(false);
-
-            public static void Set()
+            private  static ConcurrentDictionary<Guid, AutoResetEvent> Signals = new ConcurrentDictionary<Guid, AutoResetEvent>();
+            
+            public static void Set(Guid id)
             {
-                ResetEvent.Set();
+                if (Signals.TryGetValue(id, out var resetEvent))
+                {
+                    resetEvent.Set();
+                }
             }
 
-            public static bool WaitOne(TimeSpan timeSpan)
+            public static bool WaitOne(Guid id, TimeSpan timeSpan)
             {
-                return ResetEvent.WaitOne(timeSpan);
+                var resetEvent = Signals.GetOrAdd(id, new AutoResetEvent(false));
+                return resetEvent.WaitOne();
             }
         }
         
@@ -49,7 +54,7 @@ namespace Hangfire.Mongo.Tests
             var mongoStorage = new MongoStorage(
                 ConnectionUtils.GetConnectionString(),
                 ConnectionUtils.GetDatabaseName());
-
+            var id = Guid.NewGuid();
             var dbContext = ConnectionUtils.CreateDbContext();
             JobStorage.Current = mongoStorage;
             
@@ -61,8 +66,8 @@ namespace Hangfire.Mongo.Tests
             // ACT
             using (new BackgroundJobServer(new BackgroundJobServerOptions{SchedulePollingInterval = TimeSpan.FromMilliseconds(100)}))
             {
-                BackgroundJob.Enqueue(() => Signal.Set());
-                jobScheduled = Signal.WaitOne(TimeSpan.FromSeconds(1));
+                BackgroundJob.Enqueue(() => Signal.Set(id));
+                jobScheduled = Signal.WaitOne(id, TimeSpan.FromSeconds(1));
             }
             
             // ASSERT
