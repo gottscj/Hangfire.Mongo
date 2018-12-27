@@ -18,20 +18,20 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
     public class MigrationFacts
     {
         [Theory]
-        [InlineData(null)]
-        [InlineData("Hangfire-Mongo-Schema-004.zip")]
-        [InlineData("Hangfire-Mongo-Schema-005.zip")]
-        [InlineData("Hangfire-Mongo-Schema-006.zip")]
-        [InlineData("Hangfire-Mongo-Schema-007.zip")]
-        [InlineData("Hangfire-Mongo-Schema-008.zip")]
-        [InlineData("Hangfire-Mongo-Schema-009.zip")]
-        [InlineData("Hangfire-Mongo-Schema-010.zip")]
-        [InlineData("Hangfire-Mongo-Schema-011.zip")]
-        [InlineData("Hangfire-Mongo-Schema-012.zip")]
-        [InlineData("Hangfire-Mongo-Schema-013.zip")]
-        [InlineData("Hangfire-Mongo-Schema-014.zip")]
-        [InlineData("Hangfire-Mongo-Schema-015.zip")]
-        public void Migrate_Full_Success(string seedFile)
+        [InlineData(null, false)]
+        [InlineData("Hangfire-Mongo-Schema-004.zip", false)]
+        [InlineData("Hangfire-Mongo-Schema-005.zip", true)]
+        [InlineData("Hangfire-Mongo-Schema-006.zip", true)]
+        [InlineData("Hangfire-Mongo-Schema-007.zip", true)]
+        [InlineData("Hangfire-Mongo-Schema-008.zip", true)]
+        [InlineData("Hangfire-Mongo-Schema-009.zip", true)]
+        [InlineData("Hangfire-Mongo-Schema-010.zip", true)]
+        [InlineData("Hangfire-Mongo-Schema-011.zip", true)]
+        [InlineData("Hangfire-Mongo-Schema-012.zip", true)]
+        [InlineData("Hangfire-Mongo-Schema-013.zip", true)]
+        [InlineData("Hangfire-Mongo-Schema-014.zip", true)]
+        [InlineData("Hangfire-Mongo-Schema-015.zip", true)]
+        public void Migrate_Full_Success(string seedFile, bool assertCollectionHasItems)
         {
             using (var dbContext = new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests"))
             {
@@ -57,7 +57,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                 migrationManager.Migrate();
 
                 // ASSERT
-                AssertDataIntegrity(dbContext);
+                AssertDataIntegrity(dbContext, assertCollectionHasItems);
             }
         }
         
@@ -85,23 +85,25 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                 migrationManager.Migrate();
 
                 // ASSERT
-                AssertDataIntegrity(dbContext);
+                AssertDataIntegrity(dbContext, assertCollectionHasItems: false);
             }
         }
 
-        private static void AssertDataIntegrity(HangfireDbContext dbContext)
+        private static void AssertDataIntegrity(HangfireDbContext dbContext, bool assertCollectionHasItems)
         {
             var jobGraphDtos = dbContext.JobGraph.Find(new BsonDocument()).ToList();
-            AssertCollectionNotEmpty(jobGraphDtos, nameof(dbContext.JobGraph));
-            
             var locks = dbContext.DistributedLock.Find(new BsonDocument()).ToList();
-            AssertCollectionNotEmpty(locks, nameof(dbContext.DistributedLock));
-            
             var schema = dbContext.Schema.Find(new BsonDocument()).ToList();
-            AssertCollectionNotEmpty(schema, nameof(dbContext.Schema));
-            
             var servers = dbContext.Server.Find(new BsonDocument()).ToList();
-            AssertCollectionNotEmpty(servers, nameof(dbContext.Server));
+            
+
+            if (assertCollectionHasItems)
+            {
+                AssertCollectionNotEmpty(jobGraphDtos, nameof(dbContext.JobGraph));
+                AssertCollectionNotEmpty(locks, nameof(dbContext.DistributedLock));
+                AssertCollectionNotEmpty(schema, nameof(dbContext.Schema));
+                AssertCollectionNotEmpty(servers, nameof(dbContext.Server));    
+            }
         }
 
         private static void AssertCollectionNotEmpty(IEnumerable<object> collection, string collectionName)

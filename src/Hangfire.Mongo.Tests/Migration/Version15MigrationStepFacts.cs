@@ -31,7 +31,7 @@ namespace Hangfire.Mongo.Tests.Migration
         public void ExecuteStep00_ValidExistingLockDto_Success()
         {
             // ARRANGE
-            var collection = _database.GetCollection<BsonDocument>(_dbContext.DistributedLock.CollectionNamespace.CollectionName);
+            var collection = _database.GetCollection<BsonDocument>("hangfire.locks");
             collection.Indexes.DropAll();
             var indexBuilder = Builders<BsonDocument>.IndexKeys;
             var indexNames = new[] {"Resource", "ExpireAt"};
@@ -67,7 +67,7 @@ namespace Hangfire.Mongo.Tests.Migration
                 }";
             var originalServerDto = BsonDocument.Parse(json);
             var jsonData = JObject.Parse(originalServerDto["Data"].AsString);
-            var collection = _database.GetCollection<BsonDocument>(_dbContext.Server.CollectionNamespace.CollectionName);
+            var collection = _database.GetCollection<BsonDocument>("hangfire.server");
             collection.DeleteOne(new BsonDocument("_id", "test-server"));
             collection.InsertOne(originalServerDto);
             
@@ -90,7 +90,7 @@ namespace Hangfire.Mongo.Tests.Migration
         public void ExecuteStep02_ValidExistingSetDto_Success()
         {
             // ARRANGE
-            var collection = _database.GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName);
+            var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
             var originalSetDto = new BsonDocument
             {
                 ["_id"] = ObjectId.GenerateNewId(),
@@ -114,7 +114,7 @@ namespace Hangfire.Mongo.Tests.Migration
         public void ExecuteStep03_MultipleCountersNotDeleted_OldCountersDeleted()
         {
             // ARRANGE
-            var collection = _database.GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName);
+            var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
             collection.Indexes.DropAll();
             collection.DeleteMany(new BsonDocument("_t", "CounterDto"));
             
@@ -155,7 +155,7 @@ namespace Hangfire.Mongo.Tests.Migration
         public void ExecuteStep03_MultipleCountersDifferentValues_CountersMerged()
         {
             // ARRANGE
-            var collection = _database.GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName);
+            var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
             collection.Indexes.DropAll();
             collection.DeleteMany(new BsonDocument("_t", "CounterDto"));
             
@@ -205,7 +205,7 @@ namespace Hangfire.Mongo.Tests.Migration
         public void ExecuteStep03_OneCounter_Nothing()
         {
             // ARRANGE
-            var collection = _database.GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName);
+            var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
             
             collection.DeleteMany(new BsonDocument("Key", "stats:succeeded"));
             collection.InsertOne(new BsonDocument
@@ -230,7 +230,7 @@ namespace Hangfire.Mongo.Tests.Migration
         public void ExecuteStep03_TwoCountersSameValue_NewestChosen()
         {
             // ARRANGE
-            var collection = _database.GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName);
+            var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
             collection.Indexes.DropAll();
             collection.DeleteMany(new BsonDocument("_t", "CounterDto"));
             collection.InsertOne(new BsonDocument
@@ -266,7 +266,7 @@ namespace Hangfire.Mongo.Tests.Migration
         public void ExecuteStep04_UpdateListDtoKeySchema_Success()
         {
             // ARRANGE
-            var collection = _database.GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName);
+            var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
             
             collection.DeleteMany(new BsonDocument("_t", "ListDto"));
             collection.InsertOne(new BsonDocument
@@ -294,7 +294,7 @@ namespace Hangfire.Mongo.Tests.Migration
         public void ExecuteStep05_UpdateIndexes_Success()
         {
             // ARRANGE
-            var collection = _database.GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName);
+            var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
             
             collection.Indexes.DropAll();
             
