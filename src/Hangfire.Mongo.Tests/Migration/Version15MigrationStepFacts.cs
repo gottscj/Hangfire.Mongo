@@ -263,7 +263,7 @@ namespace Hangfire.Mongo.Tests.Migration
         }
         
         [Fact]
-        public void ExecuteStep04_RenameListDtoKeyField_Success()
+        public void ExecuteStep04_UpdateListDtoKeySchema_Success()
         {
             // ARRANGE
             var collection = _database.GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName);
@@ -279,7 +279,7 @@ namespace Hangfire.Mongo.Tests.Migration
             });
             
             // ACT
-            var result = new RenameListDtoKeyField().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
+            var result = new UpdateListDtoKeySchema().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
             
             // ASSERT
             var listDto = collection.Find(new BsonDocument("_t", "ListDto")).Single();
@@ -287,6 +287,7 @@ namespace Hangfire.Mongo.Tests.Migration
             Assert.True(result, "Expected migration to be successful, reported 'false'");
             Assert.True(listDto.Contains("Item"));
             Assert.False(listDto.Contains("Key"));
+            Assert.Equal(BsonArray.Create(new[]{"BaseJobDto", "ExpiringJobDto", "ListDto"}), listDto["_t"]);
         }
         
         [Fact]
