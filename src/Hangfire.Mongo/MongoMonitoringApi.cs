@@ -446,7 +446,7 @@ namespace Hangfire.Mongo
             List<JobSummary> joinedJobs = jobsFiltered
                 .Select(job =>
                 {
-                    var state = job.StateHistory.FirstOrDefault(s => s.Name == job.StateName);
+                    var state = job.StateHistory.LastOrDefault(s => s.Name == job.StateName);
                     return new JobSummary
                     {
                         Id = job.Id.ToString(),
@@ -498,8 +498,7 @@ namespace Hangfire.Mongo
             var joinedJobs = jobs
                 .Select(job =>
                 {
-                    var state = job.StateHistory.FirstOrDefault(s => s.Name == stateName);
-
+                    var state = job.StateHistory.LastOrDefault(s => s.Name == stateName);
                     return new JobSummary
                     {
                         Id = job.Id.ToString(),
