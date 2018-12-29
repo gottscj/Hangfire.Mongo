@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -156,6 +157,10 @@ namespace Hangfire.Mongo.DistributedLock
                         // If result is null, it means we acquired the lock
                         if (result == null)
                         {
+                            if (Logger.IsDebugEnabled())
+                            {
+                                Logger.Debug($"Acquired lock for: '{_resource}'");    
+                            }
                             isLockAcquired = true;
                         }
                         else
@@ -195,6 +200,11 @@ namespace Hangfire.Mongo.DistributedLock
         {
             try
             {
+                if (Logger.IsDebugEnabled())
+                {
+                    Logger.Debug($"Release recourse: '{_resource}'");    
+                }
+                
                 // Remove resource lock
                 _locks.DeleteOne(
                     Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource));
@@ -254,8 +264,13 @@ namespace Hangfire.Mongo.DistributedLock
         /// <returns></returns>
         private DateTime Wait(TimeSpan timeout)
         {
+            var sw = Stopwatch.StartNew();
             var waitTime = (int)timeout.TotalMilliseconds / 10;
             Thread.Sleep(waitTime);
+            if (Logger.IsDebugEnabled())
+            {
+                Logger.Debug($"Waited {sw.ElapsedMilliseconds}ms for access to resource: '{_resource}'");    
+            }
             return DateTime.Now;
         }
 
