@@ -2,7 +2,7 @@ using Hangfire.Mongo.Dto;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace Hangfire.Mongo.Migration.Steps.Version14
+namespace Hangfire.Mongo.Migration.Steps.Version15
 {
     /// <summary>
     /// Drops the existing index for the 'Resource' field of the distributed

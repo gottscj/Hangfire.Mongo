@@ -52,18 +52,72 @@ namespace Hangfire.Mongo.Migration
                 throw new ArgumentException("Must have at least one index name", nameof(indexNames));
             }
 
+            DropExistingIndexes(collection, indexNames);
+            CreateIndexes(collection, indexType, indexNames, indexName => new CreateIndexOptions
+            {
+                Name = indexName,
+                Sparse = true
+            });
+        }
+
+        protected void TryCreateUniqueIndexes(IMongoCollection<BsonDocument> collection,
+            Func<FieldDefinition<BsonDocument>, IndexKeysDefinition<BsonDocument>> indexType,
+            params string[] indexNames)
+        {
+            if (collection == null)
+            {
+                throw new ArgumentNullException(nameof(collection));
+            }
+            if (indexType == null)
+            {
+                throw new ArgumentNullException(nameof(indexType));
+            }
+            if (indexNames == null)
+            {
+                throw new ArgumentNullException(nameof(indexNames));
+            }
+            if (indexNames.Length == 0)
+            {
+                throw new ArgumentException("Must have at least one index name", nameof(indexNames));
+            }
+
+            DropExistingIndexes(collection, indexNames);
+            CreateIndexes(collection, indexType, indexNames, indexName => new CreateIndexOptions
+            {
+                Name = indexName,
+                Sparse = true,
+                Unique = true
+            });
+        }
+
+        private static void CreateIndexes(IMongoCollection<BsonDocument> collection,
+            Func<FieldDefinition<BsonDocument>, IndexKeysDefinition<BsonDocument>> getIndexType, string[] indexNames,
+            Func<string, CreateIndexOptions> createOptions)
+        {
             var indexModels = indexNames.Select(indexName =>
             {
-                var index = indexType(indexName);
-                var options = new CreateIndexOptions
-                {
-                    Name = indexName,
-                    Sparse = true
-                };
-                return new CreateIndexModel<BsonDocument>(index, options);
+                var index = getIndexType(indexName);
+                return new CreateIndexModel<BsonDocument>(index, createOptions(indexName));
             }).ToList();
 
             collection.Indexes.CreateMany(indexModels);
+        }
+
+        private static void DropExistingIndexes(IMongoCollection<BsonDocument> collection, string[] indexNames)
+        {
+            // drop existing indexes for the 'Resource' field if any exist
+            using (var cursor = collection.Indexes.List())
+            {
+                var existingResourceIndexes = cursor.ToList();
+                foreach (var index in existingResourceIndexes)
+                {
+                    var indexName = index["name"].AsString;
+                    if (indexNames.Contains(indexName))
+                    {
+                        collection.Indexes.DropOne(indexName);
+                    }
+                }
+            }
         }
     }
 }

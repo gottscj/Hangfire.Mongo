@@ -28,6 +28,7 @@ namespace Hangfire.Mongo
         /// </summary>
         /// <param name="connectionString">MongoDB connection string</param>
         /// <param name="databaseName">Database name</param>
+        [Obsolete("Please use overload which takes a 'MongoClientSettings' object")]
         public MongoStorage(string connectionString, string databaseName)
             : this(connectionString, databaseName, new MongoStorageOptions())
         {
@@ -39,6 +40,7 @@ namespace Hangfire.Mongo
         /// <param name="connectionString">MongoDB connection string</param>
         /// <param name="databaseName">Database name</param>
         /// <param name="storageOptions">Storage options</param>
+        [Obsolete("Please use overload which takes a 'MongoClientSettings' object")]
         public MongoStorage(string connectionString, string databaseName, MongoStorageOptions storageOptions)
             : this(MongoClientSettings.FromConnectionString(connectionString),databaseName, storageOptions)
         {
@@ -84,6 +86,7 @@ namespace Hangfire.Mongo
             
             using (var migrationManager = new MongoMigrationManager(storageOptions, _dbContext))
             {
+                
                 migrationManager.Migrate();
             }
         }

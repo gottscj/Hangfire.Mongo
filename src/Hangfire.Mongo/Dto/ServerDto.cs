@@ -10,9 +10,16 @@ namespace Hangfire.Mongo.Dto
         [BsonElement("_id")]
         public string Id { get; set; }
 
-        [BsonElement(nameof(Data))]
-        public string Data { get; set; }
+        [BsonElement(nameof(WorkerCount))]
+        public int WorkerCount { get; set; }
 
+        [BsonElement(nameof(Queues))]
+        public string[] Queues { get; set; }
+
+        [BsonElement(nameof(StartedAt))]
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+        public DateTime? StartedAt { get; set; }
+        
         [BsonElement(nameof(LastHeartbeat))]
         [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime? LastHeartbeat { get; set; }

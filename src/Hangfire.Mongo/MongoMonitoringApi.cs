@@ -54,14 +54,13 @@ namespace Hangfire.Mongo
 
             foreach (var server in servers)
             {
-                var data = JobHelper.FromJson<ServerDataDto>(server.Data);
                 result.Add(new ServerDto
                 {
                     Name = server.Id,
                     Heartbeat = server.LastHeartbeat,
-                    Queues = data.Queues,
-                    StartedAt = data.StartedAt ?? DateTime.MinValue,
-                    WorkersCount = data.WorkerCount
+                    Queues = server.Queues,
+                    StartedAt = server.StartedAt ?? DateTime.MinValue,
+                    WorkersCount = server.WorkerCount
                 });
             }
 

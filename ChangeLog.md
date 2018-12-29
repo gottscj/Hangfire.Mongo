@@ -1,6 +1,16 @@
 
 ## What's New (13/12/2018)
 
+### v0.5.14
+- Fix race case in distributed lock implementation (#166, #134)
+- Not JSON serializing Server data
+- Add unique index ('Key') for 'Hash' and 'Counter' data (related to #166)
+- Rename 'ListDto' field 'Key' to 'Item' ('Key' is now a unique index) (related to #166)
+- Remove obsolete counters, which should have been removed in migrations for schema 13
+- Mark ctor's for MongoStorage which takes connectionString obsolete, use 'MongoClientSettings'
+- Fix requeued job state can be incorrect when multiple servers process jobs (#167)
+- Add console logging per default in samples
+
 ### v0.5.13
 - Use 'buildinfo' command instead of 'serverStatus' to get the server version. Because the 'buildinfo' command does not require - root privileges.
 - Add missing migration for HashDto.Field removal 
