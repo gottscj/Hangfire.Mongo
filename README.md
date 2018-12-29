@@ -14,27 +14,25 @@ To install Hangfire MongoDB Storage, run the following command in the Nuget Pack
 PM> Install-Package Hangfire.Mongo
 ```
 
-# Usage
+## Usage ASP.NET
 
 ```csharp
-public void Configuration(IAppBuilder app)
-{
-    GlobalConfiguration.Configuration.UseMongoStorage("<connection string>", "<database name>");
-
-    app.UseHangfireServer();
-    app.UseHangfireDashboard();
-}
+GlobalConfiguration.Configuration.UseMongoStorage("mongodb://localhost", "ApplicationDatabase");
+app.UseHangfireServer();
+app.UseHangfireDashboard();
 ```
 
-For example:
+## Usage ASP.NET Core
 
 ```csharp
-public void Configuration(IAppBuilder app)
+// This method gets called by the runtime. Use this method to add services to the container.
+public void ConfigureServices(IServiceCollection services)
 {
-    GlobalConfiguration.Configuration.UseMongoStorage("mongodb://localhost", "ApplicationDatabase");
-
-    app.UseHangfireServer();
-    app.UseHangfireDashboard();
+    // Add framework services.
+    services.AddHangfire(config =>
+    {
+        config.UseMongoStorage("mongodb://localhost", "ApplicationDatabase");
+    });
 }
 ```
 
@@ -45,27 +43,8 @@ To use custom prefix for collections names specify it on Hangfire setup:
 ```csharp
 public void Configuration(IAppBuilder app)
 {
-    GlobalConfiguration.Configuration.UseMongoStorage("<connection string>", "<database name>",
+    GlobalConfiguration.Configuration.UseMongoStorage("mongodb://localhost", "ApplicationDatabase",
         new MongoStorageOptions { Prefix = "custom" } );
-
-    app.UseHangfireServer();
-    app.UseHangfireDashboard();
-}
-```
-
-## Custom Mongo DB settings
-
-To use custom Mongo DB connection settings you can use `MongoClientSettings` object from Mongo DB driver package.
-In this case just use it instead of passing connection string when you configure your storage.
-
-```csharp
-public void Configuration(IAppBuilder app)
-{
-    GlobalConfiguration.Configuration.UseMongoStorage(new MongoClientSettings()
-            {
-                // ...
-                IPv6 = true
-            }, "ApplicationDatabase");
 
     app.UseHangfireServer();
     app.UseHangfireDashboard();
