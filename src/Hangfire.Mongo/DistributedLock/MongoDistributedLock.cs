@@ -202,7 +202,7 @@ namespace Hangfire.Mongo.DistributedLock
             {
                 if (Logger.IsDebugEnabled())
                 {
-                    Logger.Debug($"Release recourse: '{_resource}'");    
+                    Logger.Debug($"Release resource: '{_resource}'");    
                 }
                 
                 // Remove resource lock
