@@ -112,11 +112,8 @@ namespace Hangfire.Mongo
             string databaseName,
             MongoStorageOptions storageOptions)
         {
-            var storage = new MongoStorage(connectionString, databaseName, storageOptions);
-
-            configuration.UseStorage(storage);
-
-            return storage;
+            return UseMongoStorage(configuration, MongoClientSettings.FromConnectionString(connectionString),
+                databaseName, storageOptions);
         }
 
         /// <summary>
