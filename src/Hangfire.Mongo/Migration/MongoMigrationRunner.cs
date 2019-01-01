@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Migration.Steps;
@@ -25,6 +27,8 @@ namespace Hangfire.Mongo.Migration
     /// </summary>
     internal class MongoMigrationRunner : IMongoMigrationBag
     {
+        private static readonly ILog Logger = LogProvider.For<MongoMigrationRunner>();
+        
         private readonly HangfireDbContext _dbContext;
         private readonly MongoStorageOptions _storageOptions;
 
@@ -53,20 +57,30 @@ namespace Hangfire.Mongo.Migration
                 throw new InvalidOperationException($@"The {nameof(fromSchema)} ({fromSchema}) cannot be larger than {nameof(toSchema)} ({toSchema})");
             }
 
+            
+
             var migrationSteps = LoadMigrationSteps()
                 .Where(step => step.TargetSchema > fromSchema && step.TargetSchema <= toSchema)
                 .GroupBy(step => step.TargetSchema);
 
+            var migrationSw = Stopwatch.StartNew();
+            
             foreach (var migrationGroup in migrationSteps)
             {
+                Logger.Info(() =>
+                        $"Executing migration for schema '{migrationGroup.Key}'");
                 foreach (var migrationStep in migrationGroup)
                 {
                     try
                     {
+                        var sw = Stopwatch.StartNew();
                         if (!migrationStep.Execute(_dbContext.Database, _storageOptions, this))
                         {
                             throw new MongoMigrationException(migrationStep);
                         }
+
+                        Logger.Info(() =>
+                                $"Executed migration step: {migrationStep.GetType().Name}[{migrationStep.Sequence}] in {sw.ElapsedMilliseconds}ms");
                     }
                     catch (MongoMigrationException)
                     {
@@ -82,8 +96,11 @@ namespace Hangfire.Mongo.Migration
                 // Update the schema info and continue.
                 var schemaDto = _dbContext.Schema.FindOneAndDelete(_ => true) ?? new SchemaDto();
                 schemaDto.Version = migrationGroup.Key;
-                _dbContext.Schema.InsertOne(schemaDto);
+                _dbContext.Schema.InsertOne(schemaDto);   
             }
+            
+            Logger.Info(() =>
+                    $"Instance with clientId: {_storageOptions.ClientId} is executed migration from {fromSchema} -> {toSchema} in {migrationSw.ElapsedMilliseconds}ms");
         }
 
 

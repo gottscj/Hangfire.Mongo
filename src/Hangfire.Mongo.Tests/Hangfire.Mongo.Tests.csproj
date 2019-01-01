@@ -69,5 +69,8 @@
     <None Update="Migration\Hangfire-Mongo-Schema-014.zip">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Migration\Hangfire-Mongo-Schema-015.zip">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

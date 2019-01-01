@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -148,19 +149,30 @@ namespace Hangfire.Mongo.DistributedLock
                         IsUpsert = true,
                         ReturnDocument = ReturnDocument.Before
                     };
-                    var result = _locks.FindOneAndUpdate(filter, update, options);
 
-                    // If result is null, it means we acquired the lock
-                    if (result == null)
+                    try
                     {
-                        isLockAcquired = true;
+                        var result = _locks.FindOneAndUpdate(filter, update, options);
+                        
+                        // If result is null, it means we acquired the lock
+                        if (result == null)
+                        {
+                            if (Logger.IsDebugEnabled())
+                            {
+                                Logger.Debug($"Acquired lock for: '{_resource}'");    
+                            }
+                            isLockAcquired = true;
+                        }
+                        else
+                        {
+                            now = Wait(timeout);
+                        }
                     }
-                    else
+                    catch (MongoCommandException)
                     {
-                        var waitTime = (int)timeout.TotalMilliseconds / 10;
-                        // Sleep for a while and then check if the lock has been released.
-                        Thread.Sleep(waitTime);
-                        now = DateTime.Now;
+                        // this can occur if two processes attempt to acquire a lock on the same resource simultaneously.
+                        // unfortunately there doesn't appear to be a more specific exception type to catch.
+                        now = Wait(timeout);
                     }
                 }
 
@@ -188,6 +200,11 @@ namespace Hangfire.Mongo.DistributedLock
         {
             try
             {
+                if (Logger.IsDebugEnabled())
+                {
+                    Logger.Debug($"Release resource: '{_resource}'");    
+                }
+                
                 // Remove resource lock
                 _locks.DeleteOne(
                     Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource));
@@ -239,6 +256,22 @@ namespace Hangfire.Mongo.DistributedLock
                     }
                 }
             }, null, timerInterval, timerInterval);
+        }
+
+        /// <summary>
+        /// Waits the specified timeout, then returns the current time
+        /// </summary>
+        /// <returns></returns>
+        private DateTime Wait(TimeSpan timeout)
+        {
+            var sw = Stopwatch.StartNew();
+            var waitTime = (int)timeout.TotalMilliseconds / 10;
+            Thread.Sleep(waitTime);
+            if (Logger.IsDebugEnabled())
+            {
+                Logger.Debug($"Waited {sw.ElapsedMilliseconds}ms for access to resource: '{_resource}'");    
+            }
+            return DateTime.Now;
         }
 
     }

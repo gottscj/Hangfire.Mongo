@@ -54,14 +54,13 @@ namespace Hangfire.Mongo
 
             foreach (var server in servers)
             {
-                var data = JobHelper.FromJson<ServerDataDto>(server.Data);
                 result.Add(new ServerDto
                 {
                     Name = server.Id,
                     Heartbeat = server.LastHeartbeat,
-                    Queues = data.Queues,
-                    StartedAt = data.StartedAt ?? DateTime.MinValue,
-                    WorkersCount = data.WorkerCount
+                    Queues = server.Queues,
+                    StartedAt = server.StartedAt ?? DateTime.MinValue,
+                    WorkersCount = server.WorkerCount
                 });
             }
 
@@ -446,7 +445,7 @@ namespace Hangfire.Mongo
             List<JobSummary> joinedJobs = jobsFiltered
                 .Select(job =>
                 {
-                    var state = job.StateHistory.FirstOrDefault(s => s.Name == job.StateName);
+                    var state = job.StateHistory.LastOrDefault(s => s.Name == job.StateName);
                     return new JobSummary
                     {
                         Id = job.Id.ToString(),
@@ -498,8 +497,7 @@ namespace Hangfire.Mongo
             var joinedJobs = jobs
                 .Select(job =>
                 {
-                    var state = job.StateHistory.FirstOrDefault(s => s.Name == stateName);
-
+                    var state = job.StateHistory.LastOrDefault(s => s.Name == stateName);
                     return new JobSummary
                     {
                         Id = job.Id.ToString(),

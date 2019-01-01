@@ -1,6 +1,7 @@
 ﻿using System;
 using Hangfire.Logging.LogProviders;
 using MongoDB.Bson.Serialization.Conventions;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Sample.NETCore
 {
@@ -22,9 +23,9 @@ namespace Hangfire.Mongo.Sample.NETCore
             var conventionPack = new ConventionPack {new CamelCaseElementNameConvention()}; 
             ConventionRegistry.Register("CamelCase", conventionPack, t => true);
             
-//            GlobalConfiguration.Configuration.UseLogProvider(new ColouredConsoleLogProvider());
+            GlobalConfiguration.Configuration.UseLogProvider(new ColouredConsoleLogProvider());
             JobStorage.Current = new MongoStorage(
-                "mongodb://localhost",
+                MongoClientSettings.FromConnectionString("mongodb://localhost"), 
                 "Mongo-Hangfire-Sample-NETCore",
                 migrationOptions);
 

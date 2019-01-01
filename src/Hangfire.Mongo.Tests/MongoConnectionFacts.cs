@@ -433,30 +433,26 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "key",
-                Score = 1.0,
-                Value = "1.0"
+                Key = "key:1.0",
+                Score = 1.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "key",
+                Key = "key:-1.0",
                 Score = -1.0,
-                Value = "-1.0"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "key",
-                Score = -5.0,
-                Value = "-5.0"
+                Key = "key:-5.0",
+                Score = -5.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "another-key",
-                Score = -2.0,
-                Value = "-2.0"
+                Key = "another-key:-2.0",
+                Score = -2.0
             });
 
             var result = _connection.GetFirstByLowestScoreFromSet("key", -1.0, 3.0);
@@ -494,8 +490,9 @@ namespace Hangfire.Mongo.Tests
 
             var server = _dbContext.Server.Find(new BsonDocument()).Single();
             Assert.Equal("server", server.Id);
-            Assert.True(server.Data.StartsWith("{\"WorkerCount\":4,\"Queues\":[\"critical\",\"default\"],\"StartedAt\":", StringComparison.Ordinal),
-                server.Data);
+            Assert.Equal(context1.WorkerCount, server.WorkerCount);
+            Assert.Equal(context1.Queues, server.Queues);
+            Assert.NotNull(server.StartedAt);
             Assert.NotNull(server.LastHeartbeat);
 
             var context2 = new ServerContext
@@ -506,7 +503,7 @@ namespace Hangfire.Mongo.Tests
             _connection.AnnounceServer("server", context2);
             var sameServer = _dbContext.Server.Find(new BsonDocument()).Single();
             Assert.Equal("server", sameServer.Id);
-            Assert.Contains("1000", sameServer.Data);
+            Assert.Equal(context2.WorkerCount, sameServer.WorkerCount);
         }
 
         [Fact, CleanDatabase]
@@ -521,13 +518,11 @@ namespace Hangfire.Mongo.Tests
             _dbContext.Server.InsertOne(new ServerDto
             {
                 Id = "Server1",
-                Data = "",
                 LastHeartbeat = DateTime.UtcNow
             });
             _dbContext.Server.InsertOne(new ServerDto
             {
                 Id = "Server2",
-                Data = "",
                 LastHeartbeat = DateTime.UtcNow
             });
 
@@ -550,13 +545,11 @@ namespace Hangfire.Mongo.Tests
             _dbContext.Server.InsertOne(new ServerDto
             {
                 Id = "server1",
-                Data = "",
                 LastHeartbeat = new DateTime(2012, 12, 12, 12, 12, 12, DateTimeKind.Utc)
             });
             _dbContext.Server.InsertOne(new ServerDto
             {
                 Id = "server2",
-                Data = "",
                 LastHeartbeat = new DateTime(2012, 12, 12, 12, 12, 12, DateTimeKind.Utc)
             });
 
@@ -581,16 +574,18 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void RemoveTimedOutServers_DoItsWorkPerfectly()
         {
+            var id1 = ObjectId.GenerateNewId();
+            var id2 = ObjectId.GenerateNewId();
+
+            var id2Newest = id2 > id1;
             _dbContext.Server.InsertOne(new ServerDto
             {
                 Id = "server1",
-                Data = "",
                 LastHeartbeat = DateTime.UtcNow.AddDays(-1)
             });
             _dbContext.Server.InsertOne(new ServerDto
             {
                 Id = "server2",
-                Data = "",
                 LastHeartbeat = DateTime.UtcNow.AddHours(-12)
             });
 
@@ -622,44 +617,38 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "some-set",
-                Score = 0.0,
-                Value = "1"
+                Key = "some-set:1",
+                Score = 0.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "some-set",
-                Score = 0.0,
-                Value = "2"
+                Key = "some-set:2",
+                Score = 0.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "another-set",
-                Score = 0.0,
-                Value = "3"
+                Key = "another-set:3",
+                Score = 0.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "some-set",
-                Score = 0.0,
-                Value = "4"
+                Key = "some-set:4",
+                Score = 0.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "some-set",
-                Score = 0.0,
-                Value = "5"
+                Key = "some-set:5",
+                Score = 0.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "some-set",
-                Score = 0.0,
-                Value = "6"
+                Key = "some-set:6",
+                Score = 0.0
             });
             // Act
             var result = _connection.GetAllItemsFromSet("some-set");
@@ -773,20 +762,17 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1",
-                Value = "value-1"
+                Key = "set-1:value-1"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-2",
-                Value = "value-1"
+                Key = "set-2:value-1"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1",
-                Value = "value-2"
+                Key = "set-1:value-2"
             });
 
             var result = _connection.GetSetCount("set-1");
@@ -806,48 +792,42 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1",
-                Value = "1",
+                Key = "set-1:1",
                 Score = 0.0
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1",
-                Value = "2",
+                Key = "set-1:2",
                 Score = 0.0
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1",
-                Value = "3",
+                Key = "set-1:3",
                 Score = 0.0
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1",
-                Value = "4",
+                Key = "set-1:4",
                 Score = 0.0
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-2",
-                Value = "5",
+                Key = "set-2:5",
                 Score = 0.0
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1",
-                Value = "6",
+                Key = "set-1:6",
                 Score = 0.0
             });
 
@@ -876,8 +856,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1",
-                Value = "1",
+                Key = "set-1:1",
                 Score = 0.0,
                 ExpireAt = DateTime.UtcNow.AddMinutes(60)
             });
@@ -885,8 +864,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-2",
-                Value = "2",
+                Key = "set-2:2",
                 Score = 0.0,
                 ExpireAt = null
             });
@@ -1104,17 +1082,17 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-1",
+                Item = "list-1",
             });
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-1",
+                Item = "list-1",
             });
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-2",
+                Item = "list-2",
             });
 
             // Act
@@ -1144,13 +1122,13 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-1",
+                Item = "list-1",
                 ExpireAt = DateTime.UtcNow.AddHours(1)
             });
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-2",
+                Item = "list-2",
                 ExpireAt = null
             });
 
@@ -1184,31 +1162,31 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-1",
+                Item = "list-1",
                 Value = "1"
             });
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-2",
+                Item = "list-2",
                 Value = "2"
             });
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-1",
+                Item = "list-1",
                 Value = "3"
             });
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-1",
+                Item = "list-1",
                 Value = "4"
             });
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-1",
+                Item = "list-1",
                 Value = "5"
             });
 
@@ -1228,31 +1206,31 @@ namespace Hangfire.Mongo.Tests
                 new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
-                    Key = "list-1",
+                    Item = "list-1",
                     Value = "1"
                 },
                 new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
-                    Key = "list-1",
+                    Item = "list-1",
                     Value = "2"
                 },
                 new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
-                    Key = "list-1",
+                    Item = "list-1",
                     Value = "3"
                 },
                 new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
-                    Key = "list-1",
+                    Item = "list-1",
                     Value = "4"
                 },
                 new ListDto
                 {
                     Id = ObjectId.GenerateNewId(),
-                    Key = "list-1",
+                    Item = "list-1",
                     Value = "5"
                 }
             };
@@ -1285,31 +1263,31 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-1",
+                Item = "list-1",
                 Value = "1"
             });
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-2",
+                Item = "list-2",
                 Value = "2"
             });
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-1",
+                Item = "list-1",
                 Value = "3"
             });
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-1",
+                Item = "list-1",
                 Value = "4"
             });
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "list-1",
+                Item = "list-1",
                 Value = "5"
             });
 

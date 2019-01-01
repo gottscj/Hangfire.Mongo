@@ -215,6 +215,47 @@ namespace Hangfire.Mongo.Tests
             });
         }
 
+
+
+        [Fact, CleanDatabase]
+        public void ProcessingJobs_ReturnsLatestStateHistory_WhenJobRequeued()
+        {
+            UseMonitoringApi((database, monitoringApi) =>
+            {
+                var oldServerId = "oldserverid";
+                var newServerId = "newserverid";
+                var oldStartTime = DateTime.UtcNow.AddMinutes(-30);
+                var newStartTime = DateTime.UtcNow;
+
+                CreateJobInState(database, ObjectId.GenerateNewId(2), ProcessingState.StateName, jobDto =>
+                {
+                    var firstProcessingState = new StateDto()
+                    {
+                        Name = ProcessingState.StateName,
+                        Reason = null,
+                        CreatedAt = oldStartTime,
+                        Data = new Dictionary<string, string>
+                        {
+                            ["ServerId"] = oldServerId,
+                            ["StartedAt"] = JobHelper.SerializeDateTime(oldStartTime)
+                        }
+                    };
+                    var latestProcessingState = jobDto.StateHistory[0];
+                    latestProcessingState.CreatedAt = newStartTime;
+                    latestProcessingState.Data["ServerId"] = newServerId;
+                    latestProcessingState.Data["StartedAt"] = JobHelper.SerializeDateTime(newStartTime);
+                    jobDto.StateHistory = new[] { firstProcessingState, latestProcessingState };
+                    return jobDto;
+                });
+                
+                var resultList = monitoringApi.ProcessingJobs(From, PerPage);
+
+                Assert.Single(resultList);
+                Assert.Equal(newServerId, resultList[0].Value.ServerId);
+                Assert.Equal(newStartTime, resultList[0].Value.StartedAt);
+            });
+        }
+
         [Fact, CleanDatabase]
         public void FailedJobs_ReturnsFailedJobs_InDescendingOrder()
         {
