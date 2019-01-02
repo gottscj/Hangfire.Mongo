@@ -23,14 +23,24 @@ namespace Hangfire.Mongo.Migration.Steps.Version16
             {
                 var compositeKey = document["Key"].AsString;
                 var splitIndex = compositeKey.IndexOf(':');
-                var key = compositeKey.Substring(0, splitIndex);
-                var value = compositeKey.Substring(splitIndex + 1);
+                string value;
+                string key;
+                if (splitIndex < 0)
+                {
+                    key = compositeKey;
+                    value = document.Contains("Value") ? document["Value"].AsString : string.Empty; 
+                }
+                else
+                {
+                    key = compositeKey.Substring(0, splitIndex);
+                    value = compositeKey.Substring(splitIndex + 1);
+                }
                 
                 var filter = new BsonDocument("_id", document["_id"]);
                 var update = new BsonDocument("$set", new BsonDocument
                 {
                     ["Value"] = value,
-                    ["Key"] = $"{key}({value})"
+                    ["Key"] = $"{key}<{value}>"
                 });
                 
                 updates.Add(new UpdateOneModel<BsonDocument>(filter, update));
