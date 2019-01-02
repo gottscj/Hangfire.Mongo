@@ -232,20 +232,8 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var filter = new BsonDocument("$and", new BsonArray
-            {
-                new BsonDocument(nameof(SetDto.Key), $"{key}:{value}"),
-                new BsonDocument("_t", nameof(SetDto)),
-            });
-            var update = new BsonDocument
-            {
-                ["$set"] = new BsonDocument(nameof(SetDto.Score), score),
-                ["$setOnInsert"] = new BsonDocument
-                {
-                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(SetDto)},
-                    [nameof(KeyJobDto.ExpireAt)] = BsonNull.Value
-                }
-            };
+            var filter = CreateSetFilter(key, value);
+            var update = CreateSetUpdate(value, score);
 
             var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
             _writeModels.Add(writeModel);
@@ -258,11 +246,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var filter = new BsonDocument("$and", new BsonArray
-            {
-                new BsonDocument(nameof(KeyJobDto.Key), $"{key}:{value}"),
-                new BsonDocument("_t", nameof(SetDto))
-            });
+            var filter = CreateSetFilter(key, value);
 
             var writeModel = new DeleteOneModel<BsonDocument>(filter);
             _writeModels.Add(writeModel);
@@ -599,24 +583,11 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(items));
             }
 
-
-            var update = new BsonDocument
-            {
-                ["$set"] = new BsonDocument(nameof(SetDto.Score), 0.0),
-                ["$setOnInsert"] = new BsonDocument
-                {
-                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(SetDto)},
-                    [nameof(SetDto.ExpireAt)] = BsonNull.Value
-                }
-            };
-
             foreach (var item in items)
             {
-                var filter = new BsonDocument("$and", new BsonArray
-                {
-                    new BsonDocument(nameof(KeyJobDto.Key), $"{key}:{item}"),
-                    new BsonDocument("_t", nameof(SetDto))
-                });
+                var filter = CreateSetFilter(key, item);
+                var update = CreateSetUpdate(item, 0.0);
+                
                 var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
                 _writeModels.Add(writeModel);
             }
@@ -652,6 +623,31 @@ namespace Hangfire.Mongo
         {
             return model.Document["_t"].AsBsonArray.Last().AsString == nameof(ListDto) &&
                    model.Document[nameof(ListDto.Item)].AsString == key;
+        }
+
+        private static BsonDocument CreateSetFilter(string key, string value)
+        {
+            var filter = new BsonDocument("$and", new BsonArray
+            {
+                new BsonDocument(nameof(SetDto.Key), $"{key}:{value}"),
+                new BsonDocument("_t", nameof(SetDto)),
+            });
+            return filter;
+        }
+        
+        private static BsonDocument CreateSetUpdate(string value, double score)
+        {
+            var update = new BsonDocument
+            {
+                ["$set"] = new BsonDocument(nameof(SetDto.Score), score),
+                ["$setOnInsert"] = new BsonDocument
+                {
+                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(SetDto)},
+                    [nameof(SetDto.Value)] = value,
+                    [nameof(SetDto.ExpireAt)] = BsonNull.Value
+                }
+            };
+            return update;
         }
     }
 

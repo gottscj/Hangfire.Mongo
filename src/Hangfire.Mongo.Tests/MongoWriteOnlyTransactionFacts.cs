@@ -872,8 +872,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal(1, testSet2.Count);
             });
         }
-
-
+        
         private static JobDto GetTestJob(HangfireDbContext database, string jobId)
         {
             return database.JobGraph.OfType<JobDto>().Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId))).FirstOrDefault();

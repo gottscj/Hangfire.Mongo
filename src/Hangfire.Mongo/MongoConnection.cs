@@ -249,10 +249,11 @@ namespace Hangfire.Mongo
                 .OfType<SetDto>()
                 .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{key}"))
                 .SortBy(_ => _.Id)
-                .Project(_ => _.Key)
+                .Project(_ => _.Value)
                 .ToList();
 
-            return new HashSet<string>(result.Select(s => s.Split(':').Last()));
+            
+            return new HashSet<string>(result);
         }
 
         public override string GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore)
@@ -274,10 +275,8 @@ namespace Hangfire.Mongo
                       Builders<SetDto>.Filter.Gte(_ => _.Score, fromScore) &
                       Builders<SetDto>.Filter.Lte(_ => _.Score, toScore))
                 .SortBy(_ => _.Score)
-                .Project(_ => _.Key)
-                .FirstOrDefault()?
-                .Split(':')
-                .Last();
+                .Project(_ => _.Value)
+                .FirstOrDefault();
         }
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
@@ -333,9 +332,7 @@ namespace Hangfire.Mongo
                 .SortBy(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
-                .Project(dto => dto.Key)
-                .ToList()
-                .Select(s => s.Split(':').Last())
+                .Project(dto => dto.Value)
                 .ToList();
         }
 
