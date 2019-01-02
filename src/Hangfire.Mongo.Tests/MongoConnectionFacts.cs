@@ -434,28 +434,28 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "key:1.0",
+                Key = "key<1.0>",
                 Value = "1.0",
                 Score = 1.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "key:-1.0",
+                Key = "key<-1.0>",
                 Value = "-1.0",
                 Score = -1.0,
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "key:-5.0",
+                Key = "key<-5.0>",
                 Value = "-5.0",
                 Score = -5.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "another-key:-2.0",
+                Key = "another-key<-2.0>",
                 Value = "-2.0",
                 Score = -2.0
             });
@@ -622,42 +622,42 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "some-set:1",
+                Key = "some-set<1>",
                 Value = "1",
                 Score = 0.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "some-set:2",
+                Key = "some-set<2>",
                 Value = "2",
                 Score = 0.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "another-set:3",
+                Key = "another-set<3>",
                 Value = "3",
                 Score = 0.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "some-set:4",
+                Key = "some-set<4>",
                 Value = "4",
                 Score = 0.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "some-set:5",
+                Key = "some-set<5>",
                 Value = "5",
                 Score = 0.0
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "some-set:6",
+                Key = "some-set<6>",
                 Value = "6",
                 Score = 0.0
             });
@@ -791,17 +791,20 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1:value-1"
+                Key = "set-1<value-1>",
+                Value = "value-1"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-2:value-1"
+                Key = "set-2<value-1>",
+                Value = "value-1"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1:value-2"
+                Key = "set-1<value-2>",
+                Value = "value-2"
             });
 
             var result = _connection.GetSetCount("set-1");
@@ -821,7 +824,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1:1",
+                Key = "set-1<1>",
                 Value = "1",
                 Score = 0.0
             });
@@ -829,7 +832,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1:2",
+                Key = "set-1<2>",
                 Value = "2",
                 Score = 0.0
             });
@@ -837,7 +840,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1:3",
+                Key = "set-1<3>",
                 Value = "3",
                 Score = 0.0
             });
@@ -845,7 +848,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1:4",
+                Key = "set-1<4>",
                 Value = "4",
                 Score = 0.0
             });
@@ -853,7 +856,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-2:5",
+                Key = "set-2<5>",
                 Value = "5",
                 Score = 0.0
             });
@@ -861,7 +864,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1:6",
+                Key = "set-1<6>",
                 Value = "6",
                 Score = 0.0
             });
@@ -891,7 +894,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-1:1",
+                Key = "set-1<1>",
                 Score = 0.0,
                 ExpireAt = DateTime.UtcNow.AddMinutes(60)
             });
@@ -899,7 +902,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "set-2:2",
+                Key = "set-2<2>",
                 Score = 0.0,
                 ExpireAt = null
             });

@@ -459,11 +459,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var filter = new BsonDocument("$and", new BsonArray
-            {
-                new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", $"^{key}")),
-                new BsonDocument("_t", nameof(SetDto))
-            });
+            var filter = CreateSetFilter(key);
 
             var update = new BsonDocument("$set",
                 new BsonDocument(nameof(SetDto.ExpireAt), DateTime.UtcNow.Add(expireIn)));
@@ -518,11 +514,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var filter = new BsonDocument("$and", new BsonArray
-            {
-                new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", $"^{key}")),
-                new BsonDocument("_t", nameof(SetDto))
-            });
+            var filter = CreateSetFilter(key);
 
             var update = new BsonDocument("$set",
                 new BsonDocument(nameof(SetDto.ExpireAt), BsonNull.Value));
@@ -600,12 +592,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var filter = new BsonDocument("$and", new BsonArray
-            {
-                new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", $"^{key}")),
-                new BsonDocument("_t", nameof(SetDto))
-            });
-
+            var filter = CreateSetFilter(key);
             var writeModel = new DeleteManyModel<BsonDocument>(filter);
             _writeModels.Add(writeModel);
         }
@@ -629,8 +616,18 @@ namespace Hangfire.Mongo
         {
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(SetDto.Key), $"{key}:{value}"),
+                new BsonDocument(nameof(SetDto.Key), $"{key}<{value}>"),
                 new BsonDocument("_t", nameof(SetDto)),
+            });
+            return filter;
+        }
+        
+        private static BsonDocument CreateSetFilter(string key)
+        {
+            var filter = new BsonDocument("$and", new BsonArray
+            {
+                new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", $"^{key}")),
+                new BsonDocument("_t", nameof(SetDto))
             });
             return filter;
         }
