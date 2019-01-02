@@ -53,6 +53,30 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal(2, result.Scheduled);
             });
         }
+        
+        [Fact, CleanDatabase]
+        public void GetStatistics_RecurringJob_CountsSets()
+        {
+            UseMonitoringApi((database, monitoringApi) =>
+            {
+                const string setJson = @"
+                            {
+                                '_id':'5be18a91139c3a01128c8066',
+                                'Key':'recurring-jobs:HomeController.PrintToDebug',
+                                'Value':'HomeController.PrintToDebug',
+                                '_t':['BaseJobDto','ExpiringJobDto','KeyJobDto','SetDto'],
+                                'Score':0,
+                                'ExpireAt':null
+                            }";
+                database
+                    .Database
+                    .GetCollection<BsonDocument>(database.JobGraph.CollectionNamespace.CollectionName)
+                    .InsertOne(BsonDocument.Parse(setJson));
+                
+                var result = monitoringApi.GetStatistics();
+                Assert.Equal(1, result.Recurring);
+            });
+        }
 
         [Fact, CleanDatabase]
         public void JobDetails_ReturnsNull_WhenThereIsNoSuchJob()
