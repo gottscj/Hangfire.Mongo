@@ -31,6 +31,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         [InlineData("Hangfire-Mongo-Schema-013.zip", true)]
         [InlineData("Hangfire-Mongo-Schema-014.zip", true)]
         [InlineData("Hangfire-Mongo-Schema-015.zip", true)]
+        [InlineData("Hangfire-Mongo-Schema-016.zip", true)]
         public void Migrate_Full_Success(string seedFile, bool assertCollectionHasItems)
         {
             using (var dbContext = new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests"))

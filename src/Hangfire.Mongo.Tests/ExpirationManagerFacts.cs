@@ -134,7 +134,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
-                Key = "key:",
+                Key = "key<>",
                 Score = 0,
                 ExpireAt = DateTime.UtcNow.AddMonths(-1)
             });
