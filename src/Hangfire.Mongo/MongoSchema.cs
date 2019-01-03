@@ -69,7 +69,12 @@
         /// <summary>
         /// Schema Version 15
         /// </summary>
-        Version15 = 15
+        Version15 = 15,
+
+        /// <summary>
+        /// Schema Version 16
+        /// </summary>
+        Version16 = 16
     }
 
 }

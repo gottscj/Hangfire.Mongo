@@ -317,7 +317,7 @@ namespace Hangfire.Mongo.Tests
 
                 SetDto record = database.JobGraph.OfType<SetDto>().Find(new BsonDocument()).ToList().Single();
 
-                Assert.Equal("my-key:my-value", record.Key);
+                Assert.Equal("my-key<my-value>", record.Key);
                 Assert.Equal(0.0, record.Score, 2);
             });
         }
@@ -365,7 +365,7 @@ namespace Hangfire.Mongo.Tests
 
                 SetDto record = database.JobGraph.OfType<SetDto>().Find(new BsonDocument()).ToList().Single();
 
-                Assert.Equal("my-key:my-value", record.Key);
+                Assert.Equal("my-key<my-value>", record.Key);
                 Assert.Equal(3.2, record.Score, 3);
             });
         }
@@ -691,18 +691,20 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var set1 = new SetDto { Key = "Set1:value1" };
+                var set1 = new SetDto { Key = "Set1<value1>", Value = "value1"};
                 database.JobGraph.InsertOne(set1);
 
-                var set2 = new SetDto { Key = "Set2:value2" };
+                var set2 = new SetDto { Key = "Set2<value2>", Value = "value2" };
                 database.JobGraph.InsertOne(set2);
 
-                Commit(database, x => x.ExpireSet(set1.Key, TimeSpan.FromDays(1)));
+                Commit(database, x => x.ExpireSet("Set1", TimeSpan.FromDays(1)));
 
-                var testSet1 = GetTestSet(database, set1.Key).FirstOrDefault();
+                var testSet1 = GetTestSet(database, "Set1").FirstOrDefault();
+                var testSet2 = GetTestSet(database, "Set2").FirstOrDefault();
+
+                Assert.NotNull(testSet1);
                 Assert.True(DateTime.UtcNow.AddMinutes(-1) < testSet1.ExpireAt && testSet1.ExpireAt <= DateTime.UtcNow.AddDays(1));
-
-                var testSet2 = GetTestSet(database, set2.Key).FirstOrDefault();
+                
                 Assert.NotNull(testSet2);
                 Assert.Null(testSet2.ExpireAt);
             });
@@ -756,10 +758,10 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var set1 = new SetDto { Key = "Set1:value1", ExpireAt = DateTime.UtcNow };
+                var set1 = new SetDto { Key = "Set1<value1>", ExpireAt = DateTime.UtcNow };
                 database.JobGraph.InsertOne(set1);
 
-                var set2 = new SetDto { Key = "Set2:value1", ExpireAt = DateTime.UtcNow };
+                var set2 = new SetDto { Key = "Set2<value1>", ExpireAt = DateTime.UtcNow };
                 database.JobGraph.InsertOne(set2);
 
                 Commit(database, x => x.PersistSet(set1.Key));
@@ -820,13 +822,13 @@ namespace Hangfire.Mongo.Tests
             UseConnection(database =>
             {
                 // ASSERT
-                var set1Val1 = new SetDto { Key = "Set1:value1", ExpireAt = DateTime.UtcNow };
+                var set1Val1 = new SetDto { Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow };
                 database.JobGraph.InsertOne(set1Val1);
 
-                var set1Val2 = new SetDto { Key = "Set1:value2", ExpireAt = DateTime.UtcNow };
+                var set1Val2 = new SetDto { Key = "Set1<value2>", Value = "value2", ExpireAt = DateTime.UtcNow };
                 database.JobGraph.InsertOne(set1Val2);
 
-                var set2 = new SetDto { Key = "Set2:value2", ExpireAt = DateTime.UtcNow };
+                var set2 = new SetDto { Key = "Set2<value2>", Value = "value2",  ExpireAt = DateTime.UtcNow };
                 database.JobGraph.InsertOne(set2);
 
                 var values = new[] { "test1", "test2", "test3" };
@@ -839,7 +841,7 @@ namespace Hangfire.Mongo.Tests
 
                 Assert.NotNull(testSet1);
                 // verify all values are present in testSet1
-                Assert.True(testSet1.Select(s => s.Key.Split(':').Last()).All(value => valuesToTest.Contains(value)));
+                Assert.True(testSet1.Select(s => s.Value).All(value => valuesToTest.Contains(value)));
                 Assert.Equal(5, testSet1.Count);
 
                 var testSet2 = GetTestSet(database, set2.Key);
@@ -854,13 +856,13 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var set1Val1 = new SetDto { Key = "Set1:value1", ExpireAt = DateTime.UtcNow };
+                var set1Val1 = new SetDto { Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow };
                 database.JobGraph.InsertOne(set1Val1);
 
-                var set1Val2 = new SetDto { Key = "Set1:value2", ExpireAt = DateTime.UtcNow };
+                var set1Val2 = new SetDto { Key = "Set1<value2>",  Value = "value2", ExpireAt = DateTime.UtcNow };
                 database.JobGraph.InsertOne(set1Val2);
 
-                var set2 = new SetDto { Key = "Set2:value2", ExpireAt = DateTime.UtcNow };
+                var set2 = new SetDto { Key = "Set2<value2>",  Value = "value2", ExpireAt = DateTime.UtcNow };
                 database.JobGraph.InsertOne(set2);
 
                 Commit(database, x => x.RemoveSet(set1Val1.Key));
@@ -872,8 +874,7 @@ namespace Hangfire.Mongo.Tests
                 Assert.Equal(1, testSet2.Count);
             });
         }
-
-
+        
         private static JobDto GetTestJob(HangfireDbContext database, string jobId)
         {
             return database.JobGraph.OfType<JobDto>().Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId))).FirstOrDefault();
