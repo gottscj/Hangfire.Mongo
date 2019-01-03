@@ -174,7 +174,7 @@
 
 0.2.0
 - Initial public release</PackageReleaseNotes>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>
+    <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
     <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
     <Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
   </PropertyGroup>

@@ -144,7 +144,7 @@ namespace Hangfire.Mongo
             stats.Recurring = _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Count(new BsonDocument(nameof(KeyJobDto.Key), "recurring-jobs"));
+                .Count(new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", "^recurring-jobs")));
 
             stats.Queues = GetQueues().Count;
 
