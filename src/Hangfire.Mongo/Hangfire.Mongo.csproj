@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>0.5.15</VersionPrefix>
+    <VersionPrefix>0.6.0</VersionPrefix>
     <TargetFrameworks>net46;net45;netstandard1.5</TargetFrameworks>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -22,7 +22,10 @@
     <owners>Sergey Zwezdin</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB CosmoDB DocumentDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>0.5.15
+    <PackageReleaseNotes>0.6.0
+      - Added tailable collections for jobqueue
+
+0.5.15
 - Fix Dashboard, top menu, Recurring Jobs count is 0 (#173) 
 - Fix GetAllItemsFromSet truncated values (#175)
 
