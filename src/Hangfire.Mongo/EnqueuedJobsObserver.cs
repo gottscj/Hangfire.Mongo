@@ -1,6 +1,5 @@
 using System;
 using System.Threading;
-using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Server;
@@ -15,9 +14,9 @@ namespace Hangfire.Mongo
     internal class EnqueuedJobsObserver : IBackgroundProcess, IServerComponent
     {
         private readonly HangfireDbContext _dbContext;
-        private readonly JobQueueSemaphore _jobQueueSemaphore;
+        private readonly IJobQueueSemaphore _jobQueueSemaphore;
 
-        public EnqueuedJobsObserver(HangfireDbContext dbContext, JobQueueSemaphore jobQueueSemaphore)
+        public EnqueuedJobsObserver(HangfireDbContext dbContext, IJobQueueSemaphore jobQueueSemaphore)
         {
             _dbContext = dbContext;
             _jobQueueSemaphore = jobQueueSemaphore;

@@ -103,7 +103,7 @@ namespace Hangfire.Mongo.Migration
                 var migrationLock = _dbContext.Database.GetCollection<MigrationLockDto>(_migrateLockCollectionName);
                 // If result is null, then it means we acquired the lock
                 var isLockAcquired = false;
-                var now = DateTime.Now;
+                var now = DateTime.UtcNow;
                 // wait maximum 5 seconds for migration to complete
                 var lockTimeoutTime = now.Add(_storageOptions.MigrationLockTimeout);
 
@@ -135,7 +135,7 @@ namespace Hangfire.Mongo.Migration
                         else
                         {
                             Thread.Sleep(20);
-                            now = DateTime.Now;
+                            now = DateTime.UtcNow;
                         }
                     }
                     catch (MongoCommandException)
@@ -143,7 +143,7 @@ namespace Hangfire.Mongo.Migration
                         // this can occur if two processes attempt to acquire a lock on the same resource simultaneously.
                         // unfortunately there doesn't appear to be a more specific exception type to catch.
                         Thread.Sleep(20);
-                        now = DateTime.Now;
+                        now = DateTime.UtcNow;
                     }
                 }
 

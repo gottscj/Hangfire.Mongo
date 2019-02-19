@@ -12,21 +12,15 @@ namespace Hangfire.Mongo.Tests
         private readonly HangfireDbContext _hangfireDbContext;
 
         private readonly CancellationToken _token;
-        private readonly Mock<JobQueueSemaphore> _jobQueueSemaphore;
+        private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphore;
         public JobQueueObserverProcessFacts()
         {
             _hangfireDbContext = ConnectionUtils.CreateDbContext();
 
             _token = new CancellationToken(true);
-            _jobQueueSemaphore = new Mock<JobQueueSemaphore>(MockBehavior.Strict);
+            _jobQueueSemaphore = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
         }
         
-        [Fact]
-        public void Ctor_ThrowsAnException_WhenStorageIsNull()
-        {
-            Assert.Throws<ArgumentNullException>(() => new EnqueuedJobsObserver(null, _jobQueueSemaphore.Object));
-        }
-
         [Fact, CleanDatabase]
         public void Execute_NoJobQueueSignals_Nothing()
         {

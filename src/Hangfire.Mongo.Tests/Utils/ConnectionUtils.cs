@@ -10,7 +10,7 @@ namespace Hangfire.Mongo.Tests.Utils
         private const string ConnectionStringTemplateVariable = "Hangfire_Mongo_ConnectionStringTemplate";
 
         private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
-        private const string DefaultConnectionStringTemplate = @"mongodb://localhost";
+        private const string DefaultConnectionStringTemplate = @"mongodb://localhost:30000";
 
         public static string GetDatabaseName()
         {

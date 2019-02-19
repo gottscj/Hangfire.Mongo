@@ -21,6 +21,8 @@ namespace Hangfire.Mongo
 
         private readonly HangfireDbContext _dbContext;
 
+        private readonly DateTime _invisibilityTimeout;
+        
         private static readonly FindOneAndUpdateOptions<JobQueueDto> Options = new FindOneAndUpdateOptions<JobQueueDto>
         {
             IsUpsert = false,
@@ -33,6 +35,9 @@ namespace Hangfire.Mongo
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
             _jobQueueSemaphore = jobQueueSemaphore;
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            
+            _invisibilityTimeout =
+                DateTime.UtcNow.AddSeconds(_storageOptions.InvisibilityTimeout.Negate().TotalSeconds);
         }
 
         [NotNull]
@@ -102,7 +107,12 @@ namespace Hangfire.Mongo
             var filter = new BsonDocument("$and", new BsonArray
             {
                 new BsonDocument(nameof(JobQueueDto.Queue), queue),
-                new BsonDocument(nameof(JobQueueDto.FetchedAt), BsonNull.Value)
+                new BsonDocument("$or", new BsonArray
+                {
+                    new BsonDocument(nameof(JobQueueDto.FetchedAt), BsonNull.Value),
+                    new BsonDocument(nameof(JobQueueDto.FetchedAt), new BsonDocument("$lt", _invisibilityTimeout))
+                })
+                
             });
             var update = new BsonDocument("$set", new BsonDocument(nameof(JobQueueDto.FetchedAt), DateTime.UtcNow));
             
