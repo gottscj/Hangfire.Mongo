@@ -57,8 +57,6 @@ namespace Hangfire.Mongo.Migration
                 throw new InvalidOperationException($@"The {nameof(fromSchema)} ({fromSchema}) cannot be larger than {nameof(toSchema)} ({toSchema})");
             }
 
-            
-
             var migrationSteps = LoadMigrationSteps()
                 .Where(step => step.TargetSchema > fromSchema && step.TargetSchema <= toSchema)
                 .GroupBy(step => step.TargetSchema);

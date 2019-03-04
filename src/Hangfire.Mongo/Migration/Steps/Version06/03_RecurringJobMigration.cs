@@ -18,6 +18,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
             var stateDataCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.statedata");
             MigrateHash(database, storageOptions, stateDataCollection);
             MigrateSet(database, storageOptions, stateDataCollection);
+            
             return true;
         }
 
@@ -52,6 +53,22 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
             if (migratedSetList.Any())
             {
                 stateData.InsertMany(migratedSetList);
+            }
+        }
+        
+        private void MigrateCounters(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoCollection<BsonDocument> stateData)
+        {
+            var setCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.counter");
+            var filter = Builders<BsonDocument>.Filter.Empty;
+            var migratedCounterList = setCollection.Find(filter).ToList().Select(s =>
+            {
+                s["_t"] = new BsonArray(new[] { "KeyValueDto", "ExpiringKeyValueDto", "CounterDto" });
+                return s;
+            }).ToList();
+
+            if (migratedCounterList.Any())
+            {
+                stateData.InsertMany(migratedCounterList);
             }
         }
 

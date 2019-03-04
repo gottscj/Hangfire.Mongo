@@ -14,11 +14,25 @@ namespace Hangfire.Mongo.Migration
             switch (schema)
             {
                 case MongoSchema.None:
-                    throw new ArgumentException($@"The '{schema}' has no collections", nameof(schema));
+                    return new[] {
+                        "_identifiers", // A bug prevented the use of prefix
+                        prefix + ".aggregatedcounter",
+                        prefix + ".counter",
+                        prefix + ".hash",
+                        prefix + ".job",
+                        prefix + ".jobParameter",
+                        prefix + ".jobQueue",
+                        prefix + ".list",
+                        prefix + ".locks",
+                        prefix + ".server",
+                        prefix + ".set",
+                        prefix + ".state",
+                    };
 
                 case MongoSchema.Version04:
                     return new[] {
                         "_identifiers", // A bug prevented the use of prefix
+                        prefix + ".aggregatedcounter",
                         prefix + ".counter",
                         prefix + ".hash",
                         prefix + ".job",
@@ -35,6 +49,7 @@ namespace Hangfire.Mongo.Migration
                 case MongoSchema.Version05:
                     return new[] {
                         "_identifiers", // A bug prevented the use of prefix
+                        prefix + ".aggregatedcounter",
                         prefix + ".counter",
                         prefix + ".hash",
                         prefix + ".job",
