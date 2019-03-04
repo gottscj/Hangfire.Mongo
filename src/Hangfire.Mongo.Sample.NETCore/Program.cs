@@ -16,7 +16,7 @@ namespace Hangfire.Mongo.Sample.NETCore
                 MigrationOptions = new MongoMigrationOptions
                 {
                     Strategy = MongoMigrationStrategy.Migrate,
-                    BackupStrategy = MongoBackupStrategy.Collections
+                    BackupStrategy = MongoBackupStrategy.None
                 }
             };
 

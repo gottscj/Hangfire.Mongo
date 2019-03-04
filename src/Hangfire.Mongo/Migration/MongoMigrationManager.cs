@@ -56,8 +56,10 @@ namespace Hangfire.Mongo.Migration
             {
                 // We do not have a schema version yet
                 // - assume an empty database and run full migrations
-                _migrationRunner.Execute(MongoSchema.None, RequiredSchemaVersion);
-                return;
+                currentSchema = new SchemaDto
+                {
+                    Version = MongoSchema.None
+                };
             }
 
             if (RequiredSchemaVersion < currentSchema.Version)
