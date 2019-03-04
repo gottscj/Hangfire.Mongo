@@ -136,7 +136,7 @@ namespace Hangfire.Mongo.DistributedLock
             {
                 // If result is null, then it means we acquired the lock
                 var isLockAcquired = false;
-                var now = DateTime.Now;
+                var now = DateTime.UtcNow;
                 var lockTimeoutTime = now.Add(timeout);
 
                 while (!isLockAcquired && (lockTimeoutTime >= now))
@@ -271,7 +271,7 @@ namespace Hangfire.Mongo.DistributedLock
             {
                 Logger.Debug($"Waited {sw.ElapsedMilliseconds}ms for access to resource: '{_resource}'");    
             }
-            return DateTime.Now;
+            return DateTime.UtcNow;
         }
 
     }

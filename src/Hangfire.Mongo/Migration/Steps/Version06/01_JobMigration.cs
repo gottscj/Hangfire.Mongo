@@ -16,7 +16,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
         public long Sequence => 1;
 
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions,
-            IMongoMigrationBag migrationBag)
+            IMongoMigrationContext migrationContext)
         {
             var jobCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.job");
             var jobParametersCollection =
@@ -31,7 +31,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
                 .Select(j => j["_id"].AsInt32)
                 .Distinct()
                 .ToDictionary(jid => jid, jid => new BsonObjectId(ObjectId.GenerateNewId()).ToString());
-            migrationBag.SetItem("JobIdMapping", jobIdMapping);
+            migrationContext.SetItem("JobIdMapping", jobIdMapping);
 
             var migratedJobs = jobs.Select(job =>
             {

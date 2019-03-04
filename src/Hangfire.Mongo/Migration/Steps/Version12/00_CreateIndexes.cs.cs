@@ -13,7 +13,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version12
 
         public long Sequence => 0;
 
-        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
+        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
             var indexBuilder = Builders<BsonDocument>.IndexKeys;
 

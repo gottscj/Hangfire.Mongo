@@ -13,7 +13,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version11
 
         public long Sequence => 0;
 
-        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
+        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
             var jobsCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.job");
             SetFieldAsObjectId(jobsCollection, "_id");

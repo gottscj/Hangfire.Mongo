@@ -15,7 +15,7 @@ namespace Hangfire.Mongo.Migration.Steps
 
         public abstract long Sequence { get; }
 
-        public virtual bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
+        public virtual bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
             foreach (var previousCollectionName in ObsoleteCollectionNames(database, storageOptions))
             {

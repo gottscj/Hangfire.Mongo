@@ -23,8 +23,8 @@ namespace Hangfire.Mongo.Migration.Steps
         /// </summary>
         /// <param name="database">The mongo database.</param>
         /// <param name="storageOptions">Storage options.</param>
-        /// <param name="migrationBag">Bag for storing data between migration steps</param>
+        /// <param name="migrationContext">Bag for storing data between migration steps</param>
         /// <returns>True on success, else false</returns>
-        bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag);
+        bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext);
     }
 }

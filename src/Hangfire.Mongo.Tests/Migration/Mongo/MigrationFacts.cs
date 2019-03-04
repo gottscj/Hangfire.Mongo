@@ -52,7 +52,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                     }
                 };
 
-                var migrationManager = new MongoMigrationManager(storageOptions, dbContext);
+                var migrationManager = new MongoMigrationManager(storageOptions, dbContext.Database);
 
                 // ACT
                 migrationManager.Migrate();
@@ -80,7 +80,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                     }
                 };
 
-                var migrationManager = new MongoMigrationManager(storageOptions, dbContext);
+                var migrationManager = new MongoMigrationManager(storageOptions, dbContext.Database);
 
                 // ACT
                 migrationManager.Migrate();

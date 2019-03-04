@@ -416,8 +416,8 @@ namespace Hangfire.Mongo
             }
 
             var jobsEnqueued =
-                _jobsAddedToQueue.Select(q => new JobEnqueuedDto {Id = ObjectId.GenerateNewId(), Queue = q});
-            _dbContext.EnqueuedJobs.InsertMany(jobsEnqueued, new InsertManyOptions
+                _jobsAddedToQueue.Select(q => new EventDto {Id = ObjectId.GenerateNewId(), Value = q, Type = EventType.JobEnqueued});
+            _dbContext.Events.InsertMany(jobsEnqueued, new InsertManyOptions
             {
                 BypassDocumentValidation = false,
                 IsOrdered = true

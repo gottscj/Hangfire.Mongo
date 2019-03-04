@@ -1,5 +1,4 @@
-﻿using Hangfire.Mongo.Database;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration.Strategies
 {
@@ -11,8 +10,8 @@ namespace Hangfire.Mongo.Migration.Strategies
     internal class MongoMigrationStrategyDrop : MongoMigrationStrategyBase
     {
 
-        public MongoMigrationStrategyDrop(HangfireDbContext dbContext, MongoStorageOptions storageOptions, MongoMigrationRunner migrationRunner)
-            : base(dbContext, storageOptions, migrationRunner)
+        public MongoMigrationStrategyDrop(IMongoDatabase database, MongoStorageOptions storageOptions, MongoMigrationRunner migrationRunner)
+            : base(database, storageOptions, migrationRunner)
         {
         }
 

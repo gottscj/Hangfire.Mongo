@@ -2,14 +2,14 @@ using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration.Steps.Version17
 {
-    internal class AddCappedEnqueuedJobsCollection : IMongoMigrationStep
+    internal class AddEventsCollection : IMongoMigrationStep
     {
         public MongoSchema TargetSchema { get; } = MongoSchema.Version17;
         public long Sequence { get; } = 0;
         
-        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
+        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
-            database.CreateCollection(storageOptions.Prefix + ".enqueuedJobs", new CreateCollectionOptions
+            database.CreateCollection(storageOptions.Prefix + ".events", new CreateCollectionOptions
             {
                 Capped = true,
                 MaxSize = 4096

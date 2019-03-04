@@ -13,6 +13,8 @@ namespace Hangfire.Mongo
     }
     internal sealed class JobQueueSemaphore : IJobQueueSemaphore, IDisposable
     {
+        public static IJobQueueSemaphore Default = new JobQueueSemaphore();
+        
         private static readonly ILog Logger = LogProvider.For<JobQueueSemaphore>();
         private readonly ConcurrentDictionary<string, SemaphoreSlim> _pool = new ConcurrentDictionary<string, SemaphoreSlim>();
 

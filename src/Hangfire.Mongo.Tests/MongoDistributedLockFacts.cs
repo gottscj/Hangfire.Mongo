@@ -126,10 +126,10 @@ namespace Hangfire.Mongo.Tests
                 Thread.Sleep(TimeSpan.FromSeconds(1));
 
                 // Record when we try to aquire the lock
-                var startTime = DateTime.Now;
+                var startTime = DateTime.UtcNow;
                 using (new MongoDistributedLock("resource1", TimeSpan.FromSeconds(10), database, new MongoStorageOptions()))
                 {
-                    Assert.InRange(DateTime.Now - startTime, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+                    Assert.InRange(DateTime.UtcNow - startTime, TimeSpan.Zero, TimeSpan.FromSeconds(5));
                 }
             });
         }

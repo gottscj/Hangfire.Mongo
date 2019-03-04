@@ -9,7 +9,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version15
          public long Sequence => 4;
 
          public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions,
-             IMongoMigrationBag migrationBag)
+             IMongoMigrationContext migrationContext)
          {
              var jobGraph = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobGraph");
 

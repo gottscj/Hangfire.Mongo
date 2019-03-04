@@ -3,11 +3,9 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using Hangfire.Logging;
-using Hangfire.Mongo.Database;
 using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Migration.Strategies;
-using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -17,33 +15,43 @@ namespace Hangfire.Mongo.Migration
     /// <summary>
     /// Manages migration from one schema version to the required.
     /// </summary>
-    internal class MongoMigrationManager : IDisposable
+    internal class MongoMigrationManager
     {
         private static readonly ILog Logger = LogProvider.For<MongoMigrationManager>();
 
         private readonly MongoStorageOptions _storageOptions;
-        private readonly HangfireDbContext _dbContext;
+        private readonly IMongoDatabase _database;
         private readonly MongoMigrationRunner _migrationRunner;
 
-        private readonly string _migrateLockCollectionName = "migrationLock";
+        private readonly string _migrateLockCollectionName;
+        private readonly IMongoCollection<SchemaDto> _schemas;
 
+        private readonly BsonDocument _migrationIdFilter =
+            new BsonDocument("_id", new BsonObjectId("5c351d07197a9bcdba4832fc"));
+        
         public static MongoSchema RequiredSchemaVersion =>
             Enum.GetValues(typeof(MongoSchema)).Cast<MongoSchema>().OrderBy(v => v).Last();
 
 
-        public MongoMigrationManager(MongoStorageOptions storageOptions, HangfireDbContext dbContext)
+        public MongoMigrationManager(MongoStorageOptions storageOptions, IMongoDatabase database)
         {
             _storageOptions = storageOptions;
-            _dbContext = dbContext;
-            _migrationRunner = new MongoMigrationRunner(dbContext, storageOptions);
-
-            AcquireMigrationAccess();
+            _database = database;
+            _schemas = _database.GetCollection<SchemaDto>(storageOptions.Prefix + ".schema");
+            _migrationRunner = new MongoMigrationRunner(database, storageOptions, _schemas);
+            _migrateLockCollectionName = storageOptions.Prefix + ".migrationLock";
         }
-        
+
+        public static void MigrateIfNeeded(MongoStorageOptions storageOptions, IMongoDatabase database)
+        {
+            var migrationManager = new MongoMigrationManager(storageOptions, database);
+            migrationManager.Migrate();
+        }
         
         public void Migrate()
         {
-            var currentSchema = _dbContext.Schema.Find(_ => true).FirstOrDefault();
+            AcquireMigrationAccess();
+            var currentSchema = _schemas.Find(_ => true).FirstOrDefault();
             if (currentSchema == null)
             {
                 // We do not have a schema version yet
@@ -74,10 +82,10 @@ namespace Hangfire.Mongo.Migration
                     migration = new MongoMigrationStrategyNone();
                     break;
                 case MongoMigrationStrategy.Drop:
-                    migration = new MongoMigrationStrategyDrop(_dbContext, _storageOptions, _migrationRunner);
+                    migration = new MongoMigrationStrategyDrop(_database, _storageOptions, _migrationRunner);
                     break;
                 case MongoMigrationStrategy.Migrate:
-                    migration = new MongoMigrationStrategyMigrate(_dbContext, _storageOptions, _migrationRunner);
+                    migration = new MongoMigrationStrategyMigrate(_database, _storageOptions, _migrationRunner);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(
@@ -88,28 +96,34 @@ namespace Hangfire.Mongo.Migration
             migration.Execute(currentSchema.Version, RequiredSchemaVersion);
         }
 
-
-        public void Dispose()
-        {
-            _dbContext.Database.DropCollection(_migrateLockCollectionName);
-        }
-
         private void AcquireMigrationAccess()
         {
             try
             {
-                var migrationLock = _dbContext.Database.GetCollection<MigrationLockDto>(_migrateLockCollectionName);
+                var migrationLock = _database.GetCollection<MigrationLockDto>(_migrateLockCollectionName);
+                
                 // If result is null, then it means we acquired the lock
                 var isLockAcquired = false;
-                var now = DateTime.Now;
-                // wait maximum 5 seconds for migration to complete
+                var now = DateTime.UtcNow;
+                // wait maximum double of configured seconds for migration to complete
                 var lockTimeoutTime = now.Add(_storageOptions.MigrationLockTimeout);
 
+                var deleteFilter = new BsonDocument("$and", new BsonArray
+                {
+                    _migrationIdFilter,
+                    new BsonDocument(nameof(MigrationLockDto.ExpireAt), new BsonDocument("$lt", DateTime.UtcNow))
+                });
+
+                migrationLock.DeleteOne(deleteFilter);
+                
+                // busy wait
                 while (!isLockAcquired && (lockTimeoutTime >= now))
                 {
                     // Acquire the lock if it does not exist - Notice: ReturnDocument.Before
-                    var filter = new BsonDocument(nameof(MigrationLockDto.Lock), "locked");
-                    var update = Builders<MigrationLockDto>.Update.SetOnInsert(_ => _.Lock, "locked");
+                    var update = Builders<MigrationLockDto>
+                        .Update
+                        .SetOnInsert(_ => _.ExpireAt, lockTimeoutTime);
+                    
                     var options = new FindOneAndUpdateOptions<MigrationLockDto>
                     {
                         IsUpsert = true,
@@ -118,7 +132,7 @@ namespace Hangfire.Mongo.Migration
 
                     try
                     {
-                        var result = migrationLock.FindOneAndUpdate(filter, update, options);
+                        var result = migrationLock.FindOneAndUpdate(_migrationIdFilter, update, options);
 
                         // If result is null, it means we acquired the lock
                         if (result == null)
@@ -133,7 +147,7 @@ namespace Hangfire.Mongo.Migration
                         else
                         {
                             Thread.Sleep(20);
-                            now = DateTime.Now;
+                            now = DateTime.UtcNow;
                         }
                     }
                     catch (MongoCommandException)
@@ -141,13 +155,13 @@ namespace Hangfire.Mongo.Migration
                         // this can occur if two processes attempt to acquire a lock on the same resource simultaneously.
                         // unfortunately there doesn't appear to be a more specific exception type to catch.
                         Thread.Sleep(20);
-                        now = DateTime.Now;
+                        now = DateTime.UtcNow;
                     }
                 }
 
                 if (!isLockAcquired)
                 {
-                    throw new InvalidOperationException("Could not complete migration in 5 seconds");
+                    throw new InvalidOperationException("Could not complete migration. Never acquired lock");
                 }
             }
             catch (InvalidOperationException)
@@ -157,7 +171,7 @@ namespace Hangfire.Mongo.Migration
             catch (Exception ex)
             {
                 throw new InvalidOperationException(
-                    "Could not complete migration in 5 seconds': Check inner exception for details.", ex);
+                    "Could not complete migration: Check inner exception for details.", ex);
             }
         }
     }

@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Hangfire.Logging;
-using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Migration.Steps;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration
@@ -15,7 +15,7 @@ namespace Hangfire.Mongo.Migration
     /// <summary>
     /// Bag used for parsing info between migration steps
     /// </summary>
-    internal interface IMongoMigrationBag
+    internal interface IMongoMigrationContext
     {
         T GetItem<T>(string key);
 
@@ -25,17 +25,19 @@ namespace Hangfire.Mongo.Migration
     /// <summary>
     /// Class for running a full migration
     /// </summary>
-    internal class MongoMigrationRunner : IMongoMigrationBag
+    internal class MongoMigrationRunner : IMongoMigrationContext
     {
         private static readonly ILog Logger = LogProvider.For<MongoMigrationRunner>();
         
-        private readonly HangfireDbContext _dbContext;
+        private readonly IMongoDatabase _database;
         private readonly MongoStorageOptions _storageOptions;
-
-        public MongoMigrationRunner(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
+        private readonly IMongoCollection<SchemaDto> _schemas;
+        
+        public MongoMigrationRunner(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoCollection<SchemaDto> schemas)
         {
-            _dbContext = dbContext;
+            _database = database;
             _storageOptions = storageOptions;
+            _schemas = schemas;
         }
 
 
@@ -74,7 +76,7 @@ namespace Hangfire.Mongo.Migration
                     try
                     {
                         var sw = Stopwatch.StartNew();
-                        if (!migrationStep.Execute(_dbContext.Database, _storageOptions, this))
+                        if (!migrationStep.Execute(_database, _storageOptions, this))
                         {
                             throw new MongoMigrationException(migrationStep);
                         }
@@ -94,9 +96,9 @@ namespace Hangfire.Mongo.Migration
 
                 // We just completed a migration to the next schema.
                 // Update the schema info and continue.
-                var schemaDto = _dbContext.Schema.FindOneAndDelete(_ => true) ?? new SchemaDto();
+                var schemaDto = _schemas.FindOneAndDelete(new BsonDocument()) ?? new SchemaDto();
                 schemaDto.Version = migrationGroup.Key;
-                _dbContext.Schema.InsertOne(schemaDto);   
+                _schemas.InsertOne(schemaDto);   
             }
             
             Logger.Info(() =>
@@ -116,20 +118,16 @@ namespace Hangfire.Mongo.Migration
                 .OrderBy(step => (int)step.TargetSchema).ThenBy(step => step.Sequence);
         }
 
-        #region IMongoMigrationBag
-
-        private Dictionary<string, object> _bag = new Dictionary<string, object>();
+        private readonly Dictionary<string, object> _environment = new Dictionary<string, object>();
 
         public T GetItem<T>(string key)
         {
-            return (T)_bag[key];
+            return (T)_environment[key];
         }
 
         public void SetItem<T>(string key, T value)
         {
-            _bag[key] = value;
+            _environment[key] = value;
         }
-
-        #endregion
     }
 }

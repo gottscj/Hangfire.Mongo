@@ -1,6 +1,5 @@
 using System;
 using System.Threading;
-using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Server;
@@ -12,12 +11,12 @@ namespace Hangfire.Mongo
     /// <summary>
     /// Observes if jobs are enqueued and signals 
     /// </summary>
-    internal class EnqueuedJobsObserver : IBackgroundProcess, IServerComponent
+    internal class MongoEventListener : IBackgroundProcess, IServerComponent
     {
         private readonly HangfireDbContext _dbContext;
-        private readonly JobQueueSemaphore _jobQueueSemaphore;
+        private readonly IJobQueueSemaphore _jobQueueSemaphore;
 
-        public EnqueuedJobsObserver(HangfireDbContext dbContext, JobQueueSemaphore jobQueueSemaphore)
+        public MongoEventListener(HangfireDbContext dbContext, IJobQueueSemaphore jobQueueSemaphore)
         {
             _dbContext = dbContext;
             _jobQueueSemaphore = jobQueueSemaphore;
@@ -25,20 +24,20 @@ namespace Hangfire.Mongo
         
         public void Execute(CancellationToken cancellationToken)
         {
-            var options = new FindOptions<JobEnqueuedDto> { CursorType = CursorType.TailableAwait };
+            var options = new FindOptions<EventDto> { CursorType = CursorType.TailableAwait };
 
             var lastId = ObjectId.GenerateNewId(new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc));
             var filter = new BsonDocument("_id", new BsonDocument("$gt", lastId));
 
-            var update = Builders<JobEnqueuedDto>
+            var update = Builders<EventDto>
                 .Update
-                .SetOnInsert(j => j.Queue, null);
+                .SetOnInsert(j => j.Value, null);
 
-            var lastEnqueued = _dbContext.EnqueuedJobs.FindOneAndUpdate(filter, update,
-                new FindOneAndUpdateOptions<JobEnqueuedDto>
+            var lastEnqueued = _dbContext.Events.FindOneAndUpdate(filter, update,
+                new FindOneAndUpdateOptions<EventDto>
                 {
                     IsUpsert = true,
-                    Sort = Builders<JobEnqueuedDto>.Sort.Descending(j => j.Id),
+                    Sort = Builders<EventDto>.Sort.Descending(j => j.Id),
                     ReturnDocument = ReturnDocument.After
                 });
 
@@ -48,19 +47,20 @@ namespace Hangfire.Mongo
             while (!cancellationToken.IsCancellationRequested)
             {
                 // Start the cursor and wait for the initial response
-                using (var cursor = _dbContext.EnqueuedJobs.FindSync(filter, options, cancellationToken))
+                using (var cursor = _dbContext.Events.FindSync(filter, options, cancellationToken))
                 {
-                    foreach (var jobEnqueuedDto in cursor.ToEnumerable(cancellationToken))
+                    foreach (var eventDto in cursor.ToEnumerable(cancellationToken))
                     {
                         // Set the last value we saw 
-                        lastId = jobEnqueuedDto.Id;
-                        var queue = jobEnqueuedDto.Queue;
-                        
-                        if (string.IsNullOrEmpty(queue))
+                        lastId = eventDto.Id;
+                        switch (eventDto.Type)
                         {
-                            continue;
+                            case EventType.JobEnqueued:
+                            {
+                                ReleaseQueue(eventDto.Value);
+                                break;
+                            }
                         }
-                        _jobQueueSemaphore.Release(queue);
                     }
                 }
 
@@ -75,6 +75,15 @@ namespace Hangfire.Mongo
         public void Execute(BackgroundProcessContext context)
         {
             Execute(context.CancellationToken);
+        }
+
+        private void ReleaseQueue(string queue)
+        {
+            if (string.IsNullOrEmpty(queue))
+            {
+                return;
+            }
+            _jobQueueSemaphore.Release(queue);
         }
     }
 }

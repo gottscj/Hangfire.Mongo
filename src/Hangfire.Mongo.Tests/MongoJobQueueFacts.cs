@@ -16,10 +16,10 @@ namespace Hangfire.Mongo.Tests
     {
         private static readonly string[] DefaultQueues = { "default" };
 
-        private readonly Mock<JobQueueSemaphore> _jobQueueSemaphore;
+        private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphore;
         public MongoJobQueueFacts()
         {
-            _jobQueueSemaphore = new Mock<JobQueueSemaphore>(MockBehavior.Strict);
+            _jobQueueSemaphore = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
         }
         [Fact]
         public void Ctor_ThrowsAnException_WhenDbContextIsNull()

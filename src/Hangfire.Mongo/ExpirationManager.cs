@@ -53,16 +53,18 @@ namespace Hangfire.Mongo
         /// <param name="cancellationToken">Cancellation token</param>
         public void Execute(CancellationToken cancellationToken)
         {
-            DateTime now = DateTime.UtcNow;
-
-            Logger.DebugFormat("Removing outdated records from table '{0}'...",
-                _dbContext.JobGraph.CollectionNamespace.CollectionName);
-
-            _dbContext
+            var outDatedFilter = Builders<ExpiringJobDto>
+                .Filter
+                .Lt(_ => _.ExpireAt, DateTime.UtcNow);
+            
+            var result = _dbContext
                 .JobGraph
-                .OfType<ExpiringJobDto>().DeleteMany(Builders<ExpiringJobDto>.Filter.Lt(_ => _.ExpireAt, now));
+                .OfType<ExpiringJobDto>()
+                .DeleteMany(outDatedFilter);
 
-
+            Logger.DebugFormat($"Removed {result.DeletedCount} outdated documents from '{0}'.",
+                _dbContext.JobGraph.CollectionNamespace.CollectionName);
+            
             cancellationToken.WaitHandle.WaitOne(_checkInterval);
         }
     }

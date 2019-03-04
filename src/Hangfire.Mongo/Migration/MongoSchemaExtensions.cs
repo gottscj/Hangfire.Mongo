@@ -109,7 +109,7 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".locks",
                         prefix + ".schema",
                         prefix + ".server",
-                        prefix + ".enqueuedJobs"
+                        prefix + ".events"
                     };
                 default:
                     throw new ArgumentException($@"Unknown schema: '{schema}'", nameof(schema));

@@ -8,7 +8,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version13
         public MongoSchema TargetSchema => MongoSchema.Version13;
         public long Sequence => 1;
         
-        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
+        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
             var indexBuilder = Builders<BsonDocument>.IndexKeys;
             

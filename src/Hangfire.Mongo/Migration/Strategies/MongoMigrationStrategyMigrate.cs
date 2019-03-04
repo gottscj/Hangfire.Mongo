@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Reflection;
-using Hangfire.Mongo.Database;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration.Strategies
@@ -12,8 +11,8 @@ namespace Hangfire.Mongo.Migration.Strategies
     internal class MongoMigrationStrategyMigrate : MongoMigrationStrategyBase
     {
 
-        public MongoMigrationStrategyMigrate(HangfireDbContext dbContext, MongoStorageOptions storageOptions, MongoMigrationRunner migrationRunner)
-            : base(dbContext, storageOptions, migrationRunner)
+        public MongoMigrationStrategyMigrate(IMongoDatabase database, MongoStorageOptions storageOptions, MongoMigrationRunner migrationRunner)
+            : base(database, storageOptions, migrationRunner)
         {
         }
 

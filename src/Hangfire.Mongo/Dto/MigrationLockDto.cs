@@ -1,3 +1,5 @@
+using System;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace Hangfire.Mongo.Dto
@@ -6,7 +8,11 @@ namespace Hangfire.Mongo.Dto
     public class MigrationLockDto
     {
         [BsonId]
-        public string Lock { get; set; }
+        public ObjectId Id { get; set; }
+        
+        [BsonElement(nameof(ExpireAt))]
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+        public DateTime ExpireAt { get; set; }
     }
 #pragma warning restore 1591
 }

@@ -49,7 +49,7 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void Execute_DoesNotRemoveEntries_WithFreshExpirationTime()
         {
-            CreateExpirationEntries(_dbContext, DateTime.Now.AddMonths(1));
+            CreateExpirationEntries(_dbContext, DateTime.UtcNow.AddMonths(1));
             var manager = CreateManager();
 
             manager.Execute(_token);
@@ -212,7 +212,7 @@ namespace Hangfire.Mongo.Tests
 
             if (expireAt.HasValue)
             {
-                var expireIn = expireAt.Value - DateTime.Now;
+                var expireIn = expireAt.Value - DateTime.UtcNow;
                 Commit(connection, x => x.ExpireHash("my-hash-key", expireIn));
                 Commit(connection, x => x.ExpireSet("my-key", expireIn));
             }
