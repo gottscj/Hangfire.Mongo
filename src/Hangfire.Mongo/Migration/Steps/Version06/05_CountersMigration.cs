@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -14,7 +13,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
 
         public long Sequence => 5;
 
-        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
+        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
             // Update jobQueue to reflect new job id
             var stateDataCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.statedata");
