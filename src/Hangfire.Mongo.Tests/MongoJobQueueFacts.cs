@@ -20,6 +20,9 @@ namespace Hangfire.Mongo.Tests
         public MongoJobQueueFacts()
         {
             _jobQueueSemaphore = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
+            _jobQueueSemaphore.Setup(s =>
+                    s.WaitAny(DefaultQueues, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>()))
+                .Returns(0);
         }
         [Fact]
         public void Ctor_ThrowsAnException_WhenDbContextIsNull()
