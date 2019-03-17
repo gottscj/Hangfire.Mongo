@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Hangfire.Mongo.Database;
 
 namespace Hangfire.Mongo.Tests.Utils
@@ -14,7 +15,16 @@ namespace Hangfire.Mongo.Tests.Utils
 
         public static string GetDatabaseName()
         {
-            return Environment.GetEnvironmentVariable(DatabaseVariable) ?? DefaultDatabaseName;
+            var framework = "";
+            if (RuntimeInformation.FrameworkDescription.Contains(".NET Core"))
+            {
+                framework = "NetCore";
+            }
+            else if (RuntimeInformation.FrameworkDescription.Contains("Mono"))
+            {
+                framework = "Mono";
+            }
+            return Environment.GetEnvironmentVariable(DatabaseVariable) ?? DefaultDatabaseName + "-" + framework;
         }
 
         public static string GetConnectionString()

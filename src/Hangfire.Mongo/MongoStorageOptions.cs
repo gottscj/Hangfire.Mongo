@@ -24,7 +24,7 @@ namespace Hangfire.Mongo
             DistributedLockLifetime = TimeSpan.FromSeconds(30);
             JobExpirationCheckInterval = TimeSpan.FromHours(1);
             CountersAggregateInterval = TimeSpan.FromMinutes(5);
-            MigrationLockTimeout = TimeSpan.FromSeconds(5);
+            MigrationLockTimeout = TimeSpan.FromSeconds(30);
             
             ClientId = Guid.NewGuid().ToString().Replace("-", string.Empty);
 
@@ -90,7 +90,7 @@ namespace Hangfire.Mongo
 
         /// <summary>
         /// Timeout for other process to wait before timing out when waiting for migration to complete
-        /// default = 5 seconds 
+        /// default = 30 seconds 
         /// </summary>
         /// <exception cref="ArgumentException"></exception>
         public TimeSpan MigrationLockTimeout
