@@ -20,9 +20,10 @@ namespace Hangfire.Mongo.Migration
         {
             _timeout = timeout;
             _migrationLock = database.GetCollection<MigrationLockDto>(migrateLockCollectionName);
+            AcquireMigrationAccess();
         }
         
-        public void AcquireMigrationAccess()
+        private void AcquireMigrationAccess()
         {
             try
             {
