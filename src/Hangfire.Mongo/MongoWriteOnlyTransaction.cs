@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -473,7 +474,7 @@ namespace Hangfire.Mongo
                     throw new ArgumentOutOfRangeException();
             }
             
-            return $"{writeModel.ModelType}: {serializedDoc}";
+            return $"{writeModel.ModelType}[{Thread.CurrentThread.ManagedThreadId}]: {serializedDoc}";
         }
         // New methods to support Hangfire pro feature - batches.
 

@@ -126,7 +126,7 @@ namespace Hangfire.Mongo
                 return null;
             }
             
-            Logger.Debug($"Processing job {fetchedJob.JobId}, Thread[{Thread.CurrentThread.ManagedThreadId}]");
+            Logger.Debug($"job:{fetchedJob.JobId}:{fetchedJob.Queue} - [{Thread.CurrentThread.ManagedThreadId}] - start");
             return new MongoFetchedJob(_dbContext, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
 
         }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -138,7 +137,6 @@ namespace Hangfire.Mongo.DistributedLock
                 var isLockAcquired = false;
                 var now = DateTime.UtcNow;
                 var lockTimeoutTime = now.Add(timeout);
-
                 while (!isLockAcquired && (lockTimeoutTime >= now))
                 {
                     // Acquire the lock if it does not exist - Notice: ReturnDocument.Before
@@ -159,7 +157,7 @@ namespace Hangfire.Mongo.DistributedLock
                         {
                             if (Logger.IsDebugEnabled())
                             {
-                                Logger.Debug($"Acquired lock for: '{_resource}'");    
+                                Logger.Debug($"{_resource} - [{Thread.CurrentThread.ManagedThreadId}] - Acquired");    
                             }
                             isLockAcquired = true;
                         }
@@ -178,7 +176,7 @@ namespace Hangfire.Mongo.DistributedLock
 
                 if (!isLockAcquired)
                 {
-                    throw new DistributedLockTimeoutException($"Could not place a lock on the resource \'{_resource}\': The lock request timed out.");
+                    throw new DistributedLockTimeoutException($"{_resource} - [{Thread.CurrentThread.ManagedThreadId}] - Could not place a lock: The lock request timed out.");
                 }
             }
             catch (DistributedLockTimeoutException)
@@ -187,7 +185,7 @@ namespace Hangfire.Mongo.DistributedLock
             }
             catch (Exception ex)
             {
-                throw new MongoDistributedLockException($"Could not place a lock on the resource \'{_resource}\': Check inner exception for details.", ex);
+                throw new MongoDistributedLockException($"{_resource} - [{Thread.CurrentThread.ManagedThreadId}] - Could not place a lock", ex);
             }
         }
 
@@ -202,16 +200,15 @@ namespace Hangfire.Mongo.DistributedLock
             {
                 if (Logger.IsDebugEnabled())
                 {
-                    Logger.Debug($"Release resource: '{_resource}'");    
+                    Logger.Debug($"{_resource} - [{Thread.CurrentThread.ManagedThreadId}] - Release");    
                 }
-                
                 // Remove resource lock
                 _locks.DeleteOne(
                     Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource));
             }
             catch (Exception ex)
             {
-                throw new MongoDistributedLockException($"Could not release a lock on the resource \'{_resource}\': Check inner exception for details.", ex);
+                throw new MongoDistributedLockException($"{_resource} - [{Thread.CurrentThread.ManagedThreadId}] - Could not release lock.", ex);
             }
         }
 
@@ -227,7 +224,7 @@ namespace Hangfire.Mongo.DistributedLock
             }
             catch (Exception ex)
             {
-                Logger.ErrorFormat("Unable to clean up locks on the resource '{0}'. {1}", _resource, ex);
+                Logger.Error($"{_resource} - [{Thread.CurrentThread.ManagedThreadId}] - Unable to clean up locks on the resource. Details:\r\n{ex}");
             }
         }
 
@@ -237,7 +234,6 @@ namespace Hangfire.Mongo.DistributedLock
         private void StartHeartBeat()
         {
             TimeSpan timerInterval = TimeSpan.FromMilliseconds(_storageOptions.DistributedLockLifetime.TotalMilliseconds / 5);
-
             _heartbeatTimer = new Timer(state =>
             {
                 // Timer callback may be invoked after the Dispose method call,
@@ -252,7 +248,7 @@ namespace Hangfire.Mongo.DistributedLock
                     }
                     catch (Exception ex)
                     {
-                        Logger.ErrorFormat("Unable to update heartbeat on the resource '{0}'. {1}", _resource, ex);
+                        Logger.Error($"{_resource} - [{Thread.CurrentThread.ManagedThreadId}] - Unable to update heartbeat on the resource. Details:\r\n{ex}");
                     }
                 }
             }, null, timerInterval, timerInterval);
@@ -264,12 +260,17 @@ namespace Hangfire.Mongo.DistributedLock
         /// <returns></returns>
         private DateTime Wait(TimeSpan timeout)
         {
-            var sw = Stopwatch.StartNew();
-            var waitTime = (int)timeout.TotalMilliseconds / 10;
+            var waitTime = (int) (timeout.TotalMilliseconds / 1000) + 5;
+            if (Logger.IsDebugEnabled())
+            {
+                Logger.Debug($"{_resource} - [{Thread.CurrentThread.ManagedThreadId}] - Waiting {waitTime}ms");    
+            }
+
+            
             Thread.Sleep(waitTime);
             if (Logger.IsDebugEnabled())
             {
-                Logger.Debug($"Waited {sw.ElapsedMilliseconds}ms for access to resource: '{_resource}'");    
+                Logger.Debug($"{_resource} - [{Thread.CurrentThread.ManagedThreadId}] - Wait done.. retrying");    
             }
             return DateTime.UtcNow;
         }

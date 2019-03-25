@@ -102,7 +102,7 @@ namespace Hangfire.Mongo
         /// <returns>Storage connection</returns>
         public override IStorageConnection GetConnection()
         {
-            return new MongoConnection(_dbContext, _storageOptions, JobQueueSemaphore.Default);
+            return new MongoConnection(_dbContext, _storageOptions, JobQueueSemaphore.Instance);
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace Hangfire.Mongo
         public override IEnumerable<IServerComponent> GetComponents()
         {
             yield return new ExpirationManager(_dbContext, _storageOptions.JobExpirationCheckInterval);
-            yield return new MongoEventListener(_dbContext, JobQueueSemaphore.Default);
+            yield return new MongoEventListener(_dbContext, JobQueueSemaphore.Instance);
         }
 
         /// <summary>
