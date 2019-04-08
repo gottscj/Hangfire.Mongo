@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
 using Hangfire.Mongo.Tests.Utils;
@@ -55,10 +57,51 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                 var migrationManager = new MongoMigrationManager(storageOptions, dbContext.Database);
 
                 // ACT
-                migrationManager.Migrate();
+                MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
 
                 // ASSERT
                 AssertDataIntegrity(dbContext, assertCollectionHasItems);
+            }
+        }
+
+        [Fact, CleanDatabase]
+        public void Migrate_MultipleInstances_ThereCanBeOnlyOne()
+        {
+            using (var dbContext =
+                new HangfireDbContext(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName()))
+            {
+                // ARRANGE
+                dbContext.Database.DropCollection(dbContext.Schema.CollectionNamespace.CollectionName);
+                var storageOptions = new MongoStorageOptions
+                {
+                    MigrationOptions = new MongoMigrationOptions
+                    {
+                        Strategy = MongoMigrationStrategy.Migrate,
+                        BackupStrategy = MongoBackupStrategy.None
+                    }
+                };
+                
+                var signal = new ManualResetEvent(false);
+                var taskCount = 10;
+                var tasks = new Task<bool>[taskCount];
+                
+                
+                // ACT
+                for (int i = 0; i < taskCount; i++)
+                {
+                    tasks[i] = Task.Run(() =>
+                    {
+                        Task.Yield();
+                        signal.WaitOne();
+                        return MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
+                    }); 
+                }
+                
+                signal.Set();
+                Task.WaitAll(tasks);
+                
+                // ASSERT
+                Assert.True(tasks.Select(t => t.Result).Single(b => b));
             }
         }
         
@@ -80,10 +123,8 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                     }
                 };
 
-                var migrationManager = new MongoMigrationManager(storageOptions, dbContext.Database);
-
                 // ACT
-                migrationManager.Migrate();
+                MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
 
                 // ASSERT
                 AssertDataIntegrity(dbContext, assertCollectionHasItems: false);

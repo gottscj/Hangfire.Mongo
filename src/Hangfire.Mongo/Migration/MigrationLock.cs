@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Dto;
@@ -101,7 +102,7 @@ namespace Hangfire.Mongo.Migration
         }
         public void Dispose()
         {
-            _migrationLock.DeleteOne(new BsonDocument("_id", _migrationIdFilter));
+            _migrationLock.DeleteOne(_migrationIdFilter);
         }
     }
 }

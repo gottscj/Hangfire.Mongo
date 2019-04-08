@@ -32,17 +32,17 @@ namespace Hangfire.Mongo.Migration
             _migrationRunner = new MongoMigrationRunner(database, storageOptions, _schemas);  
         }
 
-        public static void MigrateIfNeeded(MongoStorageOptions storageOptions, IMongoDatabase database)
+        public static bool MigrateIfNeeded(MongoStorageOptions storageOptions, IMongoDatabase database)
         {
             var migrateLockCollectionName = storageOptions.Prefix + ".migrationLock";
             using (new MigrationLock(database, migrateLockCollectionName, storageOptions.MigrationLockTimeout))
             {
                 var migrationManager = new MongoMigrationManager(storageOptions, database);
-                migrationManager.Migrate();
+                return migrationManager.Migrate();
             }
         }
-        
-        public void Migrate()
+
+        private bool Migrate()
         {
             var currentSchema = _schemas.Find(_ => true).FirstOrDefault();
             if (currentSchema == null)
@@ -67,7 +67,7 @@ namespace Hangfire.Mongo.Migration
             if (RequiredSchemaVersion == currentSchema.Version)
             {
                 // Nothing to migrate - so let's get outta here.
-                return;
+                return false;
             }
 
             IMongoMigrationStrategy migration;
@@ -89,6 +89,7 @@ namespace Hangfire.Mongo.Migration
             }
 
             migration.Execute(currentSchema.Version, RequiredSchemaVersion);
+            return true;
         }
     }
 }
