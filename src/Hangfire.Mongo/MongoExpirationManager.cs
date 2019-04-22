@@ -11,9 +11,9 @@ namespace Hangfire.Mongo
     /// <summary>
     /// Represents Hangfire expiration manager for Mongo database
     /// </summary>
-    public class ExpirationManager : IBackgroundProcess, IServerComponent
+    public class MongoExpirationManager : IBackgroundProcess, IServerComponent
     {
-        private static readonly ILog Logger = LogProvider.For<ExpirationManager>();
+        private static readonly ILog Logger = LogProvider.For<MongoExpirationManager>();
 
         private readonly HangfireDbContext _dbContext;
         private readonly TimeSpan _checkInterval;
@@ -22,7 +22,7 @@ namespace Hangfire.Mongo
         /// Constructs expiration manager with one hour checking interval
         /// </summary>
         /// <param name="dbContext">MongoDB storage</param>
-        public ExpirationManager(HangfireDbContext dbContext)
+        public MongoExpirationManager(HangfireDbContext dbContext)
             : this(dbContext, TimeSpan.FromHours(1))
         {
         }
@@ -32,7 +32,7 @@ namespace Hangfire.Mongo
         /// </summary>
         /// <param name="dbContext">MongoDB storage</param>
         /// <param name="checkInterval">Checking interval</param>
-        public ExpirationManager(HangfireDbContext dbContext, TimeSpan checkInterval)
+        public MongoExpirationManager(HangfireDbContext dbContext, TimeSpan checkInterval)
         {
             _dbContext = dbContext;
             _checkInterval = checkInterval;
@@ -62,8 +62,11 @@ namespace Hangfire.Mongo
                 .OfType<ExpiringJobDto>()
                 .DeleteMany(outDatedFilter);
 
-            Logger.DebugFormat($"Removed {result.DeletedCount} outdated documents from '{0}'.",
-                _dbContext.JobGraph.CollectionNamespace.CollectionName);
+            if(Logger.IsDebugEnabled())
+            {
+                Logger.DebugFormat($"Removed {result.DeletedCount} outdated " +
+                               $"documents from '{_dbContext.JobGraph.CollectionNamespace.CollectionName}'.");                
+            }
             
             cancellationToken.WaitHandle.WaitOne(_checkInterval);
         }

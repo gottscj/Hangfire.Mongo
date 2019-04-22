@@ -24,7 +24,7 @@ namespace Hangfire.Mongo.Migration
             Enum.GetValues(typeof(MongoSchema)).Cast<MongoSchema>().OrderBy(v => v).Last();
 
 
-        public MongoMigrationManager(MongoStorageOptions storageOptions, IMongoDatabase database)
+        internal MongoMigrationManager(MongoStorageOptions storageOptions, IMongoDatabase database)
         {
             _storageOptions = storageOptions;
             _database = database;

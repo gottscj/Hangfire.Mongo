@@ -111,8 +111,8 @@ namespace Hangfire.Mongo
         /// <returns>Collection of server components</returns>
         public override IEnumerable<IServerComponent> GetComponents()
         {
-            yield return new ExpirationManager(_dbContext, _storageOptions.JobExpirationCheckInterval);
-            yield return new MongoEventListener(_dbContext, JobQueueSemaphore.Instance);
+            yield return new MongoExpirationManager(_dbContext, _storageOptions.JobExpirationCheckInterval);
+            yield return new MongoNotificationObserver(_dbContext, JobQueueSemaphore.Instance, DistributedLockMutex.Instance);
         }
 
         /// <summary>

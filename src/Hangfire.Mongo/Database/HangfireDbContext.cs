@@ -59,8 +59,8 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to tailable collection which contains signal dtos for enqueued job items
         /// </summary>
-        public IMongoCollection<EventDto> Events =>
-            Database.GetCollection<EventDto>(_prefix + ".events");
+        public IMongoCollection<NotificationDto> Notifications =>
+            Database.GetCollection<NotificationDto>(_prefix + ".notifications");
         
         /// <summary>
         /// Reference to job graph collection

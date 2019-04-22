@@ -228,9 +228,9 @@ namespace Hangfire.Mongo.Tests
             return count == 0;
         }
 
-        private ExpirationManager CreateManager()
+        private MongoExpirationManager CreateManager()
         {
-            return new ExpirationManager(_dbContext);
+            return new MongoExpirationManager(_dbContext);
         }
 
         private static void Commit(HangfireDbContext connection, Action<MongoWriteOnlyTransaction> action)

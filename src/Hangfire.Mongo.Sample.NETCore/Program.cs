@@ -25,7 +25,7 @@ namespace Hangfire.Mongo.Sample.NETCore
             
             GlobalConfiguration.Configuration.UseLogProvider(new ColouredConsoleLogProvider());
             JobStorage.Current = new MongoStorage(
-                MongoClientSettings.FromConnectionString("mongodb://localhost"), 
+                MongoClientSettings.FromConnectionString("mongodb://localhost:30000"), 
                 "Mongo-Hangfire-Sample-NETCore",
                 migrationOptions);
 

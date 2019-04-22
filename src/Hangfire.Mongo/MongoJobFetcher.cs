@@ -75,19 +75,14 @@ namespace Hangfire.Mongo
             do
             {
                 // no result wait for signal or poll time out
-                var queueIndex = _jobQueueSemaphore
-                    .WaitAny(queues, cancellationToken, _storageOptions.QueuePollInterval); 
-                    
-                if (queueIndex == WaitHandle.WaitTimeout)
-                {
-                    // waithandle's timed out, poll all queues
-                    fetchedJob = TryAllQueues(queues, cancellationToken);
-                }
-                else
-                {
-                    var queue = queues[queueIndex];
-                    fetchedJob = GetEnqueuedJob(queue, cancellationToken);
-                }
+                var queue = _jobQueueSemaphore
+                    .WaitAny(queues, cancellationToken, _storageOptions.QueuePollInterval);
+                
+                cancellationToken.ThrowIfCancellationRequested();
+                
+                fetchedJob = string.IsNullOrEmpty(queue) 
+                    ? TryAllQueues(queues, cancellationToken) 
+                    : GetEnqueuedJob(queue, cancellationToken);
                 
             } while (fetchedJob == null);
 
@@ -121,12 +116,16 @@ namespace Hangfire.Mongo
                 .OfType<JobQueueDto>()
                 .FindOneAndUpdate(filter, update, Options, cancellationToken);
 
+            if (Logger.IsDebugEnabled())
+            {
+                Logger.Debug($"Trying to fetch job from '{queue}'");
+            }
             if (fetchedJob == null)
             {
                 return null;
             }
             
-            Logger.Debug($"job:{fetchedJob.JobId}:{fetchedJob.Queue} - [{Thread.CurrentThread.ManagedThreadId}] - start");
+            
             return new MongoFetchedJob(_dbContext, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
 
         }

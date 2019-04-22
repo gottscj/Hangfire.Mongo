@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading;
-using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Tests.Utils;
@@ -23,7 +22,7 @@ namespace Hangfire.Mongo.Tests
             _jobQueueSemaphore = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
             _jobQueueSemaphore.Setup(s =>
                     s.WaitAny(DefaultQueues, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>()))
-                .Returns(0);
+                .Returns("default");
         }
         [Fact]
         public void Ctor_ThrowsAnException_WhenDbContextIsNull()
@@ -96,7 +95,7 @@ namespace Hangfire.Mongo.Tests
                 var cts = new CancellationTokenSource(200);
                 var queue = CreateJobQueue(connection);
 
-                Assert.Throws<OperationCanceledException>(() =>
+                Assert.ThrowsAny<OperationCanceledException>(() =>
                     queue.FetchNextJob(DefaultQueues, cts.Token));
             });
         }

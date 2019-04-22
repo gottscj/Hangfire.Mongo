@@ -41,7 +41,7 @@ namespace Hangfire.Mongo
 
         public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
         {
-            return new MongoDistributedLock($"Hangfire:{resource}", timeout, _dbContext, _storageOptions);
+            return new MongoDistributedLock($"Hangfire:{resource}", timeout, _dbContext, _storageOptions, DistributedLockMutex.Instance);
         }
 
         public override string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,

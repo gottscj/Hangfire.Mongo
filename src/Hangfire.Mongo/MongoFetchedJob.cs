@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Storage;
@@ -12,6 +14,7 @@ namespace Hangfire.Mongo
     /// </summary>
     public sealed class MongoFetchedJob : IFetchedJob
     {
+        private static readonly ILog Logger = LogProvider.For<MongoFetchedJob>();
         private readonly HangfireDbContext _connection;
         private readonly ObjectId _id;
 
@@ -54,7 +57,10 @@ namespace Hangfire.Mongo
             _connection
                .JobGraph.OfType<JobQueueDto>()
                .DeleteOne(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, _id));
-
+            if (Logger.IsDebugEnabled())
+            {
+                Logger.Debug($"Remove job '{JobId}' from queue '{Queue}'");
+            }
             _removedFromQueue = true;
         }
 
@@ -66,7 +72,14 @@ namespace Hangfire.Mongo
             _connection.JobGraph.OfType<JobQueueDto>().FindOneAndUpdate(
                 Builders<JobQueueDto>.Filter.Eq(_ => _.Id, _id),
                 Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null));
-
+            _connection.Notifications.InsertOne(NotificationDto.JobEnqueued(Queue), new InsertOneOptions
+            {
+                BypassDocumentValidation = false
+            });
+            if (Logger.IsDebugEnabled())
+            {
+                Logger.Debug($"Requeue job '{JobId}' from queue '{Queue}'");
+            }
             _requeued = true;
         }
 

@@ -39,7 +39,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
             {
                 return true;
             }
-            var text = $"{DateTime.Now:hh:mm:ss:fff} - [{logLevel}] {messageFunc?.Invoke()}\r\n";
+            var text = $"{DateTime.Now:hh:mm:ss:fff} - [{logLevel}] {message}\r\n";
             Console.Write(text);
             _writeQueue.Add(text);
             return true;

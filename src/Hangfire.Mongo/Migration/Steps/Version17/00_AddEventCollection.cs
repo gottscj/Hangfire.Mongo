@@ -9,7 +9,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version17
         
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
-            database.CreateCollection(storageOptions.Prefix + ".events", new CreateCollectionOptions
+            database.CreateCollection(storageOptions.Prefix + ".notifications", new CreateCollectionOptions
             {
                 Capped = true,
                 MaxSize = 4096

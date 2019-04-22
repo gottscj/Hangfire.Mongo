@@ -84,30 +84,10 @@ namespace Hangfire.Mongo
         /// </summary>
         public MongoMigrationStrategy Strategy { get; set; }
 
-
-        /// <summary>
-        /// If true, a backup of all Hangfire.Mongo collection will be
-        /// performed before any migration starts.
-        /// </summary>
-        [Obsolete("Please use '" + nameof(BackupStrategy) + "' instead. This will be removed in next release.")]
-        public bool Backup
-        {
-            get => BackupStrategy != MongoBackupStrategy.None;
-            set
-            {
-                if (value != Backup)
-                {
-                    BackupStrategy = value ? MongoBackupStrategy.Collections : MongoBackupStrategy.None;
-                }
-            }
-        }
-
-
         /// <summary>
         /// The backup strategy to use before migrating.
         /// </summary>
         public MongoBackupStrategy BackupStrategy { get; set; }
-
 
         /// <summary>
         /// Collection backup name postfix for all Hangfire related collections.

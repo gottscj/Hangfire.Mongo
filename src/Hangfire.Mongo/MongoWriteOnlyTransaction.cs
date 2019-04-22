@@ -10,6 +10,8 @@ using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Hangfire.Mongo
 {
@@ -388,10 +390,7 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
-            if (Logger.IsDebugEnabled())
-            {
-                Logger.Debug($"\r\nCommit:\r\n {string.Join("\r\n", _writeModels.Select(SerializeWriteModel))}");
-            }
+            Log();
 
             if (!_writeModels.Any())
             {
@@ -409,6 +408,21 @@ namespace Hangfire.Mongo
             SignalJobsAddedToQueues();
         }
 
+        private void Log()
+        {
+            if (!Logger.IsDebugEnabled())
+            {
+                return;                
+            }
+
+            var jArray = new JArray();
+            foreach (var writeModel in _writeModels)
+            {
+                var serializedModel = SerializeWriteModel(writeModel);
+                jArray.Add($"{writeModel.ModelType}: {serializedModel}");
+            }
+            Logger.Debug($"BulkWrite:\r\n{jArray.ToString(Formatting.Indented)}" );
+        }
         private void SignalJobsAddedToQueues()
         {
             if (!_jobsAddedToQueue.Any())
@@ -416,9 +430,8 @@ namespace Hangfire.Mongo
                 return;
             }
 
-            var jobsEnqueued =
-                _jobsAddedToQueue.Select(q => new EventDto {Id = ObjectId.GenerateNewId(), Value = q, Type = EventType.JobEnqueued});
-            _dbContext.Events.InsertMany(jobsEnqueued, new InsertManyOptions
+            var jobsEnqueued = _jobsAddedToQueue.Select(NotificationDto.JobEnqueued);
+            _dbContext.Notifications.InsertMany(jobsEnqueued, new InsertManyOptions
             {
                 BypassDocumentValidation = false,
                 IsOrdered = true
@@ -473,8 +486,8 @@ namespace Hangfire.Mongo
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            
-            return $"{writeModel.ModelType}[{Thread.CurrentThread.ManagedThreadId}]: {serializedDoc}";
+
+            return serializedDoc;
         }
         // New methods to support Hangfire pro feature - batches.
 

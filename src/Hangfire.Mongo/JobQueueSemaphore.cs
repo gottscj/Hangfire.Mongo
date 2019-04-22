@@ -8,7 +8,7 @@ namespace Hangfire.Mongo
 {
     internal interface IJobQueueSemaphore
     {
-        int WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout);
+        string WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout);
         void Release(string queue);
     }
     internal sealed class JobQueueSemaphore : IJobQueueSemaphore, IDisposable
@@ -18,22 +18,20 @@ namespace Hangfire.Mongo
         private static readonly ILog Logger = LogProvider.For<JobQueueSemaphore>();
         private readonly ConcurrentDictionary<string, SemaphoreSlim> _pool = new ConcurrentDictionary<string, SemaphoreSlim>();
 
-        public int WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout)
+        public string WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout)
         {
             var waitHandlers = GetWaitHandlers(queues, cancellationToken);
             var index = WaitHandle.WaitAny(waitHandlers, timeout);
-           
 
-            if (index == queues.Length)
+            // check if cancellationTokens wait handle has been signaled
+            if (index == (waitHandlers.Length - 1))
             {
-                // check if its the cancellation which is signaled 
-                cancellationToken.ThrowIfCancellationRequested();
-                return index; // should never get here.. ¯\_(ツ)_/¯
+                return null;
             }
 
             if (index == WaitHandle.WaitTimeout)
             {
-                return index;
+                return null;
             }
             
             var queue = queues[index];
@@ -42,12 +40,15 @@ namespace Hangfire.Mongo
             // waithandle has been signaled. wait for the signaled semaphore to make sure its counter is decremented
             // https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphoreslim.availablewaithandle?view=netframework-4.7.2
             semaphore.Wait(cancellationToken);
-            Logger.Debug(
+            if(Logger.IsDebugEnabled())
+            {
+                Logger.Debug(
                 $"Signal received for Queue: '{queue}', " +
                 $"semaphore current count: {semaphore.CurrentCount}" +
-                $" Thread[{Thread.CurrentThread.ManagedThreadId}]");
+                $" Thread[{Thread.CurrentThread.ManagedThreadId}]");                
+            }
 
-            return index;
+            return queue;
         }
         
         public void Release(string queue)
@@ -55,13 +56,15 @@ namespace Hangfire.Mongo
             _pool
                 .GetOrAdd(queue, new SemaphoreSlim(0))
                 .Release(1);
-            
-            Logger.Debug(
+            if(Logger.IsDebugEnabled())
+            {
+                Logger.Debug(
                 $"Released semaphore for Queue: '{queue}', " +
                 $"semaphore current count: {_pool[queue].CurrentCount}" +
-                $" Thread[{Thread.CurrentThread.ManagedThreadId}]");
+                $" Thread[{Thread.CurrentThread.ManagedThreadId}]");                
+            }
         }
-        
+
         private WaitHandle[] GetWaitHandlers(string[] queues, CancellationToken cancellationToken)
         {
             var waiters = new WaitHandle[queues.Length + 1];
@@ -77,6 +80,7 @@ namespace Hangfire.Mongo
         
         public void Dispose()
         {
+            Logger.Debug("Dispose");
             foreach (var queue in _pool.Keys.ToList())
             {
                 if (_pool.TryRemove(queue, out var resetEvent))
