@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Server;
@@ -13,6 +14,7 @@ namespace Hangfire.Mongo
     /// </summary>
     internal class MongoNotificationObserver : IBackgroundProcess, IServerComponent
     {
+        private static ILog Logger = LogProvider.For<MongoNotificationObserver>();
         private readonly HangfireDbContext _dbContext;
         private readonly IJobQueueSemaphore _jobQueueSemaphore;
         private readonly IDistributedLockMutex _distributedLockMutex;
@@ -46,38 +48,53 @@ namespace Hangfire.Mongo
 
             lastId = lastEnqueued.Id;
             filter = new BsonDocument("_id", new BsonDocument("$gt", lastId));
-
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace("LastId: " + lastId);
+            }
             while (!cancellationToken.IsCancellationRequested)
             {
-                // Start the cursor and wait for the initial response
-                using (var cursor = _dbContext.Notifications.FindSync(filter, options, cancellationToken))
+                try
                 {
-                    foreach (var eventDto in cursor.ToEnumerable(cancellationToken))
+                    // Start the cursor and wait for the initial response
+                    using (var cursor = _dbContext.Notifications.FindSync(filter, options, cancellationToken))
                     {
-                        // Set the last value we saw 
-                        lastId = eventDto.Id;
-                        if (string.IsNullOrEmpty(eventDto.Value))
+                        foreach (var notification in cursor.ToEnumerable(cancellationToken))
                         {
-                            continue;
-                        }
-                        switch (eventDto.Type)
-                        {
-                            case NotificationType.JobEnqueued:
-                                _jobQueueSemaphore.Release(eventDto.Value);
-                                break;
-                            case NotificationType.LockReleased:
-                                _distributedLockMutex.Release(eventDto.Value);
-                                break;
-                            
+                            // Set the last value we saw 
+                            lastId = notification.Id;
+                            if (string.IsNullOrEmpty(notification.Value))
+                            {
+                                continue;
+                            }
+
+                            if (Logger.IsTraceEnabled())
+                            {
+                                Logger.Trace($"Notification '{notification.Type}': {notification.Value}");
+                            }
+
+                            switch (notification.Type)
+                            {
+                                case NotificationType.JobEnqueued:
+                                    _jobQueueSemaphore.Release(notification.Value);
+                                    break;
+                                case NotificationType.LockReleased:
+                                    _distributedLockMutex.Release(notification.Value);
+                                    break;
+                            }
                         }
                     }
                 }
-
-                // The tailable cursor died so loop through and restart it
-                // Now, we want documents that are strictly greater than the last value we saw
-                filter = new BsonDocument("_id", new BsonDocument("$gt", lastId));
-
-                // cursor died, restart it
+                catch (Exception e)
+                {
+                    Logger.Error($"Error observing notifications\r\n{e}");
+                }
+                finally
+                {
+                    // The tailable cursor died so loop through and restart it
+                    // Now, we want documents that are strictly greater than the last value we saw
+                    filter = new BsonDocument("_id", new BsonDocument("$gt", lastId));
+                }
             }
         }
 

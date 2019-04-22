@@ -22,20 +22,20 @@ namespace Hangfire.Mongo.Tests
     {
         private readonly HangfireDbContext _dbContext;
         private readonly MongoConnection _connection;
-		private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphore;
+		private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphoreMock;
 
         public MongoConnectionFacts()
         {
-		    _jobQueueSemaphore = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
+		    _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
             _dbContext = ConnectionUtils.CreateDbContext();
-            _connection = new MongoConnection(_dbContext, new MongoStorageOptions(), _jobQueueSemaphore.Object);
+            _connection = new MongoConnection(_dbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
         }
         
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoConnection(null, null, _jobQueueSemaphore.Object));
+                () => new MongoConnection(null, null, _jobQueueSemaphoreMock.Object));
 
             Assert.Equal("database", exception.ParamName);
         }
@@ -44,7 +44,7 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_ThrowsAnException_WhenProvidersCollectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoConnection(_dbContext, null, _jobQueueSemaphore.Object));
+                () => new MongoConnection(_dbContext, null, _jobQueueSemaphoreMock.Object));
 
             Assert.Equal("storageOptions", exception.ParamName);
         }
@@ -61,12 +61,15 @@ namespace Hangfire.Mongo.Tests
                 FetchedAt = null,
                 JobId = ObjectId.GenerateNewId()
             };
+            _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default"));
                 
             _dbContext.JobGraph.InsertOne(jobQueueDto);
                 
             var fetchedJob = _connection.FetchNextJob(queues, token);
 
             Assert.Equal(fetchedJob.JobId, jobQueueDto.JobId.ToString());
+            
+            _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
         }
 
         [Fact, CleanDatabase]

@@ -23,7 +23,8 @@ namespace Hangfire.Mongo.Tests
             var waitTask = Task.Run(async () =>
             {
                 await Task.Yield();
-                return _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(500));
+                _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(500), out var q);
+                return q;
             });
             
             // ACT
@@ -41,7 +42,8 @@ namespace Hangfire.Mongo.Tests
             var waitTask = Task.Run(async () =>
             {
                 await Task.Yield();
-                return _semaphore.WaitAny(TestQueues, cts.Token, TimeSpan.FromMilliseconds(5000));
+                _semaphore.WaitAny(TestQueues, cts.Token, TimeSpan.FromMilliseconds(5000), out var q);
+                return q;
             });
             
             // ACT
@@ -58,7 +60,8 @@ namespace Hangfire.Mongo.Tests
             var waitTask = Task.Run(async () =>
             {
                 await Task.Yield();
-                return _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(5000));
+                _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(5000), out var q);
+                return q;
             });
             
             // ACT
@@ -77,7 +80,7 @@ namespace Hangfire.Mongo.Tests
             _semaphore.Release(TestQueues.First());
             
             // ACT
-            var result = _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100));
+            _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out var result);
             
             // ASSERT
             Assert.Equal(TestQueues.First(), result);
@@ -92,8 +95,8 @@ namespace Hangfire.Mongo.Tests
             var results = new string[2];
             
             // ACT
-            results[0] = _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100));
-            results[1] = _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100));
+            _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out results[0]);
+            _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out results[1]);
             
             // ASSERT
             Assert.Equal(TestQueues.First(), results[0]);

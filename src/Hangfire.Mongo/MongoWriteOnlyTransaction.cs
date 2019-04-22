@@ -410,7 +410,7 @@ namespace Hangfire.Mongo
 
         private void Log()
         {
-            if (!Logger.IsDebugEnabled())
+            if (!Logger.IsTraceEnabled())
             {
                 return;                
             }
@@ -421,7 +421,7 @@ namespace Hangfire.Mongo
                 var serializedModel = SerializeWriteModel(writeModel);
                 jArray.Add($"{writeModel.ModelType}: {serializedModel}");
             }
-            Logger.Debug($"BulkWrite:\r\n{jArray.ToString(Formatting.Indented)}" );
+            Logger.Trace($"BulkWrite:\r\n{jArray.ToString(Formatting.Indented)}" );
         }
         private void SignalJobsAddedToQueues()
         {

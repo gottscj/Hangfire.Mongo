@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading;
 using Hangfire.Annotations;
 using Hangfire.Logging;
@@ -17,7 +16,7 @@ namespace Hangfire.Mongo
         private static readonly ILog Logger = LogProvider.For<MongoJobFetcher>();
         
         private readonly MongoStorageOptions _storageOptions;
-        private readonly IJobQueueSemaphore _jobQueueSemaphore;
+        private readonly IJobQueueSemaphore _semaphore;
 
         private readonly HangfireDbContext _dbContext;
 
@@ -30,10 +29,10 @@ namespace Hangfire.Mongo
         };
         
         public MongoJobFetcher(HangfireDbContext dbContext, MongoStorageOptions storageOptions,
-            IJobQueueSemaphore jobQueueSemaphore)
+            IJobQueueSemaphore semaphore)
         {
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
-            _jobQueueSemaphore = jobQueueSemaphore;
+            _semaphore = semaphore;
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             
             _invisibilityTimeout =
@@ -53,51 +52,44 @@ namespace Hangfire.Mongo
                 throw new ArgumentException("Queue array must be non-empty.", nameof(queues));
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
+            MongoFetchedJob fetchedJob = null;
 
-            // try all queues
-            var fetchedJob = TryAllQueues(queues, cancellationToken);
-
-            if (fetchedJob != null)
+            while (fetchedJob == null)
             {
-                return fetchedJob;
-            }
 
-            // no luck wait for signal
-            fetchedJob = WaitForJobToBeEnqueued(queues, cancellationToken);
-            return fetchedJob;
-        }
-
-        private MongoFetchedJob WaitForJobToBeEnqueued(string[] queues, CancellationToken cancellationToken)
-        {
-            MongoFetchedJob fetchedJob;
-            
-            do
-            {
-                // no result wait for signal or poll time out
-                var queue = _jobQueueSemaphore
-                    .WaitAny(queues, cancellationToken, _storageOptions.QueuePollInterval);
-                
                 cancellationToken.ThrowIfCancellationRequested();
-                
-                fetchedJob = string.IsNullOrEmpty(queue) 
-                    ? TryAllQueues(queues, cancellationToken) 
-                    : GetEnqueuedJob(queue, cancellationToken);
-                
-            } while (fetchedJob == null);
+                fetchedJob = TryAllQueues(queues, cancellationToken);
 
-            _jobQueueSemaphore.Release(fetchedJob.Queue);
+                if (fetchedJob != null) return fetchedJob;
+                
+                
+                if (_semaphore.WaitAny(queues, cancellationToken, _storageOptions.QueuePollInterval, out var queue))
+                {
+                    fetchedJob = TryGetEnqueuedJob(queue, cancellationToken);
+                }
+            } 
+
             return fetchedJob;
         }
 
         private MongoFetchedJob TryAllQueues(string[] queues, CancellationToken cancellationToken)
         {
-            return queues
-                .Select(queue => GetEnqueuedJob(queue, cancellationToken))
-                .FirstOrDefault(j => j != null);
+            foreach (var queue in queues)
+            {
+                var fetchedJob = TryGetEnqueuedJob(queue, cancellationToken);
+                if (fetchedJob == null)
+                {
+                    continue;
+                }
+                // make sure to try to decrement semaphore if we succeed in getting a job from the queue
+                _semaphore.WaitNonBlock(queue);
+                return fetchedJob;
+            }
+
+            return null;
         }
 
-        private MongoFetchedJob GetEnqueuedJob(string queue, CancellationToken cancellationToken)
+        private MongoFetchedJob TryGetEnqueuedJob(string queue, CancellationToken cancellationToken)
         {
             var filter = new BsonDocument("$and", new BsonArray
             {
@@ -116,16 +108,16 @@ namespace Hangfire.Mongo
                 .OfType<JobQueueDto>()
                 .FindOneAndUpdate(filter, update, Options, cancellationToken);
 
-            if (Logger.IsDebugEnabled())
-            {
-                Logger.Debug($"Trying to fetch job from '{queue}'");
-            }
+            
             if (fetchedJob == null)
             {
                 return null;
             }
             
-            
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"Fetched job {fetchedJob.JobId} from '{queue}' Thread[{Thread.CurrentThread.ManagedThreadId}]");
+            }
             return new MongoFetchedJob(_dbContext, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
 
         }

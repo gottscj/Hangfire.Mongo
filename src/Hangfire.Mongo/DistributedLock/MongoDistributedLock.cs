@@ -172,9 +172,9 @@ namespace Hangfire.Mongo.DistributedLock
                         // If result is null, it means we acquired the lock
                         if (result == null)
                         {
-                            if (Logger.IsDebugEnabled())
+                            if (Logger.IsTraceEnabled())
                             {
-                                Logger.Debug($"{_resource} - Acquired");    
+                                Logger.Trace($"{_resource} - Acquired");    
                             }
                             isLockAcquired = true;
                         }
@@ -219,9 +219,9 @@ namespace Hangfire.Mongo.DistributedLock
         {
             try
             {
-                if (Logger.IsDebugEnabled())
+                if (Logger.IsTraceEnabled())
                 {
-                    Logger.Debug($"{_resource} - Release");    
+                    Logger.Trace($"{_resource} - Release");    
                 }
                 // Remove resource lock
                 _locks.DeleteOne(new BsonDocument(nameof(DistributedLockDto.Resource), _resource));
