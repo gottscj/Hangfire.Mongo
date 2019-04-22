@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Hangfire.Mongo.Database;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Tests.Utils
 {
@@ -52,7 +53,8 @@ namespace Hangfire.Mongo.Tests.Utils
 
         public static MongoStorage CreateStorage(MongoStorageOptions storageOptions)
         {
-            return new MongoStorage(GetConnectionString(), GetDatabaseName(), storageOptions);
+            var mongoClientSettings = MongoClientSettings.FromConnectionString(GetConnectionString());
+            return new MongoStorage(mongoClientSettings, GetDatabaseName(), storageOptions);
         }
 
         public static HangfireDbContext CreateDbContext()

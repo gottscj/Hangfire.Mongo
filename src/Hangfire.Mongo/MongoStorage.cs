@@ -24,30 +24,6 @@ namespace Hangfire.Mongo
         private readonly HangfireDbContext _dbContext;
 
         /// <summary>
-        /// Constructs Job Storage by database connection string and name
-        /// </summary>
-        /// <param name="connectionString">MongoDB connection string</param>
-        /// <param name="databaseName">Database name</param>
-        [Obsolete("Please use overload which takes a 'MongoClientSettings' object")]
-        public MongoStorage(string connectionString, string databaseName)
-            : this(connectionString, databaseName, new MongoStorageOptions())
-        {
-        }
-
-        /// <summary>
-        /// Constructs Job Storage by database connection string, name and options
-        /// </summary>
-        /// <param name="connectionString">MongoDB connection string</param>
-        /// <param name="databaseName">Database name</param>
-        /// <param name="storageOptions">Storage options</param>
-        [Obsolete("Please use overload which takes a 'MongoClientSettings' object")]
-        public MongoStorage(string connectionString, string databaseName, MongoStorageOptions storageOptions)
-            : this(MongoClientSettings.FromConnectionString(connectionString),databaseName, storageOptions)
-        {
-            
-        }
-
-        /// <summary>
         /// Constructs Job Storage by Mongo client settings and name
         /// </summary>
         /// <param name="mongoClientSettings">Client settings for MongoDB</param>

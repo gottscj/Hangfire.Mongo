@@ -24,7 +24,6 @@ namespace Hangfire.Mongo
             {
                 Logger.Debug($"{resource} - Waiting {timeout}ms");    
             }
-            
             var semaphore = _pool.GetOrAdd(resource, new SemaphoreSlim(0, 1));
             var signaled = semaphore.Wait(timeout);
             
