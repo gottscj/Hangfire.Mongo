@@ -8,22 +8,17 @@ namespace Hangfire.Mongo.Tests
 {
     public class DistributedLockMutexFacts
     {
-        private readonly IDistributedLockMutex _mutex;
         private const string TestResource = "test";
         
-        public DistributedLockMutexFacts()
-        {
-            _mutex = new DistributedLockMutex();
-        }
-
         [Fact]
         public void Release_OneWaiter_GetsAccess()
         {
             // ARRANGE
-            var waitTask = CreateWaitTasks(1).First();
+            var mutex = new DistributedLockMutex();
+            var waitTask = CreateWaitTasks(1, mutex).First();
             
             // ACT
-            _mutex.Release(TestResource);
+            mutex.Release(TestResource);
             var result = waitTask.Wait(2000);
             
             // ASSERT
@@ -34,10 +29,11 @@ namespace Hangfire.Mongo.Tests
         public void Release_MultipleWaiters_OneGetsAccess()
         {
             // ARRANGE
-            var tasks = CreateWaitTasks(10);
+            var mutex = new DistributedLockMutex();
+            var tasks = CreateWaitTasks(10, mutex);
             
             // ACT
-            _mutex.Release(TestResource);
+            mutex.Release(TestResource);
             var result = Task.WhenAny(tasks).Unwrap().Wait(2000);
             
             // ASSERT
@@ -46,7 +42,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(9, tasks.Count(t => !t.IsCompleted));
         }
 
-        private Task[] CreateWaitTasks(int count)
+        private Task[] CreateWaitTasks(int count, IDistributedLockMutex mutex)
         {
             var tasks = new Task[count];
             for (int i = 0; i < count; i++)
@@ -55,11 +51,11 @@ namespace Hangfire.Mongo.Tests
                 {
                     await Task.Yield();
                 
-                    _mutex.Wait(TestResource, TimeSpan.FromSeconds(1));
+                    mutex.Wait(TestResource, TimeSpan.FromSeconds(1));
                 });
             }
             // wait a bit for tasks to get into waiting state.
-            Thread.Sleep(100);
+            Thread.Sleep(200);
             return tasks;
         }
     }
