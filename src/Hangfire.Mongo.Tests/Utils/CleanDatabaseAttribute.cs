@@ -54,6 +54,7 @@ namespace Hangfire.Mongo.Tests.Utils
                     context.DistributedLock.DeleteMany(new BsonDocument());
                     context.JobGraph.DeleteMany(new BsonDocument());
                     context.Server.DeleteMany(new BsonDocument());
+                    context.Database.DropCollection(context.Notifications.CollectionNamespace.CollectionName);
                 }
                 catch (MongoException ex)
                 {

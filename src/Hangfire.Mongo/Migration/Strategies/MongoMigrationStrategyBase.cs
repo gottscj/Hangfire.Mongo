@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hangfire.Mongo.Database;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -9,13 +8,13 @@ namespace Hangfire.Mongo.Migration.Strategies
 {
     internal abstract class MongoMigrationStrategyBase : IMongoMigrationStrategy
     {
-        private readonly HangfireDbContext _dbContext;
+        private readonly IMongoDatabase _database;
         private readonly MongoStorageOptions _storageOptions;
         private readonly MongoMigrationRunner _migrationRunner;
 
-        protected MongoMigrationStrategyBase(HangfireDbContext dbContext, MongoStorageOptions storageOptions, MongoMigrationRunner migrationRunner)
+        protected MongoMigrationStrategyBase(IMongoDatabase database, MongoStorageOptions storageOptions, MongoMigrationRunner migrationRunner)
         {
-            _dbContext = dbContext;
+            _database = database;
             _storageOptions = storageOptions;
             _migrationRunner = migrationRunner;
         }
@@ -35,15 +34,15 @@ namespace Hangfire.Mongo.Migration.Strategies
             switch (_storageOptions.MigrationOptions.BackupStrategy)
             {
                 case MongoBackupStrategy.None:
-                    BackupStrategyNone(_dbContext.Database, fromSchema, toSchema);
+                    BackupStrategyNone(_database, fromSchema, toSchema);
                     break;
 
                 case MongoBackupStrategy.Collections:
-                    BackupStrategyCollection(_dbContext.Database, fromSchema, toSchema);
+                    BackupStrategyCollection(_database, fromSchema, toSchema);
                     break;
 
                 case MongoBackupStrategy.Database:
-                    BackupStrategyDatabase(_dbContext.Client, _dbContext.Database, fromSchema, toSchema);
+                    BackupStrategyDatabase(_database.Client, _database, fromSchema, toSchema);
                     break;
 
                 default:
@@ -118,7 +117,7 @@ namespace Hangfire.Mongo.Migration.Strategies
         /// </summary>
         protected IEnumerable<string> ExistingDatabaseCollectionNames()
         {
-            return _dbContext.Database.ListCollections().ToList().Select(c => c["name"].AsString);
+            return _database.ListCollections().ToList().Select(c => c["name"].AsString);
         }
 
 

@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
 using Hangfire.Server;
 using Hangfire.Storage;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -22,30 +24,6 @@ namespace Hangfire.Mongo
         private readonly MongoStorageOptions _storageOptions;
 
         private readonly HangfireDbContext _dbContext;
-
-        /// <summary>
-        /// Constructs Job Storage by database connection string and name
-        /// </summary>
-        /// <param name="connectionString">MongoDB connection string</param>
-        /// <param name="databaseName">Database name</param>
-        [Obsolete("Please use overload which takes a 'MongoClientSettings' object")]
-        public MongoStorage(string connectionString, string databaseName)
-            : this(connectionString, databaseName, new MongoStorageOptions())
-        {
-        }
-
-        /// <summary>
-        /// Constructs Job Storage by database connection string, name and options
-        /// </summary>
-        /// <param name="connectionString">MongoDB connection string</param>
-        /// <param name="databaseName">Database name</param>
-        /// <param name="storageOptions">Storage options</param>
-        [Obsolete("Please use overload which takes a 'MongoClientSettings' object")]
-        public MongoStorage(string connectionString, string databaseName, MongoStorageOptions storageOptions)
-            : this(MongoClientSettings.FromConnectionString(connectionString),databaseName, storageOptions)
-        {
-            
-        }
 
         /// <summary>
         /// Constructs Job Storage by Mongo client settings and name
@@ -83,14 +61,29 @@ namespace Hangfire.Mongo
             _storageOptions = storageOptions;
 
             _dbContext = new HangfireDbContext(mongoClientSettings, databaseName, _storageOptions.Prefix);
-            
-            using (var migrationManager = new MongoMigrationManager(storageOptions, _dbContext))
+
+            if (_storageOptions.CheckConnection)
             {
-                
-                migrationManager.Migrate();
+                CheckConnection();
             }
+             
+             MongoMigrationManager.MigrateIfNeeded(storageOptions, _dbContext.Database);
         }
 
+        private void CheckConnection()
+        {
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1)))
+            {
+                try
+                {
+                    _dbContext.Database.RunCommand((Command<BsonDocument>)"{ping:1}", cancellationToken: cts.Token);
+                }
+                catch (Exception e)
+                {
+                    throw new MongoConnectException(_dbContext, CreateObscuredConnectionString(), e);
+                }
+            }
+        }
         /// <summary>
         /// Returns Monitoring API object
         /// </summary>
@@ -106,7 +99,7 @@ namespace Hangfire.Mongo
         /// <returns>Storage connection</returns>
         public override IStorageConnection GetConnection()
         {
-            return new MongoConnection(_dbContext, _storageOptions);
+            return new MongoConnection(_dbContext, _storageOptions, JobQueueSemaphore.Instance);
         }
 
         /// <summary>
@@ -115,7 +108,8 @@ namespace Hangfire.Mongo
         /// <returns>Collection of server components</returns>
         public override IEnumerable<IServerComponent> GetComponents()
         {
-            yield return new ExpirationManager(_dbContext, _storageOptions.JobExpirationCheckInterval);
+            yield return new MongoExpirationManager(_dbContext, _storageOptions.JobExpirationCheckInterval);
+            yield return new MongoNotificationObserver(_dbContext, JobQueueSemaphore.Instance, DistributedLockMutex.Instance);
         }
 
         /// <summary>
@@ -133,6 +127,12 @@ namespace Hangfire.Mongo
         /// </summary>
         public override string ToString()
         {
+            
+            return $"Connection string: {CreateObscuredConnectionString()}, database name: {_databaseName}, prefix: {_storageOptions.Prefix}";
+        }
+
+        private string CreateObscuredConnectionString()
+        {
             // Obscure the username and password for display purposes
             string obscuredConnectionString = "mongodb://";
             if (_mongoClientSettings != null && _mongoClientSettings.Servers != null)
@@ -140,7 +140,8 @@ namespace Hangfire.Mongo
                 var servers = string.Join(",", _mongoClientSettings.Servers.Select(s => $"{s.Host}:{s.Port}"));
                 obscuredConnectionString = $"mongodb://<username>:<password>@{servers}";
             }
-            return $"Connection string: {obscuredConnectionString}, database name: {_databaseName}, prefix: {_storageOptions.Prefix}";
+
+            return obscuredConnectionString;
         }
     }
 }

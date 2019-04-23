@@ -52,24 +52,34 @@ namespace Hangfire.Mongo.Tests
         {
             // ARRANGE
             var mongoStorage = new MongoStorage(
-                ConnectionUtils.GetConnectionString(),
-                ConnectionUtils.GetDatabaseName());
+                MongoClientSettings.FromConnectionString(ConnectionUtils.GetConnectionString()),
+                ConnectionUtils.GetDatabaseName(), new MongoStorageOptions
+                {
+                    MigrationOptions = new MongoMigrationOptions
+                    {
+                        Strategy = MongoMigrationStrategy.Drop,
+                        BackupStrategy = MongoBackupStrategy.None
+                    }
+                }
+            );
+
             var id = Guid.NewGuid();
             var dbContext = ConnectionUtils.CreateDbContext();
             JobStorage.Current = mongoStorage;
-            
+
             bool jobScheduled;
-            
-            var conventionPack = new ConventionPack {new CamelCaseElementNameConvention()}; 
+
+            var conventionPack = new ConventionPack {new CamelCaseElementNameConvention()};
             ConventionRegistry.Register("CamelCase", conventionPack, t => true);
-            
+
             // ACT
-            using (new BackgroundJobServer(new BackgroundJobServerOptions{SchedulePollingInterval = TimeSpan.FromMilliseconds(100)}))
+            using (new BackgroundJobServer(new BackgroundJobServerOptions
+                {SchedulePollingInterval = TimeSpan.FromMilliseconds(100)}))
             {
                 BackgroundJob.Enqueue(() => Signal.Set(id));
                 jobScheduled = Signal.WaitOne(id, TimeSpan.FromSeconds(1));
             }
-            
+
             // ASSERT
             var jobGraphCollectionName = dbContext.JobGraph.CollectionNamespace.CollectionName;
             var jobDto = dbContext
@@ -77,11 +87,11 @@ namespace Hangfire.Mongo.Tests
                 .GetCollection<BsonDocument>(jobGraphCollectionName)
                 .Find(new BsonDocument("expireAt", new BsonDocument("$exists", true)))
                 .FirstOrDefault();
-            
+
             Assert.Null(jobDto);
             Assert.True(jobScheduled, "Expected job to be scheduled");
         }
-        
+
     }
 
 }

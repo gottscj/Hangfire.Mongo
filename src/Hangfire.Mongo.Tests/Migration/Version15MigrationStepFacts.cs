@@ -17,14 +17,14 @@ namespace Hangfire.Mongo.Tests.Migration
     public class Version15MigrationStepFacts
     {
         private readonly HangfireDbContext _dbContext;
-        private readonly Mock<IMongoMigrationBag> _mongoMigrationBagMock;
+        private readonly Mock<IMongoMigrationContext> _mongoMigrationBagMock;
         private readonly IMongoDatabase _database;
         
         public Version15MigrationStepFacts()
         {
             _dbContext = ConnectionUtils.CreateDbContext();
             _database = _dbContext.Database;
-            _mongoMigrationBagMock = new Mock<IMongoMigrationBag>(MockBehavior.Strict);
+            _mongoMigrationBagMock = new Mock<IMongoMigrationContext>(MockBehavior.Strict);
         }
         
         [Fact]

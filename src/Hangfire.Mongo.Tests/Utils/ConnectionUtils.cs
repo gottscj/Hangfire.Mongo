@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Hangfire.Mongo.Database;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Tests.Utils
 {
@@ -14,7 +16,16 @@ namespace Hangfire.Mongo.Tests.Utils
 
         public static string GetDatabaseName()
         {
-            return Environment.GetEnvironmentVariable(DatabaseVariable) ?? DefaultDatabaseName;
+            var framework = "Net46";
+            if (RuntimeInformation.FrameworkDescription.Contains(".NET Core"))
+            {
+                framework = "NetCore";
+            }
+            else if (RuntimeInformation.FrameworkDescription.Contains("Mono"))
+            {
+                framework = "Mono";
+            }
+            return Environment.GetEnvironmentVariable(DatabaseVariable) ?? DefaultDatabaseName + "-" + framework;
         }
 
         public static string GetConnectionString()
@@ -42,7 +53,8 @@ namespace Hangfire.Mongo.Tests.Utils
 
         public static MongoStorage CreateStorage(MongoStorageOptions storageOptions)
         {
-            return new MongoStorage(GetConnectionString(), GetDatabaseName(), storageOptions);
+            var mongoClientSettings = MongoClientSettings.FromConnectionString(GetConnectionString());
+            return new MongoStorage(mongoClientSettings, GetDatabaseName(), storageOptions);
         }
 
         public static HangfireDbContext CreateDbContext()

@@ -11,6 +11,8 @@ namespace Hangfire.Mongo
 
         private TimeSpan _distributedLockLifetime;
 
+        private TimeSpan _migrationLockTimeout;
+        
         /// <summary>
         /// Constructs storage options with default parameters
         /// </summary>
@@ -22,7 +24,8 @@ namespace Hangfire.Mongo
             DistributedLockLifetime = TimeSpan.FromSeconds(30);
             JobExpirationCheckInterval = TimeSpan.FromHours(1);
             CountersAggregateInterval = TimeSpan.FromMinutes(5);
-
+            MigrationLockTimeout = TimeSpan.FromSeconds(30);
+            
             ClientId = Guid.NewGuid().ToString().Replace("-", string.Empty);
 
             MigrationOptions = new MongoMigrationOptions();
@@ -59,6 +62,7 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Invisibility timeout
         /// </summary>
+        [Obsolete("This is marked obsolete in Hangfire and is not used anymore")]
         public TimeSpan InvisibilityTimeout { get; set; }
 
         /// <summary>
@@ -85,9 +89,40 @@ namespace Hangfire.Mongo
         }
 
         /// <summary>
-        /// Cleint identifier
+        /// Timeout for other process to wait before timing out when waiting for migration to complete
+        /// default = 30 seconds 
         /// </summary>
-        public string ClientId { get; private set; }
+        /// <exception cref="ArgumentException"></exception>
+        public TimeSpan MigrationLockTimeout
+        {
+            get { return _migrationLockTimeout; }
+            set
+            {
+                var message = $"The MigrationLockTimeout property value should be positive. Given: {value}.";
+
+                if (value == TimeSpan.Zero)
+                {
+                    throw new ArgumentException(message, nameof(value));
+                }
+                if (value != value.Duration())
+                {
+                    throw new ArgumentException(message, nameof(value));
+                }
+
+                _migrationLockTimeout = value;
+            }
+        }
+
+        /// <summary>
+        /// Client identifier
+        /// </summary>
+        public string ClientId { get; }
+
+        /// <summary>
+        /// Ping database on startup to check connection, if false Hangfire.Mongo will not ping
+        /// the db and try to connect to the db using the given MongoClientSettings
+        /// </summary>
+        public bool CheckConnection { get; set; } = true;
 
         /// <summary>
         /// Expiration check inteval for jobs

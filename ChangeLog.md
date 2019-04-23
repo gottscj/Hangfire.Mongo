@@ -1,6 +1,21 @@
 
 ## What's New (13/12/2018)
 
+### v0.6.0
+- Added connection check when initializing MongoStorage (#179)
+- Fixed Jobs Stuck In 'Enqueued' State (#180)
+- Added Tailable collection 'notifications' for signalling enqueued jobs and released locks
+- Update to latest Hangfire.Core (v1.7.1)
+- Update to latest Mongo.Driver (v2.8.0)
+- Target net452 as this is required by latest Mongo.Driver
+- Added dedicated migration lock.
+- Fix old migration step. (only used if migrating from an old schema)
+- Enhanced logging
+
+### v0.5.15
+- Fix Dashboard, top menu, Recurring Jobs count is 0 (#173) 
+- Fix GetAllItemsFromSet truncated values (#175)
+
 ### v0.5.14
 - Fix race case in distributed lock implementation (#166, #134)
 - Not JSON serializing Server data

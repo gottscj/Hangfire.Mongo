@@ -11,9 +11,9 @@ namespace Hangfire.Mongo
     /// <summary>
     /// Represents Hangfire expiration manager for Mongo database
     /// </summary>
-    public class ExpirationManager : IBackgroundProcess, IServerComponent
+    public class MongoExpirationManager : IBackgroundProcess, IServerComponent
     {
-        private static readonly ILog Logger = LogProvider.For<ExpirationManager>();
+        private static readonly ILog Logger = LogProvider.For<MongoExpirationManager>();
 
         private readonly HangfireDbContext _dbContext;
         private readonly TimeSpan _checkInterval;
@@ -22,7 +22,7 @@ namespace Hangfire.Mongo
         /// Constructs expiration manager with one hour checking interval
         /// </summary>
         /// <param name="dbContext">MongoDB storage</param>
-        public ExpirationManager(HangfireDbContext dbContext)
+        public MongoExpirationManager(HangfireDbContext dbContext)
             : this(dbContext, TimeSpan.FromHours(1))
         {
         }
@@ -32,7 +32,7 @@ namespace Hangfire.Mongo
         /// </summary>
         /// <param name="dbContext">MongoDB storage</param>
         /// <param name="checkInterval">Checking interval</param>
-        public ExpirationManager(HangfireDbContext dbContext, TimeSpan checkInterval)
+        public MongoExpirationManager(HangfireDbContext dbContext, TimeSpan checkInterval)
         {
             _dbContext = dbContext;
             _checkInterval = checkInterval;
@@ -53,25 +53,22 @@ namespace Hangfire.Mongo
         /// <param name="cancellationToken">Cancellation token</param>
         public void Execute(CancellationToken cancellationToken)
         {
-            DateTime now = DateTime.UtcNow;
-
-            Logger.DebugFormat("Removing outdated records from table '{0}'...",
-                _dbContext.JobGraph.CollectionNamespace.CollectionName);
-
-            _dbContext
+            var outDatedFilter = Builders<ExpiringJobDto>
+                .Filter
+                .Lt(_ => _.ExpireAt, DateTime.UtcNow);
+            
+            var result = _dbContext
                 .JobGraph
-                .OfType<ExpiringJobDto>().DeleteMany(Builders<ExpiringJobDto>.Filter.Lt(_ => _.ExpireAt, now));
+                .OfType<ExpiringJobDto>()
+                .DeleteMany(outDatedFilter);
 
-
+            if(Logger.IsDebugEnabled())
+            {
+                Logger.DebugFormat($"Removed {result.DeletedCount} outdated " +
+                               $"documents from '{_dbContext.JobGraph.CollectionNamespace.CollectionName}'.");                
+            }
+            
             cancellationToken.WaitHandle.WaitOne(_checkInterval);
-        }
-
-        /// <summary>
-        /// Returns text representation of the object
-        /// </summary>
-        public override string ToString()
-        {
-            return "Mongo Expiration Manager";
         }
     }
 }

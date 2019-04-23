@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -9,6 +10,8 @@ using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Hangfire.Mongo
 {
@@ -22,9 +25,12 @@ namespace Hangfire.Mongo
 
         private readonly IList<WriteModel<BsonDocument>> _writeModels = new List<WriteModel<BsonDocument>>();
 
+        private readonly HashSet<string> _jobsAddedToQueue;
+
         public MongoWriteOnlyTransaction(HangfireDbContext dbContext)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            _jobsAddedToQueue = new HashSet<string>();
         }
 
         public override void Dispose()
@@ -89,7 +95,7 @@ namespace Hangfire.Mongo
                 CreatedAt = DateTime.UtcNow,
                 Data = state.SerializeData()
             }.ToBsonDocument();
-
+            
             var update = new BsonDocument
             {
                 ["$set"] = new BsonDocument(nameof(JobDto.StateName), state.Name),
@@ -162,7 +168,8 @@ namespace Hangfire.Mongo
                 Id = ObjectId.GenerateNewId(),
                 FetchedAt = null
             }.ToBsonDocument();
-            
+
+            _jobsAddedToQueue.Add(queue);
             var writeModel = new InsertOneModel<BsonDocument>(jobQueueDto);
             _writeModels.Add(writeModel);
         }
@@ -383,20 +390,53 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
-            if (Logger.IsDebugEnabled())
-            {
-                Logger.Debug($"\r\nCommit:\r\n {string.Join("\r\n", _writeModels.Select(SerializeWriteModel))}");
-            }
+            Log();
 
-            if (_writeModels.Any())
+            if (!_writeModels.Any())
             {
-                _dbContext
-                    .Database
-                    .GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName)
-                    .BulkWrite(_writeModels);
+                return;
             }
+            
+            _dbContext
+                .Database
+                .GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName)
+                .BulkWrite(_writeModels, new BulkWriteOptions
+                {
+                    IsOrdered = true,
+                    BypassDocumentValidation = false
+                });
+            SignalJobsAddedToQueues();
         }
 
+        private void Log()
+        {
+            if (!Logger.IsTraceEnabled())
+            {
+                return;                
+            }
+
+            var jArray = new JArray();
+            foreach (var writeModel in _writeModels)
+            {
+                var serializedModel = SerializeWriteModel(writeModel);
+                jArray.Add($"{writeModel.ModelType}: {serializedModel}");
+            }
+            Logger.Trace($"BulkWrite:\r\n{jArray.ToString(Formatting.Indented)}" );
+        }
+        private void SignalJobsAddedToQueues()
+        {
+            if (!_jobsAddedToQueue.Any())
+            {
+                return;
+            }
+
+            var jobsEnqueued = _jobsAddedToQueue.Select(NotificationDto.JobEnqueued);
+            _dbContext.Notifications.InsertMany(jobsEnqueued, new InsertManyOptions
+            {
+                BypassDocumentValidation = false,
+                IsOrdered = true
+            });
+        }
         private string SerializeWriteModel(WriteModel<BsonDocument> writeModel)
         {
             string serializedDoc;
@@ -446,8 +486,8 @@ namespace Hangfire.Mongo
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            
-            return $"{writeModel.ModelType}: {serializedDoc}";
+
+            return serializedDoc;
         }
         // New methods to support Hangfire pro feature - batches.
 

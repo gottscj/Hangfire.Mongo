@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Hangfire.Mongo.Sample.ASPNetCore
 {
@@ -10,6 +11,11 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
             var host = new WebHostBuilder()
                 .UseKestrel()
                 .UseContentRoot(Directory.GetCurrentDirectory())
+                .ConfigureLogging(l =>
+                {
+//                    l.AddConsole();
+//                    l.AddDebug();
+                })
                 .UseIISIntegration()
                 .UseStartup<Startup>()
                 .Build();

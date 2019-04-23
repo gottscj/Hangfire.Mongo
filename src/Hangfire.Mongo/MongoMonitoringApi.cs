@@ -434,13 +434,14 @@ namespace Hangfire.Mongo
                 .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobObjectIds))
                 .ToList();
 
-            var jobIdToJobQueueMap = connection.JobGraph.OfType<JobQueueDto>()
+            var jobIdToJobQueueDtos = connection.JobGraph.OfType<JobQueueDto>()
                 .Find(Builders<JobQueueDto>.Filter.In(_ => _.JobId, jobs.Select(job => job.Id))
                       & Builders<JobQueueDto>.Filter.Exists(_ => _.FetchedAt)
                       & Builders<JobQueueDto>.Filter.Not(Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)))
-                .ToList().ToDictionary(kv => kv.JobId, kv => kv);
-
-            IEnumerable<JobDto> jobsFiltered = jobs.Where(job => jobIdToJobQueueMap.ContainsKey(job.Id));
+                .Project(_ => _.JobId)
+                .ToList();
+            
+            IEnumerable<JobDto> jobsFiltered = jobs.Where(job => jobIdToJobQueueDtos.Contains(job.Id));
 
             List<JobSummary> joinedJobs = jobsFiltered
                 .Select(job =>

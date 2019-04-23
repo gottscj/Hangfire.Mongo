@@ -43,8 +43,8 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             {
                 ShutdownTimeout = TimeSpan.FromSeconds(15)
             };
-
-            JobStorage.Current = new MongoStorage(connectionString, databaseName, storageOptions);
+            var mongoClientSettings = MongoClientSettings.FromConnectionString(connectionString);
+            JobStorage.Current = new MongoStorage(mongoClientSettings, databaseName, storageOptions);
 
             using (new BackgroundJobServer(serverOptions))
             {

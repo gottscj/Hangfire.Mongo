@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>0.5.15</VersionPrefix>
-    <TargetFrameworks>net46;net45;netstandard1.5</TargetFrameworks>
+    <VersionPrefix>0.6.0</VersionPrefix>
+    <TargetFrameworks>net46;net452;netstandard1.5</TargetFrameworks>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -17,12 +17,23 @@
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Copyright>Copyright 2016 © Sergey Zwezdin</Copyright>
+    <Copyright>Copyright 2019 © Sergey Zwezdin</Copyright>
     <title>Hangfire MongoDB Storage</title>
     <owners>Sergey Zwezdin</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
-    <PackageTags>Hangfire AspNet OWIN MongoDB CosmoDB DocumentDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>0.5.15
+    <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
+    <PackageReleaseNotes>0.6.0
+- Added connection check when initializing MongoStorage (#179)
+- Fixed Jobs Stuck In 'Enqueued' State (#180)     
+- Added Tailable collection 'notifications' for signalling enqueued jobs and released locks
+- Update to latest Hangfire.Core (v1.7.1)
+- Update to latest Mongo.Driver (v2.8.0)
+- Target net452 as this is required by latest Mongo.Driver
+- Added dedicated migration lock.
+- Fix old migration step. (only used if migrating from an old schema)
+- Enhanced logging
+
+0.5.15
 - Fix Dashboard, top menu, Recurring Jobs count is 0 (#173) 
 - Fix GetAllItemsFromSet truncated values (#175)
 
@@ -186,8 +197,8 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Hangfire.Core" Version="1.6.21" />
-    <PackageReference Include="MongoDB.Driver" Version="2.7.2" />
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="Hangfire.Core" Version="1.7.1" />
+    <PackageReference Include="MongoDB.Driver" Version="2.8.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.1" />
   </ItemGroup>
 </Project>

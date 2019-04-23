@@ -14,9 +14,9 @@ namespace Hangfire.Mongo.Migration.Steps.Version06
 
         public long Sequence => 4;
 
-        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
+        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
-            var jobIdMapping = migrationBag.GetItem<Dictionary<int, string>>("JobIdMapping");
+            var jobIdMapping = migrationContext.GetItem<Dictionary<int, string>>("JobIdMapping");
 
             // Update jobQueue to reflect new job id
             var jobQueueCollection = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobQueue");

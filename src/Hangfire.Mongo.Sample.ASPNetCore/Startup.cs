@@ -1,9 +1,11 @@
-﻿using Hangfire.Logging.LogProviders;
+﻿using Hangfire.Logging;
+using Hangfire.Logging.LogProviders;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using LogLevel = Hangfire.Logging.LogLevel;
 
 namespace Hangfire.Mongo.Sample.ASPNetCore
 {
@@ -38,8 +40,8 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                         BackupStrategy = MongoBackupStrategy.Collections
                     }
                 };
-                config.UseColouredConsoleLogProvider();
-                //config.UseLogProvider(new ColouredConsoleLogProvider());
+                //config.UseLogProvider(new FileLogProvider());
+                config.UseColouredConsoleLogProvider(LogLevel.Trace);
                 config.UseMongoStorage(connectionString, "hangfire-mongo-sample-aspnetcore", migrationOptions);
             });
             services.AddMvc();
@@ -51,10 +53,6 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         {
             app.UseHangfireServer();
             app.UseHangfireDashboard();
-            
-            loggerFactory.AddConsole(Configuration.GetSection("Logging"));
-            loggerFactory.AddDebug();
-
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

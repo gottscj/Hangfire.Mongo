@@ -14,7 +14,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version13
 
         public long Sequence => 0;
         
-        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationBag migrationBag)
+        public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
             var stateDataFindTask = database
                 .GetCollection<BsonDocument>(storageOptions.Prefix + ".stateData")

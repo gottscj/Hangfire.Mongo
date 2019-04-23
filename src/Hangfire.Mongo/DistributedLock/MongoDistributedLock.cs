@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Storage;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.DistributedLock
@@ -24,8 +24,10 @@ namespace Hangfire.Mongo.DistributedLock
         private readonly string _resource;
 
         private readonly IMongoCollection<DistributedLockDto> _locks;
+        private readonly IMongoCollection<NotificationDto> _notifications;
 
         private readonly MongoStorageOptions _storageOptions;
+        private readonly IDistributedLockMutex _mutex;
 
 
         private Timer _heartbeatTimer;
@@ -41,10 +43,15 @@ namespace Hangfire.Mongo.DistributedLock
         /// <param name="timeout">Lock timeout</param>
         /// <param name="dbContext">Lock Database</param>
         /// <param name="storageOptions">Database options</param>
+        /// <param name="mutex"></param>
         /// <exception cref="DistributedLockTimeoutException">Thrown if lock is not acquired within the timeout</exception>
         /// <exception cref="MongoDistributedLockException">Thrown if other mongo specific issue prevented the lock to be acquired</exception>
-        public MongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext dbContext,
-            MongoStorageOptions storageOptions) : this(resource, timeout, dbContext?.DistributedLock, storageOptions)
+        public MongoDistributedLock(string resource,
+            TimeSpan timeout, 
+            HangfireDbContext dbContext,
+            MongoStorageOptions storageOptions,
+            IDistributedLockMutex mutex) 
+            : this(resource, timeout, dbContext?.DistributedLock, dbContext?.Notifications, storageOptions, mutex)
         {
 
         }
@@ -55,14 +62,23 @@ namespace Hangfire.Mongo.DistributedLock
         /// <param name="resource">Lock resource</param>
         /// <param name="timeout">Lock timeout</param>
         /// <param name="locks">Lock collection</param>
+        /// <param name="notifications"></param>
         /// <param name="storageOptions">Database options</param>
+        /// <param name="mutex"></param>
         /// <exception cref="DistributedLockTimeoutException">Thrown if lock is not acquired within the timeout</exception>
         /// <exception cref="MongoDistributedLockException">Thrown if other mongo specific issue prevented the lock to be acquired</exception>
-        public MongoDistributedLock(string resource, TimeSpan timeout, IMongoCollection<DistributedLockDto> locks, MongoStorageOptions storageOptions)
+        public MongoDistributedLock(string resource, 
+            TimeSpan timeout, 
+            IMongoCollection<DistributedLockDto> locks,
+            IMongoCollection<NotificationDto> notifications,
+            MongoStorageOptions storageOptions,
+            IDistributedLockMutex mutex)
         {
             _resource = resource ?? throw new ArgumentNullException(nameof(resource));
             _locks = locks ?? throw new ArgumentNullException(nameof(locks));
+            _notifications = notifications;
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
+            _mutex = mutex;
 
             if (string.IsNullOrEmpty(resource))
             {
@@ -112,7 +128,7 @@ namespace Hangfire.Mongo.DistributedLock
             }
 
             // Timer callback may be invoked after the Dispose method call,
-            // so we are using lock to avoid unsynchronized calls.
+            // so we are using lock to avoid un synchronized calls.
             lock (_lockObject)
             {
                 AcquiredLocks.Value.Remove(_resource);
@@ -136,9 +152,8 @@ namespace Hangfire.Mongo.DistributedLock
             {
                 // If result is null, then it means we acquired the lock
                 var isLockAcquired = false;
-                var now = DateTime.Now;
+                var now = DateTime.UtcNow;
                 var lockTimeoutTime = now.Add(timeout);
-
                 while (!isLockAcquired && (lockTimeoutTime >= now))
                 {
                     // Acquire the lock if it does not exist - Notice: ReturnDocument.Before
@@ -157,28 +172,28 @@ namespace Hangfire.Mongo.DistributedLock
                         // If result is null, it means we acquired the lock
                         if (result == null)
                         {
-                            if (Logger.IsDebugEnabled())
+                            if (Logger.IsTraceEnabled())
                             {
-                                Logger.Debug($"Acquired lock for: '{_resource}'");    
+                                Logger.Trace($"{_resource} - Acquired");    
                             }
                             isLockAcquired = true;
                         }
                         else
                         {
-                            now = Wait(timeout);
+                            now = _mutex.Wait(_resource, CalculateTimeout(timeout));
                         }
                     }
                     catch (MongoCommandException)
                     {
                         // this can occur if two processes attempt to acquire a lock on the same resource simultaneously.
                         // unfortunately there doesn't appear to be a more specific exception type to catch.
-                        now = Wait(timeout);
+                        now = _mutex.Wait(_resource, CalculateTimeout(timeout));
                     }
                 }
 
                 if (!isLockAcquired)
                 {
-                    throw new DistributedLockTimeoutException($"Could not place a lock on the resource \'{_resource}\': The lock request timed out.");
+                    throw new DistributedLockTimeoutException($"{_resource} - Could not place a lock: The lock request timed out.");
                 }
             }
             catch (DistributedLockTimeoutException)
@@ -187,10 +202,14 @@ namespace Hangfire.Mongo.DistributedLock
             }
             catch (Exception ex)
             {
-                throw new MongoDistributedLockException($"Could not place a lock on the resource \'{_resource}\': Check inner exception for details.", ex);
+                throw new MongoDistributedLockException($"{_resource} - Could not place a lock", ex);
             }
         }
 
+        private static TimeSpan CalculateTimeout(TimeSpan timeout)
+        {
+            return TimeSpan.FromMilliseconds((timeout.TotalMilliseconds / 1000) + 5);
+        }
 
         /// <summary>
         /// Release the lock
@@ -200,18 +219,20 @@ namespace Hangfire.Mongo.DistributedLock
         {
             try
             {
-                if (Logger.IsDebugEnabled())
+                if (Logger.IsTraceEnabled())
                 {
-                    Logger.Debug($"Release resource: '{_resource}'");    
+                    Logger.Trace($"{_resource} - Release");    
                 }
-                
                 // Remove resource lock
-                _locks.DeleteOne(
-                    Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource));
+                _locks.DeleteOne(new BsonDocument(nameof(DistributedLockDto.Resource), _resource));
+                _notifications.InsertOne(NotificationDto.LockReleased(_resource), new InsertOneOptions
+                {
+                    BypassDocumentValidation = false
+                });
             }
             catch (Exception ex)
             {
-                throw new MongoDistributedLockException($"Could not release a lock on the resource \'{_resource}\': Check inner exception for details.", ex);
+                throw new MongoDistributedLockException($"{_resource} - Could not release lock.", ex);
             }
         }
 
@@ -227,7 +248,7 @@ namespace Hangfire.Mongo.DistributedLock
             }
             catch (Exception ex)
             {
-                Logger.ErrorFormat("Unable to clean up locks on the resource '{0}'. {1}", _resource, ex);
+                Logger.Error($"{_resource} - Unable to clean up locks on the resource. Details:\r\n{ex}");
             }
         }
 
@@ -237,7 +258,6 @@ namespace Hangfire.Mongo.DistributedLock
         private void StartHeartBeat()
         {
             TimeSpan timerInterval = TimeSpan.FromMilliseconds(_storageOptions.DistributedLockLifetime.TotalMilliseconds / 5);
-
             _heartbeatTimer = new Timer(state =>
             {
                 // Timer callback may be invoked after the Dispose method call,
@@ -252,27 +272,10 @@ namespace Hangfire.Mongo.DistributedLock
                     }
                     catch (Exception ex)
                     {
-                        Logger.ErrorFormat("Unable to update heartbeat on the resource '{0}'. {1}", _resource, ex);
+                        Logger.Error($"{_resource} - Unable to update heartbeat on the resource. Details:\r\n{ex}");
                     }
                 }
             }, null, timerInterval, timerInterval);
         }
-
-        /// <summary>
-        /// Waits the specified timeout, then returns the current time
-        /// </summary>
-        /// <returns></returns>
-        private DateTime Wait(TimeSpan timeout)
-        {
-            var sw = Stopwatch.StartNew();
-            var waitTime = (int)timeout.TotalMilliseconds / 10;
-            Thread.Sleep(waitTime);
-            if (Logger.IsDebugEnabled())
-            {
-                Logger.Debug($"Waited {sw.ElapsedMilliseconds}ms for access to resource: '{_resource}'");    
-            }
-            return DateTime.Now;
-        }
-
     }
 }
