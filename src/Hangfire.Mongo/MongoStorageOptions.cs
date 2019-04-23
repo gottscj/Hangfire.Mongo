@@ -119,6 +119,12 @@ namespace Hangfire.Mongo
         public string ClientId { get; }
 
         /// <summary>
+        /// Ping database on startup to check connection, if false Hangfire.Mongo will not ping
+        /// the db and try to connect to the db using the given MongoClientSettings
+        /// </summary>
+        public bool CheckConnection { get; set; } = true;
+
+        /// <summary>
         /// Expiration check inteval for jobs
         /// </summary>
         public TimeSpan JobExpirationCheckInterval { get; set; }

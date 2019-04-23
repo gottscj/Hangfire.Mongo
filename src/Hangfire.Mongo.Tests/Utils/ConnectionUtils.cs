@@ -16,7 +16,7 @@ namespace Hangfire.Mongo.Tests.Utils
 
         public static string GetDatabaseName()
         {
-            var framework = "Net461";
+            var framework = "Net46";
             if (RuntimeInformation.FrameworkDescription.Contains(".NET Core"))
             {
                 framework = "NetCore";

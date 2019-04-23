@@ -2,6 +2,8 @@
 ## What's New (13/12/2018)
 
 ### v0.6.0
+- Added connection check when initializing MongoStorage (#179)
+- Fixed Jobs Stuck In 'Enqueued' State (#180)
 - Added Tailable collection 'notifications' for signalling enqueued jobs and released locks
 - Update to latest Hangfire.Core (v1.7.1)
 - Update to latest Mongo.Driver (v2.8.0)

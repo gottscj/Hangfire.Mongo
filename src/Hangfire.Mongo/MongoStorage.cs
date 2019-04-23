@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
 using Hangfire.Server;
 using Hangfire.Storage;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -59,10 +61,29 @@ namespace Hangfire.Mongo
             _storageOptions = storageOptions;
 
             _dbContext = new HangfireDbContext(mongoClientSettings, databaseName, _storageOptions.Prefix);
+
+            if (_storageOptions.CheckConnection)
+            {
+                CheckConnection();
+            }
              
              MongoMigrationManager.MigrateIfNeeded(storageOptions, _dbContext.Database);
         }
 
+        private void CheckConnection()
+        {
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1)))
+            {
+                try
+                {
+                    _dbContext.Database.RunCommand((Command<BsonDocument>)"{ping:1}", cancellationToken: cts.Token);
+                }
+                catch (Exception e)
+                {
+                    throw new MongoConnectException(_dbContext, CreateObscuredConnectionString(), e);
+                }
+            }
+        }
         /// <summary>
         /// Returns Monitoring API object
         /// </summary>
@@ -106,6 +127,12 @@ namespace Hangfire.Mongo
         /// </summary>
         public override string ToString()
         {
+            
+            return $"Connection string: {CreateObscuredConnectionString()}, database name: {_databaseName}, prefix: {_storageOptions.Prefix}";
+        }
+
+        private string CreateObscuredConnectionString()
+        {
             // Obscure the username and password for display purposes
             string obscuredConnectionString = "mongodb://";
             if (_mongoClientSettings != null && _mongoClientSettings.Servers != null)
@@ -113,7 +140,8 @@ namespace Hangfire.Mongo
                 var servers = string.Join(",", _mongoClientSettings.Servers.Select(s => $"{s.Host}:{s.Port}"));
                 obscuredConnectionString = $"mongodb://<username>:<password>@{servers}";
             }
-            return $"Connection string: {obscuredConnectionString}, database name: {_databaseName}, prefix: {_storageOptions.Prefix}";
+
+            return obscuredConnectionString;
         }
     }
 }
