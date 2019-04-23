@@ -20,36 +20,40 @@ namespace Hangfire.Mongo
 
         public DateTime Wait(string resource, TimeSpan timeout)
         {
-            if (Logger.IsDebugEnabled())
+            if (Logger.IsTraceEnabled())
             {
-                Logger.Debug($"{resource} - Waiting {timeout}ms");    
+                Logger.Trace($"{resource} - Waiting {timeout}ms");    
             }
-            
             var semaphore = _pool.GetOrAdd(resource, new SemaphoreSlim(0, 1));
             var signaled = semaphore.Wait(timeout);
             
-            if (Logger.IsDebugEnabled())
+            if (Logger.IsTraceEnabled())
             {
-                if (signaled)
-                {
-                    Logger.Debug($"{resource} - received signal... retrying");     
-                }
-                Logger.Debug($"{resource} - Wait timed out... retrying");    
+                var message = signaled ? "Received signal" : "Timed out";
+                Logger.Trace($"{message} waiting for '{resource}'... retrying");
             }
             return DateTime.UtcNow;
         }
 
         public void Release(string resource)
         {
-            if(!_pool.TryGetValue(resource, out var semaphore))
+            if(!_pool.TryGetValue(resource, out var semaphore) || semaphore.CurrentCount > 0)
             {
                 return;
             }
-            
-            semaphore.Release(1);    
-            if(Logger.IsDebugEnabled())
+            try
             {
-                Logger.Debug(
+                semaphore.Release();
+            }
+            catch (SemaphoreFullException)
+            {
+                Logger.Error($"Error releasing mutex for resource '{resource}' current count: {semaphore.CurrentCount}");
+                throw;
+            }
+            
+            if(Logger.IsTraceEnabled())
+            {
+                Logger.Trace(
                 $"Released Resource: '{resource}', for release " +
                 $" Thread[{Thread.CurrentThread.ManagedThreadId}]");                
             }

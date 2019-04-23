@@ -26,7 +26,7 @@ namespace Hangfire.Mongo.Tests
                 _distributedLockMutexMock.Object);
             
             _dbContext.Database.DropCollection(_dbContext.Notifications.CollectionNamespace.CollectionName);
-            var migration = new AddEventsCollection();
+            var migration = new AddNotificationsCollection();
             migration.Execute(_dbContext.Database, new MongoStorageOptions(), null);
             _cts = new CancellationTokenSource();
             

@@ -57,9 +57,9 @@ namespace Hangfire.Mongo
             _connection
                .JobGraph.OfType<JobQueueDto>()
                .DeleteOne(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, _id));
-            if (Logger.IsDebugEnabled())
+            if (Logger.IsTraceEnabled())
             {
-                Logger.Debug($"Remove job '{JobId}' from queue '{Queue}'");
+                Logger.Trace($"Remove job '{JobId}' from queue '{Queue}'");
             }
             _removedFromQueue = true;
         }
@@ -76,9 +76,9 @@ namespace Hangfire.Mongo
             {
                 BypassDocumentValidation = false
             });
-            if (Logger.IsDebugEnabled())
+            if (Logger.IsTraceEnabled())
             {
-                Logger.Debug($"Requeue job '{JobId}' from queue '{Queue}'");
+                Logger.Trace($"Requeue job '{JobId}' from queue '{Queue}'");
             }
             _requeued = true;
         }

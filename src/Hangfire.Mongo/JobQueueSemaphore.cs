@@ -8,7 +8,8 @@ namespace Hangfire.Mongo
 {
     internal interface IJobQueueSemaphore
     {
-        string WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout);
+        bool WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout, out string queue);
+        void WaitNonBlock(string queue);
         void Release(string queue);
     }
     internal sealed class JobQueueSemaphore : IJobQueueSemaphore, IDisposable
@@ -18,50 +19,77 @@ namespace Hangfire.Mongo
         private static readonly ILog Logger = LogProvider.For<JobQueueSemaphore>();
         private readonly ConcurrentDictionary<string, SemaphoreSlim> _pool = new ConcurrentDictionary<string, SemaphoreSlim>();
 
-        public string WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout)
+        public bool WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout, out string queue)
         {
+            queue = null;
+            
+            // wait for first item in queue
             var waitHandlers = GetWaitHandlers(queues, cancellationToken);
             var index = WaitHandle.WaitAny(waitHandlers, timeout);
 
             // check if cancellationTokens wait handle has been signaled
             if (index == (waitHandlers.Length - 1))
             {
-                return null;
+                return false;
             }
 
             if (index == WaitHandle.WaitTimeout)
             {
-                return null;
+                return false;
             }
             
-            var queue = queues[index];
+            queue = queues[index];
             var semaphore = _pool[queue];
             
             // waithandle has been signaled. wait for the signaled semaphore to make sure its counter is decremented
             // https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphoreslim.availablewaithandle?view=netframework-4.7.2
             semaphore.Wait(cancellationToken);
-            if(Logger.IsDebugEnabled())
+            if(Logger.IsTraceEnabled())
             {
-                Logger.Debug(
-                $"Signal received for Queue: '{queue}', " +
+                Logger.Trace(
+                $"Decremented semaphore (signalled) Queue: '{queue}', " +
                 $"semaphore current count: {semaphore.CurrentCount}" +
                 $" Thread[{Thread.CurrentThread.ManagedThreadId}]");                
             }
 
-            return queue;
+            return true;
         }
-        
+
+        public void WaitNonBlock(string queue)
+        {
+            if (_pool.TryGetValue(queue, out var semaphore) && semaphore.Wait(0))
+            {
+                if (Logger.IsTraceEnabled())
+                {
+                    Logger.Trace(
+                        $"Decremented semaphore for Queue: '{queue}', " +
+                        $"semaphore current count: {semaphore.CurrentCount}" +
+                        $" Thread[{Thread.CurrentThread.ManagedThreadId}]");  
+                }
+            }
+        }
+
         public void Release(string queue)
         {
-            _pool
-                .GetOrAdd(queue, new SemaphoreSlim(0))
-                .Release(1);
-            if(Logger.IsDebugEnabled())
+            var semaphore = _pool
+                .GetOrAdd(queue, new SemaphoreSlim(0));
+
+            try
             {
-                Logger.Debug(
-                $"Released semaphore for Queue: '{queue}', " +
-                $"semaphore current count: {_pool[queue].CurrentCount}" +
-                $" Thread[{Thread.CurrentThread.ManagedThreadId}]");                
+                semaphore.Release();
+            }
+            catch (SemaphoreFullException)
+            {
+                Logger.Error($"Error releasing semaphore for queue '{queue}' current count: {semaphore.CurrentCount}");
+                throw;
+            }
+           
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace(
+                    $"Incremented semaphore for Queue: '{queue}', " +
+                    $"semaphore current count: {semaphore.CurrentCount}" +
+                    $" Thread[{Thread.CurrentThread.ManagedThreadId}]");
             }
         }
 

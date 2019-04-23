@@ -40,6 +40,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                         BackupStrategy = MongoBackupStrategy.Collections
                     }
                 };
+                //config.UseLogProvider(new FileLogProvider());
                 config.UseColouredConsoleLogProvider(LogLevel.Trace);
                 config.UseMongoStorage(connectionString, "hangfire-mongo-sample-aspnetcore", migrationOptions);
             });

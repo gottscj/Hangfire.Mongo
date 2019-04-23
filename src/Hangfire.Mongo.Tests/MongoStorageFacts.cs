@@ -14,7 +14,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionStringIsEmpty()
         {
-            var exception = Assert.Throws<MongoConfigurationException>(() => new MongoStorage("", "database"));
+            var exception = Assert.Throws<MongoConfigurationException>(() => new MongoStorage(MongoClientSettings.FromConnectionString(""), "database"));
 
             Assert.NotNull(exception);
         }
@@ -22,7 +22,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenDatabaseNameIsNull()
         {
-            var exception = Assert.Throws<ArgumentNullException>(() => new MongoStorage("mongodb://localhost", null));
+            var exception = Assert.Throws<ArgumentNullException>(() => new MongoStorage(MongoClientSettings.FromConnectionString("mongodb://localhost"), null));
 
             Assert.Equal("databaseName", exception.ParamName);
         }
@@ -30,7 +30,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenStorageOptionsValueIsNull()
         {
-            var exception = Assert.Throws<ArgumentNullException>(() => new MongoStorage("mongodb://localhost", "database", null));
+            var exception = Assert.Throws<ArgumentNullException>(() => new MongoStorage(MongoClientSettings.FromConnectionString("mongodb://localhost"), "database", null));
 
             Assert.Equal("storageOptions", exception.ParamName);
         }

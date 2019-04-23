@@ -23,7 +23,13 @@
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
     <PackageReleaseNotes>0.6.0
-      - Added tailable collections for jobqueue
+- Added Tailable collection 'notifications' for signalling enqueued jobs and released locks
+- Update to latest Hangfire.Core (v1.7.1)
+- Update to latest Mongo.Driver (v2.8.0)
+- Target net452 as this is required by latest Mongo.Driver
+- Added dedicated migration lock.
+- Fix old migration step. (only used if migrating from an old schema)
+- Enhanced logging
 
 0.5.15
 - Fix Dashboard, top menu, Recurring Jobs count is 0 (#173) 

@@ -24,7 +24,7 @@ namespace Hangfire.Mongo.DistributedLock
         private readonly string _resource;
 
         private readonly IMongoCollection<DistributedLockDto> _locks;
-        private readonly IMongoCollection<NotificationDto> _events;
+        private readonly IMongoCollection<NotificationDto> _notifications;
 
         private readonly MongoStorageOptions _storageOptions;
         private readonly IDistributedLockMutex _mutex;
@@ -62,7 +62,7 @@ namespace Hangfire.Mongo.DistributedLock
         /// <param name="resource">Lock resource</param>
         /// <param name="timeout">Lock timeout</param>
         /// <param name="locks">Lock collection</param>
-        /// <param name="events"></param>
+        /// <param name="notifications"></param>
         /// <param name="storageOptions">Database options</param>
         /// <param name="mutex"></param>
         /// <exception cref="DistributedLockTimeoutException">Thrown if lock is not acquired within the timeout</exception>
@@ -70,13 +70,13 @@ namespace Hangfire.Mongo.DistributedLock
         public MongoDistributedLock(string resource, 
             TimeSpan timeout, 
             IMongoCollection<DistributedLockDto> locks,
-            IMongoCollection<NotificationDto> events,
+            IMongoCollection<NotificationDto> notifications,
             MongoStorageOptions storageOptions,
             IDistributedLockMutex mutex)
         {
             _resource = resource ?? throw new ArgumentNullException(nameof(resource));
             _locks = locks ?? throw new ArgumentNullException(nameof(locks));
-            _events = events;
+            _notifications = notifications;
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
             _mutex = mutex;
 
@@ -128,7 +128,7 @@ namespace Hangfire.Mongo.DistributedLock
             }
 
             // Timer callback may be invoked after the Dispose method call,
-            // so we are using lock to avoid unsynchronized calls.
+            // so we are using lock to avoid un synchronized calls.
             lock (_lockObject)
             {
                 AcquiredLocks.Value.Remove(_resource);
@@ -172,9 +172,9 @@ namespace Hangfire.Mongo.DistributedLock
                         // If result is null, it means we acquired the lock
                         if (result == null)
                         {
-                            if (Logger.IsDebugEnabled())
+                            if (Logger.IsTraceEnabled())
                             {
-                                Logger.Debug($"{_resource} - Acquired");    
+                                Logger.Trace($"{_resource} - Acquired");    
                             }
                             isLockAcquired = true;
                         }
@@ -219,13 +219,13 @@ namespace Hangfire.Mongo.DistributedLock
         {
             try
             {
-                if (Logger.IsDebugEnabled())
+                if (Logger.IsTraceEnabled())
                 {
-                    Logger.Debug($"{_resource} - Release");    
+                    Logger.Trace($"{_resource} - Release");    
                 }
                 // Remove resource lock
                 _locks.DeleteOne(new BsonDocument(nameof(DistributedLockDto.Resource), _resource));
-                _events.InsertOne(NotificationDto.LockReleased(_resource), new InsertOneOptions
+                _notifications.InsertOne(NotificationDto.LockReleased(_resource), new InsertOneOptions
                 {
                     BypassDocumentValidation = false
                 });
