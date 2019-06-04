@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using Hangfire.Logging;
 
@@ -16,15 +17,25 @@ namespace Hangfire.Mongo
         private static readonly ILog Logger = LogProvider.For<DistributedLockMutex>();
         public static readonly IDistributedLockMutex Instance = new DistributedLockMutex();
         
-        private readonly ConcurrentDictionary<string, SemaphoreSlim> _pool = new ConcurrentDictionary<string, SemaphoreSlim>();
-
+        private readonly Dictionary<string, SemaphoreSlim> _pool = new Dictionary<string, SemaphoreSlim>();
+        private readonly object _synRoot = new object();
+        
         public DateTime Wait(string resource, TimeSpan timeout)
         {
             if (Logger.IsTraceEnabled())
             {
                 Logger.Trace($"{resource} - Waiting {timeout}ms");    
             }
-            var semaphore = _pool.GetOrAdd(resource, new SemaphoreSlim(0, 1));
+
+            SemaphoreSlim semaphore;
+            lock (_synRoot)
+            {
+                if (!_pool.TryGetValue(resource, out semaphore))
+                {
+                    semaphore = new SemaphoreSlim(0,1);
+                    _pool[resource] = semaphore;
+                }
+            }
             var signaled = semaphore.Wait(timeout);
             
             if (Logger.IsTraceEnabled())
@@ -37,18 +48,13 @@ namespace Hangfire.Mongo
 
         public void Release(string resource)
         {
-            if(!_pool.TryGetValue(resource, out var semaphore) || semaphore.CurrentCount > 0)
+            lock (_synRoot)
             {
-                return;
-            }
-            try
-            {
+                if(!_pool.TryGetValue(resource, out var semaphore) || semaphore.CurrentCount > 0)
+                {
+                    return;
+                }
                 semaphore.Release();
-            }
-            catch (SemaphoreFullException)
-            {
-                Logger.Error($"Error releasing mutex for resource '{resource}' current count: {semaphore.CurrentCount}");
-                throw;
             }
             
             if(Logger.IsTraceEnabled())
