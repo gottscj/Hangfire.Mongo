@@ -60,7 +60,9 @@ namespace Hangfire.Mongo
         public override IFetchedJob FetchNextJob(string[] queues, CancellationToken cancellationToken)
         {
             if (queues == null || queues.Length == 0)
+            {
                 throw new ArgumentNullException(nameof(queues));
+            }
 
             return _jobFetcher.FetchNextJob(queues, cancellationToken);
         }
@@ -113,7 +115,9 @@ namespace Hangfire.Mongo
                 .FirstOrDefault();
 
             if (jobData == null)
+            {
                 return null;
+            }
 
             // TODO: conversion exception could be thrown.
             var invocationData = JobHelper.FromJson<InvocationData>(jobData.InvocationData);

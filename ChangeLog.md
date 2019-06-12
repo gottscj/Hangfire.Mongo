@@ -1,5 +1,7 @@
 
 ## What's New (13/12/2018)
+### v0.6.1
+- Fixed potential race condition releasing distributed lock mutex (#188)
 
 ### v0.6.0
 - Added connection check when initializing MongoStorage (#179)

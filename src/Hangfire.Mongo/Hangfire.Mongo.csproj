@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>0.6.0</VersionPrefix>
+    <VersionPrefix>0.6.1</VersionPrefix>
     <TargetFrameworks>net46;net452;netstandard1.5</TargetFrameworks>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -22,7 +22,10 @@
     <owners>Sergey Zwezdin</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>0.6.0
+    <PackageReleaseNotes>0.6.1
+- Fixed potential race condition releasing distributed lock mutex (#188)
+      
+0.6.0
 - Added connection check when initializing MongoStorage (#179)
 - Fixed Jobs Stuck In 'Enqueued' State (#180)     
 - Added Tailable collection 'notifications' for signalling enqueued jobs and released locks
