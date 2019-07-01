@@ -85,6 +85,7 @@ namespace Hangfire.Mongo
                         }
                     }
                 }
+                catch(OperationCanceledException) {}
                 catch (Exception e)
                 {
                     Logger.Error($"Error observing notifications\r\n{e}");
