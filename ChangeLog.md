@@ -1,5 +1,9 @@
 
-## What's New (13/12/2018)
+## What's New (28/07/2019)
+### v0.6.2
+- Handle cancellation more gracefully (#191)
+- Make Connection check timeout configurable and set new default = 5 seconds (#191)
+
 ### v0.6.1
 - Fixed potential race condition releasing distributed lock mutex (#188)
 
