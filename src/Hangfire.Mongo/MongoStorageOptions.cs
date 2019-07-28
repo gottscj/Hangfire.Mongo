@@ -25,6 +25,8 @@ namespace Hangfire.Mongo
             JobExpirationCheckInterval = TimeSpan.FromHours(1);
             CountersAggregateInterval = TimeSpan.FromMinutes(5);
             MigrationLockTimeout = TimeSpan.FromSeconds(30);
+            CheckConnection = true;
+            ConnectionCheckTimeout = TimeSpan.FromSeconds(5);
             
             ClientId = Guid.NewGuid().ToString().Replace("-", string.Empty);
 
@@ -122,7 +124,12 @@ namespace Hangfire.Mongo
         /// Ping database on startup to check connection, if false Hangfire.Mongo will not ping
         /// the db and try to connect to the db using the given MongoClientSettings
         /// </summary>
-        public bool CheckConnection { get; set; } = true;
+        public bool CheckConnection { get; set; }
+        
+        /// <summary>
+        /// Time before cancelling ping to mongo server, if 'CheckConnection' is false, this value will be ignored
+        /// </summary>
+        public TimeSpan ConnectionCheckTimeout { get; set; }
 
         /// <summary>
         /// Expiration check inteval for jobs

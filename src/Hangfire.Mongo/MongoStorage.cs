@@ -67,12 +67,12 @@ namespace Hangfire.Mongo
                 CheckConnection();
             }
              
-             MongoMigrationManager.MigrateIfNeeded(storageOptions, _dbContext.Database);
+            MongoMigrationManager.MigrateIfNeeded(storageOptions, _dbContext.Database);
         }
 
         private void CheckConnection()
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1)))
+            using (var cts = new CancellationTokenSource(_storageOptions.ConnectionCheckTimeout))
             {
                 try
                 {
