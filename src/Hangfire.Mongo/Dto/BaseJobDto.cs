@@ -4,7 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
-    [BsonDiscriminator(RootClass = true)]
+    [BsonDiscriminator(nameof(BaseJobDto), RootClass = true)]
     [BsonKnownTypes(
         typeof(ExpiringJobDto),
         typeof(KeyJobDto),

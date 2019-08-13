@@ -3,6 +3,7 @@
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
+    [BsonDiscriminator(nameof(CounterDto))]
     public class CounterDto : KeyJobDto
     {
         [BsonElement(nameof(Value))]

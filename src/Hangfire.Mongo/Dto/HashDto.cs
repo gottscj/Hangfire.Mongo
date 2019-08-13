@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
+    [BsonDiscriminator(nameof(HashDto))]
     public class HashDto : KeyJobDto
     {
         [BsonElement(nameof(Fields))]

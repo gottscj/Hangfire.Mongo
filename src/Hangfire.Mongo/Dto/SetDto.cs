@@ -3,6 +3,7 @@
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
+    [BsonDiscriminator(nameof(SetDto))]
     public class SetDto : KeyJobDto
     {
         [BsonElement(nameof(Score))]
