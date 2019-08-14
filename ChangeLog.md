@@ -1,5 +1,8 @@
 
-## What's New (28/07/2019)
+## What's New (14/08/2019)
+### v0.6.3
+- Explicitly set discriminators because filters rely on them (#200)
+
 ### v0.6.2
 - Handle cancellation more gracefully (#191)
 - Make Connection check timeout configurable and set new default = 5 seconds (#191)
