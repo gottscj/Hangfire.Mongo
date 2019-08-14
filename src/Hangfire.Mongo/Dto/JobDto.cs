@@ -5,6 +5,7 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
+    [BsonDiscriminator(nameof(JobDto))]
     public class JobDto : ExpiringJobDto
     {
         [BsonElement(nameof(StateName))]

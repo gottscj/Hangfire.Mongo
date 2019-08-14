@@ -3,6 +3,7 @@
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
+    [BsonDiscriminator(nameof(ListDto))]
     public class ListDto : ExpiringJobDto
     {
         [BsonElement(nameof(Item))]
