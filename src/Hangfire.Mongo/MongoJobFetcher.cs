@@ -56,9 +56,9 @@ namespace Hangfire.Mongo
             var tryAllQueues = true;
             while (fetchedJob == null)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (tryAllQueues)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
                     fetchedJob = TryAllQueues(queues, cancellationToken);
                 }
                 
