@@ -9,7 +9,7 @@ namespace Hangfire.Mongo
     {
         bool WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout, out string queue, out bool timedOut);
         void Release(string queue);
-        void WaitNonBlock(string queue);
+        bool WaitNonBlock(string queue);
     }
     internal sealed class JobQueueSemaphore : IJobQueueSemaphore, IDisposable
     {
@@ -42,22 +42,9 @@ namespace Hangfire.Mongo
 
             queue = queues[index];
             
-            var semaphore = GetOrAddSemaphore(queue);
-            
-            
-            
-            var gotLock = semaphore.Wait(0, cancellationToken);
-            
-            if(gotLock && Logger.IsTraceEnabled())
-            {
-                Logger.Trace(
-                $"Decremented semaphore (signalled) Queue: '{queue}', " +
-                $"semaphore current count: {semaphore.CurrentCount}" +
-                $" Thread[{Thread.CurrentThread.ManagedThreadId}]");                
-            }
             // waithandle has been signaled. wait for the signaled semaphore to make sure its counter is decremented
             // https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphoreslim.availablewaithandle?view=netframework-4.7.2
-            return gotLock;
+            return WaitNonBlock(queue);
         }
 
         public void Release(string queue)
@@ -83,22 +70,26 @@ namespace Hangfire.Mongo
             }
         }
 
-        public void WaitNonBlock(string queue)
+        public bool WaitNonBlock(string queue)
         {
             lock (_syncRoot)
             {
-                if (_pool.TryGetValue(queue, out var semaphore) && semaphore.Wait(0))
+                if (!_pool.TryGetValue(queue, out var semaphore))
                 {
-                    if (Logger.IsTraceEnabled())
-                    {
-                        Logger.Trace(
-                            $"Decremented semaphore for Queue: '{queue}', " +
-                            $"semaphore current count: {semaphore.CurrentCount}" +
-                            $" Thread[{Thread.CurrentThread.ManagedThreadId}]");
-                    }
+                    return false;
                 }
+
+                var gotLock = semaphore.Wait(0);
+                if (gotLock && Logger.IsTraceEnabled())
+                {
+                    Logger.Trace(
+                        $"Decremented semaphore for Queue: '{queue}', " +
+                        $"semaphore current count: {semaphore.CurrentCount}" +
+                        $" Thread[{Thread.CurrentThread.ManagedThreadId}]");
+                }
+
+                return gotLock;
             }
-            
         }
 
         private WaitHandle[] GetWaitHandlers(string[] queues, CancellationToken cancellationToken)
