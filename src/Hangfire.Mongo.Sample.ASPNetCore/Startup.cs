@@ -51,7 +51,11 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            app.UseHangfireServer();
+            var options = new BackgroundJobServerOptions();
+            options.Queues = new[] {"default", "notDefault"};
+            options.WorkerCount = 2;
+            
+            app.UseHangfireServer(options);
             app.UseHangfireDashboard();
             if (env.IsDevelopment())
             {

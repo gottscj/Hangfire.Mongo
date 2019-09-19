@@ -8,16 +8,16 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Hangfire.Mongo.Sample.ASPNetCore.Controllers
 {
-    public class EnqueueJob
-    {
-        public void Execute(int index)
-        {
-            Thread.Sleep(200);
-            Debug.WriteLine($@"Hangfire fire-and-forget task started ({index}) - {Guid.NewGuid()}");
-        }
-    }
     public class HomeController : Controller
     {
+        public class JobHandler
+        {
+            public void Execute(int index)
+            {
+                Thread.Sleep(200);
+                Debug.WriteLine($@"Hangfire fire-and-forget task started ({index}) - [{Thread.CurrentThread.ManagedThreadId}]");
+            }
+        }
         public ActionResult Index()
         {
             return View();
@@ -27,7 +27,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore.Controllers
         {
             Parallel.ForEach(Enumerable.Range(0, id), index =>
             {
-                BackgroundJob.Enqueue<EnqueueJob>(j => j.Execute(index));
+                BackgroundJob.Enqueue<JobHandler>(j => j.Execute(index));
             });
 
             return RedirectToAction("Index");
@@ -53,7 +53,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore.Controllers
 
         public static void PrintToDebug(string message)
         {
-            
+            Debug.WriteLine(message);
         }
     }
 }

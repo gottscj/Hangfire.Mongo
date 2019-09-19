@@ -21,8 +21,9 @@ namespace Hangfire.Mongo.Tests
         {
             _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
             var queue = "default";
+            var timedOut = false;
             _jobQueueSemaphoreMock.Setup(s =>
-                    s.WaitAny(DefaultQueues, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>(), out queue))
+                    s.WaitAny(DefaultQueues, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>(), out queue, out timedOut))
                 .Returns(true);
         }
         [Fact]

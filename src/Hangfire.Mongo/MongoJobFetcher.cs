@@ -53,27 +53,40 @@ namespace Hangfire.Mongo
             }
 
             MongoFetchedJob fetchedJob = null;
-
+            var tryAllQueues = true;
             while (fetchedJob == null)
             {
-
-                cancellationToken.ThrowIfCancellationRequested();
-                fetchedJob = TryAllQueues(queues, cancellationToken);
-
-                if (fetchedJob != null) return fetchedJob;
+                if (tryAllQueues)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    fetchedJob = TryAllQueues(queues, cancellationToken);
+                }
                 
-                
-                if (_semaphore.WaitAny(queues, cancellationToken, _storageOptions.QueuePollInterval, out var queue))
+                if (fetchedJob != null)
+                {
+                    // make sure to try to decrement semaphore if we succeed in getting a job from the queue
+                    _semaphore.WaitNonBlock(fetchedJob.Queue);
+                    return fetchedJob;
+                }
+
+                if (_semaphore.WaitAny(queues, cancellationToken, _storageOptions.QueuePollInterval, out var queue, out var timedOut))
                 {
                     fetchedJob = TryGetEnqueuedJob(queue, cancellationToken);
                 }
+                // at this point only try all queues if semaphore timed out
+                tryAllQueues = timedOut;
             } 
-
+            
             return fetchedJob;
         }
 
         private MongoFetchedJob TryAllQueues(string[] queues, CancellationToken cancellationToken)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"Try fetch from queues: {string.Join(",", queues)} Thread[{Thread.CurrentThread.ManagedThreadId}]");
+            }
+            
             foreach (var queue in queues)
             {
                 var fetchedJob = TryGetEnqueuedJob(queue, cancellationToken);
@@ -81,8 +94,6 @@ namespace Hangfire.Mongo
                 {
                     continue;
                 }
-                // make sure to try to decrement semaphore if we succeed in getting a job from the queue
-                _semaphore.WaitNonBlock(queue);
                 return fetchedJob;
             }
 
