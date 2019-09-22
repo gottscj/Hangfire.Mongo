@@ -117,7 +117,7 @@ namespace Hangfire.Mongo.Tests
                 connection.JobGraph.InsertOne(jobQueue);
                 var token = CreateTimingOutCancellationToken();
                 var queue = CreateJobQueue(connection);
-                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default"));
+                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
                 
                 // Act
                 MongoFetchedJob payload = (MongoFetchedJob)queue.FetchNextJob(DefaultQueues, token);
@@ -152,7 +152,7 @@ namespace Hangfire.Mongo.Tests
                 connection.JobGraph.InsertOne(jobQueue);
 
                 var queue = CreateJobQueue(connection);
-                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default"));
+                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
                 // Act
                 var payload = queue.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken());
 
@@ -191,7 +191,7 @@ namespace Hangfire.Mongo.Tests
                     FetchedAt = DateTime.UtcNow.AddDays(-1)
                 };
                 connection.JobGraph.InsertOne(jobQueue);
-                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default"));
+                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
                 var queue = CreateJobQueue(connection);
 
                 // Act
@@ -239,7 +239,7 @@ namespace Hangfire.Mongo.Tests
 
                 var queue = CreateJobQueue(connection);
                 
-                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default"));
+                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
 
                 // Act
                 var payload = queue.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken());
@@ -315,8 +315,8 @@ namespace Hangfire.Mongo.Tests
                 });
 
                 var queue = CreateJobQueue(connection);
-                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("critical"));
-                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default"));
+                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("critical")).Returns(true);
+                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
                 
                 var critical = (MongoFetchedJob)queue.FetchNextJob(
                     new[] { "critical", "default" },

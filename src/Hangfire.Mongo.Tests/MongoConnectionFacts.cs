@@ -61,7 +61,7 @@ namespace Hangfire.Mongo.Tests
                 FetchedAt = null,
                 JobId = ObjectId.GenerateNewId()
             };
-            _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default"));
+            _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
                 
             _dbContext.JobGraph.InsertOne(jobQueueDto);
                 
