@@ -3,6 +3,7 @@ using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
+using Hangfire.Mongo.Migration;
 using Hangfire.Server;
 using MongoDB.Driver;
 
@@ -13,6 +14,7 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoExpirationManager : IBackgroundProcess, IServerComponent
     {
+        private readonly MongoStorageOptions _options;
         private static readonly ILog Logger = LogProvider.For<MongoExpirationManager>();
 
         private readonly HangfireDbContext _dbContext;
@@ -22,20 +24,12 @@ namespace Hangfire.Mongo
         /// Constructs expiration manager with one hour checking interval
         /// </summary>
         /// <param name="dbContext">MongoDB storage</param>
-        public MongoExpirationManager(HangfireDbContext dbContext)
-            : this(dbContext, TimeSpan.FromHours(1))
-        {
-        }
-
-        /// <summary>
-        /// Constructs expiration manager with specified checking interval
-        /// </summary>
-        /// <param name="dbContext">MongoDB storage</param>
-        /// <param name="checkInterval">Checking interval</param>
-        public MongoExpirationManager(HangfireDbContext dbContext, TimeSpan checkInterval)
+        /// <param name="options"></param>
+        public MongoExpirationManager(HangfireDbContext dbContext, MongoStorageOptions options)
         {
             _dbContext = dbContext;
-            _checkInterval = checkInterval;
+            _options = options;
+            _checkInterval = options.JobExpirationCheckInterval;
         }
 
         /// <summary>
@@ -69,6 +63,12 @@ namespace Hangfire.Mongo
             }
             
             cancellationToken.WaitHandle.WaitOne(_checkInterval);
+            // if we are closing down, try to delete the migration lock for good measures.
+            if (cancellationToken.IsCancellationRequested)
+            {
+                new MigrationLock(_dbContext.Database, _options.Prefix, _options.MigrationLockTimeout)
+                    .DeleteMigrationLock();
+            }
         }
     }
 }
