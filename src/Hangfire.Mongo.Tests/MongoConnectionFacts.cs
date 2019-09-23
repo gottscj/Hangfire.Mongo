@@ -473,6 +473,31 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact, CleanDatabase]
+        public void GetFirstByLowestScoreFromSet_ReturnsTheValue_WhenKeyContainsRegexSpecialChars()
+        {
+            var key = "some+-[regex]?-#set";
+
+            _dbContext.JobGraph.InsertOne(new SetDto
+            {
+                Id = ObjectId.GenerateNewId(),
+                Key = $"{key}<1.0>",
+                Value = "1.0",
+                Score = 1.0
+            });
+            _dbContext.JobGraph.InsertOne(new SetDto
+            {
+                Id = ObjectId.GenerateNewId(),
+                Key = $"{key}<-1.0>",
+                Value = "-1.0",
+                Score = -1.0,
+            });
+
+            var result = _connection.GetFirstByLowestScoreFromSet(key, -1.0, 3.0);
+
+            Assert.Equal("-1.0", result);
+        }
+
+        [Fact, CleanDatabase]
         public void AnnounceServer_ThrowsAnException_WhenServerIdIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -697,6 +722,25 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact, CleanDatabase]
+        public void GetAllItemsFromSet_ReturnsAllItems_WhenKeyContainsRegexSpecialChars()
+        {
+            var key = "some+-[regex]?-#set";
+            // Arrange
+            using (var t = _connection.CreateWriteTransaction())
+            {
+                t.AddToSet(key, "11:22");
+                t.AddToSet(key, "33");
+                t.Commit();
+            }
+
+            // Act
+            var result = _connection.GetAllItemsFromSet(key);
+
+            // Assert
+            Assert.Equal(new[] { "11:22", "33" }, result);
+        }
+
+        [Fact, CleanDatabase]
         public void SetRangeInHash_ThrowsAnException_WhenKeyIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -820,6 +864,29 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact, CleanDatabase]
+        public void GetSetCount_ReturnsNumberOfElements_InASet_WhenKeyContainsRegexSpecialChars()
+        {
+            var key = "some+-[regex]?-#set";
+
+            _dbContext.JobGraph.InsertOne(new SetDto
+            {
+                Id = ObjectId.GenerateNewId(),
+                Key = $"{key}<value-1>",
+                Value = "value-1"
+            });
+            _dbContext.JobGraph.InsertOne(new SetDto
+            {
+                Id = ObjectId.GenerateNewId(),
+                Key = $"{key}<value-2>",
+                Value = "value-2"
+            });
+
+            var result = _connection.GetSetCount(key);
+
+            Assert.Equal(2, result);
+        }
+
+        [Fact, CleanDatabase]
         public void GetRangeFromSet_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetRangeFromSet(null, 0, 1));
@@ -882,6 +949,56 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact, CleanDatabase]
+        public void GetRangeFromSet_ReturnsPagedElementsInCorrectOrder_WhenKeyContainsRegexSpecialChars()
+        {
+            var key = "some+-[regex]?-#set";
+
+            _dbContext.JobGraph.InsertOne(new SetDto
+            {
+                Id = ObjectId.GenerateNewId(),
+                Key = $"{key}<1>",
+                Value = "1",
+                Score = 0.0
+            });
+
+            _dbContext.JobGraph.InsertOne(new SetDto
+            {
+                Id = ObjectId.GenerateNewId(),
+                Key = $"{key}<2>",
+                Value = "2",
+                Score = 0.0
+            });
+
+            _dbContext.JobGraph.InsertOne(new SetDto
+            {
+                Id = ObjectId.GenerateNewId(),
+                Key = $"{key}<3>",
+                Value = "3",
+                Score = 0.0
+            });
+
+            _dbContext.JobGraph.InsertOne(new SetDto
+            {
+                Id = ObjectId.GenerateNewId(),
+                Key = $"{key}<4>",
+                Value = "4",
+                Score = 0.0
+            });
+
+            _dbContext.JobGraph.InsertOne(new SetDto
+            {
+                Id = ObjectId.GenerateNewId(),
+                Key = $"{key}<6>",
+                Value = "6",
+                Score = 0.0
+            });
+
+            var result = _connection.GetRangeFromSet(key, 1, 8);
+
+            Assert.Equal(new[] { "2", "3", "4", "6" }, result);
+        }
+
+        [Fact, CleanDatabase]
         public void GetSetTtl_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetSetTtl(null));
@@ -916,6 +1033,28 @@ namespace Hangfire.Mongo.Tests
 
             // Act
             var result = _connection.GetSetTtl("set-1");
+
+            // Assert
+            Assert.True(TimeSpan.FromMinutes(59) < result);
+            Assert.True(result < TimeSpan.FromMinutes(61));
+        }
+
+        [Fact, CleanDatabase]
+        public void GetSetTtl_ReturnsExpirationTime_OfAGivenSet_WhenKeyContainsRegexSpecialChars()
+        {
+            var key = "some+-[regex]?-#set";
+
+            // Arrange
+            _dbContext.JobGraph.InsertOne(new SetDto
+            {
+                Id = ObjectId.GenerateNewId(),
+                Key = $"{key}<1>",
+                Score = 0.0,
+                ExpireAt = DateTime.UtcNow.AddMinutes(60)
+            });
+
+            // Act
+            var result = _connection.GetSetTtl(key);
 
             // Assert
             Assert.True(TimeSpan.FromMinutes(59) < result);

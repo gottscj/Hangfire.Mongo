@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -665,7 +666,7 @@ namespace Hangfire.Mongo
         {
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", $"^{key}")),
+                new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", $"^{Regex.Escape(key)}")),
                 new BsonDocument("_t", nameof(SetDto))
             });
             return filter;
