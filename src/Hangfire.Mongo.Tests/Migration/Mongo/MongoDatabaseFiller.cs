@@ -34,7 +34,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             {
                 MigrationOptions = new MongoMigrationOptions
                 {
-                    Strategy = MongoMigrationStrategy.None,
+                    Strategy = MongoMigrationStrategy.Drop,
                     BackupStrategy = MongoBackupStrategy.None
                 },
                 QueuePollInterval = TimeSpan.FromMilliseconds(500)
@@ -88,7 +88,10 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             var schemaVersion = (int)MongoMigrationManager.RequiredSchemaVersion;
             using (var stream = new FileStream($@"Hangfire-Mongo-Schema-{schemaVersion:000}.zip", FileMode.Create))
             {
-                var allowedEmptyCollections = new List<string>();
+                var allowedEmptyCollections = new List<string>
+                {
+                    "hangfire.migrationLock"
+                };
 
                 if (MongoMigrationManager.RequiredSchemaVersion >= MongoSchema.Version09 &&
                     MongoMigrationManager.RequiredSchemaVersion <= MongoSchema.Version15)

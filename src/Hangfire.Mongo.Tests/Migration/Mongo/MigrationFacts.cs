@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -13,6 +14,7 @@ using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Hangfire.Mongo.Tests.Migration.Mongo
 {
@@ -34,6 +36,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         [InlineData("Hangfire-Mongo-Schema-014.zip", true)]
         [InlineData("Hangfire-Mongo-Schema-015.zip", true)]
         [InlineData("Hangfire-Mongo-Schema-016.zip", true)]
+        [InlineData("Hangfire-Mongo-Schema-017.zip", true)]
         public void Migrate_Full_Success(string seedFile, bool assertCollectionHasItems)
         {
             using (var dbContext = new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests"))
@@ -76,27 +79,33 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                 {
                     MigrationOptions = new MongoMigrationOptions
                     {
-                        Strategy = MongoMigrationStrategy.Migrate,
+                        Strategy = MongoMigrationStrategy.Drop,
                         BackupStrategy = MongoBackupStrategy.None
                     }
                 };
                 
                 var signal = new ManualResetEvent(false);
+                var signalToStart = new ManualResetEvent(false);
                 var taskCount = 10;
                 var tasks = new Task<bool>[taskCount];
-                
+                var count = 0;
                 
                 // ACT
                 for (int i = 0; i < taskCount; i++)
                 {
-                    tasks[i] = Task.Run(() =>
+                    tasks[i] = Task.Factory.StartNew<bool>(() =>
                     {
-                        Task.Yield();
+                        count++;
+                        if (count == taskCount)
+                        {
+                            signalToStart.Set();
+                        }
                         signal.WaitOne();
                         return MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
-                    }); 
+                    }, TaskCreationOptions.LongRunning);
                 }
-                
+
+                signalToStart.WaitOne();
                 signal.Set();
                 Task.WaitAll(tasks);
                 
@@ -171,6 +180,10 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
 
         private static void SeedCollectionFromJson(HangfireDbContext connection, string collectionName, TextReader json)
         {
+            if (collectionName.Equals("hangfire.migrationLock"))
+            {
+                return;
+            }
             var documents = new List<BsonDocument>();
             using (var jsonReader = new JsonReader(json))
             {

@@ -230,7 +230,7 @@ namespace Hangfire.Mongo.Tests
 
         private MongoExpirationManager CreateManager()
         {
-            return new MongoExpirationManager(_dbContext);
+            return new MongoExpirationManager(_dbContext, new MongoStorageOptions());
         }
 
         private static void Commit(HangfireDbContext connection, Action<MongoWriteOnlyTransaction> action)

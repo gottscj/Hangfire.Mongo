@@ -34,10 +34,10 @@ namespace Hangfire.Mongo.Migration
 
         public static bool MigrateIfNeeded(MongoStorageOptions storageOptions, IMongoDatabase database)
         {
-            var migrateLockCollectionName = storageOptions.Prefix + ".migrationLock";
-            using (new MigrationLock(database, migrateLockCollectionName, storageOptions.MigrationLockTimeout))
+            using (var migrationLock = new MigrationLock(database, storageOptions.Prefix, storageOptions.MigrationLockTimeout))
             {
                 var migrationManager = new MongoMigrationManager(storageOptions, database);
+                migrationLock.AcquireMigrationAccess();
                 return migrationManager.Migrate();
             }
         }
