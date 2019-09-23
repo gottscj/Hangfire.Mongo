@@ -19,7 +19,7 @@ namespace Hangfire.Mongo
     {
         private readonly string _databaseName;
 
-        private readonly MongoClientSettings _mongoClientSettings;
+        private readonly MongoClient _mongoClient;
 
         private readonly MongoStorageOptions _storageOptions;
 
@@ -42,10 +42,23 @@ namespace Hangfire.Mongo
         /// <param name="databaseName">Database name</param>
         /// <param name="storageOptions">Storage options</param>
         public MongoStorage(MongoClientSettings mongoClientSettings, string databaseName, MongoStorageOptions storageOptions)
+            : this(new MongoClient(mongoClientSettings), databaseName, storageOptions)
         {
-            if (mongoClientSettings == null)
+            
+        }
+
+        /// <summary>
+        /// Constructs Job Storage by Mongo client, name and options
+        /// </summary>
+        /// <param name="mongoClient"></param>
+        /// <param name="databaseName"></param>
+        /// <param name="storageOptions"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        public MongoStorage(MongoClient mongoClient, string databaseName, MongoStorageOptions storageOptions)
+        {
+            if (mongoClient == null)
             {
-                throw new ArgumentNullException(nameof(mongoClientSettings));
+                throw new ArgumentNullException(nameof(mongoClient));
             }
             if (string.IsNullOrWhiteSpace(databaseName))
             {
@@ -56,11 +69,11 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(storageOptions));
             }
 
-            _mongoClientSettings = mongoClientSettings;
+            _mongoClient = mongoClient;
             _databaseName = databaseName;
             _storageOptions = storageOptions;
 
-            _dbContext = new HangfireDbContext(mongoClientSettings, databaseName, _storageOptions.Prefix);
+            _dbContext = new HangfireDbContext(mongoClient, databaseName, _storageOptions.Prefix);
 
             if (_storageOptions.CheckConnection)
             {
@@ -135,9 +148,9 @@ namespace Hangfire.Mongo
         {
             // Obscure the username and password for display purposes
             string obscuredConnectionString = "mongodb://";
-            if (_mongoClientSettings != null && _mongoClientSettings.Servers != null)
+            if (_mongoClient.Settings != null && _mongoClient.Settings.Servers != null)
             {
-                var servers = string.Join(",", _mongoClientSettings.Servers.Select(s => $"{s.Host}:{s.Port}"));
+                var servers = string.Join(",", _mongoClient.Settings.Servers.Select(s => $"{s.Host}:{s.Port}"));
                 obscuredConnectionString = $"mongodb://<username>:<password>@{servers}";
             }
 
