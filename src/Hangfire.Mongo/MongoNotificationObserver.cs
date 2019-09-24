@@ -5,6 +5,7 @@ using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Server;
 using MongoDB.Bson;
+using MongoDB.Bson.IO;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -85,10 +86,27 @@ namespace Hangfire.Mongo
                         }
                     }
                 }
-                catch(OperationCanceledException) {}
+                catch (OperationCanceledException)
+                {
+                }
+                catch (MongoCommandException commandException)
+                {
+                    var errorMessage = $"Error observing '{_dbContext.Notifications.CollectionNamespace.CollectionName}'\r\n" + 
+                                   commandException.ErrorMessage + "\r\n" + 
+                                   "Notifications will not be available\r\n" +
+                                   $"If you dropped the '{_dbContext.Notifications.CollectionNamespace.CollectionName}' collection " +
+                                   "you need to manually create it again as a capped collection\r\n" +
+                                   "For reference, please see\r\n" +
+                                   "   - https://docs.mongodb.com/manual/core/capped-collections/\r\n" +
+                                   "   - https://github.com/sergeyzwezdin/Hangfire.Mongo/blob/master/src/Hangfire.Mongo/Migration/Steps/Version17/00_AddNotificationsCollection.cs";
+                    
+                    Logger.Error(errorMessage);
+                    // fatal error observing notifications. Stop observer.
+                    cancellationToken.WaitHandle.WaitOne();
+                }
                 catch (Exception e)
                 {
-                    Logger.Error($"Error observing notifications\r\n{e}");
+                    Logger.Error($"Error observing '{_dbContext.Notifications.CollectionNamespace.CollectionName}'\r\n{e}");
                 }
                 finally
                 {
