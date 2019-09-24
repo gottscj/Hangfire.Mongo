@@ -8,6 +8,7 @@
 - Make sure to use timout when waiting for signalled semaphore #207
 - Do not try to delete expired migration lock #208
 - Allow user to supply preconfigured MongoClient #199
+- Dont restart observing capped collection if collection is not capped (deleted by user) #204
 
 ### v0.6.3
 - Explicitly set discriminators because filters rely on them (#200)
