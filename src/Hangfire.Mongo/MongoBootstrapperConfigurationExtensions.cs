@@ -113,5 +113,25 @@ namespace Hangfire.Mongo
 
             return storage;
         }
+        
+        /// <summary>
+        /// Configure Hangfire to use MongoDB storage
+        /// </summary>
+        /// <param name="configuration">Configuration</param>
+        /// <param name="mongoClient">Client for Mongo</param>
+        /// <param name="databaseName">Name of database at Mongo server</param>
+        /// <param name="storageOptions">Storage options</param>
+        /// <returns></returns>
+        public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
+            MongoClient mongoClient,
+            string databaseName,
+            MongoStorageOptions storageOptions)
+        {
+            var storage = new MongoStorage(mongoClient, databaseName, storageOptions);
+
+            configuration.UseStorage(storage);
+
+            return storage;
+        }
     }
 }
