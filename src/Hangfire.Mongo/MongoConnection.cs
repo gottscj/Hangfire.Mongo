@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
@@ -244,12 +245,11 @@ namespace Hangfire.Mongo
             var result = _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{key}"))
+                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}"))
                 .SortBy(_ => _.Id)
                 .Project(_ => _.Value)
                 .ToList();
 
-            
             return new HashSet<string>(result);
         }
 
@@ -268,7 +268,7 @@ namespace Hangfire.Mongo
             return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{key}") &
+                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}") &
                       Builders<SetDto>.Filter.Gte(_ => _.Score, fromScore) &
                       Builders<SetDto>.Filter.Lte(_ => _.Score, toScore))
                 .SortBy(_ => _.Score)
@@ -311,7 +311,7 @@ namespace Hangfire.Mongo
             return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{key}"))
+                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}"))
                 .Count();
         }
 
@@ -325,7 +325,7 @@ namespace Hangfire.Mongo
             return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{key}"))
+                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}"))
                 .SortBy(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
@@ -343,7 +343,7 @@ namespace Hangfire.Mongo
             var values = _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{key}") &
+                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}") &
                       Builders<SetDto>.Filter.Not(Builders<SetDto>.Filter.Eq(_ => _.ExpireAt, null)))
                 .Project(dto => dto.ExpireAt.Value)
                 .ToList();

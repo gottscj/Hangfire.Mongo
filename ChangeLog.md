@@ -1,5 +1,16 @@
 
 ## What's New (14/08/2019)
+### v0.6.4
+- Upgrade to "Hangfire.Core" Version="1.7.6"
+- Upgrade to "MongoDB.Bson" Version="2.9.1"
+- Upgrade to "MongoDB.Driver" Version="2.9.1"
+- Upgrade to "MongoDB.Driver.Core" Version="2.9.1"
+- Make sure to use timout when waiting for signalled semaphore #207
+- Do not try to delete expired migration lock #208
+- Allow user to supply preconfigured MongoClient #199
+- Dont restart observing capped collection if collection is not capped (deleted by user) #204
+- Fix job set filter - escape regex chars #212
+
 ### v0.6.3
 - Explicitly set discriminators because filters rely on them (#200)
 

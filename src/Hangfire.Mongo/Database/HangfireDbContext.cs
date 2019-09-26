@@ -1,6 +1,5 @@
 ﻿using System;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Migration;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Database
@@ -16,37 +15,22 @@ namespace Hangfire.Mongo.Database
 
         internal IMongoDatabase Database { get; }
 
-        /// <summary>
-        /// Constructs context with connection string and database name
-        /// </summary>
-        /// <param name="connectionString">Connection string for Mongo database</param>
-        /// <param name="databaseName">Database name</param>
-        /// <param name="prefix">Collections prefix</param>
-        public HangfireDbContext(string connectionString, string databaseName, string prefix = "hangfire")
+        internal HangfireDbContext(string connectionString, string databaseName, string prefix = "hangfire")
+            :this(new MongoClient(connectionString), databaseName, prefix)
         {
-            _prefix = prefix;
-
-            Client = new MongoClient(connectionString);
-
-            Database = Client.GetDatabase(databaseName);
-
-            ConnectionId = Guid.NewGuid().ToString();
+            
         }
-
         /// <summary>
-        /// Constructs context with Mongo client settings and database name
+        /// Constructs context with Mongo client and database name
         /// </summary>
-        /// <param name="mongoClientSettings">Client settings for MongoDB</param>
-        /// <param name="databaseName">Database name</param>
-        /// <param name="prefix">Collections prefix</param>
-        public HangfireDbContext(MongoClientSettings mongoClientSettings, string databaseName, string prefix = "hangfire")
+        /// <param name="mongoClient"></param>
+        /// <param name="databaseName"></param>
+        /// <param name="prefix"></param>
+        public HangfireDbContext(MongoClient mongoClient, string databaseName, string prefix = "hangfire")
         {
             _prefix = prefix;
-
-            var client = new MongoClient(mongoClientSettings);
-
-            Database = client.GetDatabase(databaseName);
-
+            Client = mongoClient;
+            Database = mongoClient.GetDatabase(databaseName);
             ConnectionId = Guid.NewGuid().ToString();
         }
 

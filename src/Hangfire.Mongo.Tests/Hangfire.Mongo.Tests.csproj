@@ -23,11 +23,11 @@
     <ProjectReference Include="../Hangfire.Mongo/Hangfire.Mongo.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.0.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
     <PackageReference Include="Moq" Version="4.10.1" />
     <PackageReference Include="xunit" Version="2.4.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.IO.Compression" />
@@ -73,6 +73,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Migration\Hangfire-Mongo-Schema-016.zip">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Migration\Hangfire-Mongo-Schema-017.zip">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

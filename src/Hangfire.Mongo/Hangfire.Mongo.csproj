@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>0.6.3</VersionPrefix>
+    <VersionPrefix>0.6.4</VersionPrefix>
     <TargetFrameworks>net46;net452;netstandard1.5</TargetFrameworks>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -22,8 +22,20 @@
     <owners>Sergey Zwezdin</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>0.6.3
-      - Explicitly set discriminators because filters rely on them (#200)
+    <PackageReleaseNotes>0.6.4
+      - Upgrade to "Hangfire.Core" Version="1.7.6"
+      - Upgrade to "MongoDB.Bson" Version="2.9.1"
+      - Upgrade to "MongoDB.Driver" Version="2.9.1"
+      - Upgrade to "MongoDB.Driver.Core" Version="2.9.1"
+      - Make sure to use timout when waiting for signalled semaphore #207
+      - Do not try to delete expired migration lock #208
+      - Allow user to supply preconfigured MongoClient #199
+      - Dont restart observing capped collection if collection is not capped (deleted by user) #204
+      - Fix job set filter - escape regex chars #212
+      
+0.6.3
+- Explicitly set discriminators because filters rely on them (#200)
+      
 0.6.2
 - Handle cancellation more gracefully (#191)
 - Make Connection check timeout configurable and set new default = 5 seconds (#191)
@@ -206,8 +218,8 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Hangfire.Core" Version="1.7.1" />
-    <PackageReference Include="MongoDB.Driver" Version="2.8.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.1" />
+    <PackageReference Include="Hangfire.Core" Version="1.7.6" />
+    <PackageReference Include="MongoDB.Driver" Version="2.9.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 </Project>

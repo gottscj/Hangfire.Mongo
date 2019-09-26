@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Tests.Utils;
@@ -711,6 +712,25 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact, CleanDatabase]
+        public void ExpireSet_SetsSetExpirationData_WhenKeyContainsRegexSpecialChars()
+        {
+            var key = "some+-[regex]?-#set";
+
+            UseConnection(database =>
+            {
+                var set1 = new SetDto { Key = $"{key}<value1>", Value = "value1" };
+                database.JobGraph.InsertOne(set1);
+
+                Commit(database, x => x.ExpireSet(key, TimeSpan.FromDays(1)));
+
+                var testSet1 = GetTestSet(database, key).FirstOrDefault();
+
+                Assert.NotNull(testSet1);
+                Assert.True(DateTime.UtcNow.AddMinutes(-1) < testSet1.ExpireAt && testSet1.ExpireAt <= DateTime.UtcNow.AddDays(1));
+            });
+        }
+
+        [Fact, CleanDatabase]
         public void ExpireList_SetsListExpirationData()
         {
             UseConnection(database =>
@@ -758,19 +778,39 @@ namespace Hangfire.Mongo.Tests
         {
             UseConnection(database =>
             {
-                var set1 = new SetDto { Key = "Set1<value1>", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set1);
+                var set1Val1 = new SetDto { Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow };
+                database.JobGraph.InsertOne(set1Val1);
+
+                var set1Val2 = new SetDto { Key = "Set1<value2>", Value = "value2", ExpireAt = DateTime.UtcNow };
+                database.JobGraph.InsertOne(set1Val2);
 
                 var set2 = new SetDto { Key = "Set2<value1>", ExpireAt = DateTime.UtcNow };
                 database.JobGraph.InsertOne(set2);
 
-                Commit(database, x => x.PersistSet(set1.Key));
+                Commit(database, x => x.PersistSet("Set1"));
 
-                var testSet1 = GetTestSet(database, set1.Key).First();
-                Assert.Null(testSet1.ExpireAt);
+                var testSet1 = GetTestSet(database, "Set1");
+                Assert.All(testSet1, x => Assert.Null(x.ExpireAt));
 
-                var testSet2 = GetTestSet(database, set2.Key).First();
+                var testSet2 = GetTestSet(database, set2.Key).Single();
                 Assert.NotNull(testSet2.ExpireAt);
+            });
+        }
+
+        [Fact, CleanDatabase]
+        public void PersistSet_ClearsTheSetExpirationData_WhenKeyContainsRegexSpecialChars()
+        {
+            var key = "some+-[regex]?-#set";
+
+            UseConnection(database =>
+            {
+                var set1 = new SetDto { Key = $"{key}<value1>", ExpireAt = DateTime.UtcNow };
+                database.JobGraph.InsertOne(set1);
+
+                Commit(database, x => x.PersistSet(key));
+
+                var testSet1 = GetTestSet(database, key).First();
+                Assert.Null(testSet1.ExpireAt);
             });
         }
 
@@ -850,7 +890,6 @@ namespace Hangfire.Mongo.Tests
             });
         }
 
-
         [Fact, CleanDatabase]
         public void RemoveSet_ClearsTheSetData()
         {
@@ -865,16 +904,36 @@ namespace Hangfire.Mongo.Tests
                 var set2 = new SetDto { Key = "Set2<value2>",  Value = "value2", ExpireAt = DateTime.UtcNow };
                 database.JobGraph.InsertOne(set2);
 
-                Commit(database, x => x.RemoveSet(set1Val1.Key));
+                Commit(database, x => x.RemoveSet("Set1"));
 
-                var testSet1 = GetTestSet(database, set1Val1.Key);
+                var testSet1 = GetTestSet(database, "Set1");
                 Assert.Equal(0, testSet1.Count);
 
-                var testSet2 = GetTestSet(database, set2.Key);
+                var testSet2 = GetTestSet(database, "Set2");
                 Assert.Equal(1, testSet2.Count);
             });
         }
-        
+
+        [Fact, CleanDatabase]
+        public void RemoveSet_ClearsTheSetData_WhenKeyContainsRegexSpecialChars()
+        {
+            var key = "some+-[regex]?-#set";
+
+            UseConnection(database =>
+            {
+                var set1Val1 = new SetDto { Key = $"{key}<value1>", Value = "value1", ExpireAt = DateTime.UtcNow };
+                database.JobGraph.InsertOne(set1Val1);
+
+                var set1Val2 = new SetDto { Key = $"{key}<value2>", Value = "value2", ExpireAt = DateTime.UtcNow };
+                database.JobGraph.InsertOne(set1Val2);
+
+                Commit(database, x => x.RemoveSet(key));
+
+                var testSet1 = GetTestSet(database, key);
+                Assert.Equal(0, testSet1.Count);
+            });
+        }
+
         private static JobDto GetTestJob(HangfireDbContext database, string jobId)
         {
             return database.JobGraph.OfType<JobDto>().Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId))).FirstOrDefault();
@@ -882,7 +941,7 @@ namespace Hangfire.Mongo.Tests
 
         private static IList<SetDto> GetTestSet(HangfireDbContext database, string key)
         {
-            return database.JobGraph.OfType<SetDto>().Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{key}")).ToList();
+            return database.JobGraph.OfType<SetDto>().Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}")).ToList();
         }
 
         private static ListDto GetTestList(HangfireDbContext database, string key)

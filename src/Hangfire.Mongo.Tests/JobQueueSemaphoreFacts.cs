@@ -23,7 +23,7 @@ namespace Hangfire.Mongo.Tests
             var waitTask = Task.Run(async () =>
             {
                 await Task.Yield();
-                _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(500), out var q);
+                _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(500), out var q, out var timedOut);
                 return q;
             });
             
@@ -42,7 +42,7 @@ namespace Hangfire.Mongo.Tests
             var waitTask = Task.Run(async () =>
             {
                 await Task.Yield();
-                _semaphore.WaitAny(TestQueues, cts.Token, TimeSpan.FromMilliseconds(5000), out var q);
+                _semaphore.WaitAny(TestQueues, cts.Token, TimeSpan.FromMilliseconds(5000), out var q, out var timedOut);
                 return q;
             });
             
@@ -60,7 +60,7 @@ namespace Hangfire.Mongo.Tests
             var waitTask = Task.Run(async () =>
             {
                 await Task.Yield();
-                _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(5000), out var q);
+                _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(5000), out var q, out var timedOut);
                 return q;
             });
             
@@ -80,7 +80,7 @@ namespace Hangfire.Mongo.Tests
             _semaphore.Release(TestQueues.First());
             
             // ACT
-            _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out var result);
+            _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out var result, out var timedOut);
             
             // ASSERT
             Assert.Equal(TestQueues.First(), result);
@@ -93,10 +93,10 @@ namespace Hangfire.Mongo.Tests
             _semaphore.Release(TestQueues.First());
             _semaphore.Release(TestQueues.First());
             var results = new string[2];
-            
+            var timedOut = false;
             // ACT
-            _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out results[0]);
-            _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out results[1]);
+            _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out results[0], out timedOut);
+            _semaphore.WaitAny(TestQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out results[1], out timedOut);
             
             // ASSERT
             Assert.Equal(TestQueues.First(), results[0]);

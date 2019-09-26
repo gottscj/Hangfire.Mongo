@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Text.RegularExpressions;
 using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -473,14 +473,14 @@ namespace Hangfire.Mongo
                     serializedDoc = new Dictionary<string, BsonDocument>
                     {
                         ["Filter"] = ((UpdateOneModel<BsonDocument>) writeModel).Filter.Render(serializer, registry),
-                        ["Update"] = ((UpdateOneModel<BsonDocument>) writeModel).Update.Render(serializer, registry)
+                        ["Update"] = ((UpdateOneModel<BsonDocument>) writeModel).Update.Render(serializer, registry).AsBsonDocument
                     }.ToJson();
                     break;
                 case WriteModelType.UpdateMany:
                     serializedDoc = new Dictionary<string, BsonDocument>
                     {
                         ["Filter"] = ((UpdateManyModel<BsonDocument>) writeModel).Filter.Render(serializer, registry),
-                        ["Update"] = ((UpdateManyModel<BsonDocument>) writeModel).Update.Render(serializer, registry)
+                        ["Update"] = ((UpdateManyModel<BsonDocument>) writeModel).Update.Render(serializer, registry).AsBsonDocument
                     }.ToJson();
                     break;
                 default:
@@ -666,7 +666,7 @@ namespace Hangfire.Mongo
         {
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", $"^{key}")),
+                new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", $"^{Regex.Escape(key)}")),
                 new BsonDocument("_t", nameof(SetDto))
             });
             return filter;
