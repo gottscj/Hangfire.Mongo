@@ -189,6 +189,25 @@ namespace Hangfire.Mongo.Tests
             });
         }
 
+        [Fact, CleanDatabase]
+        public void Ctor_AcquireLock_WhenLockExpired()
+        {
+            UseConnection(database =>
+            {
+                // simulate situation when lock was not disposed correctly (app crash) and there is no heartbeats to prolong ExpireAt value
+                var initialExpireAt = DateTime.UtcNow.AddSeconds(3);
+                database.DistributedLock.InsertOne(new DistributedLockDto {ExpireAt = initialExpireAt, Resource = "resource1" });
+
+                using (new MongoDistributedLock("resource1", TimeSpan.FromSeconds(5), database, new MongoStorageOptions(),
+                    _distributedLockMutex))
+                {
+                    var lockEntry = database.DistributedLock
+                        .Find(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1")).Single();
+                    Assert.True(lockEntry.ExpireAt > initialExpireAt);
+                }
+            });
+        }
+
         private static void UseConnection(Action<HangfireDbContext> action)
         {
             using (var connection = ConnectionUtils.CreateDbContext())
