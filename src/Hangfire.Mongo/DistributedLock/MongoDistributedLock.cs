@@ -189,6 +189,8 @@ namespace Hangfire.Mongo.DistributedLock
                         // unfortunately there doesn't appear to be a more specific exception type to catch.
                         now = _mutex.Wait(_resource, CalculateTimeout(timeout));
                     }
+
+                    Cleanup();
                 }
 
                 if (!isLockAcquired)
