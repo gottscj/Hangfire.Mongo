@@ -2,9 +2,9 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <Description />
-    <Version>0.6.4</Version>
+    <Version>0.6.5</Version>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
-    <Copyright>Copyright © 2014-2017 Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Copyright>
+    <Copyright>Copyright © 2014-2019 Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Copyright>
     <Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
     <Company />
     <Product>Hangfire.Mongo</Product>

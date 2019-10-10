@@ -1,5 +1,9 @@
 
 ## What's New (14/08/2019)
+### v0.6.5
+- Cleanup expired DistributedLock after each wait iteration (#217)
+- Make extracting mongodb version more resilient
+
 ### v0.6.4
 - Upgrade to "Hangfire.Core" Version="1.7.6"
 - Upgrade to "MongoDB.Bson" Version="2.9.1"

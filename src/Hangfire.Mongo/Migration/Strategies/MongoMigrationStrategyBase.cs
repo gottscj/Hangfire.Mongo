@@ -170,20 +170,16 @@ namespace Hangfire.Mongo.Migration.Strategies
                 }
             });
 
-            var serverStatus = database.RunCommand<BsonDocument>(new BsonDocument("buildinfo", 1));
-            if (serverStatus.Contains("version"))
+            var version = MongoVersionHelper.GetVersion(database);
+            if (version < new Version(2, 6))
             {
-                var version = Version.Parse(serverStatus["version"].AsString);
-                if (version < new Version(2, 6))
-                {
-                    throw new InvalidOperationException("Hangfire.Mongo is not able to backup collections in MongoDB running a version prior to 2.6");
-                }
-                if (version >= new Version(3, 2))
-                {
-                    // The 'bypassDocumentValidation' was introduced in version 3.2
-                    // https://docs.mongodb.com/manual/release-notes/3.2/#rel-notes-document-validation
-                    aggregate["bypassDocumentValidation"] = true;
-                }
+                throw new InvalidOperationException("Hangfire.Mongo is not able to backup collections in MongoDB running a version prior to 2.6");
+            }
+            if (version >= new Version(3, 2))
+            {
+                // The 'bypassDocumentValidation' was introduced in version 3.2
+                // https://docs.mongodb.com/manual/release-notes/3.2/#rel-notes-document-validation
+                aggregate["bypassDocumentValidation"] = true;
             }
 
             var dbSource = database.GetCollection<BsonDocument>(collectionName);
