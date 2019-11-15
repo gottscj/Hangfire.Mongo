@@ -41,7 +41,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                 };
                 //config.UseLogProvider(new FileLogProvider());
                 config.UseColouredConsoleLogProvider(LogLevel.Trace);
-                config.UseMongoStorage(new MongoClient(connectionString), "hangfire-mongo-sample-aspnetcore", migrationOptions);
+                config.UseMongoStorage(connectionString, migrationOptions);
             });
             services.AddMvc();
 

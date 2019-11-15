@@ -18,7 +18,7 @@ namespace Hangfire.Mongo.Sample
                     BackupStrategy = MongoBackupStrategy.Collections
                 }
             };
-            GlobalConfiguration.Configuration.UseMongoStorage(connectionString, "hangfire-mongo-sample", migrationOptions);
+            GlobalConfiguration.Configuration.UseMongoStorage(connectionString, migrationOptions);
             //GlobalConfiguration.Configuration.UseMongoStorage(new MongoClientSettings
             //{
             //    // ...

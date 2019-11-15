@@ -1,5 +1,9 @@
 
-## What's New (14/08/2019)
+## What's New (15/11/2019)
+
+### v0.6.6
+- Add support for specifying the database name in the connection string (#219)
+
 ### v0.6.5
 - Cleanup expired DistributedLock after each wait iteration (#217)
 - Make extracting mongodb version more resilient
