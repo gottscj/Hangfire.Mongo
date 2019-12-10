@@ -39,105 +39,103 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         [InlineData("Hangfire-Mongo-Schema-017.zip", true)]
         public void Migrate_Full_Success(string seedFile, bool assertCollectionHasItems)
         {
-            using (var dbContext = new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests"))
+            var dbContext =
+                new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests");
+
+            // ARRANGE
+            dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
+            if (seedFile != null)
             {
-                // ARRANGE
-                dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
-                if (seedFile != null)
-                {
-                    SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", seedFile));
-                }
-
-                var storageOptions = new MongoStorageOptions
-                {
-                    MigrationOptions = new MongoMigrationOptions
-                    {
-                        Strategy = MongoMigrationStrategy.Migrate,
-                        BackupStrategy = MongoBackupStrategy.None
-                    }
-                };
-
-                var migrationManager = new MongoMigrationManager(storageOptions, dbContext.Database);
-
-                // ACT
-                MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
-
-                // ASSERT
-                AssertDataIntegrity(dbContext, assertCollectionHasItems);
+                SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", seedFile));
             }
+
+            var storageOptions = new MongoStorageOptions
+            {
+                MigrationOptions = new MongoMigrationOptions
+                {
+                    Strategy = MongoMigrationStrategy.Migrate,
+                    BackupStrategy = MongoBackupStrategy.None
+                }
+            };
+
+            var migrationManager = new MongoMigrationManager(storageOptions, dbContext.Database);
+
+            // ACT
+            MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
+
+            // ASSERT
+            AssertDataIntegrity(dbContext, assertCollectionHasItems);
         }
 
         [Fact, CleanDatabase]
         public void Migrate_MultipleInstances_ThereCanBeOnlyOne()
         {
-            using (var dbContext =
-                new HangfireDbContext(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName()))
+            var dbContext =
+                new HangfireDbContext(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName());
+            // ARRANGE
+            dbContext.Database.DropCollection(dbContext.Schema.CollectionNamespace.CollectionName);
+            var storageOptions = new MongoStorageOptions
             {
-                // ARRANGE
-                dbContext.Database.DropCollection(dbContext.Schema.CollectionNamespace.CollectionName);
-                var storageOptions = new MongoStorageOptions
+                MigrationOptions = new MongoMigrationOptions
                 {
-                    MigrationOptions = new MongoMigrationOptions
-                    {
-                        Strategy = MongoMigrationStrategy.Drop,
-                        BackupStrategy = MongoBackupStrategy.None
-                    }
-                };
-                
-                var signal = new ManualResetEvent(false);
-                var signalToStart = new ManualResetEvent(false);
-                var taskCount = 10;
-                var tasks = new Task<bool>[taskCount];
-                var count = 0;
-                
-                // ACT
-                for (int i = 0; i < taskCount; i++)
-                {
-                    tasks[i] = Task.Factory.StartNew<bool>(() =>
-                    {
-                        count++;
-                        if (count == taskCount)
-                        {
-                            signalToStart.Set();
-                        }
-                        signal.WaitOne();
-                        return MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
-                    }, TaskCreationOptions.LongRunning);
+                    Strategy = MongoMigrationStrategy.Drop,
+                    BackupStrategy = MongoBackupStrategy.None
                 }
+            };
 
-                signalToStart.WaitOne();
-                signal.Set();
-                Task.WaitAll(tasks);
-                
-                // ASSERT
-                Assert.True(tasks.Select(t => t.Result).Single(b => b));
+            var signal = new ManualResetEvent(false);
+            var signalToStart = new ManualResetEvent(false);
+            var taskCount = 10;
+            var tasks = new Task<bool>[taskCount];
+            var count = 0;
+
+            // ACT
+            for (int i = 0; i < taskCount; i++)
+            {
+                tasks[i] = Task.Factory.StartNew<bool>(() =>
+                {
+                    count++;
+                    if (count == taskCount)
+                    {
+                        signalToStart.Set();
+                    }
+
+                    signal.WaitOne();
+                    return MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
+                }, TaskCreationOptions.LongRunning);
             }
+
+            signalToStart.WaitOne();
+            signal.Set();
+            Task.WaitAll(tasks);
+
+            // ASSERT
+            Assert.True(tasks.Select(t => t.Result).Single(b => b));
         }
         
         [Fact]
         public void Migrate_DropNoBackup_Success()
         {
-            using (var dbContext = new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests"))
+            var dbContext =
+                new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests");
+            // ARRANGE
+            dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
+            SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", "Hangfire-Mongo-Schema-006.zip"));
+
+            var storageOptions = new MongoStorageOptions
             {
-                // ARRANGE
-                dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
-                SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", "Hangfire-Mongo-Schema-006.zip"));
-
-                var storageOptions = new MongoStorageOptions
+                MigrationOptions = new MongoMigrationOptions
                 {
-                    MigrationOptions = new MongoMigrationOptions
-                    {
-                        Strategy = MongoMigrationStrategy.Drop,
-                        BackupStrategy = MongoBackupStrategy.None
-                    }
-                };
+                    Strategy = MongoMigrationStrategy.Drop,
+                    BackupStrategy = MongoBackupStrategy.None
+                }
+            };
 
-                // ACT
-                MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
+            // ACT
+            MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
 
-                // ASSERT
-                AssertDataIntegrity(dbContext, assertCollectionHasItems: false);
-            }
+            // ASSERT
+            AssertDataIntegrity(dbContext, assertCollectionHasItems: false);
         }
 
         private static void AssertDataIntegrity(HangfireDbContext dbContext, bool assertCollectionHasItems)

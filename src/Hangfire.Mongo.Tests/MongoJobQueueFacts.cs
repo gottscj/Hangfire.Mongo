@@ -17,6 +17,7 @@ namespace Hangfire.Mongo.Tests
         private static readonly string[] DefaultQueues = { "default" };
 
         private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphoreMock;
+        private readonly HangfireDbContext _hangfireDbContext;
         public MongoJobQueueFacts()
         {
             _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
@@ -25,6 +26,7 @@ namespace Hangfire.Mongo.Tests
             _jobQueueSemaphoreMock.Setup(s =>
                     s.WaitAny(DefaultQueues, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>(), out queue, out timedOut))
                 .Returns(true);
+            _hangfireDbContext = ConnectionUtils.CreateDbContext();
         }
         [Fact]
         public void Ctor_ThrowsAnException_WhenDbContextIsNull()
@@ -38,322 +40,318 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenOptionsValueIsNull()
         {
-            UseConnection(connection =>
-            {
-                var exception = Assert.Throws<ArgumentNullException>(() =>
-                    new MongoJobFetcher(connection, null, _jobQueueSemaphoreMock.Object));
+            var exception = Assert.Throws<ArgumentNullException>(() =>
+                new MongoJobFetcher(_hangfireDbContext, null, _jobQueueSemaphoreMock.Object));
 
-                Assert.Equal("storageOptions", exception.ParamName);
-            });
+            Assert.Equal("storageOptions", exception.ParamName);
         }
 
         [Fact, CleanDatabase]
         public void Dequeue_ShouldThrowAnException_WhenQueuesCollectionIsNull()
         {
-            UseConnection(connection =>
-            {
-                var queue = CreateJobQueue(connection);
+            var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
 
-                var exception = Assert.Throws<ArgumentNullException>(() =>
-                    queue.FetchNextJob(null, CreateTimingOutCancellationToken()));
+            var exception = Assert.Throws<ArgumentNullException>(() =>
+                queue.FetchNextJob(null, CreateTimingOutCancellationToken()));
 
-                Assert.Equal("queues", exception.ParamName);
-            });
+            Assert.Equal("queues", exception.ParamName);
         }
 
         [Fact, CleanDatabase]
         public void Dequeue_ShouldThrowAnException_WhenQueuesCollectionIsEmpty()
         {
-            UseConnection(connection =>
-            {
-                var queue = CreateJobQueue(connection);
+            var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
 
-                var exception = Assert.Throws<ArgumentException>(() =>
-                    queue.FetchNextJob(new string[0], CreateTimingOutCancellationToken()));
+            var exception = Assert.Throws<ArgumentException>(() =>
+                queue.FetchNextJob(new string[0], CreateTimingOutCancellationToken()));
 
-                Assert.Equal("queues", exception.ParamName);
-            });
+            Assert.Equal("queues", exception.ParamName);
         }
 
         [Fact]
         public void Dequeue_ThrowsOperationCanceled_WhenCancellationTokenIsSetAtTheBeginning()
         {
-            UseConnection(connection =>
-            {
-                var cts = new CancellationTokenSource();
-                cts.Cancel();
-                var queue = CreateJobQueue(connection);
+            var cts = new CancellationTokenSource();
+            cts.Cancel();
+            var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
 
-                Assert.Throws<OperationCanceledException>(() =>
-                    queue.FetchNextJob(DefaultQueues, cts.Token));
-            });
+            Assert.Throws<OperationCanceledException>(() =>
+                queue.FetchNextJob(DefaultQueues, cts.Token));
         }
 
         [Fact, CleanDatabase]
         public void Dequeue_ShouldWaitIndefinitely_WhenThereAreNoJobs()
         {
-            UseConnection(connection =>
-            {
-                var cts = new CancellationTokenSource(200);
-                var queue = CreateJobQueue(connection);
+            var cts = new CancellationTokenSource(200);
+            var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
 
-                Assert.ThrowsAny<OperationCanceledException>(() =>
-                    queue.FetchNextJob(DefaultQueues, cts.Token));
-            });
+            Assert.ThrowsAny<OperationCanceledException>(() =>
+                queue.FetchNextJob(DefaultQueues, cts.Token));
         }
 
         [Fact, CleanDatabase]
         public void Dequeue_ShouldFetchAJob_FromTheSpecifiedQueue()
         {
             // Arrange
-            UseConnection(connection =>
+            var jobQueue = new JobQueueDto
             {
-                var jobQueue = new JobQueueDto
-                {
-                    JobId = ObjectId.GenerateNewId(),
-                    Queue = "default"
-                };
+                JobId = ObjectId.GenerateNewId(),
+                Queue = "default"
+            };
 
-                connection.JobGraph.InsertOne(jobQueue);
-                var token = CreateTimingOutCancellationToken();
-                var queue = CreateJobQueue(connection);
-                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
+            _hangfireDbContext.JobGraph.InsertOne(jobQueue);
+            var token = CreateTimingOutCancellationToken();
+            var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
+            _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
                 
-                // Act
-                MongoFetchedJob payload = (MongoFetchedJob)queue.FetchNextJob(DefaultQueues, token);
+            // Act
+            MongoFetchedJob payload = (MongoFetchedJob)queue.FetchNextJob(DefaultQueues, token);
 
-                // Assert
-                Assert.Equal(jobQueue.JobId.ToString(), payload.JobId);
-                Assert.Equal("default", payload.Queue);
+            // Assert
+            Assert.Equal(jobQueue.JobId.ToString(), payload.JobId);
+            Assert.Equal("default", payload.Queue);
                 
-                _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
-            });
+            _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
         }
 
         [Fact, CleanDatabase]
         public void Dequeue_ShouldLeaveJobInTheQueue_ButSetItsFetchedAtValue()
         {
             // Arrange
-            UseConnection(connection =>
+            var job = new JobDto
             {
-                var job = new JobDto
-                {
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow
-                };
-                connection.JobGraph.InsertOne(job);
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _hangfireDbContext.JobGraph.InsertOne(job);
 
-                var jobQueue = new JobQueueDto
-                {
-                    JobId = job.Id,
-                    Queue = "default"
-                };
-                connection.JobGraph.InsertOne(jobQueue);
+            var jobQueue = new JobQueueDto
+            {
+                JobId = job.Id,
+                Queue = "default"
+            };
+            _hangfireDbContext.JobGraph.InsertOne(jobQueue);
 
-                var queue = CreateJobQueue(connection);
-                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
-                // Act
-                var payload = queue.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken());
+            var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
+            _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
+            // Act
+            var payload = queue.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken());
 
-                // Assert
-                Assert.NotNull(payload);
+            // Assert
+            Assert.NotNull(payload);
 
-                var fetchedAt = connection.JobGraph.OfType<JobQueueDto>()
-                    .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.JobId, ObjectId.Parse(payload.JobId)))
-                    .FirstOrDefault()
-                    .FetchedAt;
+            var fetchedAt = _hangfireDbContext.JobGraph.OfType<JobQueueDto>()
+                .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.JobId, ObjectId.Parse(payload.JobId)))
+                .FirstOrDefault()
+                .FetchedAt;
 
-                Assert.NotNull(fetchedAt);
-                Assert.True(fetchedAt > DateTime.UtcNow.AddMinutes(-1));
-                _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
-            });
+            Assert.NotNull(fetchedAt);
+            Assert.True(fetchedAt > DateTime.UtcNow.AddMinutes(-1));
+            _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
         }
 
         [Fact, CleanDatabase]
         public void Dequeue_ShouldFetchATimedOutJobs_FromTheSpecifiedQueue()
         {
             // Arrange
-            UseConnection(connection =>
+            var job = new JobDto
             {
-                var job = new JobDto
-                {
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow
-                };
-                connection.JobGraph.InsertOne(job);
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _hangfireDbContext.JobGraph.InsertOne(job);
 
-                var jobQueue = new JobQueueDto
-                {
-                    JobId = job.Id,
-                    Queue = "default",
-                    FetchedAt = DateTime.UtcNow.AddDays(-1)
-                };
-                connection.JobGraph.InsertOne(jobQueue);
-                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
-                var queue = CreateJobQueue(connection);
+            var jobQueue = new JobQueueDto
+            {
+                JobId = job.Id,
+                Queue = "default",
+                FetchedAt = DateTime.UtcNow.AddDays(-1)
+            };
+            var options = new MongoStorageOptions
+            {
+                InvisibilityTimeout = TimeSpan.FromMinutes(30)
+            };
+            
+            _hangfireDbContext.JobGraph.InsertOne(jobQueue);
+            _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
+            var queue =new MongoJobFetcher(_hangfireDbContext, options, _jobQueueSemaphoreMock.Object);
 
-                // Act
-                var payload = queue.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken());
+            // Act
+            var payload = queue.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken());
 
-                // Assert
-                Assert.NotEmpty(payload.JobId);
-                _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
-            });
+            // Assert
+            Assert.NotEmpty(payload.JobId);
+            _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
+        }
+        
+        [Fact, CleanDatabase]
+        public void Dequeue_NoInvisibilityTimeout_WaitsForever()
+        {
+            // Arrange
+            var job = new JobDto
+            {
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _hangfireDbContext.JobGraph.InsertOne(job);
+
+            var jobQueue = new JobQueueDto
+            {
+                JobId = job.Id,
+                Queue = "default",
+                FetchedAt = DateTime.UtcNow.AddDays(-1)
+            };
+            var options = new MongoStorageOptions();
+            
+            _hangfireDbContext.JobGraph.InsertOne(jobQueue);
+            _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
+            var queue =new MongoJobFetcher(_hangfireDbContext, options, _jobQueueSemaphoreMock.Object);
+
+            // Act
+            var exception =
+                Assert.Throws<OperationCanceledException>(() =>
+                    queue.FetchNextJob(DefaultQueues,
+                        CreateTimingOutCancellationToken(TimeSpan.FromMilliseconds(200))));
+
+            // Assert
+            Assert.NotNull(exception);
+            _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Never);
         }
 
         [Fact, CleanDatabase]
         public void Dequeue_ShouldSetFetchedAt_OnlyForTheFetchedJob()
         {
             // Arrange
-            UseConnection(connection =>
+            var job1 = new JobDto
             {
-                var job1 = new JobDto
-                {
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow
-                };
-                connection.JobGraph.InsertOne(job1);
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _hangfireDbContext.JobGraph.InsertOne(job1);
 
-                var job2 = new JobDto
-                {
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow
-                };
-                connection.JobGraph.InsertOne(job2);
+            var job2 = new JobDto
+            {
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _hangfireDbContext.JobGraph.InsertOne(job2);
 
-                connection.JobGraph.InsertOne(new JobQueueDto
-                {
-                    JobId = job1.Id,
-                    Queue = "default"
-                });
-
-                connection.JobGraph.InsertOne(new JobQueueDto
-                {
-                    JobId = job2.Id,
-                    Queue = "default"
-                });
-
-                var queue = CreateJobQueue(connection);
-                
-                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
-
-                // Act
-                var payload = queue.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken());
-
-                // Assert
-                var otherJobFetchedAt = connection
-                    .JobGraph.OfType<JobQueueDto>().Find(Builders<JobQueueDto>.Filter.Ne(_ => _.JobId, ObjectId.Parse(payload.JobId)))
-                    .FirstOrDefault()
-                    .FetchedAt;
-
-                Assert.Null(otherJobFetchedAt);
-                _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
+            _hangfireDbContext.JobGraph.InsertOne(new JobQueueDto
+            {
+                JobId = job1.Id,
+                Queue = "default"
             });
+
+            _hangfireDbContext.JobGraph.InsertOne(new JobQueueDto
+            {
+                JobId = job2.Id,
+                Queue = "default"
+            });
+
+            var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
+                
+            _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
+
+            // Act
+            var payload = queue.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken());
+
+            // Assert
+            var otherJobFetchedAt = _hangfireDbContext
+                .JobGraph.OfType<JobQueueDto>().Find(Builders<JobQueueDto>.Filter.Ne(_ => _.JobId, ObjectId.Parse(payload.JobId)))
+                .FirstOrDefault()
+                .FetchedAt;
+
+            Assert.Null(otherJobFetchedAt);
+            _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
         }
 
         [Fact, CleanDatabase]
         public void Dequeue_ShouldFetchJobs_OnlyFromSpecifiedQueues()
         {
-            UseConnection(connection =>
+            var job1 = new JobDto
             {
-                var job1 = new JobDto
-                {
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow
-                };
-                connection.JobGraph.InsertOne(job1);
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _hangfireDbContext.JobGraph.InsertOne(job1);
 
-                connection.JobGraph.InsertOne(new JobQueueDto
-                {
-                    JobId = job1.Id,
-                    Queue = "critical"
-                });
-
-
-                var queue = CreateJobQueue(connection);
-                
-                Assert.ThrowsAny<OperationCanceledException>(() => queue.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken()));
+            _hangfireDbContext.JobGraph.InsertOne(new JobQueueDto
+            {
+                JobId = job1.Id,
+                Queue = "critical"
             });
+
+
+            var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
+                
+            Assert.ThrowsAny<OperationCanceledException>(() => queue.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken()));
         }
 
         [Fact, CleanDatabase]
         public void Dequeue_ShouldFetchJobs_FromMultipleQueuesBasedOnQueuePriority()
         {
-            UseConnection(connection =>
+            var criticalJob = new JobDto
             {
-                var criticalJob = new JobDto
-                {
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow
-                };
-                connection.JobGraph.InsertOne(criticalJob);
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _hangfireDbContext.JobGraph.InsertOne(criticalJob);
 
-                var defaultJob = new JobDto
-                {
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow
-                };
-                connection.JobGraph.InsertOne(defaultJob);
+            var defaultJob = new JobDto
+            {
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _hangfireDbContext.JobGraph.InsertOne(defaultJob);
 
-                connection.JobGraph.InsertOne(new JobQueueDto
-                {
-                    JobId = defaultJob.Id,
-                    Queue = "default"
-                });
-
-                connection.JobGraph.InsertOne(new JobQueueDto
-                {
-                    JobId = criticalJob.Id,
-                    Queue = "critical"
-                });
-
-                var queue = CreateJobQueue(connection);
-                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("critical")).Returns(true);
-                _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
-                
-                var critical = (MongoFetchedJob)queue.FetchNextJob(
-                    new[] { "critical", "default" },
-                    CreateTimingOutCancellationToken());
-
-                Assert.NotNull(critical.JobId);
-                Assert.Equal("critical", critical.Queue);
-
-                var @default = (MongoFetchedJob)queue.FetchNextJob(
-                    new[] { "critical", "default" },
-                    CreateTimingOutCancellationToken());
-
-                Assert.NotNull(@default.JobId);
-                Assert.Equal("default", @default.Queue);
-                
-                _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("critical"), Times.Once);
-                _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
+            _hangfireDbContext.JobGraph.InsertOne(new JobQueueDto
+            {
+                JobId = defaultJob.Id,
+                Queue = "default"
             });
-        }
 
-        private static CancellationToken CreateTimingOutCancellationToken()
-        {
-            var source = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            return source.Token;
-        }
-
-        private MongoJobFetcher CreateJobQueue(HangfireDbContext connection)
-        {
-            return new MongoJobFetcher(connection, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
-        }
-
-        private static void UseConnection(Action<HangfireDbContext> action)
-        {
-            using (var connection = ConnectionUtils.CreateDbContext())
+            _hangfireDbContext.JobGraph.InsertOne(new JobQueueDto
             {
-                action(connection);
-            }
+                JobId = criticalJob.Id,
+                Queue = "critical"
+            });
+
+            var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
+            _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("critical")).Returns(true);
+            _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
+                
+            var critical = (MongoFetchedJob)queue.FetchNextJob(
+                new[] { "critical", "default" },
+                CreateTimingOutCancellationToken());
+
+            Assert.NotNull(critical.JobId);
+            Assert.Equal("critical", critical.Queue);
+
+            var @default = (MongoFetchedJob)queue.FetchNextJob(
+                new[] { "critical", "default" },
+                CreateTimingOutCancellationToken());
+
+            Assert.NotNull(@default.JobId);
+            Assert.Equal("default", @default.Queue);
+                
+            _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("critical"), Times.Once);
+            _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
+        }
+
+        private static CancellationToken CreateTimingOutCancellationToken(TimeSpan timeSpan = default(TimeSpan))
+        {
+            timeSpan = timeSpan == default(TimeSpan) ? TimeSpan.FromSeconds(10) : timeSpan;
+            
+            var source = new CancellationTokenSource(timeSpan);
+            return source.Token;
         }
     }
 #pragma warning restore 1591

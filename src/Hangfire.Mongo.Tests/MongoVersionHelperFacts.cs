@@ -38,11 +38,10 @@ namespace Hangfire.Mongo.Tests
         public void GetVersion_FromDb_Success()
         {
             // ARRANGE
-            using (var connection = ConnectionUtils.CreateDbContext())
-            {
-                // ACT
-                var version = MongoVersionHelper.GetVersion(connection.Database);
-            }
+            var db = ConnectionUtils.CreateDbContext();
+            
+            // ACT
+            var version = MongoVersionHelper.GetVersion(db.Database);
 
             // ASSERT
             // no exception

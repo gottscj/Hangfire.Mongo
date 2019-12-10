@@ -20,7 +20,7 @@ namespace Hangfire.Mongo
         {
             Prefix = "hangfire";
             QueuePollInterval = TimeSpan.FromSeconds(15);
-            InvisibilityTimeout = TimeSpan.FromMinutes(30);
+            InvisibilityTimeout = null;
             DistributedLockLifetime = TimeSpan.FromSeconds(30);
             JobExpirationCheckInterval = TimeSpan.FromHours(1);
             CountersAggregateInterval = TimeSpan.FromMinutes(5);
@@ -64,8 +64,7 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Invisibility timeout
         /// </summary>
-        [Obsolete("This is marked obsolete in Hangfire and is not used anymore")]
-        public TimeSpan InvisibilityTimeout { get; set; }
+        public TimeSpan? InvisibilityTimeout { get; set; }
 
         /// <summary>
         /// Lifetime of distributed lock
