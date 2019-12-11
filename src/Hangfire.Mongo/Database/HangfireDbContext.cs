@@ -7,7 +7,7 @@ namespace Hangfire.Mongo.Database
     /// <summary>
     /// Represents Mongo database context for Hangfire
     /// </summary>
-    public sealed class HangfireDbContext : IDisposable
+    public sealed class HangfireDbContext
     {
         private readonly string _prefix;
 
@@ -66,12 +66,5 @@ namespace Hangfire.Mongo.Database
         /// Reference to collection which contains servers information
         /// </summary>
         public IMongoCollection<ServerDto> Server => Database.GetCollection<ServerDto>(_prefix + ".server");
-
-        /// <summary>
-        /// Disposes the object
-        /// </summary>
-        public void Dispose()
-        {
-        }
     }
 }

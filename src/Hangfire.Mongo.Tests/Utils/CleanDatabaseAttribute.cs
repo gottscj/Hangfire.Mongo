@@ -46,20 +46,18 @@ namespace Hangfire.Mongo.Tests.Utils
 
         private static void RecreateDatabaseAndInstallObjects()
         {
-            using (var context = ConnectionUtils.CreateDbContext())
+            
+            try
             {
-                try
-                {
-                 
-                    context.DistributedLock.DeleteMany(new BsonDocument());
-                    context.JobGraph.DeleteMany(new BsonDocument());
-                    context.Server.DeleteMany(new BsonDocument());
-                    context.Database.DropCollection(context.Notifications.CollectionNamespace.CollectionName);
-                }
-                catch (MongoException ex)
-                {
-                    throw new InvalidOperationException("Unable to cleanup database.", ex);
-                }
+                var context = ConnectionUtils.CreateDbContext();
+                context.DistributedLock.DeleteMany(new BsonDocument());
+                context.JobGraph.DeleteMany(new BsonDocument());
+                context.Server.DeleteMany(new BsonDocument());
+                context.Database.DropCollection(context.Notifications.CollectionNamespace.CollectionName);
+            }
+            catch (MongoException ex)
+            {
+                throw new InvalidOperationException("Unable to cleanup database.", ex);
             }
         }
     }

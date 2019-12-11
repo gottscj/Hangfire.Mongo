@@ -17,954 +17,870 @@ namespace Hangfire.Mongo.Tests
     [Collection("Database")]
     public class MongoWriteOnlyTransactionFacts
     {
+        private readonly HangfireDbContext _database = ConnectionUtils.CreateDbContext();
+
         [Fact]
         public void Ctor_ThrowsAnException_IfConnectionIsNull()
         {
-            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(null));
+            var exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(null));
 
             Assert.Equal("dbContext", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void ExpireJob_SetsJobExpirationData()
         {
-            UseConnection(database =>
+            var job = new JobDto
             {
-                JobDto job = new JobDto
-                {
-                    Id = ObjectId.GenerateNewId(1),
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow
-                };
-                database.JobGraph.InsertOne(job);
+                Id = ObjectId.GenerateNewId(1),
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _database.JobGraph.InsertOne(job);
 
-                JobDto anotherJob = new JobDto
-                {
-                    Id = ObjectId.GenerateNewId(2),
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow
-                };
-                database.JobGraph.InsertOne(anotherJob);
+            var anotherJob = new JobDto
+            {
+                Id = ObjectId.GenerateNewId(2),
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _database.JobGraph.InsertOne(anotherJob);
 
-                var jobId = job.Id.ToString();
-                var anotherJobId = anotherJob.Id.ToString();
+            var jobId = job.Id.ToString();
+            var anotherJobId = anotherJob.Id.ToString();
 
-                Commit(database, x => x.ExpireJob(jobId.ToString(), TimeSpan.FromDays(1)));
+            Commit(x => x.ExpireJob(jobId, TimeSpan.FromDays(1)));
 
-                var testJob = GetTestJob(database, jobId);
-                Assert.True(DateTime.UtcNow.AddMinutes(-1) < testJob.ExpireAt && testJob.ExpireAt <= DateTime.UtcNow.AddDays(1));
+            var testJob = GetTestJob(_database, jobId);
+            Assert.True(DateTime.UtcNow.AddMinutes(-1) < testJob.ExpireAt &&
+                        testJob.ExpireAt <= DateTime.UtcNow.AddDays(1));
 
-                var anotherTestJob = GetTestJob(database, anotherJobId);
-                Assert.Null(anotherTestJob.ExpireAt);
-            });
+            var anotherTestJob = GetTestJob(_database, anotherJobId);
+            Assert.Null(anotherTestJob.ExpireAt);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void PersistJob_ClearsTheJobExpirationData()
         {
-            UseConnection(database =>
+            var job = new JobDto
             {
-                JobDto job = new JobDto
-                {
-                    Id = ObjectId.GenerateNewId(1),
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow,
-                    ExpireAt = DateTime.UtcNow
-                };
-                database.JobGraph.InsertOne(job);
+                Id = ObjectId.GenerateNewId(1),
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow,
+                ExpireAt = DateTime.UtcNow
+            };
+            _database.JobGraph.InsertOne(job);
 
-                JobDto anotherJob = new JobDto
-                {
-                    Id = ObjectId.GenerateNewId(2),
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow,
-                    ExpireAt = DateTime.UtcNow
-                };
-                database.JobGraph.InsertOne(anotherJob);
+            var anotherJob = new JobDto
+            {
+                Id = ObjectId.GenerateNewId(2),
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow,
+                ExpireAt = DateTime.UtcNow
+            };
+            _database.JobGraph.InsertOne(anotherJob);
 
-                var jobId = job.Id.ToString();
-                var anotherJobId = anotherJob.Id.ToString();
+            var jobId = job.Id.ToString();
+            var anotherJobId = anotherJob.Id.ToString();
 
-                Commit(database, x => x.PersistJob(jobId.ToString()));
+            Commit(x => x.PersistJob(jobId));
 
-                var testjob = GetTestJob(database, jobId);
-                Assert.Null(testjob.ExpireAt);
+            var testjob = GetTestJob(_database, jobId);
+            Assert.Null(testjob.ExpireAt);
 
-                var anotherTestJob = GetTestJob(database, anotherJobId);
-                Assert.NotNull(anotherTestJob.ExpireAt);
-            });
+            var anotherTestJob = GetTestJob(_database, anotherJobId);
+            Assert.NotNull(anotherTestJob.ExpireAt);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void SetJobState_AppendsAStateAndSetItToTheJob()
         {
-            UseConnection(database =>
+            var job = new JobDto
             {
-                JobDto job = new JobDto
-                {
-                    Id = ObjectId.GenerateNewId(1),
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow
-                };
-                database.JobGraph.InsertOne(job);
+                Id = ObjectId.GenerateNewId(1),
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _database.JobGraph.InsertOne(job);
 
-                JobDto anotherJob = new JobDto
-                {
-                    Id = ObjectId.GenerateNewId(2),
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow
-                };
-                database.JobGraph.InsertOne(anotherJob);
+            var anotherJob = new JobDto
+            {
+                Id = ObjectId.GenerateNewId(2),
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _database.JobGraph.InsertOne(anotherJob);
 
-                var jobId = job.Id.ToString();
-                var anotherJobId = anotherJob.Id.ToString();
-                var serializedData = new Dictionary<string, string> { { "Name", "Value" } };
+            var jobId = job.Id.ToString();
+            var anotherJobId = anotherJob.Id.ToString();
+            var serializedData = new Dictionary<string, string> {{"Name", "Value"}};
 
-                var state = new Mock<IState>();
-                state.Setup(x => x.Name).Returns("State");
-                state.Setup(x => x.Reason).Returns("Reason");
-                state.Setup(x => x.SerializeData()).Returns(serializedData);
+            var state = new Mock<IState>();
+            state.Setup(x => x.Name).Returns("State");
+            state.Setup(x => x.Reason).Returns("Reason");
+            state.Setup(x => x.SerializeData()).Returns(serializedData);
 
-                Commit(database, x => x.SetJobState(jobId.ToString(), state.Object));
+            Commit(x => x.SetJobState(jobId, state.Object));
 
-                var testJob = GetTestJob(database, jobId);
-                Assert.Equal("State", testJob.StateName);
-                Assert.Single(testJob.StateHistory);
+            var testJob = GetTestJob(_database, jobId);
+            Assert.Equal("State", testJob.StateName);
+            Assert.Single(testJob.StateHistory);
 
-                var anotherTestJob = GetTestJob(database, anotherJobId);
-                Assert.Null(anotherTestJob.StateName);
-                Assert.Empty(anotherTestJob.StateHistory);
+            var anotherTestJob = GetTestJob(_database, anotherJobId);
+            Assert.Null(anotherTestJob.StateName);
+            Assert.Empty(anotherTestJob.StateHistory);
 
-                var jobWithStates = database.JobGraph.OfType<JobDto>().Find(new BsonDocument()).FirstOrDefault();
+            var jobWithStates = _database.JobGraph.OfType<JobDto>().Find(new BsonDocument()).FirstOrDefault();
 
-                var jobState = jobWithStates.StateHistory.Single();
-                Assert.Equal("State", jobState.Name);
-                Assert.Equal("Reason", jobState.Reason);
-                Assert.Equal(serializedData, jobState.Data);
-            });
+            var jobState = jobWithStates.StateHistory.Single();
+            Assert.Equal("State", jobState.Name);
+            Assert.Equal("Reason", jobState.Reason);
+            Assert.Equal(serializedData, jobState.Data);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void AddJobState_JustAddsANewRecordInATable()
         {
-            UseConnection(database =>
+            var job = new JobDto
             {
-                JobDto job = new JobDto
-                {
-                    Id = ObjectId.GenerateNewId(1),
-                    InvocationData = "",
-                    Arguments = "",
-                    CreatedAt = DateTime.UtcNow
-                };
-                database.JobGraph.InsertOne(job);
+                Id = ObjectId.GenerateNewId(1),
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow
+            };
+            _database.JobGraph.InsertOne(job);
 
-                var jobId = job.Id.ToString();
-                var serializedData = new Dictionary<string, string> { { "Name", "Value" } };
+            var jobId = job.Id.ToString();
+            var serializedData = new Dictionary<string, string> {{"Name", "Value"}};
 
-                var state = new Mock<IState>();
-                state.Setup(x => x.Name).Returns("State");
-                state.Setup(x => x.Reason).Returns("Reason");
-                state.Setup(x => x.SerializeData()).Returns(serializedData);
+            var state = new Mock<IState>();
+            state.Setup(x => x.Name).Returns("State");
+            state.Setup(x => x.Reason).Returns("Reason");
+            state.Setup(x => x.SerializeData()).Returns(serializedData);
 
-                Commit(database, x => x.AddJobState(jobId, state.Object));
+            Commit(x => x.AddJobState(jobId, state.Object));
 
-                var testJob = GetTestJob(database, jobId);
-                Assert.Null(testJob.StateName);
+            var testJob = GetTestJob(_database, jobId);
+            Assert.Null(testJob.StateName);
 
-                var jobWithStates = database.JobGraph.OfType<JobDto>().Find(new BsonDocument()).ToList().Single();
-                var jobState = jobWithStates.StateHistory.Last();
-                Assert.Equal("State", jobState.Name);
-                Assert.Equal("Reason", jobState.Reason);
-                Assert.Equal(serializedData, jobState.Data);
-            });
+            var jobWithStates = _database.JobGraph.OfType<JobDto>().Find(new BsonDocument()).ToList().Single();
+            var jobState = jobWithStates.StateHistory.Last();
+            Assert.Equal("State", jobState.Name);
+            Assert.Equal("Reason", jobState.Reason);
+            Assert.Equal(serializedData, jobState.Data);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void AddToQueue_CallsEnqueue_OnTargetPersistentQueue()
         {
-            UseConnection(database =>
-            {
-                var jobId = ObjectId.GenerateNewId().ToString();
-                Commit(database, x => x.AddToQueue("default", jobId));
+            var jobId = ObjectId.GenerateNewId().ToString();
+            Commit(x => x.AddToQueue("default", jobId));
 
-                var jobQueueDto = database
-                    .JobGraph
-                    .OfType<JobQueueDto>()
-                    .Find(j => j.Queue == "default" && j.JobId == ObjectId.Parse(jobId))
-                    .FirstOrDefault();
-                
-                Assert.NotNull(jobQueueDto);
-            });
+            var jobQueueDto = _database
+                .JobGraph
+                .OfType<JobQueueDto>()
+                .Find(j => j.Queue == "default" && j.JobId == ObjectId.Parse(jobId))
+                .FirstOrDefault();
+
+            Assert.NotNull(jobQueueDto);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void IncrementCounter_AddsRecordToCounterTable_WithPositiveValue()
         {
-            UseConnection(database =>
-            {
-                Commit(database, x => x.IncrementCounter("my-key"));
+            Commit(x => x.IncrementCounter("my-key"));
 
-                CounterDto record = database.JobGraph.OfType<CounterDto>().Find(new BsonDocument()).ToList().Single();
+            var record = _database.JobGraph.OfType<CounterDto>().Find(new BsonDocument()).ToList().Single();
 
-                Assert.Equal("my-key", record.Key);
-                Assert.Equal(1L, record.Value);
-                Assert.Null(record.ExpireAt);
-            });
+            Assert.Equal("my-key", record.Key);
+            Assert.Equal(1L, record.Value);
+            Assert.Null(record.ExpireAt);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void IncrementCounter_WithExpiry_AddsARecord_WithExpirationTimeSet()
         {
-            UseConnection(database =>
-            {
-                Commit(database, x => x.IncrementCounter("my-key", TimeSpan.FromDays(1)));
+            Commit(x => x.IncrementCounter("my-key", TimeSpan.FromDays(1)));
 
-                CounterDto counter = database.JobGraph.OfType<CounterDto>().Find(new BsonDocument()).Single();
+            var counter = _database.JobGraph.OfType<CounterDto>().Find(new BsonDocument()).Single();
 
-                Assert.Equal("my-key", counter.Key);
-                Assert.Equal(1L, counter.Value);
-                Assert.NotNull(counter.ExpireAt);
+            Assert.Equal("my-key", counter.Key);
+            Assert.Equal(1L, counter.Value);
+            Assert.NotNull(counter.ExpireAt);
 
-                var expireAt = (DateTime)counter.ExpireAt;
+            var expireAt = (DateTime) counter.ExpireAt;
 
-                Assert.True(DateTime.UtcNow.AddHours(23) < expireAt);
-                Assert.True(expireAt < DateTime.UtcNow.AddHours(25));
-            });
+            Assert.True(DateTime.UtcNow.AddHours(23) < expireAt);
+            Assert.True(expireAt < DateTime.UtcNow.AddHours(25));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void IncrementCounter_WithExistingKey_AddsAnotherRecord()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.IncrementCounter("my-key");
-                    x.IncrementCounter("my-key");
-                });
-
-                var counter = database.JobGraph.OfType<CounterDto>()
-                    .Find(new BsonDocument(nameof(CounterDto.Key), "my-key")).FirstOrDefault();
-                
-                Assert.NotNull(counter);
-                Assert.Equal(2, counter.Value);
+                x.IncrementCounter("my-key");
+                x.IncrementCounter("my-key");
             });
+
+            var counter = _database.JobGraph.OfType<CounterDto>()
+                .Find(new BsonDocument(nameof(CounterDto.Key), "my-key")).FirstOrDefault();
+
+            Assert.NotNull(counter);
+            Assert.Equal(2, counter.Value);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void DecrementCounter_AddsRecordToCounterTable_WithNegativeValue()
         {
-            UseConnection(database =>
-            {
-                Commit(database, x => x.DecrementCounter("my-key"));
+            Commit(x => x.DecrementCounter("my-key"));
 
-                CounterDto record = database.JobGraph.OfType<CounterDto>().Find(new BsonDocument()).Single();
+            var record = _database.JobGraph.OfType<CounterDto>().Find(new BsonDocument()).Single();
 
-                Assert.Equal("my-key", record.Key);
-                Assert.Equal(-1L, record.Value);
-                Assert.Null(record.ExpireAt);
-            });
+            Assert.Equal("my-key", record.Key);
+            Assert.Equal(-1L, record.Value);
+            Assert.Null(record.ExpireAt);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void DecrementCounter_WithExpiry_AddsARecord_WithExpirationTimeSet()
         {
-            UseConnection(database =>
-            {
-                Commit(database, x => x.DecrementCounter("my-key", TimeSpan.FromDays(1)));
+            Commit(x => x.DecrementCounter("my-key", TimeSpan.FromDays(1)));
 
-                CounterDto counter = database.JobGraph.OfType<CounterDto>().Find(new BsonDocument()).Single();
+            var counter = _database.JobGraph.OfType<CounterDto>().Find(new BsonDocument()).Single();
 
-                Assert.Equal("my-key", counter.Key);
-                Assert.Equal(-1L, counter.Value);
-                Assert.NotNull(counter.ExpireAt);
+            Assert.Equal("my-key", counter.Key);
+            Assert.Equal(-1L, counter.Value);
+            Assert.NotNull(counter.ExpireAt);
 
-                var expireAt = (DateTime)counter.ExpireAt;
+            var expireAt = (DateTime) counter.ExpireAt;
 
-                Assert.True(DateTime.UtcNow.AddHours(23) < expireAt);
-                Assert.True(expireAt < DateTime.UtcNow.AddHours(25));
-            });
+            Assert.True(DateTime.UtcNow.AddHours(23) < expireAt);
+            Assert.True(expireAt < DateTime.UtcNow.AddHours(25));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void DecrementCounter_WithExistingKey_AddsAnotherRecord()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.DecrementCounter("my-key");
-                    x.DecrementCounter("my-key");
-                });
-
-                var counter = database.JobGraph.OfType<CounterDto>().Find(new BsonDocument()).Single();
-
-                Assert.Equal(-2, counter.Value);
+                x.DecrementCounter("my-key");
+                x.DecrementCounter("my-key");
             });
+
+            var counter = _database.JobGraph.OfType<CounterDto>().Find(new BsonDocument()).Single();
+
+            Assert.Equal(-2, counter.Value);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void AddToSet_AddsARecord_IfThereIsNo_SuchKeyAndValue()
         {
-            UseConnection(database =>
-            {
-                Commit(database, x => x.AddToSet("my-key", "my-value"));
+            Commit(x => x.AddToSet("my-key", "my-value"));
 
-                SetDto record = database.JobGraph.OfType<SetDto>().Find(new BsonDocument()).ToList().Single();
+            var record = _database.JobGraph.OfType<SetDto>().Find(new BsonDocument()).ToList().Single();
 
-                Assert.Equal("my-key<my-value>", record.Key);
-                Assert.Equal(0.0, record.Score, 2);
-            });
+            Assert.Equal("my-key<my-value>", record.Key);
+            Assert.Equal(0.0, record.Score, 2);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void AddToSet_AddsARecord_WhenKeyIsExists_ButValuesAreDifferent()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.AddToSet("my-key", "my-value");
-                    x.AddToSet("my-key", "another-value");
-                });
-
-                var recordCount = database.JobGraph.OfType<SetDto>().Count(new BsonDocument());
-
-                Assert.Equal(2, recordCount);
+                x.AddToSet("my-key", "my-value");
+                x.AddToSet("my-key", "another-value");
             });
+
+            var recordCount = _database.JobGraph.OfType<SetDto>().Count(new BsonDocument());
+
+            Assert.Equal(2, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void AddToSet_DoesNotAddARecord_WhenBothKeyAndValueAreExist()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.AddToSet("my-key", "my-value");
-                    x.AddToSet("my-key", "my-value");
-                });
-
-                var recordCount = database.JobGraph.OfType<SetDto>().Count(new BsonDocument());
-
-                Assert.Equal(1, recordCount);
+                x.AddToSet("my-key", "my-value");
+                x.AddToSet("my-key", "my-value");
             });
+
+            var recordCount = _database.JobGraph.OfType<SetDto>().Count(new BsonDocument());
+
+            Assert.Equal(1, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void AddToSet_WithScore_AddsARecordWithScore_WhenBothKeyAndValueAreNotExist()
         {
-            UseConnection(database =>
-            {
-                Commit(database, x => x.AddToSet("my-key", "my-value", 3.2));
+            Commit(x => x.AddToSet("my-key", "my-value", 3.2));
 
-                SetDto record = database.JobGraph.OfType<SetDto>().Find(new BsonDocument()).ToList().Single();
+            var record = _database.JobGraph.OfType<SetDto>().Find(new BsonDocument()).ToList().Single();
 
-                Assert.Equal("my-key<my-value>", record.Key);
-                Assert.Equal(3.2, record.Score, 3);
-            });
+            Assert.Equal("my-key<my-value>", record.Key);
+            Assert.Equal(3.2, record.Score, 3);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void AddToSet_WithScore_UpdatesAScore_WhenBothKeyAndValueAreExist()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.AddToSet("my-key", "my-value");
-                    x.AddToSet("my-key", "my-value", 3.2);
-                });
-
-                SetDto record = database.JobGraph.OfType<SetDto>().Find(new BsonDocument()).ToList().Single();
-
-                Assert.Equal(3.2, record.Score, 3);
+                x.AddToSet("my-key", "my-value");
+                x.AddToSet("my-key", "my-value", 3.2);
             });
+
+            var record = _database.JobGraph.OfType<SetDto>().Find(new BsonDocument()).ToList().Single();
+
+            Assert.Equal(3.2, record.Score, 3);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void RemoveFromSet_RemovesARecord_WithGivenKeyAndValue()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.AddToSet("my-key", "my-value");
-                    x.RemoveFromSet("my-key", "my-value");
-                });
-
-                var recordCount = database.JobGraph.OfType<SetDto>().Count(new BsonDocument());
-
-                Assert.Equal(0, recordCount);
+                x.AddToSet("my-key", "my-value");
+                x.RemoveFromSet("my-key", "my-value");
             });
+
+            var recordCount = _database.JobGraph.OfType<SetDto>().Count(new BsonDocument());
+
+            Assert.Equal(0, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void RemoveFromSet_DoesNotRemoveRecord_WithSameKey_AndDifferentValue()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.AddToSet("my-key", "my-value");
-                    x.RemoveFromSet("my-key", "different-value");
-                });
-
-                var recordCount = database.JobGraph.OfType<SetDto>().Count(new BsonDocument());
-
-                Assert.Equal(1, recordCount);
+                x.AddToSet("my-key", "my-value");
+                x.RemoveFromSet("my-key", "different-value");
             });
+
+            var recordCount = _database.JobGraph.OfType<SetDto>().Count(new BsonDocument());
+
+            Assert.Equal(1, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void RemoveFromSet_DoesNotRemoveRecord_WithSameValue_AndDifferentKey()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.AddToSet("my-key", "my-value");
-                    x.RemoveFromSet("different-key", "my-value");
-                });
-
-                var recordCount = database.JobGraph.OfType<SetDto>().Count(new BsonDocument());
-
-                Assert.Equal(1, recordCount);
+                x.AddToSet("my-key", "my-value");
+                x.RemoveFromSet("different-key", "my-value");
             });
+
+            var recordCount = _database.JobGraph.OfType<SetDto>().Count(new BsonDocument());
+
+            Assert.Equal(1, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void InsertToList_AddsARecord_WithGivenValues()
         {
-            UseConnection(database =>
-            {
-                Commit(database, x => x.InsertToList("my-key", "my-value"));
+            Commit(x => x.InsertToList("my-key", "my-value"));
 
-                ListDto record = database.JobGraph.OfType<ListDto>().Find(new BsonDocument()).ToList().Single();
-                Assert.Equal("my-key", record.Item);
-                Assert.Equal("my-value", record.Value);
-            });
+            var record = _database.JobGraph.OfType<ListDto>().Find(new BsonDocument()).ToList().Single();
+            Assert.Equal("my-key", record.Item);
+            Assert.Equal("my-value", record.Value);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void InsertToList_AddsAnotherRecord_WhenBothKeyAndValueAreExist()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.InsertToList("my-key", "my-value");
-                    x.InsertToList("my-key", "my-value");
-                });
-
-                var recordCount = database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
-
-                Assert.Equal(2, recordCount);
+                x.InsertToList("my-key", "my-value");
+                x.InsertToList("my-key", "my-value");
             });
+
+            var recordCount = _database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
+
+            Assert.Equal(2, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void RemoveFromList_RemovesAllRecords_WithGivenKeyAndValue()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.InsertToList("my-key", "my-value");
-                    x.InsertToList("my-key", "my-value");
-                    x.RemoveFromList("my-key", "my-value");
-                });
-
-                var recordCount = database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
-
-                Assert.Equal(0, recordCount);
+                x.InsertToList("my-key", "my-value");
+                x.InsertToList("my-key", "my-value");
+                x.RemoveFromList("my-key", "my-value");
             });
+
+            var recordCount = _database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
+
+            Assert.Equal(0, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void RemoveFromList_DoesNotRemoveRecords_WithSameKey_ButDifferentValue()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.InsertToList("my-key", "my-value");
-                    x.RemoveFromList("my-key", "different-value");
-                });
-
-                var recordCount = database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
-
-                Assert.Equal(1, recordCount);
+                x.InsertToList("my-key", "my-value");
+                x.RemoveFromList("my-key", "different-value");
             });
+
+            var recordCount = _database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
+
+            Assert.Equal(1, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void RemoveFromList_DoesNotRemoveRecords_WithSameValue_ButDifferentKey()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.InsertToList("my-key", "my-value");
-                    x.RemoveFromList("different-key", "my-value");
-                });
-
-                var recordCount = database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
-
-                Assert.Equal(1, recordCount);
+                x.InsertToList("my-key", "my-value");
+                x.RemoveFromList("different-key", "my-value");
             });
+
+            var recordCount = _database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
+
+            Assert.Equal(1, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void TrimList_TrimsAList_ToASpecifiedRange()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.InsertToList("my-key", "0");
-                    x.InsertToList("my-key", "1");
-                    x.InsertToList("my-key", "2");
-                    x.InsertToList("my-key", "3");
-                    x.TrimList("my-key", 1, 2);
-                });
-
-                ListDto[] records = database.JobGraph.OfType<ListDto>().Find(new BsonDocument()).ToList().ToArray();
-
-                Assert.Equal(2, records.Length);
-                Assert.Equal("1", records[0].Value);
-                Assert.Equal("2", records[1].Value);
+                x.InsertToList("my-key", "0");
+                x.InsertToList("my-key", "1");
+                x.InsertToList("my-key", "2");
+                x.InsertToList("my-key", "3");
+                x.TrimList("my-key", 1, 2);
             });
+
+            var records = _database.JobGraph.OfType<ListDto>().Find(new BsonDocument()).ToList().ToArray();
+
+            Assert.Equal(2, records.Length);
+            Assert.Equal("1", records[0].Value);
+            Assert.Equal("2", records[1].Value);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void TrimList_RemovesRecordsToEnd_IfKeepAndingAt_GreaterThanMaxElementIndex()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.InsertToList("my-key", "0");
-                    x.InsertToList("my-key", "1");
-                    x.InsertToList("my-key", "2");
-                    x.TrimList("my-key", 1, 100);
-                });
-
-                var recordCount = database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
-
-                Assert.Equal(2, recordCount);
+                x.InsertToList("my-key", "0");
+                x.InsertToList("my-key", "1");
+                x.InsertToList("my-key", "2");
+                x.TrimList("my-key", 1, 100);
             });
+
+            var recordCount = _database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
+
+            Assert.Equal(2, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void TrimList_RemovesAllRecords_WhenStartingFromValue_GreaterThanMaxElementIndex()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.InsertToList("my-key", "0");
-                    x.TrimList("my-key", 1, 100);
-                });
-
-                var recordCount = database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
-
-                Assert.Equal(0, recordCount);
+                x.InsertToList("my-key", "0");
+                x.TrimList("my-key", 1, 100);
             });
+
+            var recordCount = _database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
+
+            Assert.Equal(0, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void TrimList_RemovesAllRecords_IfStartFromGreaterThanEndingAt()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.InsertToList("my-key", "0");
-                    x.TrimList("my-key", 1, 0);
-                });
-
-                var recordCount = database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
-
-                Assert.Equal(0, recordCount);
+                x.InsertToList("my-key", "0");
+                x.TrimList("my-key", 1, 0);
             });
+
+            var recordCount = _database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
+
+            Assert.Equal(0, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void TrimList_RemovesRecords_OnlyOfAGivenKey()
         {
-            UseConnection(database =>
+            Commit(x =>
             {
-                Commit(database, x =>
-                {
-                    x.InsertToList("my-key", "0");
-                    x.TrimList("another-key", 1, 0);
-                });
-
-                var recordCount = database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
-
-                Assert.Equal(1, recordCount);
+                x.InsertToList("my-key", "0");
+                x.TrimList("another-key", 1, 0);
             });
+
+            var recordCount = _database.JobGraph.OfType<ListDto>().Count(new BsonDocument());
+
+            Assert.Equal(1, recordCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void SetRangeInHash_ThrowsAnException_WhenKeyIsNull()
         {
-            UseConnection(database =>
-            {
-                ArgumentNullException exception = Assert.Throws<ArgumentNullException>(
-                    () => Commit(database, x => x.SetRangeInHash(null, new Dictionary<string, string>())));
+            var exception = Assert.Throws<ArgumentNullException>(
+                () => Commit(x => x.SetRangeInHash(null, new Dictionary<string, string>())));
 
-                Assert.Equal("key", exception.ParamName);
-            });
+            Assert.Equal("key", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void SetRangeInHash_ThrowsAnException_WhenKeyValuePairsArgumentIsNull()
         {
-            UseConnection(database =>
-            {
-                var exception = Assert.Throws<ArgumentNullException>(
-                    () => Commit(database, x => x.SetRangeInHash("some-hash", null)));
+            var exception = Assert.Throws<ArgumentNullException>(
+                () => Commit(x => x.SetRangeInHash("some-hash", null)));
 
-                Assert.Equal("keyValuePairs", exception.ParamName);
-            });
+            Assert.Equal("keyValuePairs", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void SetRangeInHash_MergesAllRecords()
         {
-            UseConnection(database =>
+            Commit(x => x.SetRangeInHash("some-hash", new Dictionary<string, string>
             {
-                Commit(database, x => x.SetRangeInHash("some-hash", new Dictionary<string, string>
-                        {
-                            { "Key1", "Value1" },
-                            { "Key2", "Value2" }
-                        }));
+                {"Key1", "Value1"},
+                {"Key2", "Value2"}
+            }));
 
-                var result = database.JobGraph.OfType<HashDto>()
-                    .Find(new BsonDocument(nameof(KeyJobDto.Key), "some-hash")).FirstOrDefault();
+            var result = _database.JobGraph.OfType<HashDto>()
+                .Find(new BsonDocument(nameof(KeyJobDto.Key), "some-hash")).FirstOrDefault();
 
-                Assert.Equal("Value1", result.Fields["Key1"]);
-                Assert.Equal("Value2", result.Fields["Key2"]);
-            });
+            Assert.Equal("Value1", result.Fields["Key1"]);
+            Assert.Equal("Value2", result.Fields["Key2"]);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void RemoveHash_ThrowsAnException_WhenKeyIsNull()
         {
-            UseConnection(database =>
-            {
-                Assert.Throws<ArgumentNullException>(
-                    () => Commit(database, x => x.RemoveHash(null)));
-            });
+            Assert.Throws<ArgumentNullException>(
+                () => Commit(x => x.RemoveHash(null)));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void RemoveHash_RemovesAllHashRecords()
         {
-            UseConnection(database =>
+            // Arrange
+            Commit(x => x.SetRangeInHash("some-hash", new Dictionary<string, string>
             {
-                // Arrange
-                Commit(database, x => x.SetRangeInHash("some-hash", new Dictionary<string, string>
-                        {
-                            { "Key1", "Value1" },
-                            { "Key2", "Value2" }
-                        }));
+                {"Key1", "Value1"},
+                {"Key2", "Value2"}
+            }));
 
-                // Act
-                Commit(database, x => x.RemoveHash("some-hash"));
+            // Act
+            Commit(x => x.RemoveHash("some-hash"));
 
-                // Assert
-                var count = database.JobGraph.OfType<HashDto>().Count(new BsonDocument());
-                Assert.Equal(0, count);
-            });
+            // Assert
+            var count = _database.JobGraph.OfType<HashDto>().Count(new BsonDocument());
+            Assert.Equal(0, count);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void ExpireSet_SetsSetExpirationData()
         {
-            UseConnection(database =>
-            {
-                var set1 = new SetDto { Key = "Set1<value1>", Value = "value1"};
-                database.JobGraph.InsertOne(set1);
+            var set1 = new SetDto {Key = "Set1<value1>", Value = "value1"};
+            _database.JobGraph.InsertOne(set1);
 
-                var set2 = new SetDto { Key = "Set2<value2>", Value = "value2" };
-                database.JobGraph.InsertOne(set2);
+            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2"};
+            _database.JobGraph.InsertOne(set2);
 
-                Commit(database, x => x.ExpireSet("Set1", TimeSpan.FromDays(1)));
+            Commit(x => x.ExpireSet("Set1", TimeSpan.FromDays(1)));
 
-                var testSet1 = GetTestSet(database, "Set1").FirstOrDefault();
-                var testSet2 = GetTestSet(database, "Set2").FirstOrDefault();
+            var testSet1 = GetTestSet(_database, "Set1").FirstOrDefault();
+            var testSet2 = GetTestSet(_database, "Set2").FirstOrDefault();
 
-                Assert.NotNull(testSet1);
-                Assert.True(DateTime.UtcNow.AddMinutes(-1) < testSet1.ExpireAt && testSet1.ExpireAt <= DateTime.UtcNow.AddDays(1));
-                
-                Assert.NotNull(testSet2);
-                Assert.Null(testSet2.ExpireAt);
-            });
+            Assert.NotNull(testSet1);
+            Assert.True(DateTime.UtcNow.AddMinutes(-1) < testSet1.ExpireAt &&
+                        testSet1.ExpireAt <= DateTime.UtcNow.AddDays(1));
+
+            Assert.NotNull(testSet2);
+            Assert.Null(testSet2.ExpireAt);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void ExpireSet_SetsSetExpirationData_WhenKeyContainsRegexSpecialChars()
         {
             var key = "some+-[regex]?-#set";
 
-            UseConnection(database =>
-            {
-                var set1 = new SetDto { Key = $"{key}<value1>", Value = "value1" };
-                database.JobGraph.InsertOne(set1);
 
-                Commit(database, x => x.ExpireSet(key, TimeSpan.FromDays(1)));
+            var set1 = new SetDto {Key = $"{key}<value1>", Value = "value1"};
+            _database.JobGraph.InsertOne(set1);
 
-                var testSet1 = GetTestSet(database, key).FirstOrDefault();
+            Commit(x => x.ExpireSet(key, TimeSpan.FromDays(1)));
 
-                Assert.NotNull(testSet1);
-                Assert.True(DateTime.UtcNow.AddMinutes(-1) < testSet1.ExpireAt && testSet1.ExpireAt <= DateTime.UtcNow.AddDays(1));
-            });
+            var testSet1 = GetTestSet(_database, key).FirstOrDefault();
+
+            Assert.NotNull(testSet1);
+            Assert.True(DateTime.UtcNow.AddMinutes(-1) < testSet1.ExpireAt &&
+                        testSet1.ExpireAt <= DateTime.UtcNow.AddDays(1));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void ExpireList_SetsListExpirationData()
         {
-            UseConnection(database =>
-            {
-                var list1 = new ListDto { Item = "List1", Value = "value1"};
-                database.JobGraph.InsertOne(list1);
+            var list1 = new ListDto {Item = "List1", Value = "value1"};
+            _database.JobGraph.InsertOne(list1);
 
-                var list2 = new ListDto { Item = "List2", Value = "value2"};
-                database.JobGraph.InsertOne(list2);
+            var list2 = new ListDto {Item = "List2", Value = "value2"};
+            _database.JobGraph.InsertOne(list2);
 
-                Commit(database, x => x.ExpireList(list1.Item, TimeSpan.FromDays(1)));
+            Commit(x => x.ExpireList(list1.Item, TimeSpan.FromDays(1)));
 
-                var testList1 = GetTestList(database, list1.Item);
-                Assert.True(DateTime.UtcNow.AddMinutes(-1) < testList1.ExpireAt && testList1.ExpireAt <= DateTime.UtcNow.AddDays(1));
+            var testList1 = GetTestList(_database, list1.Item);
+            Assert.True(DateTime.UtcNow.AddMinutes(-1) < testList1.ExpireAt &&
+                        testList1.ExpireAt <= DateTime.UtcNow.AddDays(1));
 
-                var testList2 = GetTestList(database, list2.Item);
-                Assert.Null(testList2.ExpireAt);
-            });
+            var testList2 = GetTestList(_database, list2.Item);
+            Assert.Null(testList2.ExpireAt);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void ExpireHash_SetsHashExpirationData()
         {
-            UseConnection(database =>
-            {
-                var hash1 = new HashDto { Key = "Hash1" };
-                database.JobGraph.InsertOne(hash1);
+            var hash1 = new HashDto {Key = "Hash1"};
+            _database.JobGraph.InsertOne(hash1);
 
-                var hash2 = new HashDto { Key = "Hash2" };
-                database.JobGraph.InsertOne(hash2);
+            var hash2 = new HashDto {Key = "Hash2"};
+            _database.JobGraph.InsertOne(hash2);
 
-                Commit(database, x => x.ExpireHash(hash1.Key, TimeSpan.FromDays(1)));
+            Commit(x => x.ExpireHash(hash1.Key, TimeSpan.FromDays(1)));
 
-                var testHash1 = GetTestHash(database, hash1.Key);
-                Assert.True(DateTime.UtcNow.AddMinutes(-1) < testHash1.ExpireAt && testHash1.ExpireAt <= DateTime.UtcNow.AddDays(1));
+            var testHash1 = GetTestHash(_database, hash1.Key);
+            Assert.True(DateTime.UtcNow.AddMinutes(-1) < testHash1.ExpireAt &&
+                        testHash1.ExpireAt <= DateTime.UtcNow.AddDays(1));
 
-                var testHash2 = GetTestHash(database, hash2.Key);
-                Assert.Null(testHash2.ExpireAt);
-            });
+            var testHash2 = GetTestHash(_database, hash2.Key);
+            Assert.Null(testHash2.ExpireAt);
         }
 
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void PersistSet_ClearsTheSetExpirationData()
         {
-            UseConnection(database =>
-            {
-                var set1Val1 = new SetDto { Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set1Val1);
+            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(set1Val1);
 
-                var set1Val2 = new SetDto { Key = "Set1<value2>", Value = "value2", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set1Val2);
+            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(set1Val2);
 
-                var set2 = new SetDto { Key = "Set2<value1>", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set2);
+            var set2 = new SetDto {Key = "Set2<value1>", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(set2);
 
-                Commit(database, x => x.PersistSet("Set1"));
+            Commit(x => x.PersistSet("Set1"));
 
-                var testSet1 = GetTestSet(database, "Set1");
-                Assert.All(testSet1, x => Assert.Null(x.ExpireAt));
+            var testSet1 = GetTestSet(_database, "Set1");
+            Assert.All(testSet1, x => Assert.Null(x.ExpireAt));
 
-                var testSet2 = GetTestSet(database, set2.Key).Single();
-                Assert.NotNull(testSet2.ExpireAt);
-            });
+            var testSet2 = GetTestSet(_database, set2.Key).Single();
+            Assert.NotNull(testSet2.ExpireAt);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void PersistSet_ClearsTheSetExpirationData_WhenKeyContainsRegexSpecialChars()
         {
             var key = "some+-[regex]?-#set";
 
-            UseConnection(database =>
-            {
-                var set1 = new SetDto { Key = $"{key}<value1>", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set1);
 
-                Commit(database, x => x.PersistSet(key));
+            var set1 = new SetDto {Key = $"{key}<value1>", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(set1);
 
-                var testSet1 = GetTestSet(database, key).First();
-                Assert.Null(testSet1.ExpireAt);
-            });
+            Commit(x => x.PersistSet(key));
+
+            var testSet1 = GetTestSet(_database, key).First();
+            Assert.Null(testSet1.ExpireAt);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void PersistList_ClearsTheListExpirationData()
         {
-            UseConnection(database =>
-            {
-                var list1 = new ListDto { Item = "List1", Value = "value1", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(list1);
+            var list1 = new ListDto {Item = "List1", Value = "value1", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(list1);
 
-                var list2 = new ListDto { Item = "List2", Value = "value2", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(list2);
+            var list2 = new ListDto {Item = "List2", Value = "value2", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(list2);
 
-                Commit(database, x => x.PersistList(list1.Item));
+            Commit(x => x.PersistList(list1.Item));
 
-                var testList1 = GetTestList(database, list1.Item);
-                Assert.Null(testList1.ExpireAt);
+            var testList1 = GetTestList(_database, list1.Item);
+            Assert.Null(testList1.ExpireAt);
 
-                var testList2 = GetTestList(database, list2.Item);
-                Assert.NotNull(testList2.ExpireAt);
-            });
+            var testList2 = GetTestList(_database, list2.Item);
+            Assert.NotNull(testList2.ExpireAt);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void PersistHash_ClearsTheHashExpirationData()
         {
-            UseConnection(database =>
-            {
-                var hash1 = new HashDto { Key = "Hash1", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(hash1);
+            var hash1 = new HashDto {Key = "Hash1", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(hash1);
 
-                var hash2 = new HashDto { Key = "Hash2", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(hash2);
+            var hash2 = new HashDto {Key = "Hash2", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(hash2);
 
-                Commit(database, x => x.PersistHash(hash1.Key));
+            Commit(x => x.PersistHash(hash1.Key));
 
-                var testHash1 = GetTestHash(database, hash1.Key);
-                Assert.Null(testHash1.ExpireAt);
+            var testHash1 = GetTestHash(_database, hash1.Key);
+            Assert.Null(testHash1.ExpireAt);
 
-                var testHash2 = GetTestHash(database, hash2.Key);
-                Assert.NotNull(testHash2.ExpireAt);
-            });
+            var testHash2 = GetTestHash(_database, hash2.Key);
+            Assert.NotNull(testHash2.ExpireAt);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void AddRangeToSet_AddToExistingSetData()
         {
-            UseConnection(database =>
-            {
-                // ASSERT
-                var set1Val1 = new SetDto { Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set1Val1);
+            // ASSERT
+            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(set1Val1);
 
-                var set1Val2 = new SetDto { Key = "Set1<value2>", Value = "value2", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set1Val2);
+            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(set1Val2);
 
-                var set2 = new SetDto { Key = "Set2<value2>", Value = "value2",  ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set2);
+            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(set2);
 
-                var values = new[] { "test1", "test2", "test3" };
-                
-                // ACT
-                Commit(database, x => x.AddRangeToSet("Set1", values));
+            var values = new[] {"test1", "test2", "test3"};
 
-                var testSet1 = GetTestSet(database, "Set1");
-                var valuesToTest = new List<string>(values) { "value1", "value2" };
+            // ACT
+            Commit(x => x.AddRangeToSet("Set1", values));
 
-                Assert.NotNull(testSet1);
-                // verify all values are present in testSet1
-                Assert.True(testSet1.Select(s => s.Value).All(value => valuesToTest.Contains(value)));
-                Assert.Equal(5, testSet1.Count);
+            var testSet1 = GetTestSet(_database, "Set1");
+            var valuesToTest = new List<string>(values) {"value1", "value2"};
 
-                var testSet2 = GetTestSet(database, set2.Key);
-                Assert.NotNull(testSet2);
-                Assert.Equal(1, testSet2.Count);
-            });
+            Assert.NotNull(testSet1);
+            // verify all values are present in testSet1
+            Assert.True(testSet1.Select(s => s.Value).All(value => valuesToTest.Contains(value)));
+            Assert.Equal(5, testSet1.Count);
+
+            var testSet2 = GetTestSet(_database, set2.Key);
+            Assert.NotNull(testSet2);
+            Assert.Equal(1, testSet2.Count);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void RemoveSet_ClearsTheSetData()
         {
-            UseConnection(database =>
-            {
-                var set1Val1 = new SetDto { Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set1Val1);
+            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(set1Val1);
 
-                var set1Val2 = new SetDto { Key = "Set1<value2>",  Value = "value2", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set1Val2);
+            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(set1Val2);
 
-                var set2 = new SetDto { Key = "Set2<value2>",  Value = "value2", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set2);
+            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(set2);
 
-                Commit(database, x => x.RemoveSet("Set1"));
+            Commit(x => x.RemoveSet("Set1"));
 
-                var testSet1 = GetTestSet(database, "Set1");
-                Assert.Equal(0, testSet1.Count);
+            var testSet1 = GetTestSet(_database, "Set1");
+            Assert.Equal(0, testSet1.Count);
 
-                var testSet2 = GetTestSet(database, "Set2");
-                Assert.Equal(1, testSet2.Count);
-            });
+            var testSet2 = GetTestSet(_database, "Set2");
+            Assert.Equal(1, testSet2.Count);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
+        [CleanDatabase]
         public void RemoveSet_ClearsTheSetData_WhenKeyContainsRegexSpecialChars()
         {
             var key = "some+-[regex]?-#set";
 
-            UseConnection(database =>
-            {
-                var set1Val1 = new SetDto { Key = $"{key}<value1>", Value = "value1", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set1Val1);
 
-                var set1Val2 = new SetDto { Key = $"{key}<value2>", Value = "value2", ExpireAt = DateTime.UtcNow };
-                database.JobGraph.InsertOne(set1Val2);
+            var set1Val1 = new SetDto {Key = $"{key}<value1>", Value = "value1", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(set1Val1);
 
-                Commit(database, x => x.RemoveSet(key));
+            var set1Val2 = new SetDto {Key = $"{key}<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            _database.JobGraph.InsertOne(set1Val2);
 
-                var testSet1 = GetTestSet(database, key);
-                Assert.Equal(0, testSet1.Count);
-            });
+            Commit(x => x.RemoveSet(key));
+
+            var testSet1 = GetTestSet(_database, key);
+            Assert.Equal(0, testSet1.Count);
         }
 
         private static JobDto GetTestJob(HangfireDbContext database, string jobId)
         {
-            return database.JobGraph.OfType<JobDto>().Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId))).FirstOrDefault();
+            return database.JobGraph.OfType<JobDto>().Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)))
+                .FirstOrDefault();
         }
 
         private static IList<SetDto> GetTestSet(HangfireDbContext database, string key)
         {
-            return database.JobGraph.OfType<SetDto>().Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}")).ToList();
+            return database.JobGraph.OfType<SetDto>()
+                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}")).ToList();
         }
 
         private static ListDto GetTestList(HangfireDbContext database, string key)
         {
-            return database.JobGraph.OfType<ListDto>().Find(Builders<ListDto>.Filter.Eq(_ => _.Item, key)).FirstOrDefault();
+            return database.JobGraph.OfType<ListDto>().Find(Builders<ListDto>.Filter.Eq(_ => _.Item, key))
+                .FirstOrDefault();
         }
 
         private static HashDto GetTestHash(HangfireDbContext database, string key)
         {
-            return database.JobGraph.OfType<HashDto>().Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key)).FirstOrDefault();
+            return database.JobGraph.OfType<HashDto>().Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
+                .FirstOrDefault();
         }
 
-        private void UseConnection(Action<HangfireDbContext> action)
+        private void Commit(Action<MongoWriteOnlyTransaction> action)
         {
-            using (HangfireDbContext connection = ConnectionUtils.CreateDbContext())
-            {
-                action(connection);
-            }
-        }
-
-        private void Commit(HangfireDbContext connection, Action<MongoWriteOnlyTransaction> action)
-        {
-            using (MongoWriteOnlyTransaction transaction = new MongoWriteOnlyTransaction(connection))
+            using (var transaction = new MongoWriteOnlyTransaction(_database))
             {
                 action(transaction);
                 transaction.Commit();
