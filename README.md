@@ -17,7 +17,7 @@ PM> Install-Package Hangfire.Mongo
 ## Usage ASP.NET
 
 ```csharp
-GlobalConfiguration.Configuration.UseMongoStorage("mongodb://localhost", "ApplicationDatabase");
+GlobalConfiguration.Configuration.UseMongoStorage("mongodb://localhost/ApplicationDatabase");
 app.UseHangfireServer();
 app.UseHangfireDashboard();
 ```
@@ -31,7 +31,7 @@ public void ConfigureServices(IServiceCollection services)
     // Add framework services.
     services.AddHangfire(config =>
     {
-        config.UseMongoStorage("mongodb://localhost", "ApplicationDatabase");
+        config.UseMongoStorage("mongodb://localhost/ApplicationDatabase");
     });
 }
 ```
@@ -43,7 +43,7 @@ To use custom prefix for collections names specify it on Hangfire setup:
 ```csharp
 public void Configuration(IAppBuilder app)
 {
-    GlobalConfiguration.Configuration.UseMongoStorage("mongodb://localhost", "ApplicationDatabase",
+    GlobalConfiguration.Configuration.UseMongoStorage("mongodb://localhost/ApplicationDatabase",
         new MongoStorageOptions { Prefix = "custom" } );
 
     app.UseHangfireServer();
@@ -90,7 +90,7 @@ public void Configuration(IAppBuilder app)
         // ...
         MigrationOptions = migrationOptions
     };
-    GlobalConfiguration.Configuration.UseMongoStorage("<connection string>", "<database name>", storageOptions);
+    GlobalConfiguration.Configuration.UseMongoStorage("<connection string with database name>", storageOptions);
 
     app.UseHangfireServer();
     app.UseHangfireDashboard();

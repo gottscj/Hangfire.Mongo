@@ -18,17 +18,15 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
     [Collection("Database")]
     public class MongoDatabaseFiller
     {
+        
         //[Fact, Trait("Category", "DataGeneration")]
         public void Clean_Database_Filled()
         {
             var connectionString = "mongodb://localhost";
             var databaseName = "Mongo-Hangfire-Filled";
-
+            var context = new HangfireDbContext(connectionString, databaseName);
             // Make sure we start from scratch
-            using (HangfireDbContext context = new HangfireDbContext(connectionString, databaseName))
-            {
-                context.Database.Client.DropDatabase(databaseName);
-            }
+            context.Database.Client.DropDatabase(databaseName);
 
             var storageOptions = new MongoStorageOptions
             {
@@ -109,27 +107,27 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         {
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, true))
             {
-                using (HangfireDbContext context = new HangfireDbContext(connectionString, databaseName))
+                var context = new HangfireDbContext(connectionString, databaseName);
+                foreach (var collectionName in context.Database.ListCollections().ToList()
+                    .Select(c => c["name"].AsString))
                 {
-                    foreach (var collectionName in context.Database.ListCollections().ToList().Select(c => c["name"].AsString))
+                    var fileName = $@"{collectionName}.json";
+                    var collectionFile = archive.CreateEntry(fileName);
+
+                    var collection = context.Database.GetCollection<BsonDocument>(collectionName);
+                    var jsonDocs = collection.Find(Builders<BsonDocument>.Filter.Empty)
+                        .ToList()
+                        .Select(d => d.ToJson(JsonWriterSettings.Defaults))
+                        .ToList();
+
+                    Assert.True(jsonDocs.Any() || allowedEmptyCollections.Contains(collectionName),
+                        $@"Expected collection '{collectionName}' to contain documents");
+
+                    using (var entryStream = collectionFile.Open())
                     {
-                        var fileName = $@"{collectionName}.json";
-                        var collectionFile = archive.CreateEntry(fileName);
-
-                        var collection = context.Database.GetCollection<BsonDocument>(collectionName);
-                        var jsonDocs = collection.Find(Builders<BsonDocument>.Filter.Empty)
-                            .ToList()
-                            .Select(d => d.ToJson(JsonWriterSettings.Defaults))
-                            .ToList();
-
-                        Assert.True(jsonDocs.Any() || allowedEmptyCollections.Contains(collectionName), $@"Expected collection '{collectionName}' to contain documents");
-
-                        using (var entryStream = collectionFile.Open())
+                        using (var streamWriter = new StreamWriter(entryStream))
                         {
-                            using (var streamWriter = new StreamWriter(entryStream))
-                            {
-                                streamWriter.Write("[" + string.Join(",", jsonDocs) + "]");
-                            }
+                            streamWriter.Write("[" + string.Join(",", jsonDocs) + "]");
                         }
                     }
                 }

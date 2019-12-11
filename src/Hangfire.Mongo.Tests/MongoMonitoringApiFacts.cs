@@ -20,46 +20,45 @@ namespace Hangfire.Mongo.Tests
         private const string FetchedStateName = "Fetched";
         private const int From = 0;
         private const int PerPage = 5;
-        
+        private readonly HangfireDbContext _database;
+        private readonly MongoMonitoringApi _monitoringApi;
+
+        public MongoMonitoringApiFacts()
+        {
+            _database = ConnectionUtils.CreateDbContext();
+            _monitoringApi = new MongoMonitoringApi(_database);
+        }
         [Fact, CleanDatabase]
         public void GetStatistics_ReturnsZero_WhenNoJobsExist()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                var result = monitoringApi.GetStatistics();
-                Assert.Equal(0, result.Enqueued);
-                Assert.Equal(0, result.Failed);
-                Assert.Equal(0, result.Processing);
-                Assert.Equal(0, result.Scheduled);
-            });
+            var result = _monitoringApi.GetStatistics();
+            Assert.Equal(0, result.Enqueued);
+            Assert.Equal(0, result.Failed);
+            Assert.Equal(0, result.Processing);
+            Assert.Equal(0, result.Scheduled);
         }
 
         [Fact, CleanDatabase]
         public void GetStatistics_ReturnsExpectedCounts_WhenJobsExist()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                CreateJobInState(database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
-                CreateJobInState(database, ObjectId.GenerateNewId(2), EnqueuedState.StateName);
-                CreateJobInState(database, ObjectId.GenerateNewId(4), FailedState.StateName);
-                CreateJobInState(database, ObjectId.GenerateNewId(5), ProcessingState.StateName);
-                CreateJobInState(database, ObjectId.GenerateNewId(6), ScheduledState.StateName);
-                CreateJobInState(database, ObjectId.GenerateNewId(7), ScheduledState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), EnqueuedState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(4), FailedState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(5), ProcessingState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(6), ScheduledState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(7), ScheduledState.StateName);
 
-                var result = monitoringApi.GetStatistics();
-                Assert.Equal(2, result.Enqueued);
-                Assert.Equal(1, result.Failed);
-                Assert.Equal(1, result.Processing);
-                Assert.Equal(2, result.Scheduled);
-            });
+            var result = _monitoringApi.GetStatistics();
+            Assert.Equal(2, result.Enqueued);
+            Assert.Equal(1, result.Failed);
+            Assert.Equal(1, result.Processing);
+            Assert.Equal(2, result.Scheduled);
         }
         
         [Fact, CleanDatabase]
         public void GetStatistics_RecurringJob_CountsSets()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                const string setJson = @"
+            const string setJson = @"
                             {
                                 '_id':'5be18a91139c3a01128c8066',
                                 'Key':'recurring-jobs:HomeController.PrintToDebug',
@@ -68,175 +67,141 @@ namespace Hangfire.Mongo.Tests
                                 'Score':0,
                                 'ExpireAt':null
                             }";
-                database
-                    .Database
-                    .GetCollection<BsonDocument>(database.JobGraph.CollectionNamespace.CollectionName)
-                    .InsertOne(BsonDocument.Parse(setJson));
+            _database
+                .Database
+                .GetCollection<BsonDocument>(_database.JobGraph.CollectionNamespace.CollectionName)
+                .InsertOne(BsonDocument.Parse(setJson));
                 
-                var result = monitoringApi.GetStatistics();
-                Assert.Equal(1, result.Recurring);
-            });
+            var result = _monitoringApi.GetStatistics();
+            Assert.Equal(1, result.Recurring);
         }
 
         [Fact, CleanDatabase]
         public void JobDetails_ReturnsNull_WhenThereIsNoSuchJob()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                var result = monitoringApi.JobDetails(ObjectId.GenerateNewId().ToString());
-                Assert.Null(result);
-            });
+            var result = _monitoringApi.JobDetails(ObjectId.GenerateNewId().ToString());
+            Assert.Null(result);
         }
 
         [Fact, CleanDatabase]
         public void JobDetails_ReturnsResult_WhenJobExists()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                var job1 = CreateJobInState(database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
+            var job1 = CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
 
-                var result = monitoringApi.JobDetails(job1.Id.ToString());
+            var result = _monitoringApi.JobDetails(job1.Id.ToString());
 
-                Assert.NotNull(result);
-                Assert.NotNull(result.Job);
-                Assert.Equal("Arguments", result.Job.Args[0]);
-                Assert.True(DateTime.UtcNow.AddMinutes(-1) < result.CreatedAt);
-                Assert.True(result.CreatedAt < DateTime.UtcNow.AddMinutes(1));
-            });
+            Assert.NotNull(result);
+            Assert.NotNull(result.Job);
+            Assert.Equal("Arguments", result.Job.Args[0]);
+            Assert.True(DateTime.UtcNow.AddMinutes(-1) < result.CreatedAt);
+            Assert.True(result.CreatedAt < DateTime.UtcNow.AddMinutes(1));
         }
 
         [Fact, CleanDatabase]
         public void EnqueuedJobs_ReturnsEmpty_WhenThereIsNoJobs()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                var resultList = monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
+            var resultList = _monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
 
-                Assert.Empty(resultList);
-            });
+            Assert.Empty(resultList);
         }
 
         [Fact, CleanDatabase]
         public void EnqueuedJobs_ReturnsSingleJob_WhenOneJobExistsThatIsNotFetched()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                CreateJobInState(database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
-                var resultList = monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
+            var resultList = _monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
 
-                Assert.Single(resultList);
-            });
+            Assert.Single(resultList);
         }
 
         [Fact, CleanDatabase]
         public void EnqueuedJobs_ReturnsEmpty_WhenOneJobExistsThatIsFetched()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                CreateJobInState(database, ObjectId.GenerateNewId(1), FetchedStateName);
-                var resultList = monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), FetchedStateName);
+            var resultList = _monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
 
-                Assert.Empty(resultList);
-            });
+            Assert.Empty(resultList);
         }
 
         [Fact, CleanDatabase]
         public void EnqueuedJobs_ReturnsUnfetchedJobsOnly_WhenMultipleJobsExistsInFetchedAndUnfetchedStates()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                CreateJobInState(database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
-                CreateJobInState(database, ObjectId.GenerateNewId(2), EnqueuedState.StateName);
-                CreateJobInState(database, ObjectId.GenerateNewId(3), FetchedStateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), EnqueuedState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(3), FetchedStateName);
 
-                var resultList = monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
+            var resultList = _monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
 
-                Assert.Equal(2, resultList.Count);
-            });
+            Assert.Equal(2, resultList.Count);
         }
 
         [Fact, CleanDatabase]
         public void FetchedJobs_ReturnsEmpty_WhenThereIsNoJobs()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                var resultList = monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
+            var resultList = _monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
 
-                Assert.Empty(resultList);
-            });
+            Assert.Empty(resultList);
         }
 
         [Fact, CleanDatabase]
         public void FetchedJobs_ReturnsSingleJob_WhenOneJobExistsThatIsFetched()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                CreateJobInState(database, ObjectId.GenerateNewId(1), FetchedStateName);
-                var resultList = monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), FetchedStateName);
+            var resultList = _monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
 
-                Assert.Single(resultList);
-            });
+            Assert.Single(resultList);
         }
 
         [Fact, CleanDatabase]
         public void FetchedJobs_ReturnsEmpty_WhenOneJobExistsThatIsNotFetched()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                CreateJobInState(database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
-                var resultList = monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
+            var resultList = _monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
 
-                Assert.Empty(resultList);
-            });
+            Assert.Empty(resultList);
         }
 
         [Fact, CleanDatabase]
         public void FetchedJobs_ReturnsFetchedJobsOnly_WhenMultipleJobsExistsInFetchedAndUnfetchedStates()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                CreateJobInState(database, ObjectId.GenerateNewId(1), FetchedStateName);
-                CreateJobInState(database, ObjectId.GenerateNewId(2), FetchedStateName);
-                CreateJobInState(database, ObjectId.GenerateNewId(3), EnqueuedState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), FetchedStateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), FetchedStateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(3), EnqueuedState.StateName);
 
-                var resultList = monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
+            var resultList = _monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
 
-                Assert.Equal(2, resultList.Count);
-            });
+            Assert.Equal(2, resultList.Count);
         }
 
         [Fact, CleanDatabase]
         public void ProcessingJobs_ReturnsProcessingJobsOnly_WhenMultipleJobsExistsInProcessingSucceededAndEnqueuedState()
         {
-            UseMonitoringApi((database, monitoringApi) =>
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), ProcessingState.StateName);
+
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), SucceededState.StateName, jobDto =>
             {
-                CreateJobInState(database, ObjectId.GenerateNewId(1), ProcessingState.StateName);
-
-                CreateJobInState(database, ObjectId.GenerateNewId(2), SucceededState.StateName, jobDto =>
+                var processingState = new StateDto()
                 {
-                    var processingState = new StateDto()
+                    Name = ProcessingState.StateName,
+                    Reason = null,
+                    CreatedAt = DateTime.UtcNow,
+                    Data = new Dictionary<string, string>
                     {
-                        Name = ProcessingState.StateName,
-                        Reason = null,
-                        CreatedAt = DateTime.UtcNow,
-                        Data = new Dictionary<string, string>
-                        {
-                            ["ServerId"] = Guid.NewGuid().ToString(),
-                            ["StartedAt"] =
+                        ["ServerId"] = Guid.NewGuid().ToString(),
+                        ["StartedAt"] =
                             JobHelper.SerializeDateTime(DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(500)))
-                        }
-                    };
-                    var succeededState = jobDto.StateHistory[0];
-                    jobDto.StateHistory = new[] { processingState, succeededState };
-                    return jobDto;
-                });
-
-                CreateJobInState(database, ObjectId.GenerateNewId(3), EnqueuedState.StateName);
-
-                var resultList = monitoringApi.ProcessingJobs(From, PerPage);
-
-                Assert.Single(resultList);
+                    }
+                };
+                var succeededState = jobDto.StateHistory[0];
+                jobDto.StateHistory = new[] { processingState, succeededState };
+                return jobDto;
             });
+
+            CreateJobInState(_database, ObjectId.GenerateNewId(3), EnqueuedState.StateName);
+
+            var resultList = _monitoringApi.ProcessingJobs(From, PerPage);
+
+            Assert.Single(resultList);
         }
 
 
@@ -244,167 +209,137 @@ namespace Hangfire.Mongo.Tests
         [Fact, CleanDatabase]
         public void ProcessingJobs_ReturnsLatestStateHistory_WhenJobRequeued()
         {
-            UseMonitoringApi((database, monitoringApi) =>
+            var oldServerId = "oldserverid";
+            var newServerId = "newserverid";
+            var oldStartTime = DateTime.UtcNow.AddMinutes(-30);
+            var newStartTime = DateTime.UtcNow;
+
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), ProcessingState.StateName, jobDto =>
             {
-                var oldServerId = "oldserverid";
-                var newServerId = "newserverid";
-                var oldStartTime = DateTime.UtcNow.AddMinutes(-30);
-                var newStartTime = DateTime.UtcNow;
-
-                CreateJobInState(database, ObjectId.GenerateNewId(2), ProcessingState.StateName, jobDto =>
+                var firstProcessingState = new StateDto()
                 {
-                    var firstProcessingState = new StateDto()
+                    Name = ProcessingState.StateName,
+                    Reason = null,
+                    CreatedAt = oldStartTime,
+                    Data = new Dictionary<string, string>
                     {
-                        Name = ProcessingState.StateName,
-                        Reason = null,
-                        CreatedAt = oldStartTime,
-                        Data = new Dictionary<string, string>
-                        {
-                            ["ServerId"] = oldServerId,
-                            ["StartedAt"] = JobHelper.SerializeDateTime(oldStartTime)
-                        }
-                    };
-                    var latestProcessingState = jobDto.StateHistory[0];
-                    latestProcessingState.CreatedAt = newStartTime;
-                    latestProcessingState.Data["ServerId"] = newServerId;
-                    latestProcessingState.Data["StartedAt"] = JobHelper.SerializeDateTime(newStartTime);
-                    jobDto.StateHistory = new[] { firstProcessingState, latestProcessingState };
-                    return jobDto;
-                });
-                
-                var resultList = monitoringApi.ProcessingJobs(From, PerPage);
-
-                Assert.Single(resultList);
-                Assert.Equal(newServerId, resultList[0].Value.ServerId);
-                Assert.Equal(newStartTime, resultList[0].Value.StartedAt);
+                        ["ServerId"] = oldServerId,
+                        ["StartedAt"] = JobHelper.SerializeDateTime(oldStartTime)
+                    }
+                };
+                var latestProcessingState = jobDto.StateHistory[0];
+                latestProcessingState.CreatedAt = newStartTime;
+                latestProcessingState.Data["ServerId"] = newServerId;
+                latestProcessingState.Data["StartedAt"] = JobHelper.SerializeDateTime(newStartTime);
+                jobDto.StateHistory = new[] { firstProcessingState, latestProcessingState };
+                return jobDto;
             });
+                
+            var resultList = _monitoringApi.ProcessingJobs(From, PerPage);
+
+            Assert.Single(resultList);
+            Assert.Equal(newServerId, resultList[0].Value.ServerId);
+            Assert.Equal(newStartTime, resultList[0].Value.StartedAt);
         }
 
         [Fact, CleanDatabase]
         public void FailedJobs_ReturnsFailedJobs_InDescendingOrder()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                var failedJob0 = CreateJobInState(database, ObjectId.GenerateNewId(1), FailedState.StateName);
-                var failedJob1 = CreateJobInState(database, ObjectId.GenerateNewId(2), FailedState.StateName);
-                var failedJob2 = CreateJobInState(database, ObjectId.GenerateNewId(3), FailedState.StateName);
+            var failedJob0 = CreateJobInState(_database, ObjectId.GenerateNewId(1), FailedState.StateName);
+            var failedJob1 = CreateJobInState(_database, ObjectId.GenerateNewId(2), FailedState.StateName);
+            var failedJob2 = CreateJobInState(_database, ObjectId.GenerateNewId(3), FailedState.StateName);
 
-                var resultList = monitoringApi.FailedJobs(From, PerPage);
+            var resultList = _monitoringApi.FailedJobs(From, PerPage);
 
-                Assert.Equal(failedJob0.Id.ToString(), resultList[2].Key);
-                Assert.Equal(failedJob1.Id.ToString(), resultList[1].Key);
-                Assert.Equal(failedJob2.Id.ToString(), resultList[0].Key);
-            });
+            Assert.Equal(failedJob0.Id.ToString(), resultList[2].Key);
+            Assert.Equal(failedJob1.Id.ToString(), resultList[1].Key);
+            Assert.Equal(failedJob2.Id.ToString(), resultList[0].Key);
         }
         
         [Fact, CleanDatabase]
         public void SucceededByDatesCount_ReturnsSuccededJobs_ForLastWeek()
         {
-            UseMonitoringApi((database, monitoringApi) =>
+            var date = DateTime.UtcNow.Date;
+            var succededCount = 10L;
+                
+            _database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
             {
-                var date = DateTime.UtcNow.Date;
-                var succededCount = 10L;
-                
-                database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    // this might fail if we test during date change... seems unlikely
-                    // TODO, wrap Datetime in a mock friendly wrapper
-                    Key = $"stats:succeeded:{date:yyyy-MM-dd}", 
-                    Value = succededCount
-                });
-                
-           var results = monitoringApi.SucceededByDatesCount();
-                
-                Assert.Equal(succededCount, results[date]);
-                Assert.Equal(8, results.Count);
+                Id = ObjectId.GenerateNewId(),
+                // this might fail if we test during date change... seems unlikely
+                // TODO, wrap Datetime in a mock friendly wrapper
+                Key = $"stats:succeeded:{date:yyyy-MM-dd}", 
+                Value = succededCount
             });
+                
+            var results = _monitoringApi.SucceededByDatesCount();
+                
+            Assert.Equal(succededCount, results[date]);
+            Assert.Equal(8, results.Count);
         }
         
         [Fact, CleanDatabase]
         public void HourlySucceededJobs_ReturnsSuccededJobs_ForLast24Hours()
         {
-            UseMonitoringApi((database, monitoringApi) =>
+            var now = DateTime.UtcNow;
+                
+            var succeededCount = 10L;
+            _database.JobGraph.InsertOne(new CounterDto
             {
-                var now = DateTime.UtcNow;
-                
-                var succeededCount = 10L;
-                database.JobGraph.InsertOne(new CounterDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    // this might fail if we test during hour change... still unlikely
-                    // TODO, wrap Datetime in a mock friendly wrapper
-                    Key = $"stats:succeeded:{now:yyyy-MM-dd-HH}", 
-                    Value = succeededCount
-                });
-                
-                var results = monitoringApi.HourlySucceededJobs();
-                
-                Assert.Equal(succeededCount, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
-                Assert.Equal(24, results.Count);
-
+                Id = ObjectId.GenerateNewId(),
+                // this might fail if we test during hour change... still unlikely
+                // TODO, wrap Datetime in a mock friendly wrapper
+                Key = $"stats:succeeded:{now:yyyy-MM-dd-HH}", 
+                Value = succeededCount
             });
+                
+            var results = _monitoringApi.HourlySucceededJobs();
+                
+            Assert.Equal(succeededCount, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
+            Assert.Equal(24, results.Count);
         }
         
         [Fact, CleanDatabase]
         public void FailedByDatesCount_ReturnsFailedJobs_ForLastWeek()
         {
-            UseMonitoringApi((database, monitoringApi) =>
+            var date = DateTime.UtcNow.Date;
+            var failedCount = 10L;
+                
+            _database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
             {
-                var date = DateTime.UtcNow.Date;
-                var failedCount = 10L;
-                
-                database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    // this might fail if we test during date change... seems unlikely
-                    Key = $"stats:failed:{date:yyyy-MM-dd}", 
-                    Value = failedCount
-                });
-                
-                var results = monitoringApi.FailedByDatesCount();
-                
-                Assert.Equal(failedCount, results[date]);
-                Assert.Equal(8, results.Count);
-
+                Id = ObjectId.GenerateNewId(),
+                // this might fail if we test during date change... seems unlikely
+                Key = $"stats:failed:{date:yyyy-MM-dd}", 
+                Value = failedCount
             });
+                
+            var results = _monitoringApi.FailedByDatesCount();
+                
+            Assert.Equal(failedCount, results[date]);
+            Assert.Equal(8, results.Count);
         }
         
         [Fact, CleanDatabase]
         public void HourlyFailedJobs_ReturnsFailedJobs_ForLast24Hours()
         {
-            UseMonitoringApi((database, monitoringApi) =>
-            {
-                var now = DateTime.UtcNow;
-                var failedCount = 10L;
+            var now = DateTime.UtcNow;
+            var failedCount = 10L;
               
-                database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
-                {
-                    Id = ObjectId.GenerateNewId(),
-                    // this might fail if we test during hour change... still unlikely
-                    // TODO, wrap Datetime in a mock friendly wrapper
-                    Key = $"stats:failed:{now:yyyy-MM-dd-HH}", 
-                    Value = failedCount
-                });
-               
-                var results = monitoringApi.HourlyFailedJobs();
-                
-                Assert.Equal(failedCount, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
-                Assert.Equal(24, results.Count);
-
-            });
-        }
-
-        private void UseMonitoringApi(Action<HangfireDbContext, MongoMonitoringApi> action)
-        {
-            using (var database = ConnectionUtils.CreateDbContext())
+            _database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
             {
-                var connection = new MongoMonitoringApi(database);
-                action(database, connection);
-            }
+                Id = ObjectId.GenerateNewId(),
+                // this might fail if we test during hour change... still unlikely
+                // TODO, wrap Datetime in a mock friendly wrapper
+                Key = $"stats:failed:{now:yyyy-MM-dd-HH}", 
+                Value = failedCount
+            });
+               
+            var results = _monitoringApi.HourlyFailedJobs();
+                
+            Assert.Equal(failedCount, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
+            Assert.Equal(24, results.Count);
         }
 
-        private JobDto CreateJobInState(HangfireDbContext database, ObjectId jobId, string stateName, Func<JobDto, JobDto> visitor = null)
+        private JobDto CreateJobInState(HangfireDbContext dbContext, ObjectId jobId, string stateName, Func<JobDto, JobDto> visitor = null)
         {
             var job = Job.FromExpression(() => HangfireTestJobs.SampleMethod("wrong"));
 
@@ -457,7 +392,7 @@ namespace Hangfire.Mongo.Tests
             {
                 jobDto = visitor(jobDto);
             }
-            database.JobGraph.InsertOne(jobDto);
+            dbContext.JobGraph.InsertOne(jobDto);
 
             var jobQueueDto = new JobQueueDto
             {
@@ -471,7 +406,7 @@ namespace Hangfire.Mongo.Tests
                 jobQueueDto.FetchedAt = DateTime.UtcNow;
             }
 
-            database.JobGraph.InsertOne(jobQueueDto);
+            dbContext.JobGraph.InsertOne(jobQueueDto);
 
             return jobDto;
         }

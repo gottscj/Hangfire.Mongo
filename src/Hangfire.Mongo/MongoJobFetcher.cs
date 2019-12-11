@@ -20,7 +20,7 @@ namespace Hangfire.Mongo
 
         private readonly HangfireDbContext _dbContext;
 
-        private readonly DateTime _invisibilityTimeout;
+        private readonly DateTime? _invisibilityTimeout;
         
         private static readonly FindOneAndUpdateOptions<JobQueueDto> Options = new FindOneAndUpdateOptions<JobQueueDto>
         {
@@ -34,9 +34,13 @@ namespace Hangfire.Mongo
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
             _semaphore = semaphore;
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-            
-            _invisibilityTimeout =
-                DateTime.UtcNow.AddSeconds(_storageOptions.InvisibilityTimeout.Negate().TotalSeconds);
+
+            _invisibilityTimeout = null;
+            if(_storageOptions.InvisibilityTimeout.HasValue)
+            {
+                _invisibilityTimeout =
+                DateTime.UtcNow.AddSeconds(_storageOptions.InvisibilityTimeout.Value.Negate().TotalSeconds);
+            }
         }
 
         [NotNull]
@@ -102,23 +106,27 @@ namespace Hangfire.Mongo
 
         private MongoFetchedJob TryGetEnqueuedJob(string queue, CancellationToken cancellationToken)
         {
-            var filter = new BsonDocument("$and", new BsonArray
+            var fetchedAtQuery = new BsonDocument(nameof(JobQueueDto.FetchedAt), BsonNull.Value);
+            if (_invisibilityTimeout.HasValue)
             {
-                new BsonDocument(nameof(JobQueueDto.Queue), queue),
-                new BsonDocument("$or", new BsonArray
+                fetchedAtQuery = new BsonDocument("$or", new BsonArray
                 {
                     new BsonDocument(nameof(JobQueueDto.FetchedAt), BsonNull.Value),
                     new BsonDocument(nameof(JobQueueDto.FetchedAt), new BsonDocument("$lt", _invisibilityTimeout))
-                })
-                
+                });
+            }
+            var filter = new BsonDocument("$and", new BsonArray
+            {
+                new BsonDocument(nameof(JobQueueDto.Queue), queue),
+                fetchedAtQuery
             });
+            
             var update = new BsonDocument("$set", new BsonDocument(nameof(JobQueueDto.FetchedAt), DateTime.UtcNow));
             
             var fetchedJob = _dbContext
                 .JobGraph
                 .OfType<JobQueueDto>()
                 .FindOneAndUpdate(filter, update, Options, cancellationToken);
-
             
             if (fetchedJob == null)
             {
