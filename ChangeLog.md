@@ -1,8 +1,9 @@
 
-## What's New (15/11/2019)
+## What's New (Dec. 11th. 2019)
 
 ### v0.6.6
 - Add support for specifying the database name in the connection string (#219)
+- InvisibilityTimeout should not be obsolete (#220)
 
 ### v0.6.5
 - Cleanup expired DistributedLock after each wait iteration (#217)
