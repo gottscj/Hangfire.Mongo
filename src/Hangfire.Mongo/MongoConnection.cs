@@ -20,8 +20,8 @@ namespace Hangfire.Mongo
     internal class MongoConnection : JobStorageConnection
     {
         private readonly MongoStorageOptions _storageOptions;
-        private readonly MongoJobFetcher _jobFetcher;
-        
+        private readonly IJobQueueSemaphore _jobQueueSemaphore;
+
         private readonly HangfireDbContext _dbContext;
         
 #pragma warning disable 1591
@@ -32,7 +32,7 @@ namespace Hangfire.Mongo
         {
             _dbContext = database ?? throw new ArgumentNullException(nameof(database));
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
-            _jobFetcher = new MongoJobFetcher(database, storageOptions, jobQueueSemaphore);
+            _jobQueueSemaphore = jobQueueSemaphore;
         }
 
         public override IWriteOnlyTransaction CreateWriteTransaction()
@@ -64,8 +64,8 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(queues));
             }
-
-            return _jobFetcher.FetchNextJob(queues, cancellationToken);
+            var jobFetcher = new MongoJobFetcher(_dbContext, _storageOptions, _jobQueueSemaphore);
+            return jobFetcher.FetchNextJob(queues, cancellationToken);
         }
 
         public override void SetJobParameter(string id, string name, string value)
