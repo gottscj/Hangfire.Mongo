@@ -28,10 +28,13 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
             // Add framework services.
             services.AddHangfire(config =>
             {
+                
                 // Read DefaultConnection string from appsettings.json
                 var connectionString = Configuration.GetConnectionString("DefaultConnection");
-
-                var migrationOptions = new MongoStorageOptions
+                var mongoUrlBuilder = new MongoUrlBuilder(connectionString);
+                var mongoClient = new MongoClient(mongoUrlBuilder.ToMongoUrl());
+                
+                var storageOptions = new MongoStorageOptions
                 {
                     MigrationOptions = new MongoMigrationOptions
                     {
@@ -41,7 +44,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                 };
                 //config.UseLogProvider(new FileLogProvider());
                 config.UseColouredConsoleLogProvider(LogLevel.Trace);
-                config.UseMongoStorage(connectionString, migrationOptions);
+                config.UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, storageOptions);
             });
             services.AddMvc();
 
@@ -50,10 +53,8 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            var options = new BackgroundJobServerOptions();
-            options.Queues = new[] {"default", "notDefault"};
-            options.WorkerCount = 2;
-            
+            var options = new BackgroundJobServerOptions {Queues = new[] {"default", "notDefault"}, WorkerCount = 2};
+
             app.UseHangfireServer(options);
             app.UseHangfireDashboard();
             if (env.IsDevelopment())
