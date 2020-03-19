@@ -23,7 +23,7 @@
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
     <PackageReleaseNotes>0.6.7
-      - InvisibilityTimeout computed for each query (#227)
+      - InvisibilityTimeout computed for each query (#224)
       - Update dependencies
         - target netstandard2.0
         - "MongoDB.Driver" Version="2.10.2"
