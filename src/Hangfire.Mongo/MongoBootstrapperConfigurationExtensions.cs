@@ -8,47 +8,6 @@ namespace Hangfire.Mongo
     /// </summary>
     public static class MongoBootstrapperConfigurationExtensions
     {
-
-#if !NETSTANDARD1_5
-
-        /// <summary>
-        /// Configure Hangfire to use MongoDB storage
-        /// </summary>
-        /// <param name="configuration">Configuration</param>
-        /// <param name="mongoClientSettings">Client settings for Mongo</param>
-        /// <param name="databaseName">Name of database at Mongo server</param>
-        /// <returns></returns>
-        [Obsolete("Please use `GlobalConfiguration.UseStorage` instead. Will be removed in Hangfire version 2.0.0.")]
-        public static MongoStorage UseMongoStorage(this IBootstrapperConfiguration configuration,
-            MongoClientSettings mongoClientSettings,
-            string databaseName)
-        {
-            return UseMongoStorage(configuration, mongoClientSettings, databaseName, new MongoStorageOptions());
-        }
-
-        /// <summary>
-        /// Configure Hangfire to use MongoDB storage
-        /// </summary>
-        /// <param name="configuration">Configuration</param>
-        /// <param name="mongoClientSettings">Client settings for Mongo</param>
-        /// <param name="databaseName">Name of database at Mongo server</param>
-        /// <param name="storageOptions">Storage options</param>
-        /// <returns></returns>
-        [Obsolete("Please use `GlobalConfiguration.UseStorage` instead. Will be removed in Hangfire version 2.0.0.")]
-        public static MongoStorage UseMongoStorage(this IBootstrapperConfiguration configuration,
-            MongoClientSettings mongoClientSettings,
-            string databaseName,
-            MongoStorageOptions storageOptions)
-        {
-            var storage = new MongoStorage(mongoClientSettings, databaseName, storageOptions);
-
-            configuration.UseStorage(storage);
-
-            return storage;
-        }
-
-#endif
-
         /// <summary>
         /// Configure Hangfire to use MongoDB storage
         /// </summary>

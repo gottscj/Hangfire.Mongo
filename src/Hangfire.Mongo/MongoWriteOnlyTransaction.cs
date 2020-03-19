@@ -347,7 +347,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(keyValuePairs));
             }
 
-           var fields = new BsonDocument();
+            var fields = new BsonDocument();
             
             foreach (var pair in keyValuePairs)
             {
@@ -437,6 +437,7 @@ namespace Hangfire.Mongo
                 IsOrdered = true
             });
         }
+        
         private string SerializeWriteModel(WriteModel<BsonDocument> writeModel)
         {
             string serializedDoc;

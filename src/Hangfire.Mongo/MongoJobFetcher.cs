@@ -20,8 +20,6 @@ namespace Hangfire.Mongo
 
         private readonly HangfireDbContext _dbContext;
 
-        private readonly DateTime? _invisibilityTimeout;
-        
         private static readonly FindOneAndUpdateOptions<JobQueueDto> Options = new FindOneAndUpdateOptions<JobQueueDto>
         {
             IsUpsert = false,
@@ -34,13 +32,6 @@ namespace Hangfire.Mongo
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
             _semaphore = semaphore;
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-
-            _invisibilityTimeout = null;
-            if(_storageOptions.InvisibilityTimeout.HasValue)
-            {
-                _invisibilityTimeout =
-                DateTime.UtcNow.AddSeconds(_storageOptions.InvisibilityTimeout.Value.Negate().TotalSeconds);
-            }
         }
 
         [NotNull]
@@ -107,12 +98,14 @@ namespace Hangfire.Mongo
         private MongoFetchedJob TryGetEnqueuedJob(string queue, CancellationToken cancellationToken)
         {
             var fetchedAtQuery = new BsonDocument(nameof(JobQueueDto.FetchedAt), BsonNull.Value);
-            if (_invisibilityTimeout.HasValue)
+            if(_storageOptions.InvisibilityTimeout.HasValue)
             {
+                var date  =
+                    DateTime.UtcNow.AddSeconds(_storageOptions.InvisibilityTimeout.Value.Negate().TotalSeconds);
                 fetchedAtQuery = new BsonDocument("$or", new BsonArray
                 {
                     new BsonDocument(nameof(JobQueueDto.FetchedAt), BsonNull.Value),
-                    new BsonDocument(nameof(JobQueueDto.FetchedAt), new BsonDocument("$lt", _invisibilityTimeout))
+                    new BsonDocument(nameof(JobQueueDto.FetchedAt), new BsonDocument("$lt", date))
                 });
             }
             var filter = new BsonDocument("$and", new BsonArray
