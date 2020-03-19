@@ -1,6 +1,13 @@
 
 ## What's New (Dec. 11th. 2019)
 
+### v0.6.7
+- InvisibilityTimeout computed for each query (#227)
+- Update dependencies
+   - target netstandard2.0
+   - "MongoDB.Driver" Version="2.10.2"
+   - "Hangfire.Core" Version="1.7.9"
+
 ### v0.6.6
 - Add support for specifying the database name in the connection string (#219)
 - InvisibilityTimeout should not be obsolete (#220)

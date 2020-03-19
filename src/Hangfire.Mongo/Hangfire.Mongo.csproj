@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>0.6.6</VersionPrefix>
+    <VersionPrefix>0.6.7</VersionPrefix>
     <TargetFrameworks>net46;net452;netstandard2.0</TargetFrameworks>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -22,9 +22,12 @@
     <owners>Sergey Zwezdin</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>0.6.6
-      - Add support for specifying the database name in the connection string (#219)
-      - InvisibilityTimeout should not be obsolete (#220)
+    <PackageReleaseNotes>0.6.7
+      - InvisibilityTimeout computed for each query (#227)
+      - Update dependencies
+        - target netstandard2.0
+        - "MongoDB.Driver" Version="2.10.2"
+        - "Hangfire.Core" Version="1.7.9"
 </PackageReleaseNotes>
     <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
     <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
