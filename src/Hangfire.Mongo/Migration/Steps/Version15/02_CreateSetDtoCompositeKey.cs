@@ -17,6 +17,23 @@ namespace Hangfire.Mongo.Migration.Steps.Version15
 
             CreateCompositeKey(jobGraph, typeof(SetDto));
 
+            if (storageOptions.UseForCosmosMongoApi)
+            {
+                //Create combinate index for GetFirstByLowestScoreFromSet
+                IndexKeysDefinitionBuilder<BsonDocument> cosmosIndexBuilder = Builders<BsonDocument>.IndexKeys;
+                var id = cosmosIndexBuilder.Ascending("_id");
+                var key = cosmosIndexBuilder.Ascending("Key");
+                var score = cosmosIndexBuilder.Ascending("Score");
+                var value = cosmosIndexBuilder.Ascending("Value");
+                var exp = cosmosIndexBuilder.Ascending("ExpireAt");
+                var indexModel = new CreateIndexModel<BsonDocument>(cosmosIndexBuilder.Combine(new[] { id, key, score, value, exp }),
+                    new CreateIndexOptions
+                    {
+                        Name = "Idx_GetFirstByLowestScoreFromSet"
+                    });
+                jobGraph.Indexes.CreateOne(indexModel);
+            }
+
             return true;
         }
 
