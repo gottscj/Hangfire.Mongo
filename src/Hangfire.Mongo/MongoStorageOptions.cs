@@ -29,7 +29,7 @@ namespace Hangfire.Mongo
             ConnectionCheckTimeout = TimeSpan.FromSeconds(5);
             
             ClientId = Guid.NewGuid().ToString().Replace("-", string.Empty);
-
+            CosmosHourlyTtl = 6;
             MigrationOptions = new MongoMigrationOptions();
             Factory = new MongoFactory(this);
         }
@@ -44,6 +44,16 @@ namespace Hangfire.Mongo
         /// </summary>
         public string Prefix { get; set; }
         
+        /// <summary>
+        /// Identify if using Hangfire with Cosmos DB with Mongo API
+        /// </summary>
+        public bool UseForCosmosMongoApi { get; set; }
+
+        /// <summary>
+        /// Comos TTL for "signals" and "notifications" collections
+        /// </summary>
+        public int CosmosHourlyTtl { get; set; }
+
         /// <summary>
         /// Poll interval for queue
         /// </summary>
