@@ -17,11 +17,11 @@ namespace Hangfire.Mongo
 {
 #pragma warning disable 1591
 
-    public sealed class MongoWriteOnlyTransaction : JobStorageTransaction
+    public class MongoWriteOnlyTransaction : JobStorageTransaction
     {
         private static readonly ILog Logger = LogProvider.For<MongoWriteOnlyTransaction>();
         
-        private readonly HangfireDbContext _dbContext;
+        public HangfireDbContext DbContext { get; }
 
         private readonly IList<WriteModel<BsonDocument>> _writeModels = new List<WriteModel<BsonDocument>>();
 
@@ -29,7 +29,7 @@ namespace Hangfire.Mongo
 
         public MongoWriteOnlyTransaction(HangfireDbContext dbContext)
         {
-            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            DbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _jobsAddedToQueue = new HashSet<string>();
         }
 
@@ -47,7 +47,7 @@ namespace Hangfire.Mongo
             _writeModels.Add(writeModel);
         }
         
-        public string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
+        public virtual string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
             TimeSpan expireIn)
         {
             if (job == null)
@@ -306,7 +306,7 @@ namespace Hangfire.Mongo
             var end = keepEndingAt + 1;
 
             // get all ids
-            var allIds = _dbContext.JobGraph.OfType<ListDto>()
+            var allIds = DbContext.JobGraph.OfType<ListDto>()
                 .Find(new BsonDocument())
                 .Project(doc => doc.Id)
                 .ToList();
@@ -390,25 +390,25 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
-            Log();
+            Log(_writeModels);
 
             if (!_writeModels.Any())
             {
                 return;
             }
             
-            _dbContext
+            DbContext
                 .Database
-                .GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName)
+                .GetCollection<BsonDocument>(DbContext.JobGraph.CollectionNamespace.CollectionName)
                 .BulkWrite(_writeModels, new BulkWriteOptions
                 {
                     IsOrdered = true,
                     BypassDocumentValidation = false
                 });
-            SignalJobsAddedToQueues();
+            SignalJobsAddedToQueues(_jobsAddedToQueue);
         }
 
-        private void Log()
+        public virtual void Log( IList<WriteModel<BsonDocument>> writeModels)
         {
             if (!Logger.IsTraceEnabled())
             {
@@ -416,38 +416,38 @@ namespace Hangfire.Mongo
             }
 
             var jArray = new JArray();
-            foreach (var writeModel in _writeModels)
+            foreach (var writeModel in writeModels)
             {
                 var serializedModel = SerializeWriteModel(writeModel);
                 jArray.Add($"{writeModel.ModelType}: {serializedModel}");
             }
             Logger.Trace($"BulkWrite:\r\n{jArray.ToString(Formatting.Indented)}" );
         }
-        private void SignalJobsAddedToQueues()
+        public virtual void SignalJobsAddedToQueues(ICollection<string> queues)
         {
-            if (!_jobsAddedToQueue.Any())
+            if (!queues.Any())
             {
                 return;
             }
 
-            var jobsEnqueued = _jobsAddedToQueue.Select(NotificationDto.JobEnqueued);
-            _dbContext.Notifications.InsertMany(jobsEnqueued, new InsertManyOptions
+            var jobsEnqueued = queues.Select(NotificationDto.JobEnqueued);
+            DbContext.Notifications.InsertMany(jobsEnqueued, new InsertManyOptions
             {
                 BypassDocumentValidation = false,
                 IsOrdered = true
             });
         }
         
-        private string SerializeWriteModel(WriteModel<BsonDocument> writeModel)
+        public virtual string SerializeWriteModel(WriteModel<BsonDocument> writeModel)
         {
             string serializedDoc;
 
-            var serializer = _dbContext
+            var serializer = DbContext
                 .Database
-                .GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName)
+                .GetCollection<BsonDocument>(DbContext.JobGraph.CollectionNamespace.CollectionName)
                 .DocumentSerializer;
 
-            var registry = _dbContext.JobGraph.Settings.SerializerRegistry;
+            var registry = DbContext.JobGraph.Settings.SerializerRegistry;
 
             switch (writeModel.ModelType)
             {
@@ -638,7 +638,7 @@ namespace Hangfire.Mongo
             _writeModels.Add(writeModel);
         }
 
-        private static BsonDocument CreateJobIdFilter(string jobId)
+        public virtual BsonDocument CreateJobIdFilter(string jobId)
         {
             return new BsonDocument("$and", new BsonArray
             {
@@ -647,13 +647,13 @@ namespace Hangfire.Mongo
             });
         }
 
-        private static bool ListDtoHasItem(string key, InsertOneModel<BsonDocument> model)
+        public virtual bool ListDtoHasItem(string key, InsertOneModel<BsonDocument> model)
         {
             return model.Document["_t"].AsBsonArray.Last().AsString == nameof(ListDto) &&
                    model.Document[nameof(ListDto.Item)].AsString == key;
         }
 
-        private static BsonDocument CreateSetFilter(string key, string value)
+        public virtual BsonDocument CreateSetFilter(string key, string value)
         {
             var filter = new BsonDocument("$and", new BsonArray
             {
@@ -663,7 +663,7 @@ namespace Hangfire.Mongo
             return filter;
         }
         
-        private static BsonDocument CreateSetFilter(string key)
+        public virtual BsonDocument CreateSetFilter(string key)
         {
             var filter = new BsonDocument("$and", new BsonArray
             {
@@ -673,7 +673,7 @@ namespace Hangfire.Mongo
             return filter;
         }
         
-        private static BsonDocument CreateSetUpdate(string value, double score)
+        public virtual BsonDocument CreateSetUpdate(string value, double score)
         {
             var update = new BsonDocument
             {

@@ -26,16 +26,18 @@ namespace Hangfire.Mongo.Tests
 
         public MongoConnectionFacts()
         {
-		    _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
+            _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
+            var storageOptions = new MongoStorageOptions {Factory = {JobQueueSemaphore = _jobQueueSemaphoreMock.Object}};
+
             _dbContext = ConnectionUtils.CreateDbContext();
-            _connection = new MongoConnection(_dbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
+            _connection = new MongoConnection(_dbContext, storageOptions);
         }
         
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoConnection(null, null, _jobQueueSemaphoreMock.Object));
+                () => new MongoConnection(null, null));
 
             Assert.Equal("database", exception.ParamName);
         }
@@ -44,7 +46,7 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_ThrowsAnException_WhenProvidersCollectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoConnection(_dbContext, null, _jobQueueSemaphoreMock.Object));
+                () => new MongoConnection(_dbContext, null));
 
             Assert.Equal("storageOptions", exception.ParamName);
         }
