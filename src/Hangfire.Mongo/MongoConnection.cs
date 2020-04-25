@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
-using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
 using Hangfire.Server;
 using Hangfire.Storage;
@@ -17,7 +16,7 @@ namespace Hangfire.Mongo
     /// <summary>
     /// MongoDB database connection for Hangfire
     /// </summary>
-    internal class MongoConnection : JobStorageConnection
+    public class MongoConnection : JobStorageConnection
     {
         private readonly MongoStorageOptions _storageOptions;
         private readonly MongoJobFetcher _jobFetcher;
@@ -27,29 +26,28 @@ namespace Hangfire.Mongo
 #pragma warning disable 1591
         public MongoConnection(
             HangfireDbContext database,
-            MongoStorageOptions storageOptions,
-            IJobQueueSemaphore jobQueueSemaphore)
+            MongoStorageOptions storageOptions)
         {
             _dbContext = database ?? throw new ArgumentNullException(nameof(database));
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
-            _jobFetcher = new MongoJobFetcher(database, storageOptions, jobQueueSemaphore);
+            _jobFetcher = _storageOptions.Factory.CreateMongoJobFetcher(database);
         }
 
         public override IWriteOnlyTransaction CreateWriteTransaction()
         {
-            return new MongoWriteOnlyTransaction(_dbContext);
+            return _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext);
         }
 
         public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
         {
-            return new MongoDistributedLock($"Hangfire:{resource}", timeout, _dbContext, _storageOptions, DistributedLockMutex.Instance);
+            return _storageOptions.Factory.CreateMongoDistributedLock(resource, timeout, _dbContext);
         }
 
         public override string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
             TimeSpan expireIn)
         {
             string jobId;
-            using (var transaction = new MongoWriteOnlyTransaction(_dbContext))
+            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext))
             {
                 jobId = transaction.CreateExpiredJob(job, parameters, createdAt, expireIn);
                 transaction.Commit();
@@ -70,7 +68,7 @@ namespace Hangfire.Mongo
 
         public override void SetJobParameter(string id, string name, string value)
         {
-            using (var transaction = new MongoWriteOnlyTransaction(_dbContext))
+            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext))
             {
                 transaction.SetJobParameter(id, name, value);
                 transaction.Commit();

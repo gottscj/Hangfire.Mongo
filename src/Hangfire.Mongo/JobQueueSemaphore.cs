@@ -5,21 +5,45 @@ using Hangfire.Logging;
 
 namespace Hangfire.Mongo
 {
-    internal interface IJobQueueSemaphore
+    /// <summary>
+    /// Job queue semaphore waits for signal on jobs queued for given queues
+    /// </summary>
+    public interface IJobQueueSemaphore
     {
+        /// <summary>
+        /// Waits for signal on given queues
+        /// </summary>
+        /// <param name="queues"></param>
+        /// <param name="cancellationToken"></param>
+        /// <param name="timeout"></param>
+        /// <param name="queue"></param>
+        /// <param name="timedOut"></param>
+        /// <returns></returns>
         bool WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout, out string queue, out bool timedOut);
+        
+        /// <summary>
+        /// Releases a semaphore for given queue
+        /// </summary>
+        /// <param name="queue"></param>
         void Release(string queue);
+        
+        /// <summary>
+        /// Tries to release semaphore on given queue in a non-blocking call
+        /// </summary>
+        /// <param name="queue"></param>
+        /// <returns></returns>
         bool WaitNonBlock(string queue);
     }
-    internal sealed class JobQueueSemaphore : IJobQueueSemaphore, IDisposable
+
+    /// <inheritdoc cref="IJobQueueSemaphore" />
+    public class JobQueueSemaphore : IJobQueueSemaphore, IDisposable
     {
-        public static readonly IJobQueueSemaphore Instance = new JobQueueSemaphore();
-        
         private static readonly ILog Logger = LogProvider.For<JobQueueSemaphore>();
         private readonly Dictionary<string, SemaphoreSlim> _pool = new Dictionary<string, SemaphoreSlim>();
         private readonly object _syncRoot = new object();
-        
-        public bool WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout, out string queue, out bool timedOut)
+
+        /// <inheritdoc />
+        public virtual bool WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout, out string queue, out bool timedOut)
         {
             queue = null;
             
@@ -47,7 +71,8 @@ namespace Hangfire.Mongo
             return WaitNonBlock(queue);
         }
 
-        public void Release(string queue)
+        /// <inheritdoc />
+        public virtual void Release(string queue)
         {
             var semaphore = GetOrAddSemaphore(queue);
             
@@ -70,7 +95,8 @@ namespace Hangfire.Mongo
             }
         }
 
-        public bool WaitNonBlock(string queue)
+        /// <inheritdoc />
+        public virtual bool WaitNonBlock(string queue)
         {
             lock (_syncRoot)
             {
@@ -119,7 +145,8 @@ namespace Hangfire.Mongo
 
             return semaphore;
         }
-        
+
+        /// <inheritdoc />
         public void Dispose()
         {
             Logger.Debug("Dispose");

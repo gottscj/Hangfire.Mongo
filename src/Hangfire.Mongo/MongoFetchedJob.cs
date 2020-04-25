@@ -12,7 +12,7 @@ namespace Hangfire.Mongo
     /// <summary>
     /// Hangfire fetched job for Mongo database
     /// </summary>
-    public sealed class MongoFetchedJob : IFetchedJob
+    public class MongoFetchedJob : IFetchedJob
     {
         private static readonly ILog Logger = LogProvider.For<MongoFetchedJob>();
         private readonly HangfireDbContext _connection;
@@ -52,7 +52,7 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Removes fetched job from a queue
         /// </summary>
-        public void RemoveFromQueue()
+        public virtual void RemoveFromQueue()
         {
             _connection
                .JobGraph.OfType<JobQueueDto>()
@@ -67,7 +67,7 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Puts fetched job into a queue
         /// </summary>
-        public void Requeue()
+        public virtual void Requeue()
         {
             _connection.JobGraph.OfType<JobQueueDto>().FindOneAndUpdate(
                 Builders<JobQueueDto>.Filter.Eq(_ => _.Id, _id),
@@ -86,7 +86,7 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Disposes the object
         /// </summary>
-        public void Dispose()
+        public virtual void Dispose()
         {
             if (_disposed) return;
 

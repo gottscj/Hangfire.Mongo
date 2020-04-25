@@ -56,24 +56,14 @@ namespace Hangfire.Mongo
         /// <exception cref="ArgumentNullException"></exception>
         public MongoStorage(MongoClient mongoClient, string databaseName, MongoStorageOptions storageOptions)
         {
-            if (mongoClient == null)
-            {
-                throw new ArgumentNullException(nameof(mongoClient));
-            }
             if (string.IsNullOrWhiteSpace(databaseName))
             {
                 throw new ArgumentNullException(nameof(databaseName));
             }
-            if (storageOptions == null)
-            {
-                throw new ArgumentNullException(nameof(storageOptions));
-            }
-
-            _mongoClient = mongoClient;
             _databaseName = databaseName;
-            _storageOptions = storageOptions;
-
-            _dbContext = new HangfireDbContext(mongoClient, databaseName, _storageOptions.Prefix);
+            _mongoClient = mongoClient ?? throw new ArgumentNullException(nameof(mongoClient));
+            _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
+            _dbContext = _storageOptions.Factory.CreateDbContext(mongoClient, databaseName);
 
             if (_storageOptions.CheckConnection)
             {
@@ -97,13 +87,14 @@ namespace Hangfire.Mongo
                 }
             }
         }
+        
         /// <summary>
         /// Returns Monitoring API object
         /// </summary>
         /// <returns>Monitoring API object</returns>
         public override IMonitoringApi GetMonitoringApi()
         {
-            return new MongoMonitoringApi(_dbContext);
+            return _storageOptions.Factory.CreateMongoMonitoringApi(_dbContext);
         }
 
         /// <summary>
@@ -112,7 +103,7 @@ namespace Hangfire.Mongo
         /// <returns>Storage connection</returns>
         public override IStorageConnection GetConnection()
         {
-            return new MongoConnection(_dbContext, _storageOptions, JobQueueSemaphore.Instance);
+            return _storageOptions.Factory.CreateMongoConnection(_dbContext);
         }
 
         /// <summary>
@@ -121,8 +112,8 @@ namespace Hangfire.Mongo
         /// <returns>Collection of server components</returns>
         public override IEnumerable<IServerComponent> GetComponents()
         {
-            yield return new MongoExpirationManager(_dbContext, _storageOptions);
-            yield return new MongoNotificationObserver(_dbContext, JobQueueSemaphore.Instance, DistributedLockMutex.Instance);
+            yield return _storageOptions.Factory.CreateMongoExpirationManager(_dbContext);
+            yield return _storageOptions.Factory.CreateMongoNotificationObserver(_dbContext);
         }
 
         /// <summary>
