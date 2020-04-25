@@ -1,6 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
+using Hangfire.Mongo.CosmosDB;
 
 namespace Hangfire.Mongo.Migration.Steps.Version09
 {
@@ -19,25 +20,18 @@ namespace Hangfire.Mongo.Migration.Steps.Version09
 
             database.DropCollection(name);
 
-            if (storageOptions.UseForCosmosMongoApi)
+            if (storageOptions is CosmosStorageOptions)
             {
-                database.CreateCollection(name);
-                var collection = database.GetCollection<BsonDocument>(name);
-                var options = new CreateIndexOptions { ExpireAfter = TimeSpan.FromHours(storageOptions.CosmosHourlyTtl) };
-                var field = new StringFieldDefinition<BsonDocument>("_ts");
-                var indexDefinition = new IndexKeysDefinitionBuilder<BsonDocument>().Ascending(field);
-                collection.Indexes.CreateOne(indexDefinition, options);
+                return true;
             }
-            else
+
+            var createOptions = new CreateCollectionOptions
             {
-                var createOptions = new CreateCollectionOptions
-                {
-                    Capped = true,
-                    MaxSize = 1000000,
-                    MaxDocuments = 1000
-                };
-                database.CreateCollection(name, createOptions);
-            }
+                Capped = true,
+                MaxSize = 1000000,
+                MaxDocuments = 1000
+            };
+            database.CreateCollection(name, createOptions);
 
             return true;
         }

@@ -11,7 +11,9 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoFactory
     {
-        private readonly MongoStorageOptions _storageOptions;
+#pragma warning disable 1591
+        protected readonly MongoStorageOptions StorageOptions;
+#pragma warning restore 1591
 
         /// <summary>
         /// ctor
@@ -19,7 +21,7 @@ namespace Hangfire.Mongo
         /// <param name="storageOptions"></param>
         public MongoFactory(MongoStorageOptions storageOptions)
         {
-            _storageOptions = storageOptions;
+            StorageOptions = storageOptions;
         }
         
         /// <summary>
@@ -40,7 +42,7 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual HangfireDbContext CreateDbContext(MongoClient mongoClient, string databaseName)
         {
-            return new HangfireDbContext(mongoClient, databaseName, _storageOptions.Prefix);
+            return new HangfireDbContext(mongoClient, databaseName, StorageOptions.Prefix);
         }
         
         /// <summary>
@@ -50,7 +52,7 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual MongoJobFetcher CreateMongoJobFetcher(HangfireDbContext dbContext)
         {
-            return new MongoJobFetcher(dbContext, _storageOptions, JobQueueSemaphore);
+            return new MongoJobFetcher(dbContext, StorageOptions, JobQueueSemaphore);
         }
         
         /// <summary>
@@ -60,7 +62,7 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual MongoConnection CreateMongoConnection(HangfireDbContext dbContext)
         {
-            return new MongoConnection(dbContext, _storageOptions);
+            return new MongoConnection(dbContext, StorageOptions);
         }
 
         /// <summary>
@@ -82,7 +84,7 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual MongoDistributedLock CreateMongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext dbContext)
         {
-            return new MongoDistributedLock($"Hangfire:{resource}", timeout, dbContext, _storageOptions, DistributedLockMutex); 
+            return new MongoDistributedLock($"Hangfire:{resource}", timeout, dbContext, StorageOptions, DistributedLockMutex); 
         }
         
         /// <summary>
@@ -125,7 +127,7 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual MongoExpirationManager CreateMongoExpirationManager(HangfireDbContext dbContext)
         {
-            return new MongoExpirationManager(dbContext, _storageOptions);
+            return new MongoExpirationManager(dbContext, StorageOptions);
         }
     }
 }
