@@ -30,7 +30,7 @@ namespace Hangfire.Mongo
         {
             _dbContext = database ?? throw new ArgumentNullException(nameof(database));
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
-            _jobFetcher = _storageOptions.Factory.CreateMongoJobFetcher(database);
+            _jobFetcher = _storageOptions.Factory.CreateMongoJobFetcher(database, storageOptions);
         }
 
         public override IWriteOnlyTransaction CreateWriteTransaction()
@@ -40,7 +40,7 @@ namespace Hangfire.Mongo
 
         public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
         {
-            return _storageOptions.Factory.CreateMongoDistributedLock(resource, timeout, _dbContext);
+            return _storageOptions.Factory.CreateMongoDistributedLock(resource, timeout, _dbContext, _storageOptions);
         }
 
         public override string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,

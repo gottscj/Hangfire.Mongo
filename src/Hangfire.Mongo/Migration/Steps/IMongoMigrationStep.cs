@@ -6,7 +6,7 @@ namespace Hangfire.Mongo.Migration.Steps
     /// <summary>
     /// Mongo migration step.
     /// </summary>
-    internal interface IMongoMigrationStep
+    public interface IMongoMigrationStep
     {
         /// <summary>
         /// The schema this migration step targets.

@@ -12,7 +12,10 @@ namespace Hangfire.Mongo
         private TimeSpan _distributedLockLifetime;
 
         private TimeSpan _migrationLockTimeout;
-        
+        private MongoMigrationOptions _migrationOptions;
+        private MongoFactory _factory;
+        private string _prefix;
+
         /// <summary>
         /// Constructs storage options with default parameters
         /// </summary>
@@ -31,19 +34,41 @@ namespace Hangfire.Mongo
             ClientId = Guid.NewGuid().ToString().Replace("-", string.Empty);
 
             MigrationOptions = new MongoMigrationOptions();
-            Factory = new MongoFactory(this);
+            Factory = new MongoFactory();
         }
 
         /// <summary>
         /// Factory instance
         /// </summary>
-        public MongoFactory Factory { get; set; }
-        
+        public MongoFactory Factory
+        {
+            get => _factory;
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentException($"'{nameof(Factory)}' cannot be null");
+                }
+                _factory = value;
+            }
+        }
+
         /// <summary>
         /// Collection name prefix for all Hangfire related collections
         /// </summary>
-        public string Prefix { get; set; }
-        
+        public string Prefix
+        {
+            get => _prefix;
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentException($"'{nameof(Prefix)}' cannot be null");
+                }
+                _prefix = value;
+            }
+        }
+
         /// <summary>
         /// Poll interval for queue
         /// </summary>
@@ -150,6 +175,17 @@ namespace Hangfire.Mongo
         /// <summary>
         /// The options used if migration is needed
         /// </summary>
-        public MongoMigrationOptions MigrationOptions { get; set; }
+        public MongoMigrationOptions MigrationOptions
+        {
+            get => _migrationOptions;
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentException($"'{nameof(MigrationOptions)}' cannot be null");
+                }
+                _migrationOptions = value;
+            }
+        }
     }
 }

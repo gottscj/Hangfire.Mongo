@@ -1,6 +1,7 @@
 ﻿using System;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.DistributedLock;
+using Hangfire.Mongo.Migration.Strategies.Backup;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -11,17 +12,6 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoFactory
     {
-        private readonly MongoStorageOptions _storageOptions;
-
-        /// <summary>
-        /// ctor
-        /// </summary>
-        /// <param name="storageOptions"></param>
-        public MongoFactory(MongoStorageOptions storageOptions)
-        {
-            _storageOptions = storageOptions;
-        }
-        
         /// <summary>
         /// JobQueueSemaphore instance used in Hangfire.Mongo
         /// </summary>
@@ -31,36 +21,39 @@ namespace Hangfire.Mongo
         /// DistributedLockMutex instance used in Hangfire.Mongo
         /// </summary>
         public IDistributedLockMutex DistributedLockMutex { get; set; } = new DistributedLockMutex();
-        
+
         /// <summary>
         /// Factory method to create HangfireDbContext instance
         /// </summary>
         /// <param name="mongoClient"></param>
         /// <param name="databaseName"></param>
+        /// <param name="prefix"></param>
         /// <returns></returns>
-        public virtual HangfireDbContext CreateDbContext(MongoClient mongoClient, string databaseName)
+        public virtual HangfireDbContext CreateDbContext(MongoClient mongoClient, string databaseName, string prefix)
         {
-            return new HangfireDbContext(mongoClient, databaseName, _storageOptions.Prefix);
+            return new HangfireDbContext(mongoClient, databaseName, prefix);
         }
-        
+
         /// <summary>
         /// Creates MongoJobFetcher instance
         /// </summary>
         /// <param name="dbContext"></param>
+        /// <param name="storageOptions"></param>
         /// <returns></returns>
-        public virtual MongoJobFetcher CreateMongoJobFetcher(HangfireDbContext dbContext)
+        public virtual MongoJobFetcher CreateMongoJobFetcher(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
-            return new MongoJobFetcher(dbContext, _storageOptions, JobQueueSemaphore);
+            return new MongoJobFetcher(dbContext, storageOptions, JobQueueSemaphore);
         }
-        
+
         /// <summary>
         /// Creates MongoConnection instance
         /// </summary>
         /// <param name="dbContext"></param>
+        /// <param name="storageOptions"></param>
         /// <returns></returns>
-        public virtual MongoConnection CreateMongoConnection(HangfireDbContext dbContext)
+        public virtual MongoConnection CreateMongoConnection(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
-            return new MongoConnection(dbContext, _storageOptions);
+            return new MongoConnection(dbContext, storageOptions);
         }
 
         /// <summary>
@@ -79,10 +72,11 @@ namespace Hangfire.Mongo
         /// <param name="resource"></param>
         /// <param name="timeout"></param>
         /// <param name="dbContext"></param>
+        /// <param name="storageOptions"></param>
         /// <returns></returns>
-        public virtual MongoDistributedLock CreateMongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext dbContext)
+        public virtual MongoDistributedLock CreateMongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
-            return new MongoDistributedLock($"Hangfire:{resource}", timeout, dbContext, _storageOptions, DistributedLockMutex); 
+            return new MongoDistributedLock($"Hangfire:{resource}", timeout, dbContext, storageOptions, DistributedLockMutex); 
         }
         
         /// <summary>
@@ -122,10 +116,11 @@ namespace Hangfire.Mongo
         /// Creates MongoExpirationManager instance
         /// </summary>
         /// <param name="dbContext"></param>
+        /// <param name="storageOptions"></param>
         /// <returns></returns>
-        public virtual MongoExpirationManager CreateMongoExpirationManager(HangfireDbContext dbContext)
+        public virtual MongoExpirationManager CreateMongoExpirationManager(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
-            return new MongoExpirationManager(dbContext, _storageOptions);
+            return new MongoExpirationManager(dbContext, storageOptions);
         }
     }
 }

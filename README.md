@@ -14,14 +14,6 @@ To install Hangfire MongoDB Storage, run the following command in the Nuget Pack
 PM> Install-Package Hangfire.Mongo
 ```
 
-## Usage ASP.NET
-
-```csharp
-GlobalConfiguration.Configuration.UseMongoStorage("mongodb://localhost/ApplicationDatabase");
-app.UseHangfireServer();
-app.UseHangfireDashboard();
-```
-
 ## Usage ASP.NET Core
 
 ```csharp
@@ -31,8 +23,57 @@ public void ConfigureServices(IServiceCollection services)
     // Add framework services.
     services.AddHangfire(config =>
     {
-        config.UseMongoStorage("mongodb://localhost/ApplicationDatabase");
+      var mongoUrlBuilder = new MongoUrlBuilder("mongodb://localhost/jobs");
+      var mongoClient = new MongoClient(mongoUrlBuilder.ToMongoUrl());
+      
+      var storageOptions = new MongoStorageOptions
+      {
+          MigrationOptions = new MongoMigrationOptions
+          {
+              MigrationStrategy = new MigrateMongoMigrationStrategy(),
+              BackupStrategy = new CollectionMongoBackupStrategy()
+          }
+      };
+      config.UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, storageOptions);
     });
+}
+```
+
+## Usage ASP.NET
+
+```csharp
+var options = new MongoStorageOptions
+{
+    MigrationOptions = new MongoMigrationOptions
+    {
+        MigrationStrategy = new DropMongoMigrationStrategy(),
+        BackupStrategy = new NoneMongoBackupStrategy()
+    }
+};
+GlobalConfiguration.Configuration.UseMongoStorage("mongodb://localhost/jobs", options);
+app.UseHangfireServer();
+app.UseHangfireDashboard();
+```
+
+## Usage Console
+
+```csharp
+var options = new MongoStorageOptions
+{
+    MigrationOptions = new MongoMigrationOptions
+    {
+        MigrationStrategy = new DropMongoMigrationStrategy(),
+        BackupStrategy = new NoneMongoBackupStrategy()
+    }
+};
+var mongoStorage = new MongoStorage(
+                MongoClientSettings.FromConnectionString("mongodb://localhost"),
+                "jobs", // database name
+                options);
+            
+using(new BackgroundJobServer(mongoStorage))
+{
+  ...
 }
 ```
 
@@ -64,7 +105,7 @@ it will be ignored by Hangfire.Mongo and Pascal Case will be used instead. Of ca
 
 We sometimes introduce breaking changes in the schema. For this reason we have introduced migration.
 Three migration strategies exists.
-- None
+- Throw
 
   This is the default migration strategy. It will throw an InvalidOperationException never letting you get up and running if there is a schema version mismatch. So it forces you to decide what migration strategy is best for you and at the same time keeps your data safe.
 - Drop
@@ -82,8 +123,8 @@ public void Configuration(IAppBuilder app)
 {
     var migrationOptions = new MongoMigrationOptions
     {
-        Strategy = MongoMigrationStrategy.Migrate,
-        BackupStrategy = MongoBackupStrategy.Collections
+        MigrationStrategy = new MigrateMongoMigrationStrategy(),
+        BackupStrategy = new CollectionMongoBackupStrategy()
     };
     var storageOptions = new MongoStorageOptions
     {
@@ -98,11 +139,15 @@ public void Configuration(IAppBuilder app)
 ```
 
 ### Migration Backup
-By default a backup is made before attempting to migrate.
+By default no backup is made before attempting to migrate.
 You can backup Hangfire collections by "cloning" each collection to the same database.
-Or you can chose to copy the entire database. Alternatively you can just skip the backup.
-The backup can be customized using MongoMigrationOptions.
+Alternatively you can just write your own, by inheriting MongoBackupStrategy and use that implementation.
+
 NOTE: This software is made by humans in our sparetime - we do our best but will not be held responsible for any data loss.
+
+### Configuration overrides
+
+TODO.
 
 Contributors
 ------------

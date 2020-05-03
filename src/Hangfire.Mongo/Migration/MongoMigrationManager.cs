@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Migration.Strategies;
+using Hangfire.Mongo.Migration.Strategies.Backup;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration
@@ -13,12 +14,8 @@ namespace Hangfire.Mongo.Migration
     /// </summary>
     internal class MongoMigrationManager
     {
-        
-
         private readonly MongoStorageOptions _storageOptions;
         private readonly IMongoDatabase _database;
-        private readonly MongoMigrationRunner _migrationRunner;
-        private readonly IMongoCollection<SchemaDto> _schemas;
  
         public static MongoSchema RequiredSchemaVersion =>
             Enum.GetValues(typeof(MongoSchema)).Cast<MongoSchema>().OrderBy(v => v).Last();
@@ -28,8 +25,6 @@ namespace Hangfire.Mongo.Migration
         {
             _storageOptions = storageOptions;
             _database = database;
-            _schemas = _database.GetCollection<SchemaDto>(storageOptions.Prefix + ".schema");
-            _migrationRunner = new MongoMigrationRunner(database, storageOptions, _schemas);  
         }
 
         public static bool MigrateIfNeeded(MongoStorageOptions storageOptions, IMongoDatabase database)
@@ -38,13 +33,17 @@ namespace Hangfire.Mongo.Migration
             {
                 var migrationManager = new MongoMigrationManager(storageOptions, database);
                 migrationLock.AcquireMigrationAccess();
-                return migrationManager.Migrate();
+                return migrationManager.Migrate(storageOptions.MigrationOptions.BackupStrategy, storageOptions.MigrationOptions.MigrationStrategy);
             }
         }
 
-        private bool Migrate()
+        private bool Migrate(MongoBackupStrategy backupStrategy, MongoMigrationStrategy migrationStrategy)
         {
-            var currentSchema = _schemas.Find(_ => true).FirstOrDefault();
+            var currentSchema = _database
+                .GetCollection<SchemaDto>(_storageOptions.Prefix + ".schema")
+                .Find(_ => true)
+                .FirstOrDefault();
+            
             if (currentSchema == null)
             {
                 // We do not have a schema version yet
@@ -70,25 +69,19 @@ namespace Hangfire.Mongo.Migration
                 return false;
             }
 
-            IMongoMigrationStrategy migration;
-            switch (_storageOptions.MigrationOptions.Strategy)
+            if (backupStrategy == null)
             {
-                case MongoMigrationStrategy.None:
-                    migration = new MongoMigrationStrategyNone();
-                    break;
-                case MongoMigrationStrategy.Drop:
-                    migration = new MongoMigrationStrategyDrop(_database, _storageOptions, _migrationRunner);
-                    break;
-                case MongoMigrationStrategy.Migrate:
-                    migration = new MongoMigrationStrategyMigrate(_database, _storageOptions, _migrationRunner);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(
-                        $@"Unknown migration strategy: {_storageOptions.MigrationOptions.Strategy}",
-                        $@"{nameof(MongoMigrationOptions)}.{nameof(MongoMigrationOptions.Strategy)}");
+                throw new InvalidOperationException(
+                    $"{Environment.NewLine}You need to choose a migration strategy by setting the {nameof(MongoStorageOptions)}.{nameof(MongoStorageOptions.MigrationOptions)} property." +
+                    $"{Environment.NewLine}Please see https://github.com/sergeyzwezdin/Hangfire.Mongo#migration for further information.");
             }
+            
+            backupStrategy
+                .Backup(_storageOptions, _database, currentSchema.Version, RequiredSchemaVersion);
+            
+            migrationStrategy
+                .Execute(_storageOptions, _database, currentSchema.Version, RequiredSchemaVersion);
 
-            migration.Execute(currentSchema.Version, RequiredSchemaVersion);
             return true;
         }
     }
