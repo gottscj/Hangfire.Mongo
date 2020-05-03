@@ -30,12 +30,6 @@ namespace Hangfire.Mongo.Sample.NETCore
                 MongoClientSettings.FromConnectionString("mongodb://localhost"), 
                 "Mongo-Hangfire-Sample-NETCore",
                 migrationOptions);
-            var mongoStorage = new MongoStorage(
-                MongoClientSettings.FromConnectionString("mongodb://localhost"),
-                "Mongo-Hangfire-Sample-NETCore",
-                migrationOptions);
-            
-            var backgroundJobServer = new BackgroundJobServer(mongoStorage);
 
             using (new BackgroundJobServer())
             {
