@@ -1,7 +1,6 @@
 ﻿using System;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.DistributedLock;
-using Hangfire.Mongo.Migration.Strategies.Backup;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
