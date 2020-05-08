@@ -17,7 +17,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version15
 
             CreateCompositeKey(jobGraph, typeof(SetDto));
 
-            if (storageOptions.UseForCosmosMongoApi)
+            if (storageOptions is CosmosMongoStorageOptions)
             {
                 //Create combinate index for GetFirstByLowestScoreFromSet
                 IndexKeysDefinitionBuilder<BsonDocument> cosmosIndexBuilder = Builders<BsonDocument>.IndexKeys;

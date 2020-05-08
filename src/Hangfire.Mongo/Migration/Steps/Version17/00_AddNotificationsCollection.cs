@@ -11,11 +11,12 @@ namespace Hangfire.Mongo.Migration.Steps.Version17
         
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
-            if (storageOptions.UseForCosmosMongoApi)
+            var cosmosStorageOptions = storageOptions as CosmosMongoStorageOptions;
+            if (cosmosStorageOptions != null)
             {
                 database.CreateCollection(storageOptions.Prefix + ".notifications");
                 var collection = database.GetCollection<BsonDocument>(storageOptions.Prefix + ".notifications");
-                var options = new CreateIndexOptions { ExpireAfter = TimeSpan.FromHours(storageOptions.CosmosHourlyTtl) };
+                var options = new CreateIndexOptions { ExpireAfter = TimeSpan.FromHours(cosmosStorageOptions.CosmosHourlyTtl) };
                 var field = new StringFieldDefinition<BsonDocument>("_ts");
                 var indexDefinition = new IndexKeysDefinitionBuilder<BsonDocument>().Ascending(field);
                 collection.Indexes.CreateOne(indexDefinition, options);

@@ -19,11 +19,12 @@ namespace Hangfire.Mongo.Migration.Steps.Version09
 
             database.DropCollection(name);
 
-            if (storageOptions.UseForCosmosMongoApi)
+            var cosmosStorageOptions = storageOptions as CosmosMongoStorageOptions;
+            if (cosmosStorageOptions != null)
             {
                 database.CreateCollection(name);
                 var collection = database.GetCollection<BsonDocument>(name);
-                var options = new CreateIndexOptions { ExpireAfter = TimeSpan.FromHours(storageOptions.CosmosHourlyTtl) };
+                var options = new CreateIndexOptions { ExpireAfter = TimeSpan.FromHours(cosmosStorageOptions.CosmosHourlyTtl) };
                 var field = new StringFieldDefinition<BsonDocument>("_ts");
                 var indexDefinition = new IndexKeysDefinitionBuilder<BsonDocument>().Ascending(field);
                 collection.Indexes.CreateOne(indexDefinition, options);
