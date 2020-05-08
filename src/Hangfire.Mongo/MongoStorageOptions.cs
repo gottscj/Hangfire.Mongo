@@ -30,8 +30,14 @@ namespace Hangfire.Mongo
             
             ClientId = Guid.NewGuid().ToString().Replace("-", string.Empty);
             MigrationOptions = new MongoMigrationOptions();
+            Factory = new MongoFactory(this);
         }
 
+        /// <summary>
+        /// Factory instance
+        /// </summary>
+        public MongoFactory Factory { get; set; }
+        
         /// <summary>
         /// Collection name prefix for all Hangfire related collections
         /// </summary>

@@ -1,6 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
+using Hangfire.Mongo.CosmosDB;
 
 namespace Hangfire.Mongo.Migration.Steps.Version09
 {
@@ -29,16 +30,14 @@ namespace Hangfire.Mongo.Migration.Steps.Version09
                 var indexDefinition = new IndexKeysDefinitionBuilder<BsonDocument>().Ascending(field);
                 collection.Indexes.CreateOne(indexDefinition, options);
             }
-            else
+
+            var createOptions = new CreateCollectionOptions
             {
-                var createOptions = new CreateCollectionOptions
-                {
-                    Capped = true,
-                    MaxSize = 1000000,
-                    MaxDocuments = 1000
-                };
-                database.CreateCollection(name, createOptions);
-            }
+                Capped = true,
+                MaxSize = 1000000,
+                MaxDocuments = 1000
+            };
+            database.CreateCollection(name, createOptions);
 
             return true;
         }
