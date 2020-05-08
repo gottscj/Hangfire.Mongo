@@ -1,5 +1,4 @@
 using System;
-using Hangfire.Mongo.CosmosDB;
 using Hangfire.Mongo.Dto;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -18,7 +17,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version15
 
             CreateCompositeKey(jobGraph, typeof(SetDto));
 
-            if (storageOptions is CosmosMongoStorageOptions)
+            if (storageOptions is CosmosStorageOptions)
             {
                 //Create combinate index for GetFirstByLowestScoreFromSet
                 IndexKeysDefinitionBuilder<BsonDocument> cosmosIndexBuilder = Builders<BsonDocument>.IndexKeys;

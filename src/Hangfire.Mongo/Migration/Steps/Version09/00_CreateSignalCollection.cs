@@ -1,7 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
-using Hangfire.Mongo.CosmosDB;
 
 namespace Hangfire.Mongo.Migration.Steps.Version09
 {
@@ -20,7 +19,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version09
 
             database.DropCollection(name);
 
-            var cosmosStorageOptions = storageOptions as CosmosMongoStorageOptions;
+            var cosmosStorageOptions = storageOptions as CosmosStorageOptions;
             if (cosmosStorageOptions != null)
             {
                 database.CreateCollection(name);

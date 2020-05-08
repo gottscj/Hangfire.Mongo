@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Hangfire.Annotations;
 using Hangfire.Logging;
@@ -151,12 +152,35 @@ namespace Hangfire.Mongo
             });
             
             var update = new BsonDocument("$set", new BsonDocument(nameof(JobQueueDto.FetchedAt), DateTime.UtcNow));
-            
-            var fetchedJob = DbContext
+
+            JobQueueDto fetchedJob;
+            try
+            {
+                fetchedJob = DbContext
                 .JobGraph
                 .OfType<JobQueueDto>()
                 .FindOneAndUpdate(filter, update, Options, cancellationToken);
-            
+            }
+            catch (MongoCommandException ex)
+            {
+                var delayMs = 5000;
+                var regex = new Regex(@"RetryAfterMs=(\d+),");
+                var match = regex.Match(ex.Message);
+                if (match.Success)
+                {
+                    if (!int.TryParse(match.Groups[1].Value, out delayMs))
+                    {
+                        delayMs = 5000;
+                    }
+                }
+
+                Thread.Sleep(delayMs + 100);
+                fetchedJob = DbContext
+                .JobGraph
+                .OfType<JobQueueDto>()
+                .FindOneAndUpdate(filter, update, Options, cancellationToken);
+            }
+
             if (fetchedJob == null)
             {
                 return null;

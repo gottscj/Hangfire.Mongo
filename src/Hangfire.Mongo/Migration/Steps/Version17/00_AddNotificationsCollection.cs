@@ -1,7 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
-using Hangfire.Mongo.CosmosDB;
 
 namespace Hangfire.Mongo.Migration.Steps.Version17
 {
@@ -12,7 +11,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version17
         
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
-            var cosmosStorageOptions = storageOptions as CosmosMongoStorageOptions;
+            var cosmosStorageOptions = storageOptions as CosmosStorageOptions;
             if (cosmosStorageOptions != null)
             {
                 database.CreateCollection(storageOptions.Prefix + ".notifications");
