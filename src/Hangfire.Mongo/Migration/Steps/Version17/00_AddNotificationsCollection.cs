@@ -12,7 +12,8 @@ namespace Hangfire.Mongo.Migration.Steps.Version17
         
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
-            if (storageOptions.UseForCosmosMongoApi)
+            var cosmosStorageOptions = storageOptions as CosmosMongoStorageOptions;
+            if (cosmosStorageOptions != null)
             {
                 database.CreateCollection(storageOptions.Prefix + ".notifications");
                 var collection = database.GetCollection<BsonDocument>(storageOptions.Prefix + ".notifications");
