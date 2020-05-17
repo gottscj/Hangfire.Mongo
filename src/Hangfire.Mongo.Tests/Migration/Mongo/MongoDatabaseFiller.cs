@@ -5,6 +5,8 @@ using System.IO.Compression;
 using System.Linq;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
+using Hangfire.Mongo.Migration.Strategies;
+using Hangfire.Mongo.Migration.Strategies.Backup;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.Server;
 using MongoDB.Bson;
@@ -32,8 +34,8 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             {
                 MigrationOptions = new MongoMigrationOptions
                 {
-                    Strategy = MongoMigrationStrategy.Drop,
-                    BackupStrategy = MongoBackupStrategy.None
+                    MigrationStrategy = new DropMongoMigrationStrategy(),
+                    BackupStrategy = new NoneMongoBackupStrategy()
                 },
                 QueuePollInterval = TimeSpan.FromMilliseconds(500)
             };

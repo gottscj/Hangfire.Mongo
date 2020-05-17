@@ -63,7 +63,7 @@ namespace Hangfire.Mongo
             _databaseName = databaseName;
             _mongoClient = mongoClient ?? throw new ArgumentNullException(nameof(mongoClient));
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
-            _dbContext = _storageOptions.Factory.CreateDbContext(mongoClient, databaseName);
+            _dbContext = _storageOptions.Factory.CreateDbContext(mongoClient, databaseName, storageOptions.Prefix);
 
             if (_storageOptions.CheckConnection)
             {
@@ -103,7 +103,7 @@ namespace Hangfire.Mongo
         /// <returns>Storage connection</returns>
         public override IStorageConnection GetConnection()
         {
-            return _storageOptions.Factory.CreateMongoConnection(_dbContext);
+            return _storageOptions.Factory.CreateMongoConnection(_dbContext, _storageOptions);
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace Hangfire.Mongo
         /// <returns>Collection of server components</returns>
         public override IEnumerable<IServerComponent> GetComponents()
         {
-            yield return _storageOptions.Factory.CreateMongoExpirationManager(_dbContext);
+            yield return _storageOptions.Factory.CreateMongoExpirationManager(_dbContext, _storageOptions);
             yield return _storageOptions.Factory.CreateMongoNotificationObserver(_dbContext);
         }
 

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using Hangfire.Mongo.Migration.Strategies;
+using Hangfire.Mongo.Migration.Strategies.Backup;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
@@ -57,8 +59,8 @@ namespace Hangfire.Mongo.Tests
                 {
                     MigrationOptions = new MongoMigrationOptions
                     {
-                        Strategy = MongoMigrationStrategy.Drop,
-                        BackupStrategy = MongoBackupStrategy.None
+                        MigrationStrategy = new DropMongoMigrationStrategy(),
+                        BackupStrategy = new NoneMongoBackupStrategy()
                     }
                 }
             );

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.Migration.Strategies;
+using Hangfire.Mongo.Migration.Strategies.Backup;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Tests.Utils
@@ -44,8 +46,8 @@ namespace Hangfire.Mongo.Tests.Utils
             {
                 MigrationOptions = new MongoMigrationOptions
                 {
-                    Strategy = MongoMigrationStrategy.Drop,
-                    BackupStrategy = MongoBackupStrategy.None
+                    MigrationStrategy = new DropMongoMigrationStrategy(),
+                    BackupStrategy = new NoneMongoBackupStrategy()
                 }
             };
             return CreateStorage(storageOptions);

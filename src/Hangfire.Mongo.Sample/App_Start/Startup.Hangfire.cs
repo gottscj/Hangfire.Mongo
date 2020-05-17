@@ -1,4 +1,6 @@
 ﻿using System.Configuration;
+using Hangfire.Mongo.Migration.Strategies;
+using Hangfire.Mongo.Migration.Strategies.Backup;
 using Owin;
 
 namespace Hangfire.Mongo.Sample
@@ -10,15 +12,15 @@ namespace Hangfire.Mongo.Sample
             // Read DefaultConnection string from Web.config
             var connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
 
-            var migrationOptions = new MongoStorageOptions
+            var mongoOptions = new MongoStorageOptions
             {
                 MigrationOptions = new MongoMigrationOptions
                 {
-                    Strategy = MongoMigrationStrategy.Migrate,
-                    BackupStrategy = MongoBackupStrategy.Collections
+                    MigrationStrategy = new MigrateMongoMigrationStrategy(),
+                    BackupStrategy = new CollectionMongoBackupStrategy()
                 }
             };
-            GlobalConfiguration.Configuration.UseMongoStorage(connectionString, migrationOptions);
+            GlobalConfiguration.Configuration.UseMongoStorage(connectionString, mongoOptions);
             //GlobalConfiguration.Configuration.UseMongoStorage(new MongoClientSettings
             //{
             //    // ...

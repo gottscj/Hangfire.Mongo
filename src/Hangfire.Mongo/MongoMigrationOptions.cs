@@ -1,93 +1,80 @@
 ﻿using System;
+using Hangfire.Mongo.Migration;
+using Hangfire.Mongo.Migration.Strategies;
+using Hangfire.Mongo.Migration.Strategies.Backup;
 
 namespace Hangfire.Mongo
 {
-
-    /// <summary>
-    /// The supported migration strategies.
-    /// </summary>
-    public enum MongoMigrationStrategy
-    {
-        /// <summary>
-        /// Do not migrate. You are on your own, we will not validate the schema at all.
-        /// </summary>
-        None,
-
-        /// <summary>
-        /// Drops the entire database, if schema version is increased.
-        /// </summary>
-        Drop,
-
-        /// <summary>
-        /// Migrate from old schema to new one.
-        /// </summary>
-        Migrate
-    }
-
-
-    /// <summary>
-    /// The supported backup strategies during migration.
-    /// </summary>
-    public enum MongoBackupStrategy
-    {
-        /// <summary>
-        /// No backup is made before migration.
-        /// </summary>
-        None,
-
-        /// <summary>
-        /// A collection-by-collection backup is made to the same database.
-        /// Recommended to use this if you store the Hangfire jobs in the 
-        /// same database as your actual application data.
-        /// This is the prefered and default backup strategy.
-        /// </summary>
-        Collections,
-
-        /// <summary>
-        /// Will copy the entire database into a new databse.
-        /// When using this backup strategy, access to the
-        /// "admin" database is required.
-        /// </summary>
-        Database
-    }
-
-
     /// <summary>
     /// Represents options for MongoDB migration.
-    /// Only forward migration is suported.
+    /// Only forward migration is supported.
     /// </summary>
     public class MongoMigrationOptions
     {
+        private MongoMigrationFactory _mongoMigrationFactory;
+        private MongoBackupStrategy _backupStrategy;
+        private MongoMigrationStrategy _migrationStrategy;
+        private string _backupPostfix;
 
         /// <summary>
         /// Constructs migration options with default parameters.
         /// </summary>
         public MongoMigrationOptions()
-            : this(MongoMigrationStrategy.None)
+        
         {
-        }
-
-        /// <summary>
-        /// Constructs migration options with specific strategy.
-        /// </summary>
-        /// <param name="strategy">The migration strategy to use</param>
-        public MongoMigrationOptions(MongoMigrationStrategy strategy)
-        {
-            Strategy = strategy;
-            BackupStrategy = MongoBackupStrategy.Collections;
+            BackupStrategy = new NoneMongoBackupStrategy();
+            MigrationStrategy = new ThrowMongoMigrationStrategy();
+            MongoMigrationFactory = new MongoMigrationFactory();
             BackupPostfix = "migrationbackup";
         }
 
+        /// <summary>
+        /// Factory which creates migration steps
+        /// </summary>
+        public MongoMigrationFactory MongoMigrationFactory
+        {
+            get => _mongoMigrationFactory;
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentException($"'{MongoMigrationFactory}' cannot be null");
+                }
+                _mongoMigrationFactory = value;
+            }
+        }
 
         /// <summary>
-        /// The strategy used for migration to newer schema versions.
+        /// Backup strategy
         /// </summary>
-        public MongoMigrationStrategy Strategy { get; set; }
+        public MongoBackupStrategy BackupStrategy
+        {
+            get => _backupStrategy;
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentException($"'{BackupStrategy}' cannot be null");
+                }
+                _backupStrategy = value;
+            }
+        }
 
         /// <summary>
-        /// The backup strategy to use before migrating.
+        /// Migration strategy
         /// </summary>
-        public MongoBackupStrategy BackupStrategy { get; set; }
+        public MongoMigrationStrategy MigrationStrategy
+        {
+            get => _migrationStrategy;
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentException($"'{MigrationStrategy}' cannot be null");
+                }
+                _migrationStrategy = value;
+            }
+        }
 
         /// <summary>
         /// Collection backup name postfix for all Hangfire related collections.
@@ -98,6 +85,17 @@ namespace Hangfire.Mongo
         /// The format for the backed up database name is:
         /// {database-name}-{schema-version}-{BackupPostfix}
         /// </remarks>
-        public string BackupPostfix { get; set; }
+        public string BackupPostfix
+        {
+            get => _backupPostfix;
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentException($"'{BackupPostfix}' cannot be null");
+                }
+                _backupPostfix = value;
+            }
+        }
     }         
 }
