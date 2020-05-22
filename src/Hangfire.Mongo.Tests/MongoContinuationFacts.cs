@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Driver;
@@ -62,7 +59,7 @@ namespace Hangfire.Mongo.Tests
 
 
                 // ASSERT
-                Assert.True(signalled, "signalled");
+                Assert.True(signalled, "not signalled");
                 Assert.True(split[0] == "parent", "split[0] == 'parent'");
                 Assert.True(split[1] == parentId1, "split[1] == parentId1");
                 Assert.True(split[2].Replace("\r\n", "") == parentId2, "split[2] == parentId2");
