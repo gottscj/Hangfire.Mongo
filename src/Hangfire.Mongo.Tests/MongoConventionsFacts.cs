@@ -12,28 +12,18 @@ using Xunit;
 namespace Hangfire.Mongo.Tests
 {
 
+    public class TestJob
+    {
+        public static AutoResetEvent Signal { get; } = new AutoResetEvent(false);
+
+        public void SetSignal()
+        {
+            Signal.Set();
+        }
+    }
     [Collection("Database")]
     public class MongoConventionsFacts
     {
-        public class Signal
-        {
-            private  static ConcurrentDictionary<Guid, AutoResetEvent> Signals = new ConcurrentDictionary<Guid, AutoResetEvent>();
-            
-            public static void Set(Guid id)
-            {
-                if (Signals.TryGetValue(id, out var resetEvent))
-                {
-                    resetEvent.Set();
-                }
-            }
-
-            public static bool WaitOne(Guid id, TimeSpan timeSpan)
-            {
-                var resetEvent = Signals.GetOrAdd(id, new AutoResetEvent(false));
-                return resetEvent.WaitOne();
-            }
-        }
-        
         [Fact, CleanDatabase(false)]
         public void Conventions_UsesOwnConventionsForDtoNameSpace_WhenCamelCaseIsRegistered()
         {
@@ -48,8 +38,8 @@ namespace Hangfire.Mongo.Tests
             // ASSERT
             Assert.NotNull(connection);
         }
-
-        [Fact]
+        
+        [Fact, CleanDatabase(false)]
         public void CamelCaseConvention_HangfireMongoDtos_StillInPascal()
         {
             // ARRANGE
@@ -65,7 +55,6 @@ namespace Hangfire.Mongo.Tests
                 }
             );
 
-            var id = Guid.NewGuid();
             var dbContext = ConnectionUtils.CreateDbContext();
             JobStorage.Current = mongoStorage;
 
@@ -73,13 +62,12 @@ namespace Hangfire.Mongo.Tests
 
             var conventionPack = new ConventionPack {new CamelCaseElementNameConvention()};
             ConventionRegistry.Register("CamelCase", conventionPack, t => true);
-
+            
             // ACT
-            using (new BackgroundJobServer(new BackgroundJobServerOptions
-                {SchedulePollingInterval = TimeSpan.FromMilliseconds(100)}))
+            using (new BackgroundJobServer())
             {
-                BackgroundJob.Enqueue(() => Signal.Set(id));
-                jobScheduled = Signal.WaitOne(id, TimeSpan.FromSeconds(1));
+                BackgroundJob.Enqueue<TestJob>(j => j.SetSignal());
+                jobScheduled = TestJob.Signal.WaitOne(TimeSpan.FromSeconds(10));
             }
 
             // ASSERT
