@@ -59,10 +59,15 @@ namespace Hangfire.Mongo.Tests
 
 
                 // ASSERT
+                var parent = split[0];
+                var parentId1Expected = split[1];
+                var parentId2Expected = split[2]
+                    .Replace("\n", "")
+                    .Replace("\r", "");
                 Assert.True(signalled, "not signalled");
-                Assert.True(split[0] == "parent", "split[0] == 'parent'");
-                Assert.True(split[1] == parentId1, "split[1] == parentId1");
-                Assert.True(split[2].Replace("\r\n", "") == parentId2, "split[2] == parentId2");
+                Assert.Equal("parent", parent);
+                Assert.Equal(parentId1, parentId1Expected);
+                Assert.Equal(parentId2, parentId2Expected);
             }
         }
     }
