@@ -11,7 +11,6 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
-
     public class TestJob
     {
         public static AutoResetEvent Signal { get; } = new AutoResetEvent(false);
