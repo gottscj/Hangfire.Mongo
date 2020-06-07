@@ -5,7 +5,6 @@ using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Server;
 using MongoDB.Bson;
-using MongoDB.Bson.IO;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -13,13 +12,19 @@ namespace Hangfire.Mongo
     /// <summary>
     /// Observes if jobs are enqueued and signals 
     /// </summary>
-    internal class MongoNotificationObserver : IBackgroundProcess, IServerComponent
+    public class MongoNotificationObserver : IBackgroundProcess, IServerComponent
     {
         private static ILog Logger = LogProvider.For<MongoNotificationObserver>();
         private readonly HangfireDbContext _dbContext;
         private readonly IJobQueueSemaphore _jobQueueSemaphore;
         private readonly IDistributedLockMutex _distributedLockMutex;
 
+        /// <summary>
+        /// ctor
+        /// </summary>
+        /// <param name="dbContext"></param>
+        /// <param name="jobQueueSemaphore"></param>
+        /// <param name="distributedLockMutex"></param>
         public MongoNotificationObserver(HangfireDbContext dbContext, IJobQueueSemaphore jobQueueSemaphore,
             IDistributedLockMutex distributedLockMutex)
         {
@@ -28,7 +33,11 @@ namespace Hangfire.Mongo
             _distributedLockMutex = distributedLockMutex;
         }
 
-        public void Execute(CancellationToken cancellationToken)
+        /// <summary>
+        /// Invoked by Hangfire.Core
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        public virtual void Execute(CancellationToken cancellationToken)
         {
             var options = new FindOptions<NotificationDto> {CursorType = CursorType.TailableAwait};
 
@@ -117,7 +126,11 @@ namespace Hangfire.Mongo
             }
         }
 
-        public void Execute(BackgroundProcessContext context)
+        /// <summary>
+        /// Invoked by Hangfire.Core
+        /// </summary>
+        /// <param name="context"></param>
+        public virtual void Execute(BackgroundProcessContext context)
         {
             Execute(context.CancellationToken);
         }

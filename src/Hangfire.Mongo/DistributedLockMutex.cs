@@ -5,21 +5,36 @@ using Hangfire.Logging;
 
 namespace Hangfire.Mongo
 {
-    internal interface IDistributedLockMutex
+    /// <summary>
+    /// Mutex proxy for Hangfire locks
+    /// </summary>
+    public interface IDistributedLockMutex
     {
+        /// <summary>
+        /// Waits until signalled or timeout is reached
+        /// </summary>
+        /// <param name="resource"></param>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
         DateTime Wait(string resource, TimeSpan timeout);
+        
+        /// <summary>
+        /// Release lock
+        /// </summary>
+        /// <param name="resource"></param>
         void Release(string resource);
     }
 
-    internal class DistributedLockMutex : IDistributedLockMutex
+    /// <inheritdoc />
+    public class DistributedLockMutex : IDistributedLockMutex
     {
         private static readonly ILog Logger = LogProvider.For<DistributedLockMutex>();
-        public static readonly IDistributedLockMutex Instance = new DistributedLockMutex();
-        
+
         private readonly Dictionary<string, SemaphoreSlim> _pool = new Dictionary<string, SemaphoreSlim>();
         private readonly object _synRoot = new object();
-        
-        public DateTime Wait(string resource, TimeSpan timeout)
+
+        /// <inheritdoc />
+        public virtual DateTime Wait(string resource, TimeSpan timeout)
         {
             if (Logger.IsTraceEnabled())
             {
@@ -45,7 +60,8 @@ namespace Hangfire.Mongo
             return DateTime.UtcNow;
         }
 
-        public void Release(string resource)
+        /// <inheritdoc />
+        public virtual void Release(string resource)
         {
             lock (_synRoot)
             {

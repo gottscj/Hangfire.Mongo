@@ -23,7 +23,7 @@ namespace Hangfire.Mongo
             _dbContext = dbContext;
         }
 
-        public IList<QueueWithTopEnqueuedJobsDto> Queues()
+        public virtual IList<QueueWithTopEnqueuedJobsDto> Queues()
         {
             var queues = GetQueues();
 
@@ -46,7 +46,7 @@ namespace Hangfire.Mongo
             return result;
         }
 
-        public IList<ServerDto> Servers()
+        public virtual IList<ServerDto> Servers()
         {
             var servers = _dbContext.Server.Find(new BsonDocument()).ToList();
 
@@ -67,7 +67,7 @@ namespace Hangfire.Mongo
             return result;
         }
 
-        public JobDetailsDto JobDetails(string jobId)
+        public virtual JobDetailsDto JobDetails(string jobId)
         {
             JobDto job = _dbContext
                 .JobGraph
@@ -97,7 +97,7 @@ namespace Hangfire.Mongo
             };
         }
 
-        private static readonly string[] StatisticsStateNames = new[]
+        private static readonly string[] StatisticsStateNames = 
         {
             EnqueuedState.StateName,
             FailedState.StateName,
@@ -105,7 +105,7 @@ namespace Hangfire.Mongo
             ScheduledState.StateName
         };
 
-        public StatisticsDto GetStatistics()
+        public virtual StatisticsDto GetStatistics()
         {
             var stats = new StatisticsDto();
 
@@ -151,21 +151,21 @@ namespace Hangfire.Mongo
             return stats;
         }
 
-        public JobList<EnqueuedJobDto> EnqueuedJobs(string queue, int from, int perPage)
+        public virtual JobList<EnqueuedJobDto> EnqueuedJobs(string queue, int from, int perPage)
         {
             var enqueuedJobIds = GetEnqueuedJobIds(queue, from, perPage);
 
             return EnqueuedJobs(enqueuedJobIds);
         }
 
-        public JobList<FetchedJobDto> FetchedJobs(string queue, int from, int perPage)
+        public virtual JobList<FetchedJobDto> FetchedJobs(string queue, int from, int perPage)
         {
             var fetchedJobIds = GetFetchedJobIds(queue, from, perPage);
 
             return FetchedJobs(_dbContext, fetchedJobIds);
         }
 
-        public JobList<ProcessingJobDto> ProcessingJobs(int from, int count)
+        public virtual JobList<ProcessingJobDto> ProcessingJobs(int from, int count)
         {
             return GetJobs(from, count,
                 ProcessingState.StateName,
@@ -177,7 +177,7 @@ namespace Hangfire.Mongo
                 });
         }
 
-        public JobList<ScheduledJobDto> ScheduledJobs(int from, int count)
+        public virtual JobList<ScheduledJobDto> ScheduledJobs(int from, int count)
         {
             return GetJobs(from, count, ScheduledState.StateName,
                 (sqlJob, job, stateData) => new ScheduledJobDto
@@ -188,7 +188,7 @@ namespace Hangfire.Mongo
                 });
         }
 
-        public JobList<SucceededJobDto> SucceededJobs(int from, int count)
+        public virtual JobList<SucceededJobDto> SucceededJobs(int from, int count)
         {
             return GetJobs(from, count, SucceededState.StateName,
                 (sqlJob, job, stateData) => new SucceededJobDto
@@ -203,7 +203,7 @@ namespace Hangfire.Mongo
                 });
         }
 
-        public JobList<FailedJobDto> FailedJobs(int from, int count)
+        public virtual JobList<FailedJobDto> FailedJobs(int from, int count)
         {
             return GetJobs(from, count, FailedState.StateName,
                 (sqlJob, job, stateData) => new FailedJobDto
@@ -217,7 +217,7 @@ namespace Hangfire.Mongo
                 });
         }
 
-        public JobList<DeletedJobDto> DeletedJobs(int from, int count)
+        public virtual JobList<DeletedJobDto> DeletedJobs(int from, int count)
         {
             return GetJobs(from, count, DeletedState.StateName,
                 (sqlJob, job, stateData) => new DeletedJobDto
@@ -227,66 +227,66 @@ namespace Hangfire.Mongo
                 });
         }
 
-        public long ScheduledCount()
+        public virtual long ScheduledCount()
         {
             return GetNumberOfJobsByStateName(ScheduledState.StateName);
         }
        
-        public long EnqueuedCount(string queue)
+        public virtual long EnqueuedCount(string queue)
         {
             var counters = GetEnqueuedAndFetchedCount(queue);
 
             return counters.EnqueuedCount ?? 0;
         }
 
-        public long FetchedCount(string queue)
+        public virtual long FetchedCount(string queue)
         {
             var counters = GetEnqueuedAndFetchedCount(queue);
 
             return counters.FetchedCount ?? 0;
         }
 
-        public long FailedCount()
+        public virtual long FailedCount()
         {
             return GetNumberOfJobsByStateName(FailedState.StateName);
         }
 
-        public long ProcessingCount()
+        public virtual long ProcessingCount()
         {
             return GetNumberOfJobsByStateName(ProcessingState.StateName);
         }
 
-        public long SucceededListCount()
+        public virtual long SucceededListCount()
         {
             return GetNumberOfJobsByStateName(SucceededState.StateName);
         }
 
-        public long DeletedListCount()
+        public virtual long DeletedListCount()
         {
             return GetNumberOfJobsByStateName(DeletedState.StateName);
         }
 
-        public IDictionary<DateTime, long> SucceededByDatesCount()
+        public virtual IDictionary<DateTime, long> SucceededByDatesCount()
         {
             return GetTimelineStats(State.Succeeded);
         }
 
-        public IDictionary<DateTime, long> FailedByDatesCount()
+        public virtual IDictionary<DateTime, long> FailedByDatesCount()
         {
             return GetTimelineStats(State.Failed);
         }
 
-        public IDictionary<DateTime, long> HourlySucceededJobs()
+        public virtual IDictionary<DateTime, long> HourlySucceededJobs()
         {
             return GetHourlyTimelineStats(State.Succeeded);
         }
 
-        public IDictionary<DateTime, long> HourlyFailedJobs()
+        public virtual IDictionary<DateTime, long> HourlyFailedJobs()
         {
             return GetHourlyTimelineStats(State.Failed);
         }
 
-        private IReadOnlyList<string> GetQueues()
+        public virtual IReadOnlyList<string> GetQueues()
         {
             return _dbContext.JobGraph.OfType<JobQueueDto>()
                 .Find(new BsonDocument())
@@ -294,7 +294,7 @@ namespace Hangfire.Mongo
                 .ToList().Distinct().ToList();
         }
 
-        private IReadOnlyList<string> GetEnqueuedJobIds(string queue, int from, int perPage)
+        public virtual IReadOnlyList<string> GetEnqueuedJobIds(string queue, int from, int perPage)
         {
             return _dbContext.JobGraph.OfType<JobQueueDto>()
                 .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null))
@@ -310,7 +310,7 @@ namespace Hangfire.Mongo
                 .ToArray();
         }
 
-        private IReadOnlyList<string> GetFetchedJobIds(string queue, int from, int perPage)
+        public virtual IReadOnlyList<string> GetFetchedJobIds(string queue, int from, int perPage)
         {
             return _dbContext.JobGraph.OfType<JobQueueDto>()
                 .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null))
@@ -327,7 +327,7 @@ namespace Hangfire.Mongo
                 .ToArray();
         }
 
-        private EnqueuedAndFetchedCountDto GetEnqueuedAndFetchedCount(string queue)
+        public virtual EnqueuedAndFetchedCountDto GetEnqueuedAndFetchedCount(string queue)
         {
             int enqueuedCount = (int)_dbContext.JobGraph.OfType<JobQueueDto>().Count(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
                                                 Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null));
@@ -342,7 +342,7 @@ namespace Hangfire.Mongo
             };
         }
 
-        private JobList<EnqueuedJobDto> EnqueuedJobs(IEnumerable<string> jobIds)
+        public virtual JobList<EnqueuedJobDto> EnqueuedJobs(IEnumerable<string> jobIds)
         {
             var jobObjectIds = jobIds.Select(ObjectId.Parse);
             var jobs = _dbContext
@@ -410,7 +410,7 @@ namespace Hangfire.Mongo
             return new JobList<TDto>(result);
         }
 
-        private static Job DeserializeJob(string invocationData, string arguments)
+        public static Job DeserializeJob(string invocationData, string arguments)
         {
             var data = JobHelper.FromJson<InvocationData>(invocationData);
             data.Arguments = arguments;
@@ -425,7 +425,7 @@ namespace Hangfire.Mongo
             }
         }
 
-        private JobList<FetchedJobDto> FetchedJobs(HangfireDbContext connection, IEnumerable<string> jobIds)
+        public virtual JobList<FetchedJobDto> FetchedJobs(HangfireDbContext connection, IEnumerable<string> jobIds)
         {
             var jobObjectIds = jobIds.Select(ObjectId.Parse);
             var jobs = connection
@@ -478,7 +478,7 @@ namespace Hangfire.Mongo
             return new JobList<FetchedJobDto>(result);
         }
 
-        private JobList<TDto> GetJobs<TDto>(int from, int count, string stateName,
+        public virtual JobList<TDto> GetJobs<TDto>(int from, int count, string stateName,
             Func<JobSummary, Job, Dictionary<string, string>, TDto> selector)
         {
             // only retrieve job ids
@@ -517,13 +517,13 @@ namespace Hangfire.Mongo
             return DeserializeJobs(joinedJobs, selector);
         }
 
-        private long GetNumberOfJobsByStateName(string stateName)
+        public virtual long GetNumberOfJobsByStateName(string stateName)
         {
             var count = _dbContext.JobGraph.OfType<JobDto>().Count(Builders<JobDto>.Filter.Eq(_ => _.StateName, stateName));
             return count;
         }
 
-        private Dictionary<DateTime, long> GetTimelineStats(string type)
+        public virtual Dictionary<DateTime, long> GetTimelineStats(string type)
         {
             var endDate = DateTime.UtcNow.Date;
             var startDate = endDate.AddDays(-7);
@@ -541,7 +541,7 @@ namespace Hangfire.Mongo
             return CreateTimeLineStats(keys, dates);
         }
 
-        private Dictionary<DateTime, long> GetHourlyTimelineStats(string type)
+        public virtual Dictionary<DateTime, long> GetHourlyTimelineStats(string type)
         {
             var endDate = DateTime.UtcNow;
             var dates = new List<DateTime>();
@@ -556,7 +556,7 @@ namespace Hangfire.Mongo
             return CreateTimeLineStats(keys, dates);
         }
 
-        private Dictionary<DateTime, long> CreateTimeLineStats(IEnumerable<string> keys, IList<DateTime> dates)
+        public virtual Dictionary<DateTime, long> CreateTimeLineStats(IEnumerable<string> keys, IList<DateTime> dates)
         {
             var bsonKeys = BsonArray.Create(keys);
             var valuesMap = _dbContext.JobGraph.OfType<CounterDto>()

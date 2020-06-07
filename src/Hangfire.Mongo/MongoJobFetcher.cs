@@ -10,8 +10,10 @@ using MongoDB.Driver;
 
 namespace Hangfire.Mongo
 {
-#pragma warning disable 1591
-    internal class MongoJobFetcher
+    /// <summary>
+    /// Fetches job from DB
+    /// </summary>
+    public class MongoJobFetcher
     {
         private static readonly ILog Logger = LogProvider.For<MongoJobFetcher>();
         
@@ -26,6 +28,12 @@ namespace Hangfire.Mongo
             ReturnDocument = ReturnDocument.After
         };
         
+        /// <summary>
+        /// ctor
+        /// </summary>
+        /// <param name="dbContext"></param>
+        /// <param name="storageOptions"></param>
+        /// <param name="semaphore"></param>
         public MongoJobFetcher(HangfireDbContext dbContext, MongoStorageOptions storageOptions,
             IJobQueueSemaphore semaphore)
         {
@@ -34,8 +42,17 @@ namespace Hangfire.Mongo
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
+        /// <summary>
+        /// Fetches net job, blocks until job is successfully fetched
+        /// Queues are in prioritized order
+        /// </summary>
+        /// <param name="queues"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>
         [NotNull]
-        public IFetchedJob FetchNextJob(string[] queues, CancellationToken cancellationToken)
+        public virtual IFetchedJob FetchNextJob(string[] queues, CancellationToken cancellationToken)
         {
             if (queues == null)
             {
@@ -75,7 +92,13 @@ namespace Hangfire.Mongo
             return fetchedJob;
         }
 
-        private MongoFetchedJob TryAllQueues(string[] queues, CancellationToken cancellationToken)
+        /// <summary>
+        /// Tries to get a job from db in queues defined priority
+        /// </summary>
+        /// <param name="queues"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public virtual MongoFetchedJob TryAllQueues(string[] queues, CancellationToken cancellationToken)
         {
             if (Logger.IsTraceEnabled())
             {
@@ -95,7 +118,13 @@ namespace Hangfire.Mongo
             return null;
         }
 
-        private MongoFetchedJob TryGetEnqueuedJob(string queue, CancellationToken cancellationToken)
+        /// <summary>
+        /// Tries to fetche a job from specified queue 
+        /// </summary>
+        /// <param name="queue"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public virtual MongoFetchedJob TryGetEnqueuedJob(string queue, CancellationToken cancellationToken)
         {
             var fetchedAtQuery = new BsonDocument(nameof(JobQueueDto.FetchedAt), BsonNull.Value);
             if(_storageOptions.InvisibilityTimeout.HasValue)
@@ -130,9 +159,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"Fetched job {fetchedJob.JobId} from '{queue}' Thread[{Thread.CurrentThread.ManagedThreadId}]");
             }
-            return new MongoFetchedJob(_dbContext, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
-
+            return _storageOptions.Factory.CreateFetchedJob(_dbContext, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
         }
     }
-#pragma warning disable 1591
 }

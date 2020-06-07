@@ -13,7 +13,7 @@ namespace Hangfire.Mongo.DistributedLock
     /// <summary>
     /// Represents distributed lock implementation for MongoDB
     /// </summary>
-    internal sealed class MongoDistributedLock : IDisposable
+    public class MongoDistributedLock : IDisposable
     {
         private static readonly ILog Logger = LogProvider.For<MongoDistributedLock>();
 

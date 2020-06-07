@@ -1,5 +1,14 @@
 
-## What's New (Dec. 11th. 2019)
+## What's New (June. 7th. 2020)
+
+### v0.7.11
+- Align version number with Hangfire.Core
+- Update dependencies
+   - target netstandard2.0
+   - "MongoDB.Driver" Version="2.10.4"
+   - "Hangfire.Core" Version="1.7.11"
+- Make extendable
+   - Everything can now be hooked into and extended
 
 ### v0.6.7
 - InvisibilityTimeout computed for each query (#224)

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using Hangfire.Mongo.Migration.Strategies;
+using Hangfire.Mongo.Migration.Strategies.Backup;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,12 +40,12 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                 {
                     MigrationOptions = new MongoMigrationOptions
                     {
-                        Strategy = MongoMigrationStrategy.Migrate,
-                        BackupStrategy = MongoBackupStrategy.Collections
+                        MigrationStrategy = new MigrateMongoMigrationStrategy(),
+                        BackupStrategy = new CollectionMongoBackupStrategy()
                     }
                 };
                 //config.UseLogProvider(new FileLogProvider());
-                config.UseColouredConsoleLogProvider(LogLevel.Trace);
+                config.UseColouredConsoleLogProvider(LogLevel.Info);
                 config.UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, storageOptions);
             });
             services.AddMvc();
@@ -53,7 +55,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            var options = new BackgroundJobServerOptions {Queues = new[] {"default", "notDefault"}, WorkerCount = 2};
+            var options = new BackgroundJobServerOptions {Queues = new[] {"default", "notDefault"}};
 
             app.UseHangfireServer(options);
             app.UseHangfireDashboard();

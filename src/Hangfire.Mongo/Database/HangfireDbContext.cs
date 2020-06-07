@@ -11,9 +11,15 @@ namespace Hangfire.Mongo.Database
     {
         private readonly string _prefix;
 
-        internal MongoClient Client { get; }
+        /// <summary>
+        /// MongoClient used for this db context instance
+        /// </summary>
+        public MongoClient Client { get; }
 
-        internal IMongoDatabase Database { get; }
+        /// <summary>
+        /// Database instance used for this db context instance
+        /// </summary>
+        public IMongoDatabase Database { get; }
 
         internal HangfireDbContext(string connectionString, string databaseName, string prefix = "hangfire")
             :this(new MongoClient(connectionString), databaseName, prefix)

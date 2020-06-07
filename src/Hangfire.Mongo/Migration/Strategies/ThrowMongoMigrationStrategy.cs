@@ -1,20 +1,27 @@
 ﻿using System;
 using System.Reflection;
+using MongoDB.Driver;
+#pragma warning disable 1591
 
 namespace Hangfire.Mongo.Migration.Strategies
 {
     /// <summary>
-    /// Implements the "None" strategy.
+    /// Implements the "Throw" strategy.
     /// Not much to execute just throw an exception.
     /// We do not want to continue on an obsolete schema.
     /// </summary>
-    internal class MongoMigrationStrategyNone : IMongoMigrationStrategy
+    public class ThrowMongoMigrationStrategy : MongoMigrationStrategy
     {
-        public MongoMigrationStrategyNone()
+        public ThrowMongoMigrationStrategy() 
+            : base(new MongoMigrationContext())
+        {
+        } 
+        public ThrowMongoMigrationStrategy(IMongoMigrationContext mongoMigrationContext) 
+            : base(mongoMigrationContext)
         {
         }
 
-        public void Execute(MongoSchema fromSchema, MongoSchema toSchema)
+        protected override void ExecuteStrategy(IMongoDatabase database, MongoSchema fromSchema, MongoSchema toSchema)
         {
             var assemblyName = GetType().GetTypeInfo().Assembly.GetName();
             throw new InvalidOperationException(

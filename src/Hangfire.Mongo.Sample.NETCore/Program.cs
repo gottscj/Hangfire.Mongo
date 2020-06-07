@@ -1,5 +1,7 @@
 ﻿using System;
 using Hangfire.Logging.LogProviders;
+using Hangfire.Mongo.Migration.Strategies;
+using Hangfire.Mongo.Migration.Strategies.Backup;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
@@ -15,8 +17,8 @@ namespace Hangfire.Mongo.Sample.NETCore
             {
                 MigrationOptions = new MongoMigrationOptions
                 {
-                    Strategy = MongoMigrationStrategy.Migrate,
-                    BackupStrategy = MongoBackupStrategy.None
+                    MigrationStrategy = new MigrateMongoMigrationStrategy(),
+                    BackupStrategy = new NoneMongoBackupStrategy()
                 }
             };
 
