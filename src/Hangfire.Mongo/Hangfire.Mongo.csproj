@@ -37,8 +37,8 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Hangfire.Core" Version="1.7.9" />
-    <PackageReference Include="MongoDB.Driver" Version="2.10.2" />
+    <PackageReference Include="Hangfire.Core" Version="1.7.11" />
+    <PackageReference Include="MongoDB.Driver" Version="2.10.4" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
 </Project>
