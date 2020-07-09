@@ -17,25 +17,36 @@ PM> Install-Package Hangfire.Mongo
 ## Usage ASP.NET Core
 
 ```csharp
-// This method gets called by the runtime. Use this method to add services to the container.
 public void ConfigureServices(IServiceCollection services)
 {
-    // Add framework services.
-    services.AddHangfire(config =>
+    var mongoUrlBuilder = new MongoUrlBuilder("mongodb://localhost/jobs");
+    var mongoClient = new MongoClient(mongoUrlBuilder.ToMongoUrl());
+
+    // Add Hangfire services. Hangfire.AspNetCore nuget required
+    services.AddHangfire(configuration =>
     {
-      var mongoUrlBuilder = new MongoUrlBuilder("mongodb://localhost/jobs");
-      var mongoClient = new MongoClient(mongoUrlBuilder.ToMongoUrl());
-      
-      var storageOptions = new MongoStorageOptions
-      {
-          MigrationOptions = new MongoMigrationOptions
-          {
-              MigrationStrategy = new MigrateMongoMigrationStrategy(),
-              BackupStrategy = new CollectionMongoBackupStrategy()
-          }
-      };
-      config.UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, storageOptions);
+        configuration
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+        .UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, new MongoStorageOptions
+        {
+            MigrationOptions = new MongoMigrationOptions
+            {
+                MigrationStrategy = new MigrateMongoMigrationStrategy(),
+                BackupStrategy = new CollectionMongoBackupStrategy()
+            },
+            Prefix = "hangfire.mongo",
+            CheckConnection = true
+        });
     });
+    // Add the processing server as IHostedService
+    services.AddHangfireServer(serverOptions =>
+    {
+        serverOptions.ServerName = "Hangfire.Mongo server 1";
+    });
+
+    // Add framework services.
 }
 ```
 
