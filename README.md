@@ -27,8 +27,8 @@ public void ConfigureServices(IServiceCollection services)
     {
         configuration
         .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-            .UseSimpleAssemblyNameTypeSerializer()
-            .UseRecommendedSerializerSettings()
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseRecommendedSerializerSettings()
         .UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, new MongoStorageOptions
         {
             MigrationOptions = new MongoMigrationOptions
