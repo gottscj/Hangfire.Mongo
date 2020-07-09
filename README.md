@@ -23,9 +23,7 @@ public void ConfigureServices(IServiceCollection services)
     var mongoClient = new MongoClient(mongoUrlBuilder.ToMongoUrl());
 
     // Add Hangfire services. Hangfire.AspNetCore nuget required
-    services.AddHangfire(configuration =>
-    {
-        configuration
+    services.AddHangfire(configuration => configuration
         .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
         .UseSimpleAssemblyNameTypeSerializer()
         .UseRecommendedSerializerSettings()
@@ -38,8 +36,8 @@ public void ConfigureServices(IServiceCollection services)
             },
             Prefix = "hangfire.mongo",
             CheckConnection = true
-        });
-    });
+        })
+    );
     // Add the processing server as IHostedService
     services.AddHangfireServer(serverOptions =>
     {
