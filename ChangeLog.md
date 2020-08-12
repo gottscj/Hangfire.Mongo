@@ -1,6 +1,11 @@
 
 ## What's New (June. 7th. 2020)
 
+### v0.7.12
+- Update to latest Hangfire.Core (v1.7.12)
+- Update to latest Mongo drivers (v2.11.0)
+- Add index (PR #247)
+
 ### v0.7.11
 - Align version number with Hangfire.Core
 - Update dependencies

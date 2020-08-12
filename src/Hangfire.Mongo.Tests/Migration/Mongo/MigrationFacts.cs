@@ -37,6 +37,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         [InlineData("Hangfire-Mongo-Schema-015.zip", true)]
         [InlineData("Hangfire-Mongo-Schema-016.zip", true)]
         [InlineData("Hangfire-Mongo-Schema-017.zip", true)]
+        // [InlineData("Hangfire-Mongo-Schema-018.zip", true)]
         public void Migrate_Full_Success(string seedFile, bool assertCollectionHasItems)
         {
             var dbContext =
@@ -48,7 +49,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             {
                 SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", seedFile));
             }
-
+            
             var storageOptions = new MongoStorageOptions
             {
                 MigrationOptions = new MongoMigrationOptions
@@ -187,15 +188,25 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             {
                 while (!jsonReader.IsAtEndOfFile())
                 {
-                    var value = BsonSerializer.Deserialize<BsonValue>(jsonReader);
-                    if (value.BsonType == BsonType.Document)
+                    try
                     {
-                        documents.Add(value.AsBsonDocument);
+                        var value = BsonSerializer.Deserialize<BsonValue>(jsonReader);
+                        if (value.BsonType == BsonType.Document)
+                        {
+                            documents.Add(value.AsBsonDocument);
+                        }
+                        else if (value.BsonType == BsonType.Array)
+                        {
+                            documents.AddRange(value.AsBsonArray.Values.ToList().Select(v => v.AsBsonDocument));
+                        }
                     }
-                    else if (value.BsonType == BsonType.Array)
+                    catch (Exception e)
                     {
-                        documents.AddRange(value.AsBsonArray.Values.ToList().Select(v => v.AsBsonDocument));
+                        Console.WriteLine($"Error seeding collection {collectionName}: {e}");
+                        
+                        throw;
                     }
+                    
                 }
             }
 
