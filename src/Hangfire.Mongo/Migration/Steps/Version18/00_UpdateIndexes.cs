@@ -1,13 +1,13 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace Hangfire.Mongo.Migration.Steps.Version17
+namespace Hangfire.Mongo.Migration.Steps.Version18
 {
     internal class UpdateIndexes : IndexMigration, IMongoMigrationStep
     {
-        public MongoSchema TargetSchema => MongoSchema.Version17;
+        public MongoSchema TargetSchema => MongoSchema.Version18;
 
-        public long Sequence => 1;
+        public long Sequence => 0;
 
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {

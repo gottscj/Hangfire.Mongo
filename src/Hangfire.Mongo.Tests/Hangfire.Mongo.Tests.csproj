@@ -18,6 +18,9 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="README.md" />
+    <None Update="Migration\Hangfire-Mongo-Schema-018.zip">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Hangfire.Mongo/Hangfire.Mongo.csproj" />

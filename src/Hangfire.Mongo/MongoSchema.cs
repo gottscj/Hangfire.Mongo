@@ -79,7 +79,12 @@
         /// <summary>
         /// Schema Version 17
         /// </summary>
-        Version17 = 17
+        Version17 = 17,
+        
+        /// <summary>
+        /// Schema Version 18
+        /// </summary>
+        Version18 = 18
     }
 
 }

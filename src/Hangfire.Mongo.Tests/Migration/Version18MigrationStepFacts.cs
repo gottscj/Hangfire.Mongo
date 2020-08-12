@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
 using Hangfire.Mongo.Migration.Steps.Version17;
+using Hangfire.Mongo.Migration.Steps.Version18;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -14,16 +14,15 @@ using Xunit;
 namespace Hangfire.Mongo.Tests.Migration
 {
     [Collection("Database")]
-    public class Version17MigrationStepFacts
+    public class Version18MigrationStepFacts
     {
-        private readonly HangfireDbContext _dbContext;
         private readonly Mock<IMongoMigrationContext> _mongoMigrationBagMock;
         private readonly IMongoDatabase _database;
         
-        public Version17MigrationStepFacts()
+        public Version18MigrationStepFacts()
         {
-            _dbContext = ConnectionUtils.CreateDbContext();
-            _database = _dbContext.Database;
+            var dbContext = ConnectionUtils.CreateDbContext();
+            _database = dbContext.Database;
             _mongoMigrationBagMock = new Mock<IMongoMigrationContext>(MockBehavior.Strict);
         }
 
