@@ -253,6 +253,11 @@ namespace Hangfire.Mongo
 
         public override string GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore)
         {
+            return GetFirstByLowestScoreFromSet(key, fromScore, toScore, 1).FirstOrDefault();
+        }
+
+        public override List<string> GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore, int count)
+        {
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -262,7 +267,7 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentException("The `toScore` value must be higher or equal to the `fromScore` value.");
             }
-            
+
             return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
@@ -271,7 +276,8 @@ namespace Hangfire.Mongo
                       Builders<SetDto>.Filter.Lte(_ => _.Score, toScore))
                 .SortBy(_ => _.Score)
                 .Project(_ => _.Value)
-                .FirstOrDefault();
+                .Limit(count)
+                .ToList();
         }
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
