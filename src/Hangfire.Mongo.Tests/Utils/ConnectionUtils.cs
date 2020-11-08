@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
+using Mongo2Go;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Tests.Utils
@@ -11,10 +12,8 @@ namespace Hangfire.Mongo.Tests.Utils
     public static class ConnectionUtils
     {
         private const string DatabaseVariable = "Hangfire_Mongo_DatabaseName";
-        private const string ConnectionStringTemplateVariable = "Hangfire_Mongo_ConnectionStringTemplate";
 
         private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
-        private const string DefaultConnectionStringTemplate = @"mongodb://localhost";
 
         public static string GetDatabaseName()
         {
@@ -30,15 +29,6 @@ namespace Hangfire.Mongo.Tests.Utils
             return Environment.GetEnvironmentVariable(DatabaseVariable) ?? DefaultDatabaseName + "-" + framework;
         }
 
-        public static string GetConnectionString()
-        {
-            return string.Format(GetConnectionStringTemplate(), GetDatabaseName());
-        }
-
-        private static string GetConnectionStringTemplate()
-        {
-            return Environment.GetEnvironmentVariable(ConnectionStringTemplateVariable) ?? DefaultConnectionStringTemplate;
-        }
 
         public static MongoStorage CreateStorage()
         {
@@ -53,15 +43,39 @@ namespace Hangfire.Mongo.Tests.Utils
             return CreateStorage(storageOptions);
         }
 
+        
         public static MongoStorage CreateStorage(MongoStorageOptions storageOptions)
         {
-            var mongoClientSettings = MongoClientSettings.FromConnectionString(GetConnectionString());
+            var mongoClientSettings = MongoClientSettings.FromConnectionString(GetRunner().ConnectionString);
             return new MongoStorage(mongoClientSettings, GetDatabaseName(), storageOptions);
         }
 
         public static HangfireDbContext CreateDbContext()
         {
-            return new HangfireDbContext(GetConnectionString(), GetDatabaseName());
+            return new HangfireDbContext(GetRunner().ConnectionString, GetDatabaseName());
+        }
+
+        public static string GetConnectionString()
+        {
+            return GetRunner().ConnectionString;
+        }
+        private static readonly object SyncRoot = new object();
+        private static MongoDbRunner _runner;
+        public static void StopMongoDb()
+        {
+            lock (SyncRoot)
+            {
+                _runner?.Dispose();
+            }
+        }
+
+        private static MongoDbRunner GetRunner()
+        {
+            lock (SyncRoot)
+            { 
+                _runner = _runner ?? MongoDbRunner.Start(singleNodeReplSet: false);
+                return _runner;
+            }
         }
     }
 #pragma warning restore 1591

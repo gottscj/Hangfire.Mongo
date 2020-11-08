@@ -12,7 +12,7 @@ namespace Hangfire.Mongo.Tests
 {
 #pragma warning disable 1591
     [Collection("Database")]
-    public class ExpirationManagerFacts
+    public class ExpirationManagerFacts : IDisposable
     {
         private readonly HangfireDbContext _dbContext;
         private readonly CancellationToken _token;
@@ -240,6 +240,10 @@ namespace Hangfire.Mongo.Tests
                 action(transaction);
                 transaction.Commit();
             }
+        }
+
+        public void Dispose()
+        {
         }
     }
 #pragma warning restore 1591
