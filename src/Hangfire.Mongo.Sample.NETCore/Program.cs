@@ -26,9 +26,10 @@ namespace Hangfire.Mongo.Sample.NETCore
             ConventionRegistry.Register("CamelCase", conventionPack, t => true);
             
             GlobalConfiguration.Configuration.UseLogProvider(new ColouredConsoleLogProvider());
+            
             JobStorage.Current = new MongoStorage(
                 MongoClientSettings.FromConnectionString("mongodb://localhost"), 
-                "Mongo-Hangfire-Sample-NETCore",
+                databaseName: "Mongo-Hangfire-Sample-NETCore",
                 migrationOptions);
 
             using (new BackgroundJobServer())

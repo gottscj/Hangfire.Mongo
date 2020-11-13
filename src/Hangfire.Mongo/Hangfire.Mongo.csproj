@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>0.7.12</VersionPrefix>
-    <TargetFrameworks>net46;net452;netstandard2.0</TargetFrameworks>
+    <VersionPrefix>0.7.17</VersionPrefix>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -19,13 +19,15 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Copyright>Copyright 2020 © Sergey Zwezdin</Copyright>
     <title>Hangfire MongoDB Storage</title>
-    <owners>Sergey Zwezdin</owners>
+    <owners>Sergey Zwezdin, Jonas Gottschau</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>0.7.12
-      - Update to latest Hangfire.Core (v1.7.12)
-      - Update to latest Mongo drivers (v2.11.0)
-      - Add index (PR #247)
+    <PackageReleaseNotes>0.7.17
+      - Update to latest Hangfire.Core (v1.7.17)
+      - Update to latest Mongo drivers (v2.11.4)
+      - Only targeting netstandard2.0
+      - Remove ASP.NET sample
+      - Fix collection backup requires dbadmin role (#253)
 </PackageReleaseNotes>
     <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
     <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
@@ -35,8 +37,8 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Hangfire.Core" Version="1.7.12" />
-    <PackageReference Include="MongoDB.Driver" Version="2.11.0" />
+    <PackageReference Include="Hangfire.Core" Version="1.7.17" />
+    <PackageReference Include="MongoDB.Driver" Version="2.11.4" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
 </Project>

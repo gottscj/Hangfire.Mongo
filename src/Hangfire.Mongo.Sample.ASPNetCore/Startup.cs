@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using LogLevel = Hangfire.Logging.LogLevel;
@@ -12,7 +13,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
 {
     public class Startup
     {
-        public Startup(IHostingEnvironment env)
+        public Startup(IHostEnvironment env)
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
@@ -48,26 +49,19 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                 config.UseColouredConsoleLogProvider(LogLevel.Info);
                 config.UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, storageOptions);
             });
-            services.AddMvc();
-
+            services.AddMvc(c => c.EnableEndpointRouting = false);
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
         {
             var options = new BackgroundJobServerOptions {Queues = new[] {"default", "notDefault"}};
-
+            
             app.UseHangfireServer(options);
             app.UseHangfireDashboard();
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-                app.UseBrowserLink();
-            }
-            else
-            {
-                app.UseExceptionHandler("/Home/Error");
-            }
+            app.UseDeveloperExceptionPage();
+            app.UseBrowserLink();
 
             app.UseStaticFiles();
 
