@@ -81,10 +81,13 @@ namespace Hangfire.Mongo
             {
                 CheckConnection();
             }
-             
-            MongoMigrationManager.MigrateIfNeeded(storageOptions, HangfireDbContext.Database);
-        }
 
+            if (!StorageOptions.ByPassMigration)
+            {
+                MongoMigrationManager.MigrateIfNeeded(storageOptions, HangfireDbContext.Database);
+            }
+        }
+        
         private void CheckConnection()
         {
             using (var cts = new CancellationTokenSource(StorageOptions.ConnectionCheckTimeout))

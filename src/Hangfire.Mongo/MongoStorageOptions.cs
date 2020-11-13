@@ -29,6 +29,7 @@ namespace Hangfire.Mongo
             CountersAggregateInterval = TimeSpan.FromMinutes(5);
             MigrationLockTimeout = TimeSpan.FromMinutes(1);
             CheckConnection = true;
+            ByPassMigration = false;
             ConnectionCheckTimeout = TimeSpan.FromSeconds(5);
             
             ClientId = Guid.NewGuid().ToString().Replace("-", string.Empty);
@@ -155,6 +156,11 @@ namespace Hangfire.Mongo
         /// the db and try to connect to the db using the given MongoClientSettings
         /// </summary>
         public bool CheckConnection { get; set; }
+        
+        /// <summary>
+        /// Bypass migrations, use at your own risk :)
+        /// </summary>
+        public bool ByPassMigration { get; set; }
         
         /// <summary>
         /// Time before cancelling ping to mongo server, if 'CheckConnection' is false, this value will be ignored

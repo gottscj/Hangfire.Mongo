@@ -11,6 +11,7 @@ namespace Hangfire.Mongo.Tests.Utils
     public static class ConnectionUtils
     {
         private const string DatabaseVariable = "Hangfire_Mongo_DatabaseName";
+
         private const string ConnectionStringTemplateVariable = "Hangfire_Mongo_ConnectionStringTemplate";
 
         private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
@@ -30,15 +31,6 @@ namespace Hangfire.Mongo.Tests.Utils
             return Environment.GetEnvironmentVariable(DatabaseVariable) ?? DefaultDatabaseName + "-" + framework;
         }
 
-        public static string GetConnectionString()
-        {
-            return string.Format(GetConnectionStringTemplate(), GetDatabaseName());
-        }
-
-        private static string GetConnectionStringTemplate()
-        {
-            return Environment.GetEnvironmentVariable(ConnectionStringTemplateVariable) ?? DefaultConnectionStringTemplate;
-        }
 
         public static MongoStorage CreateStorage()
         {
@@ -53,6 +45,7 @@ namespace Hangfire.Mongo.Tests.Utils
             return CreateStorage(storageOptions);
         }
 
+        
         public static MongoStorage CreateStorage(MongoStorageOptions storageOptions)
         {
             var mongoClientSettings = MongoClientSettings.FromConnectionString(GetConnectionString());
@@ -63,6 +56,17 @@ namespace Hangfire.Mongo.Tests.Utils
         {
             return new HangfireDbContext(GetConnectionString(), GetDatabaseName());
         }
+
+        public static string GetConnectionString()
+        {
+            return string.Format(GetConnectionStringTemplate(), GetDatabaseName());
+        }
+
+        private static string GetConnectionStringTemplate()
+        {
+            return Environment.GetEnvironmentVariable(ConnectionStringTemplateVariable) ?? DefaultConnectionStringTemplate;
+        }
+
     }
 #pragma warning restore 1591
 }

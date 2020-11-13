@@ -80,12 +80,6 @@ namespace Hangfire.Mongo.Migration.Strategies.Backup
             {
                 throw new InvalidOperationException("Hangfire.Mongo is not able to backup collections in MongoDB running a version prior to 2.6");
             }
-            if (version >= new Version(3, 2))
-            {
-                // The 'bypassDocumentValidation' was introduced in version 3.2
-                // https://docs.mongodb.com/manual/release-notes/3.2/#rel-notes-document-validation
-                aggregate["bypassDocumentValidation"] = true;
-            }
 
             var dbSource = database.GetCollection<BsonDocument>(collectionName);
             var indexes = dbSource.Indexes.List().ToList().Where(idx => idx["name"] != "_id_").ToList();
