@@ -2,7 +2,6 @@
 using Hangfire.Logging.LogProviders;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
-using Mongo2Go;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
@@ -27,10 +26,10 @@ namespace Hangfire.Mongo.Sample.NETCore
             ConventionRegistry.Register("CamelCase", conventionPack, t => true);
             
             GlobalConfiguration.Configuration.UseLogProvider(new ColouredConsoleLogProvider());
-            var runner = MongoDbRunner.Start(singleNodeReplSet: false);
+            
             JobStorage.Current = new MongoStorage(
-                MongoClientSettings.FromConnectionString(runner.ConnectionString), 
-                "Mongo-Hangfire-Sample-NETCore",
+                MongoClientSettings.FromConnectionString("mongodb://localhost"), 
+                databaseName: "Mongo-Hangfire-Sample-NETCore",
                 migrationOptions);
 
             using (new BackgroundJobServer())

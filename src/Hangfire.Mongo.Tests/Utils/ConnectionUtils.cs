@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
-using Mongo2Go;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Tests.Utils
@@ -13,7 +12,10 @@ namespace Hangfire.Mongo.Tests.Utils
     {
         private const string DatabaseVariable = "Hangfire_Mongo_DatabaseName";
 
+        private const string ConnectionStringTemplateVariable = "Hangfire_Mongo_ConnectionStringTemplate";
+
         private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
+        private const string DefaultConnectionStringTemplate = @"mongodb://localhost";
 
         public static string GetDatabaseName()
         {
@@ -46,37 +48,25 @@ namespace Hangfire.Mongo.Tests.Utils
         
         public static MongoStorage CreateStorage(MongoStorageOptions storageOptions)
         {
-            var mongoClientSettings = MongoClientSettings.FromConnectionString(GetRunner().ConnectionString);
+            var mongoClientSettings = MongoClientSettings.FromConnectionString(GetConnectionString());
             return new MongoStorage(mongoClientSettings, GetDatabaseName(), storageOptions);
         }
 
         public static HangfireDbContext CreateDbContext()
         {
-            return new HangfireDbContext(GetRunner().ConnectionString, GetDatabaseName());
+            return new HangfireDbContext(GetConnectionString(), GetDatabaseName());
         }
 
         public static string GetConnectionString()
         {
-            return GetRunner().ConnectionString;
-        }
-        private static readonly object SyncRoot = new object();
-        private static MongoDbRunner _runner;
-        public static void StopMongoDb()
-        {
-            lock (SyncRoot)
-            {
-                _runner?.Dispose();
-            }
+            return string.Format(GetConnectionStringTemplate(), GetDatabaseName());
         }
 
-        private static MongoDbRunner GetRunner()
+        private static string GetConnectionStringTemplate()
         {
-            lock (SyncRoot)
-            { 
-                _runner = _runner ?? MongoDbRunner.Start(singleNodeReplSet: false, additionalMongodArguments: "--quiet");
-                return _runner;
-            }
+            return Environment.GetEnvironmentVariable(ConnectionStringTemplateVariable) ?? DefaultConnectionStringTemplate;
         }
+
     }
 #pragma warning restore 1591
 }

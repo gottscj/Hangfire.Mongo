@@ -6,7 +6,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Mongo2Go;
 using MongoDB.Driver;
 using LogLevel = Hangfire.Logging.LogLevel;
 
@@ -30,14 +29,12 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         public void ConfigureServices(IServiceCollection services)
         {
             // Add framework services.
-            var runner = MongoDbRunner.Start(singleNodeReplSet: false);
-            services.AddSingleton(runner);
             services.AddHangfire(config =>
             {
                 
                 // Read DefaultConnection string from appsettings.json
-                
-                var mongoUrlBuilder = new MongoUrlBuilder(runner.ConnectionString);
+                var connectionString = Configuration.GetConnectionString("DefaultConnection");
+                var mongoUrlBuilder = new MongoUrlBuilder(connectionString);
                 var mongoClient = new MongoClient(mongoUrlBuilder.ToMongoUrl());
                 
                 var storageOptions = new MongoStorageOptions
