@@ -1,6 +1,14 @@
 
 ## What's New (June. 7th. 2020)
 
+### v0.7.17
+- Update to latest Hangfire.Core (v1.7.17)
+- Update to latest Mongo drivers (v2.11.4)
+- Only targeting netstandard2.0
+- Remove ASP.NET sample
+- Fix collection backup requires dbadmin role (#253)
+- Adds bypass migration flag to MongoStorageOptions (#256)
+
 ### v0.7.12
 - Update to latest Hangfire.Core (v1.7.12)
 - Update to latest Mongo drivers (v2.11.0)

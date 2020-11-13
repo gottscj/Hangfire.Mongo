@@ -28,6 +28,7 @@
       - Only targeting netstandard2.0
       - Remove ASP.NET sample
       - Fix collection backup requires dbadmin role (#253)
+      - Adds bypass migration flag to MongoStorageOptions (#256)
 </PackageReleaseNotes>
     <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
     <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
