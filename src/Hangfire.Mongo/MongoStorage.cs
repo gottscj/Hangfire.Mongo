@@ -87,11 +87,7 @@ namespace Hangfire.Mongo
                 MongoMigrationManager.MigrateIfNeeded(storageOptions, HangfireDbContext.Database);
             }
         }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <exception cref="MongoConnectException"></exception>
+        
         private void CheckConnection()
         {
             using (var cts = new CancellationTokenSource(StorageOptions.ConnectionCheckTimeout))
