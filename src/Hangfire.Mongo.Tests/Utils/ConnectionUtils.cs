@@ -73,7 +73,7 @@ namespace Hangfire.Mongo.Tests.Utils
         {
             lock (SyncRoot)
             { 
-                _runner = _runner ?? MongoDbRunner.Start(singleNodeReplSet: false);
+                _runner = _runner ?? MongoDbRunner.Start(singleNodeReplSet: false, additionalMongodArguments: "--quiet");
                 return _runner;
             }
         }
