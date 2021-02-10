@@ -1,4 +1,5 @@
 ﻿using System;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace Hangfire.Mongo.Dto
@@ -8,6 +9,7 @@ namespace Hangfire.Mongo.Dto
     {
         [BsonId]
         [BsonElement("_id")]
+        [BsonRepresentation(BsonType.String)]
         public string Id { get; set; }
 
         [BsonElement(nameof(WorkerCount))]

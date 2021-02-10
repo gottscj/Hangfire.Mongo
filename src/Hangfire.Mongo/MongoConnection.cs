@@ -196,7 +196,8 @@ namespace Hangfire.Mongo
                 [nameof(ServerDto.LastHeartbeat)] = DateTime.UtcNow
             });
 
-            _dbContext.Server.UpdateOne(new BsonDocument("_id", serverId), set, new UpdateOptions {IsUpsert = true});
+            var filter = Builders<ServerDto>.Filter.Eq(s => s.Id, serverId);
+            _dbContext.Server.UpdateOne(filter, set, new UpdateOptions {IsUpsert = true});
         }
 
         public override void RemoveServer(string serverId)
