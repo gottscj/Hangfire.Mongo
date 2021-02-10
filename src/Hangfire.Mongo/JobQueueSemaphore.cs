@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Hangfire.Logging;
 
@@ -39,7 +40,8 @@ namespace Hangfire.Mongo
     public class JobQueueSemaphore : IJobQueueSemaphore, IDisposable
     {
         private static readonly ILog Logger = LogProvider.For<JobQueueSemaphore>();
-        private readonly Dictionary<string, SemaphoreSlim> _pool = new Dictionary<string, SemaphoreSlim>();
+        private readonly Dictionary<string, long> _pool = new Dictionary<string, long>();
+        private readonly ManualResetEvent _releasedSignal = new ManualResetEvent(false);
         private readonly object _syncRoot = new object();
 
         /// <inheritdoc />
@@ -48,49 +50,63 @@ namespace Hangfire.Mongo
             queue = null;
             
             // wait for first item in queue
-            var waitHandlers = GetWaitHandlers(queues, cancellationToken);
-            var index = WaitHandle.WaitAny(waitHandlers, timeout);
-
-            timedOut = index == WaitHandle.WaitTimeout;
-            
-            if (timedOut)
+            var index = WaitHandle.WaitAny(new []
             {
-                return false;
-            }
-            
-            // check if cancellationTokens wait handle has been signaled
-            if (index == (waitHandlers.Length - 1))
-            {
-                return false;
-            }
+                _releasedSignal,
+                cancellationToken.WaitHandle
+            }, timeout);
 
-            queue = queues[index];
+            lock (_syncRoot)
+            {
+                
+                timedOut = index == WaitHandle.WaitTimeout;
             
-            // waithandle has been signaled. wait for the signaled semaphore to make sure its counter is decremented
-            // https://docs.microsoft.com/en-us/dotnet/api/system.threading.semaphoreslim.availablewaithandle?view=netframework-4.7.2
-            return WaitNonBlock(queue);
+                if (timedOut)
+                {
+                    return false;
+                }
+                // check if cancellationTokens wait handle has been signaled
+                if (index == 1)
+                {
+                    return false;
+                }
+
+                foreach (var q in queues)
+                {
+                    if (!WaitNonBlock(q))
+                    {
+                        continue;
+                    }
+                    queue = q;
+                    break;
+                }
+
+                if (_pool.Values.All(i => i < 1))
+                {
+                    _releasedSignal.Reset();
+                }
+
+                return !string.IsNullOrEmpty(queue);
+            }
         }
 
         /// <inheritdoc />
         public virtual void Release(string queue)
         {
-            var semaphore = GetOrAddSemaphore(queue);
-            
-            try
+            long count;
+            lock (_syncRoot)
             {
-                semaphore.Release();
+                _pool.TryGetValue(queue, out count);
+                count += 1;
+                _pool[queue] = count;
+                _releasedSignal.Set();
             }
-            catch (SemaphoreFullException)
-            {
-                Logger.Error($"Error releasing semaphore for queue '{queue}' current count: {semaphore.CurrentCount}");
-                throw;
-            }
-            
+
             if (Logger.IsTraceEnabled())
             {
                 Logger.Trace(
                     $"Incremented semaphore for Queue: '{queue}', " +
-                    $"semaphore current count: {semaphore.CurrentCount}" +
+                    $"semaphore current count: {count}" +
                     $" Thread[{Thread.CurrentThread.ManagedThreadId}]");
             }
         }
@@ -100,17 +116,19 @@ namespace Hangfire.Mongo
         {
             lock (_syncRoot)
             {
-                if (!_pool.TryGetValue(queue, out var semaphore))
+                var gotLock = false;
+                if (_pool.TryGetValue(queue, out var count) && count >= 1)
                 {
-                    return false;
+                    count -= 1;
+                    _pool[queue] = count;
+                    gotLock = true;
                 }
 
-                var gotLock = semaphore.Wait(0);
                 if (gotLock && Logger.IsTraceEnabled())
                 {
                     Logger.Trace(
                         $"Decremented semaphore for Queue: '{queue}', " +
-                        $"semaphore current count: {semaphore.CurrentCount}" +
+                        $"semaphore current count: {count}" +
                         $" Thread[{Thread.CurrentThread.ManagedThreadId}]");
                 }
 
@@ -118,33 +136,18 @@ namespace Hangfire.Mongo
             }
         }
 
-        private WaitHandle[] GetWaitHandlers(string[] queues, CancellationToken cancellationToken)
+        /// <summary>
+        /// to string
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
         {
-            var waiters = new WaitHandle[queues.Length + 1];
-            for (var i = 0; i < queues.Length; i++)
-            {
-                waiters[i] = GetOrAddSemaphore(queues[i]).AvailableWaitHandle; 
-            }
-
-            waiters[queues.Length] = cancellationToken.WaitHandle;
-
-            return waiters;
-        }
-
-        private SemaphoreSlim GetOrAddSemaphore(string queue)
-        {
-            SemaphoreSlim semaphore;
             lock (_syncRoot)
             {
-                if (!_pool.TryGetValue(queue, out semaphore))
-                {
-                    semaphore = new SemaphoreSlim(0);
-                    _pool.Add(queue, semaphore);
-                }
+                return _pool.ToString();
             }
-
-            return semaphore;
         }
+
 
         /// <inheritdoc />
         public void Dispose()
@@ -152,10 +155,7 @@ namespace Hangfire.Mongo
             Logger.Debug("Dispose");
             lock (_syncRoot)
             {
-                foreach (var resetEvent in _pool.Values)
-                {
-                    resetEvent.Dispose();
-                }
+                _releasedSignal.Dispose();
                 _pool.Clear();
             }
             

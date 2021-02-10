@@ -1,6 +1,12 @@
 
 ## What's New (June. 7th. 2020)
 
+### v0.7.19
+- Update to latest Hangfire.Core (v1.7.19)
+- Update to latest Mongo drivers (v2.11.6)
+- Simplify semaphore logic and support more than 64 waithandles (#264)
+- Fixed issue caused by StringIdStoredAsObjectIdConvention() mongo convention (#267)
+
 ### v0.7.17
 - Update to latest Hangfire.Core (v1.7.17)
 - Update to latest Mongo drivers (v2.11.4)

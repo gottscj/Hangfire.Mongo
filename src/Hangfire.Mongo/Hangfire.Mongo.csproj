@@ -22,13 +22,11 @@
     <owners>Sergey Zwezdin, Jonas Gottschau</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>0.7.17
-      - Update to latest Hangfire.Core (v1.7.17)
-      - Update to latest Mongo drivers (v2.11.4)
-      - Only targeting netstandard2.0
-      - Remove ASP.NET sample
-      - Fix collection backup requires dbadmin role (#253)
-      - Adds bypass migration flag to MongoStorageOptions (#256)
+    <PackageReleaseNotes>0.7.19
+      - Update to latest Hangfire.Core (v1.7.19)
+      - Update to latest Mongo drivers (v2.11.6)
+      - Simplify semaphore logic and support more than 64 waithandles (#264)
+      - Fixed issue caused by StringIdStoredAsObjectIdConvention() mongo convention (#267)
 </PackageReleaseNotes>
     <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
     <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
@@ -38,8 +36,8 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Hangfire.Core" Version="1.7.17" />
-    <PackageReference Include="MongoDB.Driver" Version="2.11.4" />
+    <PackageReference Include="Hangfire.Core" Version="1.7.19" />
+    <PackageReference Include="MongoDB.Driver" Version="2.11.6" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
 </Project>

@@ -59,6 +59,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
             var options = new BackgroundJobServerOptions {Queues = new[] {"default", "notDefault"}};
             
             app.UseHangfireServer(options);
+            
             app.UseHangfireDashboard();
             app.UseDeveloperExceptionPage();
             app.UseBrowserLink();
