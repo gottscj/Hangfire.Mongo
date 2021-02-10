@@ -99,8 +99,8 @@ namespace Hangfire.Mongo
                 _pool.TryGetValue(queue, out count);
                 count += 1;
                 _pool[queue] = count;
-                _releasedSignal.Set();
             }
+            _releasedSignal.Set();
 
             if (Logger.IsTraceEnabled())
             {
