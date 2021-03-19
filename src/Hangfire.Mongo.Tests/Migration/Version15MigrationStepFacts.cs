@@ -8,7 +8,6 @@ using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Moq;
-using Newtonsoft.Json.Linq;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests.Migration
@@ -66,7 +65,7 @@ namespace Hangfire.Mongo.Tests.Migration
                   'LastHeartbeat' : ISODate('2018-12-03T22:19:00.636Z')  
                 }";
             var originalServerDto = BsonDocument.Parse(json);
-            var jsonData = JObject.Parse(originalServerDto["Data"].AsString);
+            var document = BsonDocument.Parse(originalServerDto["Data"].AsString);
             var collection = _database.GetCollection<BsonDocument>("hangfire.server");
             collection.DeleteOne(new BsonDocument("_id", "test-server"));
             collection.InsertOne(originalServerDto);
@@ -79,10 +78,10 @@ namespace Hangfire.Mongo.Tests.Migration
             var migratedServerDto = collection.Find(new BsonDocument()).Single();
             Assert.True(result, "Expected migration to be successful, reported 'false'");
             Assert.Equal(originalServerDto["_id"], migratedServerDto["_id"]);
-            Assert.Equal(int.Parse(jsonData["WorkerCount"].Value<string>()), migratedServerDto["WorkerCount"].AsInt32);
-            Assert.Equal(jsonData["Queues"].ToObject<string[]>(),
+            Assert.Equal(document["WorkerCount"].AsInt32, migratedServerDto["WorkerCount"].AsInt32);
+            Assert.Equal(document["Queues"].AsBsonArray.Select(d => d.AsString).ToArray(),
                 migratedServerDto["Queues"].AsBsonArray.Select(d => d.AsString).ToArray());
-            Assert.Equal(jsonData["StartedAt"]?.ToObject<DateTime?>(), migratedServerDto["StartedAt"].ToUniversalTime());
+            Assert.Equal(DateTime.Parse(document["StartedAt"].AsString).ToUniversalTime(), migratedServerDto["StartedAt"].ToUniversalTime());
             Assert.Equal(originalServerDto["LastHeartbeat"], migratedServerDto["LastHeartbeat"].ToUniversalTime());
         }
 

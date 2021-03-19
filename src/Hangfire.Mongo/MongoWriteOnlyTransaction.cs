@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using Hangfire.Common;
 using Hangfire.Logging;
@@ -10,8 +11,6 @@ using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Hangfire.Mongo
 {
@@ -415,13 +414,13 @@ namespace Hangfire.Mongo
                 return;                
             }
 
-            var jArray = new JArray();
+            var builder = new StringBuilder();
             foreach (var writeModel in writeModels)
             {
                 var serializedModel = SerializeWriteModel(writeModel);
-                jArray.Add($"{writeModel.ModelType}: {serializedModel}");
+                builder.AppendLine($"{writeModel.ModelType}={serializedModel}");
             }
-            Logger.Trace($"BulkWrite:\r\n{jArray.ToString(Formatting.Indented)}" );
+            Logger.Trace($"BulkWrite:\r\n{builder}" );
         }
         public virtual void SignalJobsAddedToQueues(ICollection<string> queues)
         {
