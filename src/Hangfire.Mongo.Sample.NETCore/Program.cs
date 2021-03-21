@@ -19,12 +19,10 @@ namespace Hangfire.Mongo.Sample.NETCore
                 {
                     MigrationStrategy = new MigrateMongoMigrationStrategy(),
                     BackupStrategy = new NoneMongoBackupStrategy()
-                }
+                },
+                UseNotificationsCollection = false
             };
 
-            var conventionPack = new ConventionPack {new CamelCaseElementNameConvention()}; 
-            ConventionRegistry.Register("CamelCase", conventionPack, t => true);
-            
             GlobalConfiguration.Configuration.UseLogProvider(new ColouredConsoleLogProvider());
             
             JobStorage.Current = new MongoStorage(
@@ -37,10 +35,11 @@ namespace Hangfire.Mongo.Sample.NETCore
                 for (var i = 0; i < JobCount; i++)
                 {
                     var jobId = i;
-                    BackgroundJob.Enqueue(() => Console.WriteLine($"Fire-and-forget ({jobId})"));
+                    BackgroundJob.Enqueue(() => 
+                        Console.WriteLine($"Fire-and-forget executed after {jobId}"));
                 }
 
-                Console.WriteLine($"{JobCount} job(s) has been enqued. They will be executed shortly!");
+                Console.WriteLine($"{JobCount} job(s) has been enqueued. They will be executed shortly!");
                 Console.WriteLine();
                 Console.WriteLine("If you close this application before they are executed, ");
                 Console.WriteLine("they will be executed the next time you run this sample.");

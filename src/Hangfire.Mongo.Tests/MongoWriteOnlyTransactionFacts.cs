@@ -22,7 +22,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_IfConnectionIsNull()
         {
-            var exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(null));
+            var exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(null, new MongoStorageOptions()));
 
             Assert.Equal("dbContext", exception.ParamName);
         }
@@ -880,7 +880,7 @@ namespace Hangfire.Mongo.Tests
 
         private void Commit(Action<MongoWriteOnlyTransaction> action)
         {
-            using (var transaction = new MongoWriteOnlyTransaction(_database))
+            using (var transaction = new MongoWriteOnlyTransaction(_database, new MongoStorageOptions()))
             {
                 action(transaction);
                 transaction.Commit();

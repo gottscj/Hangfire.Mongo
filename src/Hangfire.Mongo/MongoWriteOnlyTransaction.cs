@@ -18,6 +18,7 @@ namespace Hangfire.Mongo
 
     public class MongoWriteOnlyTransaction : JobStorageTransaction
     {
+        private readonly MongoStorageOptions _storageOptions;
         private static readonly ILog Logger = LogProvider.For<MongoWriteOnlyTransaction>();
         
         public HangfireDbContext DbContext { get; }
@@ -26,8 +27,9 @@ namespace Hangfire.Mongo
 
         private readonly HashSet<string> _jobsAddedToQueue;
 
-        public MongoWriteOnlyTransaction(HangfireDbContext dbContext)
+        public MongoWriteOnlyTransaction(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
+            _storageOptions = storageOptions;
             DbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _jobsAddedToQueue = new HashSet<string>();
         }
@@ -239,7 +241,7 @@ namespace Hangfire.Mongo
             }
 
             var filter = CreateSetFilter(key, value);
-            var update = CreateSetUpdate(value, score);
+            var update = CreateSetUpdate(key, value, score);
 
             var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
             _writeModels.Add(writeModel);
@@ -404,7 +406,11 @@ namespace Hangfire.Mongo
                     IsOrdered = true,
                     BypassDocumentValidation = false
                 });
-            SignalJobsAddedToQueues(_jobsAddedToQueue);
+            
+            if (_storageOptions.UseNotificationsCollection)
+            {
+                SignalJobsAddedToQueues(_jobsAddedToQueue);
+            }
         }
 
         public virtual void Log( IList<WriteModel<BsonDocument>> writeModels)
@@ -428,7 +434,7 @@ namespace Hangfire.Mongo
             {
                 return;
             }
-
+            
             var jobsEnqueued = queues.Select(NotificationDto.JobEnqueued);
             DbContext.Notifications.InsertMany(jobsEnqueued, new InsertManyOptions
             {
@@ -618,7 +624,7 @@ namespace Hangfire.Mongo
             foreach (var item in items)
             {
                 var filter = CreateSetFilter(key, item);
-                var update = CreateSetUpdate(item, 0.0);
+                var update = CreateSetUpdate(key, item, 0.0);
                 
                 var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
                 _writeModels.Add(writeModel);
@@ -672,7 +678,7 @@ namespace Hangfire.Mongo
             return filter;
         }
         
-        public virtual BsonDocument CreateSetUpdate(string value, double score)
+        public virtual BsonDocument CreateSetUpdate(string key, string value, double score)
         {
             var update = new BsonDocument
             {

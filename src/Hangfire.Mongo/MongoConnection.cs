@@ -35,19 +35,22 @@ namespace Hangfire.Mongo
 
         public override IWriteOnlyTransaction CreateWriteTransaction()
         {
-            return _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext);
+            return _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions);
         }
 
         public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
         {
-            return _storageOptions.Factory.CreateMongoDistributedLock(resource, timeout, _dbContext, _storageOptions);
+            var distributedLock =
+                _storageOptions.Factory.CreateMongoDistributedLock(resource, timeout, _dbContext, _storageOptions);
+            
+            return distributedLock.AcquireLock();
         }
 
         public override string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
             TimeSpan expireIn)
         {
             string jobId;
-            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext))
+            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
             {
                 jobId = transaction.CreateExpiredJob(job, parameters, createdAt, expireIn);
                 transaction.Commit();
@@ -68,7 +71,7 @@ namespace Hangfire.Mongo
 
         public override void SetJobParameter(string id, string name, string value)
         {
-            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext))
+            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
             {
                 transaction.SetJobParameter(id, name, value);
                 transaction.Commit();
@@ -283,7 +286,7 @@ namespace Hangfire.Mongo
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
-            using (var transaction = new MongoWriteOnlyTransaction(_dbContext))
+            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
             {
                 transaction.SetRangeInHash(key, keyValuePairs);
                 transaction.Commit();

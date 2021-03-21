@@ -128,7 +128,11 @@ namespace Hangfire.Mongo
         public override IEnumerable<IServerComponent> GetComponents()
         {
             yield return StorageOptions.Factory.CreateMongoExpirationManager(HangfireDbContext, StorageOptions);
-            yield return StorageOptions.Factory.CreateMongoNotificationObserver(HangfireDbContext);
+            if (StorageOptions.UseNotificationsCollection)
+            {
+                yield return StorageOptions.Factory.CreateMongoNotificationObserver(HangfireDbContext);    
+            }
+            
         }
 
         /// <summary>

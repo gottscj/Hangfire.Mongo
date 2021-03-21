@@ -31,11 +31,12 @@ namespace Hangfire.Mongo
             CheckConnection = true;
             ByPassMigration = false;
             ConnectionCheckTimeout = TimeSpan.FromSeconds(5);
-            
-            ClientId = Guid.NewGuid().ToString().Replace("-", string.Empty);
+
+            ClientId = Guid.NewGuid().ToString("N");
 
             MigrationOptions = new MongoMigrationOptions();
             Factory = new MongoFactory();
+            UseNotificationsCollection = true;
         }
 
         /// <summary>
@@ -93,6 +94,13 @@ namespace Hangfire.Mongo
             }
         }
 
+        /// <summary>
+        /// Use a tailed capped collection to notify job inserted and locks released
+        /// Will cause jobs to start immediately, but might not be needed if you only need recurring jobs
+        /// default: true
+        /// </summary>
+        public bool UseNotificationsCollection { get; set; }
+        
         /// <summary>
         /// Invisibility timeout
         /// </summary>
@@ -168,7 +176,7 @@ namespace Hangfire.Mongo
         public TimeSpan ConnectionCheckTimeout { get; set; }
 
         /// <summary>
-        /// Expiration check inteval for jobs
+        /// Expiration check interval for jobs
         /// </summary>
         public TimeSpan JobExpirationCheckInterval { get; set; }
 
