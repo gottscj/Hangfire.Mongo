@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -235,16 +234,7 @@ namespace Hangfire.Mongo
 
         public override void AddToSet(string key, string value, double score)
         {
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            var filter = CreateSetFilter(key, value);
-            var update = CreateSetUpdate(key, value, score);
-
-            var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
-            _writeModels.Add(writeModel);
+            AddRangeToSet(key, new List<string> {value}, score);
         }
 
         public override void RemoveFromSet(string key, string value)
@@ -397,7 +387,7 @@ namespace Hangfire.Mongo
             {
                 return;
             }
-            
+
             DbContext
                 .Database
                 .GetCollection<BsonDocument>(DbContext.JobGraph.CollectionNamespace.CollectionName)
@@ -611,6 +601,11 @@ namespace Hangfire.Mongo
 
         public override void AddRangeToSet(string key, IList<string> items)
         {
+            AddRangeToSet(key, items, 0.0);
+        }
+
+        protected virtual void AddRangeToSet(string key, IList<string> items, double score)
+        {
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -624,7 +619,7 @@ namespace Hangfire.Mongo
             foreach (var item in items)
             {
                 var filter = CreateSetFilter(key, item);
-                var update = CreateSetUpdate(key, item, 0.0);
+                var update = CreateSetUpdate(item, score);
                 
                 var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
                 _writeModels.Add(writeModel);
@@ -660,34 +655,38 @@ namespace Hangfire.Mongo
 
         public virtual BsonDocument CreateSetFilter(string key, string value)
         {
-            var filter = new BsonDocument("$and", new BsonArray
+            var filter = new BsonDocument
             {
-                new BsonDocument(nameof(SetDto.Key), $"{key}<{value}>"),
-                new BsonDocument("_t", nameof(SetDto)),
-            });
+                [nameof(SetDto.Key)] = key,
+                [nameof(SetDto.Value)] = value,
+                ["_t"] = nameof(SetDto)
+            };
             return filter;
         }
         
         public virtual BsonDocument CreateSetFilter(string key)
         {
-            var filter = new BsonDocument("$and", new BsonArray
+            var filter = new BsonDocument
             {
-                new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", $"^{Regex.Escape(key)}")),
-                new BsonDocument("_t", nameof(SetDto))
-            });
+                [nameof(SetDto.Key)] = key,
+                ["_t"] = nameof(SetDto)
+            };
             return filter;
         }
         
-        public virtual BsonDocument CreateSetUpdate(string key, string value, double score)
+        public virtual BsonDocument CreateSetUpdate(string value, double score)
         {
             var update = new BsonDocument
             {
-                ["$set"] = new BsonDocument(nameof(SetDto.Score), score),
+                ["$set"] = new BsonDocument
+                {
+                    [nameof(SetDto.Score)] = score,
+                },
                 ["$setOnInsert"] = new BsonDocument
                 {
-                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(SetDto)},
-                    [nameof(SetDto.Value)] = value,
-                    [nameof(SetDto.ExpireAt)] = BsonNull.Value
+                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(SetDto)},
+                    [nameof(SetDto.ExpireAt)] = BsonNull.Value,
+                    [nameof(SetDto.Value)] = value
                 }
             };
             return update;

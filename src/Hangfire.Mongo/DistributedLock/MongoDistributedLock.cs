@@ -53,7 +53,7 @@ namespace Hangfire.Mongo.DistributedLock
         {
             _resource = resource ?? throw new ArgumentNullException(nameof(resource));
             _timeout = timeout;
-            _dbContext = dbContext;
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
             _mutex = mutex;
 
