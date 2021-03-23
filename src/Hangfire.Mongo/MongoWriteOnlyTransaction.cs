@@ -391,7 +391,7 @@ namespace Hangfire.Mongo
             }
         }
 
-        public virtual void Log( IList<WriteModel<BsonDocument>> writeModels)
+        public virtual void Log(IList<WriteModel<BsonDocument>> writeModels)
         {
             if (!Logger.IsTraceEnabled())
             {
@@ -633,8 +633,7 @@ namespace Hangfire.Mongo
         {
             var filter = new BsonDocument
             {
-                [nameof(SetDto.Key)] = $"{key}<{value}>",
-                ["_t"] = nameof(SetDto)
+                [nameof(SetDto.Key)] = $"{key}<{value}>"
             };
             return filter;
         }
