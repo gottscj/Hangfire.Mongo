@@ -658,9 +658,9 @@ namespace Hangfire.Mongo
                 },
                 ["$setOnInsert"] = new BsonDocument
                 {
-                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(SetDto)},
-                    [nameof(SetDto.ExpireAt)] = BsonNull.Value,
-                    [nameof(SetDto.Value)] = value
+                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(SetDto)},
+                    [nameof(SetDto.Value)] = value,
+                    [nameof(SetDto.ExpireAt)] = BsonNull.Value
                 }
             };
             return update;
