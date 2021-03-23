@@ -4,7 +4,7 @@
     <AssemblyName>Hangfire.Mongo.Sample.NETCore</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>Hangfire.Mongo.Sample.NETCore</PackageId>
-    <Version>0.7.19</Version>
+    <Version>0.7.20</Version>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <Copyright>Copyright © 2014-2019 Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Copyright>
     <Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
@@ -19,6 +19,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Hangfire.Core" Version="1.7.20" />
-    <PackageReference Include="MongoDB.Driver" Version="2.12.0" />
+    <PackageReference Include="MongoDB.Driver" Version="2.12.1" />
   </ItemGroup>
 </Project>
