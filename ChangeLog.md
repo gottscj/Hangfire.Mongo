@@ -6,7 +6,7 @@
 - Update to latest Mongo drivers (v2.12.1)
 - Remove Newtonsoft dependency
 - Add possibility to opt out of using capped collection/tailable cursor
-
+- Minor optimizations to WriteOnlyTransaction filters when filtering on unique index 
 
 ### v0.7.19
 - Update to latest Hangfire.Core (v1.7.19)
