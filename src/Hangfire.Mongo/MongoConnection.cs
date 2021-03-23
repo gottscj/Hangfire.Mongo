@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Hangfire.Common;
+using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Server;
@@ -18,6 +19,7 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoConnection : JobStorageConnection
     {
+        private static readonly ILog Logger = LogProvider.For<MongoConnection>();
         private readonly MongoStorageOptions _storageOptions;
         private readonly MongoJobFetcher _jobFetcher;
         
@@ -239,6 +241,11 @@ namespace Hangfire.Mongo
 
         public override HashSet<string> GetAllItemsFromSet(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetAllItemsFromSet({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -262,6 +269,11 @@ namespace Hangfire.Mongo
 
         public override List<string> GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore, int count)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetFirstByLowestScoreFromSet({key}, {fromScore}, {toScore}, {count})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -286,6 +298,11 @@ namespace Hangfire.Mongo
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"SetRangeInHash({key})");
+            }
+            
             using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
             {
                 transaction.SetRangeInHash(key, keyValuePairs);
@@ -295,6 +312,11 @@ namespace Hangfire.Mongo
 
         public override Dictionary<string, string> GetAllEntriesFromHash(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetAllEntriesFromHash({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -311,6 +333,11 @@ namespace Hangfire.Mongo
 
         public override long GetSetCount(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetSetCount({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -325,6 +352,11 @@ namespace Hangfire.Mongo
 
         public override List<string> GetRangeFromSet(string key, int startingFrom, int endingAt)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetRangeFromSet({key}, {startingFrom}, {endingAt})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -343,6 +375,11 @@ namespace Hangfire.Mongo
 
         public override TimeSpan GetSetTtl(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetSetTtl({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -361,6 +398,11 @@ namespace Hangfire.Mongo
 
         public override long GetCounter(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetCounter({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -377,6 +419,11 @@ namespace Hangfire.Mongo
 
         public override long GetHashCount(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetHashCount({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -393,6 +440,11 @@ namespace Hangfire.Mongo
 
         public override TimeSpan GetHashTtl(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetHashTtl({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -411,6 +463,11 @@ namespace Hangfire.Mongo
 
         public override string GetValueFromHash(string key, string name)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetValueFromHash({key}, {name})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -438,6 +495,11 @@ namespace Hangfire.Mongo
 
         public override long GetListCount(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetListCount({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -452,6 +514,11 @@ namespace Hangfire.Mongo
 
         public override TimeSpan GetListTtl(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetListTtl({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -470,6 +537,11 @@ namespace Hangfire.Mongo
 
         public override List<string> GetRangeFromList(string key, int startingFrom, int endingAt)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetRangeFromList({key}, {startingFrom}, {endingAt})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -488,6 +560,11 @@ namespace Hangfire.Mongo
 
         public override List<string> GetAllItemsFromList(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetAllItemsFromList({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
