@@ -254,7 +254,7 @@ namespace Hangfire.Mongo
             var result = _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}"))
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key))
                 .SortBy(_ => _.Id)
                 .Project(_ => _.Value)
                 .ToList();
@@ -287,7 +287,7 @@ namespace Hangfire.Mongo
             return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}") &
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key) &
                       Builders<SetDto>.Filter.Gte(_ => _.Score, fromScore) &
                       Builders<SetDto>.Filter.Lte(_ => _.Score, toScore))
                 .SortBy(_ => _.Score)
@@ -346,7 +346,7 @@ namespace Hangfire.Mongo
             return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}"))
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key))
                 .Count();
         }
 
@@ -365,7 +365,7 @@ namespace Hangfire.Mongo
             return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}"))
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key))
                 .SortBy(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
@@ -388,7 +388,7 @@ namespace Hangfire.Mongo
             var values = _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}") &
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key) &
                       Builders<SetDto>.Filter.Not(Builders<SetDto>.Filter.Eq(_ => _.ExpireAt, null)))
                 .Project(dto => dto.ExpireAt.Value)
                 .ToList();

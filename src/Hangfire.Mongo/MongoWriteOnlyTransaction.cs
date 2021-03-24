@@ -599,7 +599,7 @@ namespace Hangfire.Mongo
             foreach (var item in items)
             {
                 var filter = CreateSetFilter(key, item);
-                var update = CreateSetUpdate(item, score);
+                var update = CreateSetUpdate(key, item, score);
                 
                 var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
                 _writeModels.Add(writeModel);
@@ -642,13 +642,13 @@ namespace Hangfire.Mongo
         {
             var filter = new BsonDocument
             {
-                [nameof(KeyJobDto.Key)] = new BsonDocument("$regex", $"^{Regex.Escape(key)}"),
+                [nameof(SetDto.SetType)] = key,
                 ["_t"] = nameof(SetDto)
             };
             return filter;
         }
         
-        public virtual BsonDocument CreateSetUpdate(string value, double score)
+        public virtual BsonDocument CreateSetUpdate(string key, string value, double score)
         {
             var update = new BsonDocument
             {
@@ -660,6 +660,7 @@ namespace Hangfire.Mongo
                 {
                     ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(SetDto)},
                     [nameof(SetDto.Value)] = value,
+                    [nameof(SetDto.SetType)] = key,
                     [nameof(SetDto.ExpireAt)] = BsonNull.Value
                 }
             };
