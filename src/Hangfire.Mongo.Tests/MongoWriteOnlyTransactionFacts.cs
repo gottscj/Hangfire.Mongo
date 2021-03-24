@@ -734,7 +734,7 @@ namespace Hangfire.Mongo.Tests
             var key = "some+-[regex]?-#set";
 
 
-            var set1 = new SetDto {Key = $"{key}<value1>", ExpireAt = DateTime.UtcNow};
+            var set1 = new SetDto {Key = $"{key}<value1>", SetType = key, ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set1);
 
             Commit(x => x.PersistSet(key));
@@ -817,13 +817,13 @@ namespace Hangfire.Mongo.Tests
         [CleanDatabase]
         public void RemoveSet_ClearsTheSetData()
         {
-            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow};
+            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", SetType = "Set1", ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set1Val1);
 
-            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", SetType = "Set1", ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set1Val2);
 
-            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2", SetType = "Set2", ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set2);
 
             Commit(x => x.RemoveSet("Set1"));
