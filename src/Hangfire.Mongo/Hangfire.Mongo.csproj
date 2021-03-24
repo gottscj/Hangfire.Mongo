@@ -17,16 +17,17 @@
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Copyright>Copyright 2020 © Sergey Zwezdin</Copyright>
     <title>Hangfire MongoDB Storage</title>
     <owners>Sergey Zwezdin, Jonas Gottschau</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
     <PackageReleaseNotes>0.7.20
-      - Update to latest Hangfire.Core (v1.7.19)
-      - Update to latest Mongo drivers (v2.11.6)
-      - Simplify semaphore logic and support more than 64 waithandles (#264)
-      - Fixed issue caused by StringIdStoredAsObjectIdConvention() mongo convention (#267)
+      - Update to latest Hangfire.Core (v1.7.20)
+      - Update to latest Mongo drivers (v2.12.1)
+      - Remove Newtonsoft dependency
+      - Add possibility to opt out of using capped collection/tailable cursor
+      - Optimizations to WriteOnlyTransaction filters when filtering on unique index
+      - Optimizations to queries for scheduled and recurrent jobs
 </PackageReleaseNotes>
     <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
     <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
