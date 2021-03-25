@@ -22,7 +22,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_IfConnectionIsNull()
         {
-            var exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(null));
+            var exception = Assert.Throws<ArgumentNullException>(() => new MongoWriteOnlyTransaction(null, new MongoStorageOptions()));
 
             Assert.Equal("dbContext", exception.ParamName);
         }
@@ -626,10 +626,10 @@ namespace Hangfire.Mongo.Tests
         [CleanDatabase]
         public void ExpireSet_SetsSetExpirationData()
         {
-            var set1 = new SetDto {Key = "Set1<value1>", Value = "value1"};
+            var set1 = new SetDto {Key = "Set1<value1>", Value = "value1", SetType = "Set1"};
             _database.JobGraph.InsertOne(set1);
 
-            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2"};
+            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2", SetType = "Set2"};
             _database.JobGraph.InsertOne(set2);
 
             Commit(x => x.ExpireSet("Set1", TimeSpan.FromDays(1)));
@@ -652,7 +652,7 @@ namespace Hangfire.Mongo.Tests
             var key = "some+-[regex]?-#set";
 
 
-            var set1 = new SetDto {Key = $"{key}<value1>", Value = "value1"};
+            var set1 = new SetDto {Key = $"{key}<value1>", Value = "value1", SetType = key};
             _database.JobGraph.InsertOne(set1);
 
             Commit(x => x.ExpireSet(key, TimeSpan.FromDays(1)));
@@ -709,13 +709,13 @@ namespace Hangfire.Mongo.Tests
         [CleanDatabase]
         public void PersistSet_ClearsTheSetExpirationData()
         {
-            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow};
+            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", SetType = "Set1", ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set1Val1);
 
-            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", SetType = "Set1", ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set1Val2);
 
-            var set2 = new SetDto {Key = "Set2<value1>", ExpireAt = DateTime.UtcNow};
+            var set2 = new SetDto {Key = "Set2<value1>", SetType = "Set2", ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set2);
 
             Commit(x => x.PersistSet("Set1"));
@@ -723,7 +723,7 @@ namespace Hangfire.Mongo.Tests
             var testSet1 = GetTestSet(_database, "Set1");
             Assert.All(testSet1, x => Assert.Null(x.ExpireAt));
 
-            var testSet2 = GetTestSet(_database, set2.Key).Single();
+            var testSet2 = GetTestSet(_database, "Set2").Single();
             Assert.NotNull(testSet2.ExpireAt);
         }
 
@@ -734,7 +734,7 @@ namespace Hangfire.Mongo.Tests
             var key = "some+-[regex]?-#set";
 
 
-            var set1 = new SetDto {Key = $"{key}<value1>", ExpireAt = DateTime.UtcNow};
+            var set1 = new SetDto {Key = $"{key}<value1>", SetType = key, ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set1);
 
             Commit(x => x.PersistSet(key));
@@ -786,13 +786,13 @@ namespace Hangfire.Mongo.Tests
         public void AddRangeToSet_AddToExistingSetData()
         {
             // ASSERT
-            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow};
+            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", SetType = "Set1", ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set1Val1);
 
-            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", SetType = "Set1",  ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set1Val2);
 
-            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2",SetType = "Set2",  ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set2);
 
             var values = new[] {"test1", "test2", "test3"};
@@ -808,7 +808,7 @@ namespace Hangfire.Mongo.Tests
             Assert.True(testSet1.Select(s => s.Value).All(value => valuesToTest.Contains(value)));
             Assert.Equal(5, testSet1.Count);
 
-            var testSet2 = GetTestSet(_database, set2.Key);
+            var testSet2 = GetTestSet(_database, "Set2");
             Assert.NotNull(testSet2);
             Assert.Equal(1, testSet2.Count);
         }
@@ -817,13 +817,13 @@ namespace Hangfire.Mongo.Tests
         [CleanDatabase]
         public void RemoveSet_ClearsTheSetData()
         {
-            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", ExpireAt = DateTime.UtcNow};
+            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", SetType = "Set1", ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set1Val1);
 
-            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", SetType = "Set1", ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set1Val2);
 
-            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2", SetType = "Set2", ExpireAt = DateTime.UtcNow};
             _database.JobGraph.InsertOne(set2);
 
             Commit(x => x.RemoveSet("Set1"));
@@ -863,7 +863,7 @@ namespace Hangfire.Mongo.Tests
         private static IList<SetDto> GetTestSet(HangfireDbContext database, string key)
         {
             return database.JobGraph.OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}")).ToList();
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key)).ToList();
         }
 
         private static ListDto GetTestList(HangfireDbContext database, string key)
@@ -880,7 +880,7 @@ namespace Hangfire.Mongo.Tests
 
         private void Commit(Action<MongoWriteOnlyTransaction> action)
         {
-            using (var transaction = new MongoWriteOnlyTransaction(_database))
+            using (var transaction = new MongoWriteOnlyTransaction(_database, new MongoStorageOptions()))
             {
                 action(transaction);
                 transaction.Commit();

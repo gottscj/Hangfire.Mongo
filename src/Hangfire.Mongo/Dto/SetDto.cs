@@ -11,6 +11,9 @@ namespace Hangfire.Mongo.Dto
 
         [BsonElement(nameof(Value))]
         public string Value { get; set; }
+
+        [BsonElement(nameof(SetType))]
+        public string SetType { get; set; }
     }
 #pragma warning restore 1591
 }

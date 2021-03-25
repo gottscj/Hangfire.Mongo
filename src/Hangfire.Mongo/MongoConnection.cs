@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Hangfire.Common;
+using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Server;
@@ -18,6 +19,7 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoConnection : JobStorageConnection
     {
+        private static readonly ILog Logger = LogProvider.For<MongoConnection>();
         private readonly MongoStorageOptions _storageOptions;
         private readonly MongoJobFetcher _jobFetcher;
         
@@ -35,19 +37,22 @@ namespace Hangfire.Mongo
 
         public override IWriteOnlyTransaction CreateWriteTransaction()
         {
-            return _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext);
+            return _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions);
         }
 
         public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
         {
-            return _storageOptions.Factory.CreateMongoDistributedLock(resource, timeout, _dbContext, _storageOptions);
+            var distributedLock =
+                _storageOptions.Factory.CreateMongoDistributedLock(resource, timeout, _dbContext, _storageOptions);
+            
+            return distributedLock.AcquireLock();
         }
 
         public override string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
             TimeSpan expireIn)
         {
             string jobId;
-            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext))
+            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
             {
                 jobId = transaction.CreateExpiredJob(job, parameters, createdAt, expireIn);
                 transaction.Commit();
@@ -68,7 +73,7 @@ namespace Hangfire.Mongo
 
         public override void SetJobParameter(string id, string name, string value)
         {
-            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext))
+            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
             {
                 transaction.SetJobParameter(id, name, value);
                 transaction.Commit();
@@ -236,6 +241,11 @@ namespace Hangfire.Mongo
 
         public override HashSet<string> GetAllItemsFromSet(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetAllItemsFromSet({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -244,7 +254,7 @@ namespace Hangfire.Mongo
             var result = _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}"))
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key))
                 .SortBy(_ => _.Id)
                 .Project(_ => _.Value)
                 .ToList();
@@ -259,6 +269,11 @@ namespace Hangfire.Mongo
 
         public override List<string> GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore, int count)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetFirstByLowestScoreFromSet({key}, {fromScore}, {toScore}, {count})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -272,7 +287,7 @@ namespace Hangfire.Mongo
             return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}") &
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key) &
                       Builders<SetDto>.Filter.Gte(_ => _.Score, fromScore) &
                       Builders<SetDto>.Filter.Lte(_ => _.Score, toScore))
                 .SortBy(_ => _.Score)
@@ -283,7 +298,12 @@ namespace Hangfire.Mongo
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
         {
-            using (var transaction = new MongoWriteOnlyTransaction(_dbContext))
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"SetRangeInHash({key})");
+            }
+            
+            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
             {
                 transaction.SetRangeInHash(key, keyValuePairs);
                 transaction.Commit();
@@ -292,6 +312,11 @@ namespace Hangfire.Mongo
 
         public override Dictionary<string, string> GetAllEntriesFromHash(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetAllEntriesFromHash({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -308,6 +333,11 @@ namespace Hangfire.Mongo
 
         public override long GetSetCount(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetSetCount({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -316,12 +346,17 @@ namespace Hangfire.Mongo
             return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}"))
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key))
                 .Count();
         }
 
         public override List<string> GetRangeFromSet(string key, int startingFrom, int endingAt)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetRangeFromSet({key}, {startingFrom}, {endingAt})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -330,7 +365,7 @@ namespace Hangfire.Mongo
             return _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}"))
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key))
                 .SortBy(_ => _.Id)
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
@@ -340,6 +375,11 @@ namespace Hangfire.Mongo
 
         public override TimeSpan GetSetTtl(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetSetTtl({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -348,7 +388,7 @@ namespace Hangfire.Mongo
             var values = _dbContext
                 .JobGraph
                 .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Regex(_ => _.Key, $"^{Regex.Escape(key)}") &
+                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key) &
                       Builders<SetDto>.Filter.Not(Builders<SetDto>.Filter.Eq(_ => _.ExpireAt, null)))
                 .Project(dto => dto.ExpireAt.Value)
                 .ToList();
@@ -358,6 +398,11 @@ namespace Hangfire.Mongo
 
         public override long GetCounter(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetCounter({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -374,6 +419,11 @@ namespace Hangfire.Mongo
 
         public override long GetHashCount(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetHashCount({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -390,6 +440,11 @@ namespace Hangfire.Mongo
 
         public override TimeSpan GetHashTtl(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetHashTtl({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -408,6 +463,11 @@ namespace Hangfire.Mongo
 
         public override string GetValueFromHash(string key, string name)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetValueFromHash({key}, {name})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -435,6 +495,11 @@ namespace Hangfire.Mongo
 
         public override long GetListCount(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetListCount({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -449,6 +514,11 @@ namespace Hangfire.Mongo
 
         public override TimeSpan GetListTtl(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetListTtl({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -467,6 +537,11 @@ namespace Hangfire.Mongo
 
         public override List<string> GetRangeFromList(string key, int startingFrom, int endingAt)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetRangeFromList({key}, {startingFrom}, {endingAt})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -485,6 +560,11 @@ namespace Hangfire.Mongo
 
         public override List<string> GetAllItemsFromList(string key)
         {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetAllItemsFromList({key})");
+            }
+            
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));

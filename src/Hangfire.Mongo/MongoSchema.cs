@@ -84,7 +84,12 @@
         /// <summary>
         /// Schema Version 18
         /// </summary>
-        Version18 = 18
+        Version18 = 18,
+        
+        /// <summary>
+        /// Schema Version 19
+        /// </summary>
+        Version19 = 19
     }
 
 }

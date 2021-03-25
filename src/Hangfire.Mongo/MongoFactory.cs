@@ -59,10 +59,11 @@ namespace Hangfire.Mongo
         /// Creates new MongoWriteOnlyTransaction instance
         /// </summary>
         /// <param name="dbContext"></param>
+        /// <param name="storageOptions"></param>
         /// <returns></returns>
-        public virtual MongoWriteOnlyTransaction CreateMongoWriteOnlyTransaction(HangfireDbContext dbContext)
+        public virtual MongoWriteOnlyTransaction CreateMongoWriteOnlyTransaction(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
-            return new MongoWriteOnlyTransaction(dbContext);
+            return new MongoWriteOnlyTransaction(dbContext, storageOptions);
         }
 
         /// <summary>

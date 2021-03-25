@@ -445,7 +445,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = "key<1.0>",
                 Value = "1.0",
-                Score = 1.0
+                Score = 1.0,
+                SetType = "key"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
@@ -453,20 +454,23 @@ namespace Hangfire.Mongo.Tests
                 Key = "key<-1.0>",
                 Value = "-1.0",
                 Score = -1.0,
+                SetType = "key"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "key<-5.0>",
                 Value = "-5.0",
-                Score = -5.0
+                Score = -5.0,
+                SetType = "key"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "another-key<-2.0>",
                 Value = "-2.0",
-                Score = -2.0
+                Score = -2.0,
+                SetType = "another-key"
             });
 
             var result = _connection.GetFirstByLowestScoreFromSet("key", -1.0, 3.0);
@@ -484,7 +488,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = $"{key}<1.0>",
                 Value = "1.0",
-                Score = 1.0
+                Score = 1.0,
+                SetType = key
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
@@ -492,6 +497,7 @@ namespace Hangfire.Mongo.Tests
                 Key = $"{key}<-1.0>",
                 Value = "-1.0",
                 Score = -1.0,
+                SetType = key
             });
 
             var result = _connection.GetFirstByLowestScoreFromSet(key, -1.0, 3.0);
@@ -658,42 +664,48 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = "some-set<1>",
                 Value = "1",
-                Score = 0.0
+                Score = 0.0,
+                SetType = "some-set"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "some-set<2>",
                 Value = "2",
-                Score = 0.0
+                Score = 0.0,
+                SetType = "some-set"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "another-set<3>",
                 Value = "3",
-                Score = 0.0
+                Score = 0.0,
+                SetType = "another-set"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "some-set<4>",
                 Value = "4",
-                Score = 0.0
+                Score = 0.0,
+                SetType = "some-set"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "some-set<5>",
                 Value = "5",
-                Score = 0.0
+                Score = 0.0,
+                SetType = "some-set"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "some-set<6>",
                 Value = "6",
-                Score = 0.0
+                Score = 0.0,
+                SetType = "some-set"
             });
             // Act
             var result = _connection.GetAllItemsFromSet("some-set");
@@ -845,19 +857,22 @@ namespace Hangfire.Mongo.Tests
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-1<value-1>",
-                Value = "value-1"
+                Value = "value-1",
+                SetType = "set-1"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-2<value-1>",
-                Value = "value-1"
+                Value = "value-1",
+                SetType = "set-2"
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-1<value-2>",
-                Value = "value-2"
+                Value = "value-2",
+                SetType = "set-1"
             });
 
             var result = _connection.GetSetCount("set-1");
@@ -874,13 +889,15 @@ namespace Hangfire.Mongo.Tests
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = $"{key}<value-1>",
-                Value = "value-1"
+                Value = "value-1",
+                SetType = key
             });
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = $"{key}<value-2>",
-                Value = "value-2"
+                Value = "value-2",
+                SetType = key
             });
 
             var result = _connection.GetSetCount(key);
@@ -902,7 +919,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-1<1>",
                 Value = "1",
-                Score = 0.0
+                Score = 0.0,
+                SetType = "set-1"
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -910,7 +928,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-1<2>",
                 Value = "2",
-                Score = 0.0
+                Score = 0.0,
+                SetType = "set-1"
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -918,7 +937,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-1<3>",
                 Value = "3",
-                Score = 0.0
+                Score = 0.0,
+                SetType = "set-1"
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -926,7 +946,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-1<4>",
                 Value = "4",
-                Score = 0.0
+                Score = 0.0,
+                SetType = "set-1"
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -934,7 +955,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-2<5>",
                 Value = "5",
-                Score = 0.0
+                Score = 0.0,
+                SetType = "set-2"
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -942,7 +964,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-1<6>",
                 Value = "6",
-                Score = 0.0
+                Score = 0.0,
+                SetType = "set-1"
             });
 
             var result = _connection.GetRangeFromSet("set-1", 1, 8);
@@ -960,7 +983,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = $"{key}<1>",
                 Value = "1",
-                Score = 0.0
+                Score = 0.0,
+                SetType = key
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -968,7 +992,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = $"{key}<2>",
                 Value = "2",
-                Score = 0.0
+                Score = 0.0,
+                SetType = key
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -976,7 +1001,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = $"{key}<3>",
                 Value = "3",
-                Score = 0.0
+                Score = 0.0,
+                SetType = key
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -984,7 +1010,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = $"{key}<4>",
                 Value = "4",
-                Score = 0.0
+                Score = 0.0,
+                SetType = key
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -992,7 +1019,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = $"{key}<6>",
                 Value = "6",
-                Score = 0.0
+                Score = 0.0,
+                SetType = key
             });
 
             var result = _connection.GetRangeFromSet(key, 1, 8);
@@ -1010,7 +1038,7 @@ namespace Hangfire.Mongo.Tests
         public void GetSetTtl_ReturnsNegativeValue_WhenSetDoesNotExist()
         {
             var result = _connection.GetSetTtl("my-set");
-            Assert.True(result < TimeSpan.Zero);
+            Assert.True(result < TimeSpan.Zero, $"{result} < {TimeSpan.Zero}");
         }
 
         [Fact, CleanDatabase]
@@ -1022,7 +1050,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-1<1>",
                 Score = 0.0,
-                ExpireAt = DateTime.UtcNow.AddMinutes(60)
+                ExpireAt = DateTime.UtcNow.AddMinutes(60),
+                SetType = "set-1"
             });
 
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -1030,7 +1059,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-2<2>",
                 Score = 0.0,
-                ExpireAt = null
+                ExpireAt = null,
+                SetType = "set-2"
             });
 
             // Act
@@ -1052,7 +1082,8 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = $"{key}<1>",
                 Score = 0.0,
-                ExpireAt = DateTime.UtcNow.AddMinutes(60)
+                ExpireAt = DateTime.UtcNow.AddMinutes(60),
+                SetType = key
             });
 
             // Act
