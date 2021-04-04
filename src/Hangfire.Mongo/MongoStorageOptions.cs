@@ -37,7 +37,13 @@ namespace Hangfire.Mongo
             MigrationOptions = new MongoMigrationOptions();
             Factory = new MongoFactory();
             UseNotificationsCollection = true;
+            UseTransactions = false;
         }
+
+        /// <summary>
+        /// Use transaction based writes. If false BulkWrite feature will be used.
+        /// </summary>
+        public bool UseTransactions { get; set; }
 
         /// <summary>
         /// Factory instance

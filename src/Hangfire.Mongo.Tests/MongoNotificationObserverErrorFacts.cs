@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Migration.Steps.Version17;
 using Hangfire.Mongo.Tests.Utils;
 using Moq;
 using Xunit;
@@ -23,7 +22,7 @@ namespace Hangfire.Mongo.Tests
             _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
             _distributedLockMutexMock = new Mock<IDistributedLockMutex>(MockBehavior.Strict);
             var mongoNotificationObserver = new MongoNotificationObserver(_dbContext, _jobQueueSemaphoreMock.Object,
-                _distributedLockMutexMock.Object);
+                _distributedLockMutexMock.Object, new MongoStorageOptions());
             
             _dbContext.Database.DropCollection(_dbContext.Notifications.CollectionNamespace.CollectionName);
             _cts = new CancellationTokenSource();

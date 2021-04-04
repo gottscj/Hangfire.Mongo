@@ -4,6 +4,7 @@ using System.Threading;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
+using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
@@ -39,9 +40,8 @@ namespace Hangfire.Mongo.Tests
 
         public MongoRunFixture()
         {
-            var connectionString = "mongodb://localhost";
             var databaseName = "Mongo-Hangfire-CamelCase";
-            var context = new HangfireDbContext(connectionString, databaseName);
+            var context = ConnectionUtils.CreateDbContext(databaseName);
             DbContext = context;
             // Make sure we start from scratch
             context.Database.Client.DropDatabase(databaseName);
@@ -54,8 +54,8 @@ namespace Hangfire.Mongo.Tests
                     BackupStrategy = new NoneMongoBackupStrategy()
                 }
             };
-            var mongoClientSettings = MongoClientSettings.FromConnectionString(connectionString);
-            JobStorage.Current = new MongoStorage(mongoClientSettings, databaseName, storageOptions);
+            
+            JobStorage.Current = ConnectionUtils.CreateStorage(storageOptions, databaseName);
 
             var conventionPack = new ConventionPack {new CamelCaseElementNameConvention()};
             ConventionRegistry.Register("CamelCase", conventionPack, t => true);

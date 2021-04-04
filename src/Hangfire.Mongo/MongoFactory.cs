@@ -63,6 +63,11 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual MongoWriteOnlyTransaction CreateMongoWriteOnlyTransaction(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
+            if (storageOptions.UseTransactions)
+            {
+                return new TransactionalMongoWriteOnlyTransaction(dbContext, storageOptions);
+            }
+
             return new MongoWriteOnlyTransaction(dbContext, storageOptions);
         }
 
@@ -106,10 +111,11 @@ namespace Hangfire.Mongo
         /// Creates MongoNotificationObserver instance
         /// </summary>
         /// <param name="dbContext"></param>
+        /// <param name="storageOptions"></param>
         /// <returns></returns>
-        public virtual MongoNotificationObserver CreateMongoNotificationObserver(HangfireDbContext dbContext)
+        public virtual MongoNotificationObserver CreateMongoNotificationObserver(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
-            return new MongoNotificationObserver(dbContext, JobQueueSemaphore, DistributedLockMutex);
+            return new MongoNotificationObserver(dbContext, JobQueueSemaphore, DistributedLockMutex, storageOptions);
         }
 
         /// <summary>

@@ -18,6 +18,7 @@ namespace Hangfire.Mongo
         private readonly HangfireDbContext _dbContext;
         private readonly IJobQueueSemaphore _jobQueueSemaphore;
         private readonly IDistributedLockMutex _distributedLockMutex;
+        private readonly MongoStorageOptions _storageOptions;
 
         /// <summary>
         /// ctor
@@ -25,12 +26,17 @@ namespace Hangfire.Mongo
         /// <param name="dbContext"></param>
         /// <param name="jobQueueSemaphore"></param>
         /// <param name="distributedLockMutex"></param>
-        public MongoNotificationObserver(HangfireDbContext dbContext, IJobQueueSemaphore jobQueueSemaphore,
-            IDistributedLockMutex distributedLockMutex)
+        /// <param name="storageOptions"></param>
+        public MongoNotificationObserver(
+            HangfireDbContext dbContext, 
+            IJobQueueSemaphore jobQueueSemaphore,
+            IDistributedLockMutex distributedLockMutex,
+            MongoStorageOptions storageOptions)
         {
             _dbContext = dbContext;
             _jobQueueSemaphore = jobQueueSemaphore;
             _distributedLockMutex = distributedLockMutex;
+            _storageOptions = storageOptions;
         }
 
         /// <summary>
@@ -39,6 +45,25 @@ namespace Hangfire.Mongo
         /// <param name="cancellationToken"></param>
         public virtual void Execute(CancellationToken cancellationToken)
         {
+            //check if notification collection exists
+            var collections = _dbContext
+                .Database
+                .ListCollections(new ListCollectionsOptions
+                {
+                    Filter = new BsonDocument("name", _storageOptions.Prefix + ".notifications")
+                });
+            
+            if (!collections.Any())
+            {
+                _dbContext
+                    .Database.CreateCollection(_storageOptions.Prefix + ".notifications",
+                        new CreateCollectionOptions
+                        {
+                            Capped = true,
+                            MaxSize = 1048576 * 16, // 16 MB,
+                            MaxDocuments = 100000
+                        }, cancellationToken);
+            }
             var options = new FindOptions<NotificationDto> {CursorType = CursorType.TailableAwait};
 
             var lastId = ObjectId.GenerateNewId(new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc));
