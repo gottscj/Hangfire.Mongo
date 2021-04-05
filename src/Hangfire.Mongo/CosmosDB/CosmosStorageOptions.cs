@@ -1,4 +1,5 @@
-﻿using Hangfire.Mongo.Migration.Strategies;
+﻿using System;
+using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 
 namespace Hangfire.Mongo.CosmosDB
@@ -16,11 +17,7 @@ namespace Hangfire.Mongo.CosmosDB
             UseNotificationsCollection = false;
             CheckConnection = false;
             UseTransactions = false;
-            MigrationOptions = new MongoMigrationOptions
-            {
-                BackupStrategy = new NoneMongoBackupStrategy(),
-                MigrationStrategy = new DropMongoMigrationStrategy()
-            };
+            MigrationLockTimeout = TimeSpan.FromMinutes(2);
         }
     }
 }

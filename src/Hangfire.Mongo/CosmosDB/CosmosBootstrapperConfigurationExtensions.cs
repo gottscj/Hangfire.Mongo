@@ -15,12 +15,12 @@ namespace Hangfire.Mongo.CosmosDB
         /// <param name="databaseName">Name of database at Cosmos server</param>
         /// <param name="storageOptions">Storage options</param>
         /// <returns></returns>
-        public static MongoStorage UseCosmosStorage(this IGlobalConfiguration configuration,
+        public static CosmosStorage UseCosmosStorage(this IGlobalConfiguration configuration,
             MongoClient mongoClient,
             string databaseName,
-            MongoStorageOptions storageOptions)
+            CosmosStorageOptions storageOptions)
         {
-            var storage = new MongoStorage(mongoClient, databaseName, storageOptions);
+            var storage = new CosmosStorage(mongoClient, databaseName, storageOptions);
 
             configuration.UseStorage(storage);
 
