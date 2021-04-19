@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -102,18 +103,39 @@ namespace Hangfire.Mongo
                 }
                 catch (MongoCommandException commandException)
                 {
-                    var errorMessage = $"Error observing '{_dbContext.Notifications.CollectionNamespace.CollectionName}'\r\n" + 
-                                   commandException.ErrorMessage + "\r\n" + 
-                                   "Notifications will not be available\r\n" +
-                                   $"If you dropped the '{_dbContext.Notifications.CollectionNamespace.CollectionName}' collection " +
-                                   "you need to manually create it again as a capped collection\r\n" +
-                                   "For reference, please see\r\n" +
-                                   "   - https://docs.mongodb.com/manual/core/capped-collections/\r\n" +
-                                   "   - https://github.com/sergeyzwezdin/Hangfire.Mongo/blob/master/src/Hangfire.Mongo/Migration/Steps/Version17/00_AddNotificationsCollection.cs";
+                    var collections = _dbContext
+                        .Database.ListCollections().ToList();
+                    var notificationsCollection = collections.FirstOrDefault(b =>
+                        b["name"].Equals(_dbContext.Notifications.CollectionNamespace.CollectionName));
+                    var errorMessage =
+                        $"Error observing '{_dbContext.Notifications.CollectionNamespace.CollectionName}'\r\n" +
+                        commandException.ErrorMessage;
+
+                    var isCapped = true;
+                    if (notificationsCollection != null)
+                    {
+                        isCapped = notificationsCollection["options"].AsBsonDocument.Contains("capped") &&
+                                   notificationsCollection["options"].AsBsonDocument["capped"].AsBoolean;
+                    }
+                    
+                    if (notificationsCollection == null || !isCapped)
+                    {
+                        errorMessage += "\r\n" + 
+                                        "Notifications will not be available\r\n" +
+                                        $"If you dropped the '{_dbContext.Notifications.CollectionNamespace.CollectionName}' collection " +
+                                        "you need to manually create it again as a capped collection\r\n" +
+                                        "For reference, please see\r\n" +
+                                        "   - https://docs.mongodb.com/manual/core/capped-collections/\r\n" +
+                                        "   - https://github.com/sergeyzwezdin/Hangfire.Mongo/blob/master/src/Hangfire.Mongo/Migration/Steps/Version17/00_AddNotificationsCollection.cs";
+                    }
+                    
                     
                     Logger.Error(errorMessage);
-                    // fatal error observing notifications. Stop observer.
-                    cancellationToken.WaitHandle.WaitOne();
+                    if (notificationsCollection == null || !isCapped)
+                    {
+                        // fatal error observing notifications. Stop observer.
+                        cancellationToken.WaitHandle.WaitOne();
+                    }
                 }
                 catch (Exception e)
                 {
