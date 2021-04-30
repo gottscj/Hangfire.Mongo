@@ -102,7 +102,9 @@ namespace Hangfire.Mongo.Migration.Strategies.Backup
                             case "name": newOptions.Name = index[key].AsString; break;
                             case "unique": newOptions.Unique = index[key].AsBoolean; break;
                             case "sparse": newOptions.Sparse = index[key].AsBoolean; break;
-                            case "expireAfterSeconds": newOptions.ExpireAfter = TimeSpan.FromSeconds(index[key].AsInt64); break;
+                            case "expireAfterSeconds": newOptions.ExpireAfter = index[key].IsDouble
+                                    ? TimeSpan.FromSeconds(index[key].AsDouble)
+                                    : TimeSpan.FromSeconds(index[key].AsInt64); break;
                             case "background": newOptions.Background = index[key].AsBoolean; break;
                             case "textIndexVersion": newOptions.TextIndexVersion = index[key].AsInt32; break;
                             case "default_language": newOptions.DefaultLanguage = index[key].AsString; break;

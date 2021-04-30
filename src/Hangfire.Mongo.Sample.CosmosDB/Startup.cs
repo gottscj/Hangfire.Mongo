@@ -32,7 +32,7 @@ namespace Hangfire.Mongo.Sample.CosmosDB
             // Add framework services.
             services.AddHangfire(config =>
             {
-                var connectionString = "put-your-connections-string-here";
+                var connectionString = "put-your-connectionsString-here";
                 var mongoUrlBuilder = new MongoUrlBuilder(connectionString) {DatabaseName = "jobs"};
                 var mongoClient = new MongoClient(mongoUrlBuilder.ToMongoUrl());
                 var opt = new CosmosStorageOptions
