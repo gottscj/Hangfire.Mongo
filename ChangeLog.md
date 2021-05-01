@@ -1,5 +1,12 @@
 
-## What's New (2021-03-23)
+## What's New (2021-05-01)
+
+### v0.7.22
+- Update to latest Hangfire.Core (v1.7.22)
+- Update to latest Mongo drivers (v2.12.2)
+- Add support for mongodb transactions (Bulkwrite still default, setup in options)
+- Add CosmosDB support (BETA)
+- Dont stop Notifications Observer on failure, added 5s backoff instead, max timeout = 60s
 
 ### v0.7.20
 - Update to latest Hangfire.Core (v1.7.20)
