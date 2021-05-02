@@ -40,8 +40,8 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         // [InlineData("Hangfire-Mongo-Schema-018.zip", true)]
         public void Migrate_Full_Success(string seedFile, bool assertCollectionHasItems)
         {
-            var dbContext =
-                new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests");
+
+            var dbContext = ConnectionUtils.CreateDbContext("Hangfire-Mongo-Migration-Tests");
 
             // ARRANGE
             dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
@@ -71,8 +71,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         [Fact, CleanDatabase]
         public void Migrate_MultipleInstances_ThereCanBeOnlyOne()
         {
-            var dbContext =
-                new HangfireDbContext(ConnectionUtils.GetConnectionString(), ConnectionUtils.GetDatabaseName());
+            var dbContext = ConnectionUtils.CreateDbContext();
             // ARRANGE
             dbContext.Database.DropCollection(dbContext.Schema.CollectionNamespace.CollectionName);
             var storageOptions = new MongoStorageOptions
@@ -117,8 +116,8 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         [Fact]
         public void Migrate_DropNoBackup_Success()
         {
-            var dbContext =
-                new HangfireDbContext(ConnectionUtils.GetConnectionString(), "Hangfire-Mongo-Migration-Tests");
+            var dbContext = ConnectionUtils.CreateDbContext("Hangfire-Mongo-Migration-Tests");
+            
             // ARRANGE
             dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
             SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", "Hangfire-Mongo-Schema-006.zip"));

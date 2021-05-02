@@ -35,8 +35,7 @@ namespace Hangfire.Mongo.Tests.Utils
 
             // Drop the database and do not run any
             // migrations to initialize the database.
-            var client = new MongoClient(ConnectionUtils.GetConnectionString());
-            client.DropDatabase(ConnectionUtils.GetDatabaseName());
+            ConnectionUtils.DropDatabase();
         }
 
         public override void After(MethodInfo methodUnderTest)

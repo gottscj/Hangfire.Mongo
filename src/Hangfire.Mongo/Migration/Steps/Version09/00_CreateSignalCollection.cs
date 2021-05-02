@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using Hangfire.Mongo.CosmosDB;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration.Steps.Version09
 {
@@ -13,6 +14,10 @@ namespace Hangfire.Mongo.Migration.Steps.Version09
 
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
+            if (storageOptions is CosmosStorageOptions)
+            {
+                return true;
+            }
             var name = $@"{storageOptions.Prefix}.signal";
 
             database.DropCollection(name);

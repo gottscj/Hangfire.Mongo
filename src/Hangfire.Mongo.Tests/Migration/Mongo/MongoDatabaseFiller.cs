@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
@@ -20,13 +19,11 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
     [Collection("Database")]
     public class MongoDatabaseFiller
     {
-        
         //[Fact, Trait("Category", "DataGeneration")]
         public void Clean_Database_Filled()
         {
-            var connectionString = "mongodb://localhost";
             var databaseName = "Mongo-Hangfire-Filled";
-            var context = new HangfireDbContext(connectionString, databaseName);
+            var context = ConnectionUtils.CreateDbContext(databaseName);
             // Make sure we start from scratch
             context.Database.Client.DropDatabase(databaseName);
 
@@ -43,8 +40,8 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             {
                 ShutdownTimeout = TimeSpan.FromSeconds(15)
             };
-            var mongoClientSettings = MongoClientSettings.FromConnectionString(connectionString);
-            JobStorage.Current = new MongoStorage(mongoClientSettings, databaseName, storageOptions);
+            
+            JobStorage.Current = ConnectionUtils.CreateStorage(databaseName);
 
             using (new BackgroundJobServer(serverOptions))
             {
@@ -100,16 +97,16 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                     // and still not put to use in schema version 15.
                     allowedEmptyCollections.Add($@"{storageOptions.Prefix}.signal");
                 }
-                BackupDatabaseToStream(connectionString, databaseName, stream, allowedEmptyCollections.ToArray());
+                BackupDatabaseToStream(databaseName, stream, allowedEmptyCollections.ToArray());
             }
         }
 
 
-        private void BackupDatabaseToStream(string connectionString, string databaseName, Stream stream, params string[] allowedEmptyCollections)
+        private void BackupDatabaseToStream(string databaseName, Stream stream, params string[] allowedEmptyCollections)
         {
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, true))
             {
-                var context = new HangfireDbContext(connectionString, databaseName);
+                var context = ConnectionUtils.CreateDbContext(databaseName);
                 foreach (var collectionName in context.Database.ListCollections().ToList()
                     .Select(c => c["name"].AsString))
                 {
@@ -135,7 +132,6 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                 }
             }
         }
-
     }
 
 }

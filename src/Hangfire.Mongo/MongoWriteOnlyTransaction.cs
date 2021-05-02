@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -18,20 +17,20 @@ namespace Hangfire.Mongo
 
     public class MongoWriteOnlyTransaction : JobStorageTransaction
     {
-        private readonly MongoStorageOptions _storageOptions;
-        private static readonly ILog Logger = LogProvider.For<MongoWriteOnlyTransaction>();
+        protected MongoStorageOptions StorageOptions { get; }
+        protected static readonly ILog Logger = LogProvider.For<MongoWriteOnlyTransaction>();
         
         public HangfireDbContext DbContext { get; }
 
         private readonly IList<WriteModel<BsonDocument>> _writeModels = new List<WriteModel<BsonDocument>>();
 
-        private readonly HashSet<string> _jobsAddedToQueue;
+        protected HashSet<string> JobsAddedToQueue { get; }
 
         public MongoWriteOnlyTransaction(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
-            _storageOptions = storageOptions;
+            StorageOptions = storageOptions;
             DbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-            _jobsAddedToQueue = new HashSet<string>();
+            JobsAddedToQueue = new HashSet<string>();
         }
 
         public override void Dispose()
@@ -125,7 +124,7 @@ namespace Hangfire.Mongo
             _writeModels.Add(writeModel);
         }
         
-        public void SetJobParameter(string id, string name, string value)
+        public virtual void SetJobParameter(string id, string name, string value)
         {
             if (id == null)
             {
@@ -166,7 +165,7 @@ namespace Hangfire.Mongo
                 FetchedAt = null
             }.ToBsonDocument();
 
-            _jobsAddedToQueue.Add(queue);
+            JobsAddedToQueue.Add(queue);
             var writeModel = new InsertOneModel<BsonDocument>(jobQueueDto);
             _writeModels.Add(writeModel);
         }
@@ -191,7 +190,7 @@ namespace Hangfire.Mongo
            SetCounter(key, -1, expireIn);
         }
         
-        private void SetCounter(string key, long amount, TimeSpan? expireIn)
+        protected virtual void SetCounter(string key, long amount, TimeSpan? expireIn)
         {
             if (key == null)
             {
@@ -363,7 +362,7 @@ namespace Hangfire.Mongo
             }
 
             var filter = new BsonDocument(nameof(HashDto.Key), key);
-            var writeModel = new DeleteManyModel<BsonDocument>(filter);
+            var writeModel = new DeleteOneModel<BsonDocument>(filter);
             _writeModels.Add(writeModel);
         }
 
@@ -385,9 +384,9 @@ namespace Hangfire.Mongo
                     BypassDocumentValidation = false,
                 });
             
-            if (_storageOptions.UseNotificationsCollection)
+            if (StorageOptions.UseNotificationsCollection)
             {
-                SignalJobsAddedToQueues(_jobsAddedToQueue);
+                SignalJobsAddedToQueues(JobsAddedToQueue);
             }
         }
 

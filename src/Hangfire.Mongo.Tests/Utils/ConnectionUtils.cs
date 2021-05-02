@@ -3,19 +3,20 @@ using System.Runtime.InteropServices;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
+using Mongo2Go;
 using MongoDB.Driver;
+using Xunit.Abstractions;
+using Xunit.Sdk;
+
+[assembly: Xunit.TestFramework("Hangfire.Mongo.Tests.Utils.ConnectionUtils", "Hangfire.Mongo.Tests")]
 
 namespace Hangfire.Mongo.Tests.Utils
 {
 #pragma warning disable 1591
-    public static class ConnectionUtils
+    public class ConnectionUtils : XunitTestFramework
     {
-        private const string DatabaseVariable = "Hangfire_Mongo_DatabaseName";
-
-        private const string ConnectionStringTemplateVariable = "Hangfire_Mongo_ConnectionStringTemplate";
-
+        private static Mongo2Go.MongoDbRunner _runner;
         private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
-        private const string DefaultConnectionStringTemplate = @"mongodb://localhost";
 
         public static string GetDatabaseName()
         {
@@ -28,11 +29,11 @@ namespace Hangfire.Mongo.Tests.Utils
             {
                 framework = "Mono";
             }
-            return Environment.GetEnvironmentVariable(DatabaseVariable) ?? DefaultDatabaseName + "-" + framework;
+            return DefaultDatabaseName + "-" + framework;
         }
 
 
-        public static MongoStorage CreateStorage()
+        public static MongoStorage CreateStorage(string databaseName = null)
         {
             var storageOptions = new MongoStorageOptions
             {
@@ -42,31 +43,46 @@ namespace Hangfire.Mongo.Tests.Utils
                     BackupStrategy = new NoneMongoBackupStrategy()
                 }
             };
-            return CreateStorage(storageOptions);
+            return CreateStorage(storageOptions, databaseName);
         }
 
         
-        public static MongoStorage CreateStorage(MongoStorageOptions storageOptions)
+        public static MongoStorage CreateStorage(MongoStorageOptions storageOptions, string databaseName=null)
         {
-            var mongoClientSettings = MongoClientSettings.FromConnectionString(GetConnectionString());
-            return new MongoStorage(mongoClientSettings, GetDatabaseName(), storageOptions);
+            if (_runner == null)
+            {
+                _runner = MongoDbRunner.Start(singleNodeReplSet: true);
+            }
+            var mongoClientSettings = MongoClientSettings.FromConnectionString(_runner.ConnectionString);
+            return new MongoStorage(mongoClientSettings, databaseName ?? GetDatabaseName(), storageOptions);
         }
 
-        public static HangfireDbContext CreateDbContext()
+        public static HangfireDbContext CreateDbContext(string dbName = null)
         {
-            return new HangfireDbContext(GetConnectionString(), GetDatabaseName());
+            if (_runner == null)
+            {
+                _runner = MongoDbRunner.Start(singleNodeReplSet: true);
+            }
+            return new HangfireDbContext(_runner.ConnectionString, dbName ?? GetDatabaseName());
         }
 
-        public static string GetConnectionString()
+        public static void DropDatabase()
         {
-            return string.Format(GetConnectionStringTemplate(), GetDatabaseName());
-        }
+            if (_runner == null)
+            {
+                return;
+            }
 
-        private static string GetConnectionStringTemplate()
+            var client = new MongoClient(_runner.ConnectionString);
+            client.DropDatabase(GetDatabaseName());
+        }
+        
+
+        public ConnectionUtils(IMessageSink messageSink) : base(messageSink)
         {
-            return Environment.GetEnvironmentVariable(ConnectionStringTemplateVariable) ?? DefaultConnectionStringTemplate;
+            _runner = MongoDbRunner.Start(singleNodeReplSet: true);
+            DisposalTracker.Add(_runner);
         }
-
     }
 #pragma warning restore 1591
 }

@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Migration.Steps.Version17;
 using Hangfire.Mongo.Tests.Utils;
 using Moq;
 using Xunit;

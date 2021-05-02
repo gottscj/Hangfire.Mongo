@@ -130,7 +130,7 @@ namespace Hangfire.Mongo
             yield return StorageOptions.Factory.CreateMongoExpirationManager(HangfireDbContext, StorageOptions);
             if (StorageOptions.UseNotificationsCollection)
             {
-                yield return StorageOptions.Factory.CreateMongoNotificationObserver(HangfireDbContext);    
+                yield return StorageOptions.Factory.CreateMongoNotificationObserver(HangfireDbContext, StorageOptions);    
             }
             
         }
