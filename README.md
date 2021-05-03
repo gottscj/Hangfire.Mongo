@@ -147,6 +147,29 @@ public void Configuration(IAppBuilder app)
 }
 ```
 
+NOTE: By default the parameter InvisibilityTimeout of the MongoStorageOptions is configure with the value null, making the job to stay in the status 'processing' in the case of the error in the application. To solved this issue, set the value for 5 seconds how in the SqlServerStorageOptions.
+    
+```csharp
+public void Configuration(IAppBuilder app)
+{
+    var migrationOptions = new MongoMigrationOptions
+    {
+        MigrationStrategy = new MigrateMongoMigrationStrategy(),
+        BackupStrategy = new CollectionMongoBackupStrategy()
+    };
+    var storageOptions = new MongoStorageOptions
+    {
+        // ...
+        MigrationOptions = migrationOptions,
+        InvisibilityTimeout = TimeSpan.FromSeconds(5)
+    };
+    GlobalConfiguration.Configuration.UseMongoStorage("<connection string with database name>", storageOptions);
+
+    app.UseHangfireServer();
+    app.UseHangfireDashboard();
+}
+```
+
 ### Migration Backup
 By default no backup is made before attempting to migrate.
 You can backup Hangfire collections by "cloning" each collection to the same database.
