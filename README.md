@@ -147,7 +147,7 @@ public void Configuration(IAppBuilder app)
 }
 ```
 
-NOTE: By default the parameter InvisibilityTimeout of the MongoStorageOptions is configure with the value null, making the job to stay in the status 'processing' in the case of the error in the application. To solved this issue, set the value for 5 seconds how in the SqlServerStorageOptions.
+NOTE: By default the parameter InvisibilityTimeout of the MongoStorageOptions is configure with the value null, making the job to stay in the status 'processing' in the case of the error in the application. To solved this issue, set the value for 30 minutes how in the SqlServerStorageOptions.
     
 ```csharp
 public void Configuration(IAppBuilder app)
@@ -161,7 +161,7 @@ public void Configuration(IAppBuilder app)
     {
         // ...
         MigrationOptions = migrationOptions,
-        InvisibilityTimeout = TimeSpan.FromSeconds(5)
+        InvisibilityTimeout = TimeSpan.FromMinutes(30)
     };
     GlobalConfiguration.Configuration.UseMongoStorage("<connection string with database name>", storageOptions);
 
