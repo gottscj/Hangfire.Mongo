@@ -585,6 +585,15 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact, CleanDatabase]
+        public void Heartbeat_ThrowsBackgroundServerGoneException_WhenGivenServerDoesNotExist()
+        {
+            var serverId = Guid.NewGuid().ToString();
+
+            Assert.Throws<BackgroundServerGoneException>(
+                () => _connection.Heartbeat(serverId));
+        }
+
+        [Fact, CleanDatabase]
         public void Heartbeat_UpdatesLastHeartbeat_OfTheServerWithGivenId()
         {
             _dbContext.Server.InsertOne(new ServerDto
