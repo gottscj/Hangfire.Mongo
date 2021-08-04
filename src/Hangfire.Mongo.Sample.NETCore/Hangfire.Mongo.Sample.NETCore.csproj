@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <AssemblyName>Hangfire.Mongo.Sample.NETCore</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>Hangfire.Mongo.Sample.NETCore</PackageId>
@@ -18,7 +18,7 @@
     <ProjectReference Include="..\Hangfire.Mongo\Hangfire.Mongo.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Hangfire.Core" Version="1.7.22" />
-    <PackageReference Include="MongoDB.Driver" Version="2.12.2" />
+    <PackageReference Include="Hangfire.Core" Version="1.7.24" />
+    <PackageReference Include="MongoDB.Driver" Version="2.12.4" />
   </ItemGroup>
 </Project>
