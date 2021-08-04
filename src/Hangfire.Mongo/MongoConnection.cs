@@ -222,8 +222,13 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(serverId));
             }
 
-            _dbContext.Server.UpdateMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId),
+            var updateResult = _dbContext.Server.UpdateMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId),
                 Builders<ServerDto>.Update.Set(_ => _.LastHeartbeat, DateTime.UtcNow));
+
+            if (updateResult != null && updateResult.IsAcknowledged && updateResult.ModifiedCount == 0)
+            {
+                throw new BackgroundServerGoneException();
+            }
         }
 
         public override int RemoveTimedOutServers(TimeSpan timeOut)
