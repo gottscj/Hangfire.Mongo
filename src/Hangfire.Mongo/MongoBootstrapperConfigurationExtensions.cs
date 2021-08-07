@@ -28,7 +28,6 @@ namespace Hangfire.Mongo
         /// <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:password@host:port'</param>
         /// <param name="databaseName">Name of database at Mongo server</param>
         /// <returns></returns>
-        [Obsolete("Please use `UseMongoStorage(this IGlobalConfiguration configuration, string connectionString)` instead, providing the database name in the connection string.")]
         public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
             string connectionString,
             string databaseName)
@@ -66,7 +65,6 @@ namespace Hangfire.Mongo
         /// <param name="databaseName">Name of database at Mongo server</param>
         /// <param name="storageOptions">Storage options</param>
         /// <returns></returns>
-        [Obsolete("Please use `UseMongoStorage(this IGlobalConfiguration configuration, string connectionString, MongoStorageOptions storageOptions)` instead, providing the database name in the connection string.")]
         public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
             string connectionString,
             string databaseName,
