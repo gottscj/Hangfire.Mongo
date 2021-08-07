@@ -1,5 +1,12 @@
 
-## What's New (2021-05-01)
+## What's New (2021-08-07)
+
+### v0.7.24
+- Update to latest Hangfire.Core (v1.7.24)
+- Update to latest Mongo drivers (v2.13.1)
+- Update README.md. Includes the note about the parameter InvisibilityTimeout of the MongoStorageOptions. (#280)
+- Heartbeat method should throw a BackgroundServerGoneException when a given server does not exist (#287)
+- Remove Obsolete attributes for specifying database name. (#285)
 
 ### v0.7.22
 - Update to latest Hangfire.Core (v1.7.22)

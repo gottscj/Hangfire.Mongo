@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>0.7.22</VersionPrefix>
+    <VersionPrefix>0.7.24</VersionPrefix>
     <TargetFramework>netstandard2.0</TargetFramework>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -21,12 +21,12 @@
     <owners>Sergey Zwezdin, Jonas Gottschau</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>0.7.22
-      - Update to latest Hangfire.Core (v1.7.22)
-      - Update to latest Mongo drivers (v2.12.2)
-      - Add support for mongodb transactions (Bulkwrite still default, setup in options)
-      - Add CosmosDB support (BETA)
-      - Dont stop Notifications Observer on failure, added 5s backoff instead, max timeout = 60s
+    <PackageReleaseNotes>0.7.24
+      - Update to latest Hangfire.Core (v1.7.24)
+      - Update to latest Mongo drivers (v2.13.1)
+      - Update README.md. Includes the note about the parameter InvisibilityTimeout of the MongoStorageOptions. (#280)
+      - Heartbeat method should throw a BackgroundServerGoneException when a given server does not exist (#287)
+      - Remove Obsolete attributes for specifying database name. (#285)
 </PackageReleaseNotes>
     <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
     <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
@@ -37,6 +37,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Hangfire.Core" Version="1.7.24" />
-    <PackageReference Include="MongoDB.Driver" Version="2.12.4" />
+    <PackageReference Include="MongoDB.Driver" Version="2.13.1" />
   </ItemGroup>
 </Project>
