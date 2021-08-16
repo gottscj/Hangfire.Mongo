@@ -43,10 +43,19 @@ namespace Hangfire.Mongo
         private readonly Dictionary<string, long> _pool = new Dictionary<string, long>();
         private readonly ManualResetEvent _releasedSignal = new ManualResetEvent(false);
         private readonly object _syncRoot = new object();
-
+        
         /// <inheritdoc />
         public virtual bool WaitAny(string[] queues, CancellationToken cancellationToken, TimeSpan timeout, out string queue, out bool timedOut)
         {
+            lock (_syncRoot)
+            {
+                if (!queues.Any(_pool.ContainsKey) && _releasedSignal.WaitOne(0))
+                {
+                    // signalled but we dont know the queue, reset
+                    _releasedSignal.Reset();   
+                }
+            }
+            
             queue = null;
             
             // wait for first item in queue
@@ -58,7 +67,6 @@ namespace Hangfire.Mongo
 
             lock (_syncRoot)
             {
-                
                 timedOut = index == WaitHandle.WaitTimeout;
             
                 if (timedOut)
@@ -81,7 +89,12 @@ namespace Hangfire.Mongo
                     break;
                 }
 
-                if (_pool.Values.All(i => i < 1))
+                var allReleased = queues
+                    .Where(_pool.ContainsKey)
+                    .Select(q => _pool[q])
+                    .All(i => i < 1);
+                
+                if (allReleased)
                 {
                     _releasedSignal.Reset();
                 }

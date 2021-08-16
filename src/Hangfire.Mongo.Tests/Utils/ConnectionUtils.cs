@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration.Strategies;
@@ -80,7 +81,13 @@ namespace Hangfire.Mongo.Tests.Utils
 
         public ConnectionUtils(IMessageSink messageSink) : base(messageSink)
         {
-            _runner = MongoDbRunner.Start(singleNodeReplSet: true);
+            var homePath = (Environment.OSVersion.Platform == PlatformID.Unix || 
+                            Environment.OSVersion.Platform == PlatformID.MacOSX)
+                ? Environment.GetEnvironmentVariable("HOME")
+                : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
+            _runner = MongoDbRunner.Start(
+                dataDirectory: Path.Combine(homePath, "db"),
+                singleNodeReplSet: true);
             DisposalTracker.Add(_runner);
         }
     }
