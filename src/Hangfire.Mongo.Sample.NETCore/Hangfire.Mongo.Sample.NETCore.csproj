@@ -18,7 +18,7 @@
     <ProjectReference Include="..\Hangfire.Mongo\Hangfire.Mongo.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Hangfire.Core" Version="1.7.24" />
+    <PackageReference Include="Hangfire.Core" Version="1.7.25" />
     <PackageReference Include="MongoDB.Driver" Version="2.13.1" />
   </ItemGroup>
 </Project>
