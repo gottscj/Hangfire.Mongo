@@ -94,6 +94,7 @@ namespace Hangfire.Mongo.Tests
             _semaphore.Release(_testQueues.First());
             var results = new string[2];
             var timedOut = false;
+            
             // ACT
             _semaphore.WaitAny(_testQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out results[0], out timedOut);
             _semaphore.WaitAny(_testQueues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out results[1], out timedOut);
@@ -101,6 +102,25 @@ namespace Hangfire.Mongo.Tests
             // ASSERT
             Assert.Equal(_testQueues.First(), results[0]);
             Assert.Equal(_testQueues.First(), results[1]);
+        }
+        
+        [Fact]
+        private void WaitAny_QueueNotPresent_TimesOut()
+        {
+            // ARRANGE
+            var queues = new[] { "queue" };
+
+            // ACT
+            _semaphore.Release("another-queue");
+            _semaphore.WaitAny(queues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out var queue, out var timedOut);
+            _semaphore.Release("queue");
+            _semaphore.WaitAny(queues, CancellationToken.None, TimeSpan.FromMilliseconds(100), out var queue1, out var timedOut1);
+
+            // ASSERT
+            Assert.True(timedOut);
+            Assert.True(string.IsNullOrEmpty(queue));
+            Assert.False(timedOut1);
+            Assert.Equal("queue", queue1);
         }
 
         public void Dispose()

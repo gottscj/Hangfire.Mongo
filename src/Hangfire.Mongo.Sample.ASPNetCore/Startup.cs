@@ -45,9 +45,14 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                         BackupStrategy = new CollectionMongoBackupStrategy()
                     }
                 };
+                
                 //config.UseLogProvider(new FileLogProvider());
                 config.UseColouredConsoleLogProvider(LogLevel.Info);
                 config.UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, storageOptions);
+            });
+            services.AddHangfireServer(options =>
+            {
+                options.Queues = new[] {"default", "notDefault"};
             });
             services.AddMvc(c => c.EnableEndpointRouting = false);
             
@@ -56,10 +61,6 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
         {
-            var options = new BackgroundJobServerOptions {Queues = new[] {"default", "notDefault"}};
-            
-            app.UseHangfireServer(options);
-            
             app.UseHangfireDashboard();
             app.UseDeveloperExceptionPage();
             app.UseBrowserLink();
