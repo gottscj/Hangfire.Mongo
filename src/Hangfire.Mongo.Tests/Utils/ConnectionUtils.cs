@@ -50,30 +50,17 @@ namespace Hangfire.Mongo.Tests.Utils
         
         public static MongoStorage CreateStorage(MongoStorageOptions storageOptions, string databaseName=null)
         {
-            if (_runner == null)
-            {
-                _runner = MongoDbRunner.Start(singleNodeReplSet: true);
-            }
             var mongoClientSettings = MongoClientSettings.FromConnectionString(_runner.ConnectionString);
             return new MongoStorage(mongoClientSettings, databaseName ?? GetDatabaseName(), storageOptions);
         }
 
         public static HangfireDbContext CreateDbContext(string dbName = null)
         {
-            if (_runner == null)
-            {
-                _runner = MongoDbRunner.Start(singleNodeReplSet: true);
-            }
             return new HangfireDbContext(_runner.ConnectionString, dbName ?? GetDatabaseName());
         }
 
         public static void DropDatabase()
         {
-            if (_runner == null)
-            {
-                return;
-            }
-
             var client = new MongoClient(_runner.ConnectionString);
             client.DropDatabase(GetDatabaseName());
         }
