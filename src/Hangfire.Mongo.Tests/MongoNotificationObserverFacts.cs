@@ -22,7 +22,10 @@ namespace Hangfire.Mongo.Tests
             _dbContext = ConnectionUtils.CreateDbContext();
             _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
             _distributedLockMutexMock = new Mock<IDistributedLockMutex>(MockBehavior.Strict);
-            var mongoNotificationObserver = new MongoNotificationObserver(_dbContext, _jobQueueSemaphoreMock.Object,
+            var mongoNotificationObserver = new MongoNotificationObserver(
+                _dbContext,
+                new MongoStorageOptions(),
+                _jobQueueSemaphoreMock.Object,
                 _distributedLockMutexMock.Object);
             
             _dbContext.Database.DropCollection(_dbContext.Notifications.CollectionNamespace.CollectionName);

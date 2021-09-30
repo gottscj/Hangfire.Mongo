@@ -115,7 +115,7 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual MongoNotificationObserver CreateMongoNotificationObserver(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
-            return new MongoNotificationObserver(dbContext, JobQueueSemaphore, DistributedLockMutex);
+            return new MongoNotificationObserver(dbContext, storageOptions, JobQueueSemaphore, DistributedLockMutex);
         }
 
         /// <summary>

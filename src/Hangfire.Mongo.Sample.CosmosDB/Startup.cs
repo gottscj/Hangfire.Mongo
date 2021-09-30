@@ -47,6 +47,11 @@ namespace Hangfire.Mongo.Sample.CosmosDB
                 config.UseColouredConsoleLogProvider(LogLevel.Info);
                 config.UseCosmosStorage(mongoClient, mongoUrlBuilder.DatabaseName, opt);
             });
+
+            services.AddHangfireServer(opt =>
+            {
+                opt.Queues = new[] {"default", "notDefault"};
+            });
             services.AddMvc(c => c.EnableEndpointRouting = false);
             
         }
@@ -54,10 +59,6 @@ namespace Hangfire.Mongo.Sample.CosmosDB
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
         {
-            var options = new BackgroundJobServerOptions {Queues = new[] {"default", "notDefault"}};
-            
-            app.UseHangfireServer(options);
-            
             app.UseHangfireDashboard();
             app.UseDeveloperExceptionPage();
             app.UseBrowserLink();

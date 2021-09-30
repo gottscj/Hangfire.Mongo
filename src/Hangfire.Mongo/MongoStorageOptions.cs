@@ -1,4 +1,5 @@
 ﻿using System;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo
 {
@@ -206,6 +207,20 @@ namespace Hangfire.Mongo
                 }
                 _migrationOptions = value;
             }
+        }
+
+        /// <summary>
+        /// Creates default notifications collection, override if applicable 
+        /// </summary>
+        /// <param name="database"></param>
+        public virtual void CreateNotificationsCollection(IMongoDatabase database)
+        {
+            database.CreateCollection(Prefix + ".notifications", new CreateCollectionOptions
+            {
+                Capped = true,
+                MaxSize = 1048576*16, // 16 MB,
+                MaxDocuments = 100000
+            });
         }
     }
 }

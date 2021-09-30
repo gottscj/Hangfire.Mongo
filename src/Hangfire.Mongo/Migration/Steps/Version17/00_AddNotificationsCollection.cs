@@ -9,17 +9,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version17
         
         public bool Execute(IMongoDatabase database, MongoStorageOptions storageOptions, IMongoMigrationContext migrationContext)
         {
-            if (storageOptions.UseNotificationsCollection)
-            {
-                database.CreateCollection(storageOptions.Prefix + ".notifications", new CreateCollectionOptions
-                {
-                    Capped = true,
-                    MaxSize = 1048576*16, // 16 MB,
-                    MaxDocuments = 100000
-                });
-            }
-            
-            
+            storageOptions.CreateNotificationsCollection(database);
             return true;
         }
     }
