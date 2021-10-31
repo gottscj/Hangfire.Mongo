@@ -20,7 +20,7 @@ namespace Hangfire.Mongo.Sample.NETCore
                     MigrationStrategy = new MigrateMongoMigrationStrategy(),
                     BackupStrategy = new NoneMongoBackupStrategy()
                 },
-                UseNotificationsCollection = false
+                CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
             };
 
             GlobalConfiguration.Configuration.UseLogProvider(new ColouredConsoleLogProvider());

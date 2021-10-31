@@ -9,28 +9,27 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
-    public sealed class MongoNotificationObserverErrorFacts : IDisposable
+    public sealed class MongoWatcherFacts : IDisposable
     {
         private readonly HangfireDbContext _dbContext;
 
         private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphoreMock;
         private readonly CancellationTokenSource _cts;
-        public MongoNotificationObserverErrorFacts()
+        public MongoWatcherFacts()
         {
             _dbContext = ConnectionUtils.CreateDbContext();
             _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
-            var mongoNotificationObserver = new MongoNotificationObserver(
-                _dbContext, 
+            var watcher = new MongoJobQueueWatcher(
+                _dbContext,
                 new MongoStorageOptions(),
                 _jobQueueSemaphoreMock.Object);
             
-            _dbContext.Database.DropCollection(_dbContext.Notifications.CollectionNamespace.CollectionName);
             _cts = new CancellationTokenSource();
             
             Task.Run(async () =>
             {
                 await Task.Yield();
-                mongoNotificationObserver.Execute(_cts.Token);
+                watcher.Execute(_cts.Token);
             });
             Thread.Sleep(1000);
         }
@@ -42,7 +41,7 @@ namespace Hangfire.Mongo.Tests
         }
         
         [Fact]
-        public void Execute_CollectionNotCapped_Converted()
+        public void Execute_JobEnqueued_Signaled()
         {
             // ARRANGE
             var signal = new SemaphoreSlim(0,1);
@@ -50,11 +49,14 @@ namespace Hangfire.Mongo.Tests
                 .Callback(() => signal.Release());
             
             // ACT
-            _dbContext.Notifications.InsertOne(NotificationDto.JobEnqueued("test"));
-            var signalled = signal.Wait(1000);
+            _dbContext.JobGraph.InsertOne(new JobQueueDto
+            {
+                Queue = "test"
+            });
+            
+            signal.Wait(100000);
             
             // ASSERT
-            Assert.True(signalled);
             _jobQueueSemaphoreMock.Verify(m => m.Release("test"), Times.Once);
         }
     }

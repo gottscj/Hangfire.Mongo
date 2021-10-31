@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
@@ -51,7 +51,8 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                         MigrationStrategy = new MigrateMongoMigrationStrategy(),
                         BackupStrategy = new CollectionMongoBackupStrategy()
                     },
-                    UseNotificationsCollection = true
+                    CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Watch,
+                    UseTransactions = true
                 };
                 
                 //config.UseLogProvider(new FileLogProvider());

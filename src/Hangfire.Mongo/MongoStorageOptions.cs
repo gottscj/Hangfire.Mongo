@@ -37,15 +37,22 @@ namespace Hangfire.Mongo
 
             MigrationOptions = new MongoMigrationOptions();
             Factory = new MongoFactory();
-            UseNotificationsCollection = true;
+            CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Watch;
             UseTransactions = false;
         }
 
         /// <summary>
         /// Use transaction based writes. If false BulkWrite feature will be used.
         /// </summary>
+        [Obsolete("This flag is ignored. " +
+                  "Transactions does not work well with current Hangfire implementation as this will result in write conflicts." +
+                  " The schema design has been optimized for bulkwrites.")]
         public bool UseTransactions { get; set; }
 
+        /// <summary>
+        /// Strategy for checking for enqueued jobs
+        /// </summary>
+        public CheckQueuedJobsStrategy CheckQueuedJobsStrategy { get; set; }
         /// <summary>
         /// Factory instance
         /// </summary>
@@ -100,13 +107,6 @@ namespace Hangfire.Mongo
                 _queuePollInterval = value;
             }
         }
-
-        /// <summary>
-        /// Use a tailed capped collection to notify job inserted and locks released
-        /// Will cause jobs to start immediately, but might not be needed if you only need recurring jobs
-        /// default: true
-        /// </summary>
-        public bool UseNotificationsCollection { get; set; }
         
         /// <summary>
         /// Invisibility timeout
@@ -207,20 +207,6 @@ namespace Hangfire.Mongo
                 }
                 _migrationOptions = value;
             }
-        }
-
-        /// <summary>
-        /// Creates default notifications collection, override if applicable 
-        /// </summary>
-        /// <param name="database"></param>
-        public virtual void CreateNotificationsCollection(IMongoDatabase database)
-        {
-            database.CreateCollection(Prefix + ".notifications", new CreateCollectionOptions
-            {
-                Capped = true,
-                MaxSize = 1048576*16, // 16 MB,
-                MaxDocuments = 100000
-            });
         }
     }
 }

@@ -18,9 +18,8 @@ namespace Hangfire.Mongo
         private readonly HangfireDbContext _dbContext;
         private readonly MongoStorageOptions _storageOptions;
         private readonly IJobQueueSemaphore _jobQueueSemaphore;
-        private readonly IDistributedLockMutex _distributedLockMutex;
         private int _failureTimeout = 5000;
-        private const int MaxTimeout = 60000;
+        internal const int MaxTimeout = 60000;
 
         /// <summary>
         /// ctor
@@ -28,17 +27,14 @@ namespace Hangfire.Mongo
         /// <param name="dbContext"></param>
         /// <param name="storageOptions"></param>
         /// <param name="jobQueueSemaphore"></param>
-        /// <param name="distributedLockMutex"></param>
         public MongoNotificationObserver(
             HangfireDbContext dbContext,
             MongoStorageOptions storageOptions,
-            IJobQueueSemaphore jobQueueSemaphore,
-            IDistributedLockMutex distributedLockMutex)
+            IJobQueueSemaphore jobQueueSemaphore)
         {
             _dbContext = dbContext;
             _storageOptions = storageOptions;
             _jobQueueSemaphore = jobQueueSemaphore;
-            _distributedLockMutex = distributedLockMutex;
         }
 
         /// <summary>
@@ -97,9 +93,6 @@ namespace Hangfire.Mongo
                                 case NotificationType.JobEnqueued:
                                     _jobQueueSemaphore.Release(notification.Value);
                                     break;
-                                case NotificationType.LockReleased:
-                                    _distributedLockMutex.Release(notification.Value);
-                                    break;
                             }
                         }
                     }
@@ -131,15 +124,13 @@ namespace Hangfire.Mongo
         /// <param name="context"></param>
         public virtual void Execute(BackgroundProcessContext context)
         {
-            Execute(context.CancellationToken);
+            Execute(context.StoppingToken);
         }
 
         /// <summary>
         /// Default:
         ///     If error contains "tailable cursor requested on non capped collection."
-        ///    then try to drop and recreate collection 3 times
-        /// 
-        /// Dropping collection and recreate, override if applicable
+        ///    then try to convert
         /// </summary>
         protected virtual void HandleMongoCommandException(MongoCommandException commandException,
             CancellationToken cancellationToken)
@@ -149,12 +140,16 @@ namespace Hangfire.Mongo
             {
                 Logger.Warn(
                     $"'{_dbContext.Notifications.CollectionNamespace.CollectionName}' collection is not capped.\r\n" +
-                    $"Trying to drop and creating again");
+                    "Trying to drop and creating again");
                 try
                 {
-                    _dbContext.Database.DropCollection(_dbContext.Notifications.CollectionNamespace.CollectionName,
-                        cancellationToken);
-                    _storageOptions.CreateNotificationsCollection(_dbContext.Database);
+                    _dbContext.Database.RunCommand<BsonDocument>(new BsonDocument
+                    {
+                        ["convertToCapped"] = _dbContext.Notifications.CollectionNamespace.CollectionName,
+                        ["size"] = 1048576 * 16, // 16 MB,
+                        ["max"] = 100000
+                    });
+                    // _storageOptions.CreateNotificationsCollection(_dbContext.Database);
                     successfullyRecreatedCollection = true;
                 }
                 catch (Exception e)

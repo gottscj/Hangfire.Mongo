@@ -1,7 +1,4 @@
 ﻿using System;
-using Hangfire.Mongo.Migration.Strategies;
-using Hangfire.Mongo.Migration.Strategies.Backup;
-using MongoDB.Driver;
 
 namespace Hangfire.Mongo.CosmosDB
 {
@@ -15,19 +12,10 @@ namespace Hangfire.Mongo.CosmosDB
         /// </summary>
         public CosmosStorageOptions()
         {
-            UseNotificationsCollection = false;
+            CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Poll;
             CheckConnection = false;
             UseTransactions = false;
             MigrationLockTimeout = TimeSpan.FromMinutes(2);
-        }
-
-        /// <summary>
-        /// Dont create anything. not supported by CosmosDB
-        /// </summary>
-        /// <param name="database"></param>
-        public override void CreateNotificationsCollection(IMongoDatabase database)
-        {
-            // NOP
         }
     }
 }
