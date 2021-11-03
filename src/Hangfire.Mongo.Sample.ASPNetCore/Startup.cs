@@ -52,7 +52,6 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                         BackupStrategy = new CollectionMongoBackupStrategy()
                     },
                     CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Watch,
-                    UseTransactions = true
                 };
                 
                 //config.UseLogProvider(new FileLogProvider());

@@ -3,6 +3,7 @@ using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Server;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -36,21 +37,22 @@ namespace Hangfire.Mongo
         /// <inheritdoc />
         public void Execute(CancellationToken cancellationToken)
         {
-            var pipeline = new EmptyPipelineDefinition<ChangeStreamDocument<BaseJobDto>>()
-                .Match(j => 
-                    j.OperationType == ChangeStreamOperationType.Insert && j.FullDocument is JobQueueDto);
+            var pipeline = new EmptyPipelineDefinition<ChangeStreamDocument<BsonDocument>>()
+                .Match(j =>
+                    j.OperationType == ChangeStreamOperationType.Insert && j.FullDocument["_t"] == nameof(JobQueueDto));
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
-                    var cursor = _dbContext.JobGraph.Watch(pipeline);
+                    var cursor = _dbContext.Database.GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName).Watch(pipeline);
                     if (Logger.IsTraceEnabled())
                     {
                         Logger.Trace("Watcher: Watching for enqueued jobs");
                     }
+                    
                     foreach (var change in cursor.ToEnumerable(cancellationToken))
                     {
-                        var queue = ((JobQueueDto)change.FullDocument).Queue;
+                        var queue = change.FullDocument[nameof(JobQueueDto.Queue)].AsString;
                         _jobQueueSemaphore.Release(queue);
                         if (Logger.IsTraceEnabled())
                         {
