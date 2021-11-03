@@ -14,7 +14,6 @@ namespace Hangfire.Mongo.CosmosDB
         {
             CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Poll;
             CheckConnection = false;
-            UseTransactions = false;
             MigrationLockTimeout = TimeSpan.FromMinutes(2);
         }
     }

@@ -38,16 +38,7 @@ namespace Hangfire.Mongo
             MigrationOptions = new MongoMigrationOptions();
             Factory = new MongoFactory();
             CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Watch;
-            UseTransactions = false;
         }
-
-        /// <summary>
-        /// Use transaction based writes. If false BulkWrite feature will be used.
-        /// </summary>
-        [Obsolete("This flag is ignored. " +
-                  "Transactions does not work well with current Hangfire implementation as this will result in write conflicts." +
-                  " The schema design has been optimized for bulkwrites.")]
-        public bool UseTransactions { get; set; }
 
         /// <summary>
         /// Strategy for checking for enqueued jobs
