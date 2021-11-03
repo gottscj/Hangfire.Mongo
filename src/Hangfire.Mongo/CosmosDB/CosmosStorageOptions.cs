@@ -1,6 +1,4 @@
 ﻿using System;
-using Hangfire.Mongo.Migration.Strategies;
-using Hangfire.Mongo.Migration.Strategies.Backup;
 
 namespace Hangfire.Mongo.CosmosDB
 {
@@ -14,9 +12,8 @@ namespace Hangfire.Mongo.CosmosDB
         /// </summary>
         public CosmosStorageOptions()
         {
-            UseNotificationsCollection = false;
+            CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Poll;
             CheckConnection = false;
-            UseTransactions = false;
             MigrationLockTimeout = TimeSpan.FromMinutes(2);
         }
     }

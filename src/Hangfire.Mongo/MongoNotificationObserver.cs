@@ -14,27 +14,27 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoNotificationObserver : IBackgroundProcess, IServerComponent
     {
-        private static ILog Logger = LogProvider.For<MongoNotificationObserver>();
+        private static readonly ILog Logger = LogProvider.For<MongoNotificationObserver>();
         private readonly HangfireDbContext _dbContext;
+        private readonly MongoStorageOptions _storageOptions;
         private readonly IJobQueueSemaphore _jobQueueSemaphore;
-        private readonly IDistributedLockMutex _distributedLockMutex;
         private int _failureTimeout = 5000;
-        private const int MaxTimeout = 60000;
-        
+        internal const int MaxTimeout = 60000;
+
         /// <summary>
         /// ctor
         /// </summary>
         /// <param name="dbContext"></param>
+        /// <param name="storageOptions"></param>
         /// <param name="jobQueueSemaphore"></param>
-        /// <param name="distributedLockMutex"></param>
         public MongoNotificationObserver(
             HangfireDbContext dbContext,
-            IJobQueueSemaphore jobQueueSemaphore,
-            IDistributedLockMutex distributedLockMutex)
+            MongoStorageOptions storageOptions,
+            IJobQueueSemaphore jobQueueSemaphore)
         {
             _dbContext = dbContext;
+            _storageOptions = storageOptions;
             _jobQueueSemaphore = jobQueueSemaphore;
-            _distributedLockMutex = distributedLockMutex;
         }
 
         /// <summary>
@@ -93,9 +93,6 @@ namespace Hangfire.Mongo
                                 case NotificationType.JobEnqueued:
                                     _jobQueueSemaphore.Release(notification.Value);
                                     break;
-                                case NotificationType.LockReleased:
-                                    _distributedLockMutex.Release(notification.Value);
-                                    break;
                             }
                         }
                     }
@@ -105,19 +102,7 @@ namespace Hangfire.Mongo
                 }
                 catch (MongoCommandException commandException)
                 {
-                    var errorMessage =
-                        $"Error observing '{_dbContext.Notifications.CollectionNamespace.CollectionName}'\r\n" +
-                        commandException.ErrorMessage + "\r\n" +
-                        "Notifications will not be available\r\n" +
-                        $"If you dropped the '{_dbContext.Notifications.CollectionNamespace.CollectionName}' collection " +
-                        "you need to manually create it again as a capped collection\r\n" +
-                        "For reference, please see\r\n" +
-                        "   - https://docs.mongodb.com/manual/core/capped-collections/\r\n" +
-                        "   - https://github.com/sergeyzwezdin/Hangfire.Mongo/blob/master/src/Hangfire.Mongo/Migration/Steps/Version17/00_AddNotificationsCollection.cs";
-
-                    Logger.Error(errorMessage);
-                    // fatal error observing notifications. try again backing off 5s.
-                    cancellationToken.WaitHandle.WaitOne(GetFailureTimeoutMs());
+                    HandleMongoCommandException(commandException, cancellationToken);
                 }
                 catch (Exception e)
                 {
@@ -139,7 +124,60 @@ namespace Hangfire.Mongo
         /// <param name="context"></param>
         public virtual void Execute(BackgroundProcessContext context)
         {
-            Execute(context.CancellationToken);
+            Execute(context.StoppingToken);
+        }
+
+        /// <summary>
+        /// Default:
+        ///     If error contains "tailable cursor requested on non capped collection."
+        ///    then try to convert
+        /// </summary>
+        protected virtual void HandleMongoCommandException(MongoCommandException commandException,
+            CancellationToken cancellationToken)
+        {
+            var successfullyRecreatedCollection = false;
+            if (commandException.Message.Contains("tailable cursor requested on non capped collection."))
+            {
+                Logger.Warn(
+                    $"'{_dbContext.Notifications.CollectionNamespace.CollectionName}' collection is not capped.\r\n" +
+                    "Trying to convert to capped");
+                try
+                {
+                    _dbContext.Database.RunCommand<BsonDocument>(new BsonDocument
+                    {
+                        ["convertToCapped"] = _dbContext.Notifications.CollectionNamespace.CollectionName,
+                        ["size"] = 1048576 * 16, // 16 MB,
+                        ["max"] = 100000
+                    });
+                    // _storageOptions.CreateNotificationsCollection(_dbContext.Database);
+                    successfullyRecreatedCollection = true;
+                }
+                catch (Exception e)
+                {
+                    Logger.Warn(
+                        $"Failed to convert '{_dbContext.Notifications.CollectionNamespace.CollectionName}' with message: {e.Message}");
+                }
+            }
+            else
+            {
+                var errorMessage =
+                    $"Error observing '{_dbContext.Notifications.CollectionNamespace.CollectionName}'\r\n" +
+                    commandException.ErrorMessage + "\r\n" +
+                    "Notifications will not be available\r\n" +
+                    $"If you dropped the '{_dbContext.Notifications.CollectionNamespace.CollectionName}' collection " +
+                    "you need to manually create it again as a capped collection\r\n" +
+                    "For reference, please see\r\n" +
+                    "   - https://docs.mongodb.com/manual/core/capped-collections/\r\n" +
+                    "   - https://github.com/sergeyzwezdin/Hangfire.Mongo/blob/master/src/Hangfire.Mongo/Migration/Steps/Version17/00_AddNotificationsCollection.cs";
+
+                Logger.Error(errorMessage);
+            }
+
+            if (!successfullyRecreatedCollection)
+            {
+                // fatal error observing notifications. try again backing off 5s.
+                cancellationToken.WaitHandle.WaitOne(GetFailureTimeoutMs());
+            }
         }
 
         /// <summary>

@@ -1,6 +1,17 @@
 
 ## What's New (2021-08-07)
 
+### v0.7.27
+- Update to latest Hangfire (v1.7.27)
+- Dont notify distributed lock released, too noisy.
+- Add support for change streams (watch).
+- Remove transactions, issues with write conflicts and performance. schema supports bulk writes just fine.
+- NotificationsObserver will try to convert 'notifications' collection to capped if dropped.
+
+### v0.7.25
+- Update to latest Hangfire.Core (v1.7.25)
+- Fixes job queue semaphore not blocking if released queue not used on current node (#284)
+
 ### v0.7.24
 - Update to latest Hangfire.Core (v1.7.24)
 - Update to latest Mongo drivers (v2.13.1)

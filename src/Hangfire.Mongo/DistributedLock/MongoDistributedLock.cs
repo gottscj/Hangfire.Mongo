@@ -24,10 +24,7 @@ namespace Hangfire.Mongo.DistributedLock
         private readonly string _resource;
         private readonly TimeSpan _timeout;
         private readonly HangfireDbContext _dbContext;
-
         private readonly MongoStorageOptions _storageOptions;
-        private readonly IDistributedLockMutex _mutex;
-
 
         private Timer _heartbeatTimer;
 
@@ -42,20 +39,17 @@ namespace Hangfire.Mongo.DistributedLock
         /// <param name="timeout">Lock timeout</param>
         /// <param name="dbContext"></param>
         /// <param name="storageOptions">Database options</param>
-        /// <param name="mutex"></param>
         /// <exception cref="DistributedLockTimeoutException">Thrown if lock is not acquired within the timeout</exception>
         /// <exception cref="MongoDistributedLockException">Thrown if other mongo specific issue prevented the lock to be acquired</exception>
         public MongoDistributedLock(string resource, 
             TimeSpan timeout, 
             HangfireDbContext dbContext,
-            MongoStorageOptions storageOptions,
-            IDistributedLockMutex mutex)
+            MongoStorageOptions storageOptions)
         {
             _resource = resource ?? throw new ArgumentNullException(nameof(resource));
             _timeout = timeout;
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
-            _mutex = mutex;
 
             if (string.IsNullOrEmpty(resource))
             {
@@ -146,17 +140,25 @@ namespace Hangfire.Mongo.DistributedLock
                 var isLockAcquired = false;
                 var now = DateTime.UtcNow;
                 var lockTimeoutTime = now.Add(timeout);
+                var filter = new BsonDocument(nameof(DistributedLockDto.Resource), _resource);
+                
+                var options = new FindOneAndUpdateOptions<DistributedLockDto>
+                {
+                    IsUpsert = true,
+                    ReturnDocument = ReturnDocument.Before
+                };
                 while (!isLockAcquired && (lockTimeoutTime >= now))
                 {
                     // Acquire the lock if it does not exist - Notice: ReturnDocument.Before
-                    var filter = Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource);
-                    var update = Builders<DistributedLockDto>.Update.SetOnInsert(_ => _.ExpireAt, DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime));
-                    var options = new FindOneAndUpdateOptions<DistributedLockDto>
-                    {
-                        IsUpsert = true,
-                        ReturnDocument = ReturnDocument.Before
-                    };
 
+                    var update = new BsonDocument
+                    {
+                        ["$setOnInsert"] = new BsonDocument
+                        {
+                            [nameof(DistributedLockDto.ExpireAt)] =
+                                BsonValue.Create(DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime))
+                        }
+                    };
                     try
                     {
                         var result = _dbContext.DistributedLock.FindOneAndUpdate(filter, update, options);
@@ -172,14 +174,14 @@ namespace Hangfire.Mongo.DistributedLock
                         }
                         else
                         {
-                            now = _mutex.Wait(_resource, CalculateTimeout(timeout));
+                            now = Wait(_resource, CalculateTimeout(timeout));
                         }
                     }
                     catch (MongoCommandException)
                     {
                         // this can occur if two processes attempt to acquire a lock on the same resource simultaneously.
                         // unfortunately there doesn't appear to be a more specific exception type to catch.
-                        now = _mutex.Wait(_resource, CalculateTimeout(timeout));
+                        now = Wait(_resource, CalculateTimeout(timeout));
                     }
 
                     Cleanup();
@@ -224,13 +226,6 @@ namespace Hangfire.Mongo.DistributedLock
                 }
                 // Remove resource lock
                 _dbContext.DistributedLock.DeleteOne(new BsonDocument(nameof(DistributedLockDto.Resource), _resource));
-                if (_storageOptions.UseNotificationsCollection)
-                {
-                    _dbContext.Notifications.InsertOne(NotificationDto.LockReleased(_resource), new InsertOneOptions
-                    {
-                        BypassDocumentValidation = false
-                    });
-                }
             }
             catch (Exception ex)
             {
@@ -281,6 +276,26 @@ namespace Hangfire.Mongo.DistributedLock
                     }
                 }
             }, null, timerInterval, timerInterval);
+        }
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="resource"></param>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
+        protected virtual DateTime Wait(string resource, TimeSpan timeout)
+        {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"{resource} - Waiting {timeout.TotalMilliseconds}ms");    
+            }
+            using (var resetEvent = new ManualResetEvent(false))
+            {
+                resetEvent.WaitOne(timeout);
+            }
+            
+            return DateTime.UtcNow;
         }
     }
 }

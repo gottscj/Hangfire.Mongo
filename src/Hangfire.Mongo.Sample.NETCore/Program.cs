@@ -20,13 +20,14 @@ namespace Hangfire.Mongo.Sample.NETCore
                     MigrationStrategy = new MigrateMongoMigrationStrategy(),
                     BackupStrategy = new NoneMongoBackupStrategy()
                 },
-                UseNotificationsCollection = false
+                CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
             };
 
             GlobalConfiguration.Configuration.UseLogProvider(new ColouredConsoleLogProvider());
+            using var runner = new MongoRunner().Start();
             
             JobStorage.Current = new MongoStorage(
-                MongoClientSettings.FromConnectionString("mongodb://localhost"), 
+                MongoClientSettings.FromConnectionString(runner.ConnectionString), 
                 databaseName: "Mongo-Hangfire-Sample-NETCore",
                 migrationOptions);
 

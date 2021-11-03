@@ -1,4 +1,6 @@
-﻿using Hangfire.Mongo.Migration.Strategies;
+using System;
+using System.IO;
+using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -31,10 +33,15 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
             // Add framework services.
             services.AddHangfire(config =>
             {
+
+                var runner = new MongoRunner().Start();
+                services.AddSingleton(runner);
                 
                 // Read DefaultConnection string from appsettings.json
-                var connectionString = Configuration.GetConnectionString("DefaultConnection");
-                var mongoUrlBuilder = new MongoUrlBuilder(connectionString);
+                var mongoUrlBuilder = new MongoUrlBuilder(runner.ConnectionString)
+                {
+                    DatabaseName = "hangfire"
+                };
                 var mongoClient = new MongoClient(mongoUrlBuilder.ToMongoUrl());
                 
                 var storageOptions = new MongoStorageOptions
@@ -43,7 +50,8 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                     {
                         MigrationStrategy = new MigrateMongoMigrationStrategy(),
                         BackupStrategy = new CollectionMongoBackupStrategy()
-                    }
+                    },
+                    CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Watch,
                 };
                 
                 //config.UseLogProvider(new FileLogProvider());

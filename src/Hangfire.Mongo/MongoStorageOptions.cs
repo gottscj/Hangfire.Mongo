@@ -1,4 +1,5 @@
 ﻿using System;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo
 {
@@ -36,15 +37,13 @@ namespace Hangfire.Mongo
 
             MigrationOptions = new MongoMigrationOptions();
             Factory = new MongoFactory();
-            UseNotificationsCollection = true;
-            UseTransactions = false;
+            CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Watch;
         }
 
         /// <summary>
-        /// Use transaction based writes. If false BulkWrite feature will be used.
+        /// Strategy for checking for enqueued jobs
         /// </summary>
-        public bool UseTransactions { get; set; }
-
+        public CheckQueuedJobsStrategy CheckQueuedJobsStrategy { get; set; }
         /// <summary>
         /// Factory instance
         /// </summary>
@@ -99,13 +98,6 @@ namespace Hangfire.Mongo
                 _queuePollInterval = value;
             }
         }
-
-        /// <summary>
-        /// Use a tailed capped collection to notify job inserted and locks released
-        /// Will cause jobs to start immediately, but might not be needed if you only need recurring jobs
-        /// default: true
-        /// </summary>
-        public bool UseNotificationsCollection { get; set; }
         
         /// <summary>
         /// Invisibility timeout

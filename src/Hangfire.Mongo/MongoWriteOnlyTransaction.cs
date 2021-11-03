@@ -375,16 +375,18 @@ namespace Hangfire.Mongo
                 return;
             }
 
-            DbContext
+            var jobGraph= DbContext
                 .Database
-                .GetCollection<BsonDocument>(DbContext.JobGraph.CollectionNamespace.CollectionName)
-                .BulkWrite(_writeModels, new BulkWriteOptions
-                {
-                    IsOrdered = true,
-                    BypassDocumentValidation = false,
-                });
+                .GetCollection<BsonDocument>(DbContext.JobGraph.CollectionNamespace.CollectionName);
+            var bulkWriteOptions = new BulkWriteOptions
+            {
+                IsOrdered = true,
+                BypassDocumentValidation = false,
+            };
             
-            if (StorageOptions.UseNotificationsCollection)
+            jobGraph.BulkWrite(_writeModels, bulkWriteOptions);
+            
+            if (StorageOptions.CheckQueuedJobsStrategy == CheckQueuedJobsStrategy.TailNotificationsCollection)
             {
                 SignalJobsAddedToQueues(JobsAddedToQueue);
             }

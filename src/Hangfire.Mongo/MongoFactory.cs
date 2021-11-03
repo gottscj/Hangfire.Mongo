@@ -17,11 +17,6 @@ namespace Hangfire.Mongo
         public IJobQueueSemaphore JobQueueSemaphore { get; set; } = new JobQueueSemaphore();
 
         /// <summary>
-        /// DistributedLockMutex instance used in Hangfire.Mongo
-        /// </summary>
-        public IDistributedLockMutex DistributedLockMutex { get; set; } = new DistributedLockMutex();
-
-        /// <summary>
         /// Factory method to create HangfireDbContext instance
         /// </summary>
         /// <param name="mongoClient"></param>
@@ -63,11 +58,6 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual MongoWriteOnlyTransaction CreateMongoWriteOnlyTransaction(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
-            if (storageOptions.UseTransactions)
-            {
-                return new TransactionalMongoWriteOnlyTransaction(dbContext, storageOptions);
-            }
-
             return new MongoWriteOnlyTransaction(dbContext, storageOptions);
         }
 
@@ -81,7 +71,7 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual MongoDistributedLock CreateMongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
-            return new MongoDistributedLock($"Hangfire:{resource}", timeout, dbContext, storageOptions, DistributedLockMutex); 
+            return new MongoDistributedLock($"Hangfire:{resource}", timeout, dbContext, storageOptions); 
         }
         
         /// <summary>
@@ -115,7 +105,18 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual MongoNotificationObserver CreateMongoNotificationObserver(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
-            return new MongoNotificationObserver(dbContext, JobQueueSemaphore, DistributedLockMutex);
+            return new MongoNotificationObserver(dbContext, storageOptions, JobQueueSemaphore);
+        }
+
+        /// <summary>
+        /// Creates MongoJobQueue watcher instance
+        /// </summary>
+        /// <param name="dbContext"></param>
+        /// <param name="storageOptions"></param>
+        /// <returns></returns>
+        public virtual MongoJobQueueWatcher CreateMongoJobQueueWatcher(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
+        {
+            return new MongoJobQueueWatcher(dbContext, storageOptions, JobQueueSemaphore);
         }
 
         /// <summary>

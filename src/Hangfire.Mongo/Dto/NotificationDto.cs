@@ -7,7 +7,6 @@ namespace Hangfire.Mongo.Dto
     public enum NotificationType
     {
         JobEnqueued = 0,
-        LockReleased = 1
     }
     
     public class NotificationDto
@@ -22,15 +21,6 @@ namespace Hangfire.Mongo.Dto
             };
         }
 
-        public static NotificationDto LockReleased(string resource)
-        {
-            return new NotificationDto
-            {
-                Id = ObjectId.GenerateNewId(),
-                Type = NotificationType.LockReleased,
-                Value = resource
-            };
-        }
         [BsonId]
         public ObjectId Id { get; set; }
 

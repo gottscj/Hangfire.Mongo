@@ -19,21 +19,6 @@ namespace Hangfire.Mongo.Tests.Utils
         private static Mongo2Go.MongoDbRunner _runner;
         private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
 
-        public static string GetDatabaseName()
-        {
-            var framework = "Net46";
-            if (RuntimeInformation.FrameworkDescription.Contains(".NET Core"))
-            {
-                framework = "NetCore";
-            }
-            else if (RuntimeInformation.FrameworkDescription.Contains("Mono"))
-            {
-                framework = "Mono";
-            }
-            return DefaultDatabaseName + "-" + framework;
-        }
-
-
         public static MongoStorage CreateStorage(string databaseName = null)
         {
             var storageOptions = new MongoStorageOptions
@@ -51,18 +36,18 @@ namespace Hangfire.Mongo.Tests.Utils
         public static MongoStorage CreateStorage(MongoStorageOptions storageOptions, string databaseName=null)
         {
             var mongoClientSettings = MongoClientSettings.FromConnectionString(_runner.ConnectionString);
-            return new MongoStorage(mongoClientSettings, databaseName ?? GetDatabaseName(), storageOptions);
+            return new MongoStorage(mongoClientSettings, databaseName ?? DefaultDatabaseName, storageOptions);
         }
 
         public static HangfireDbContext CreateDbContext(string dbName = null)
         {
-            return new HangfireDbContext(_runner.ConnectionString, dbName ?? GetDatabaseName());
+            return new HangfireDbContext(_runner.ConnectionString, dbName ?? DefaultDatabaseName);
         }
 
         public static void DropDatabase()
         {
             var client = new MongoClient(_runner.ConnectionString);
-            client.DropDatabase(GetDatabaseName());
+            client.DropDatabase(DefaultDatabaseName);
         }
         
 
