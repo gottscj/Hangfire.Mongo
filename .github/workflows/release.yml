@@ -1,0 +1,58 @@
+# This is a basic workflow that is manually triggered
+
+name: release
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "version"
+        required: true
+        default: "0"
+#
+jobs:
+  build_release:
+    name: create release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore ./src
+
+    - name: Build
+      run: dotnet publish ./src -c Release --no-restore -o ./release
+
+    - name: Test
+      run: dotnet test ./src -c Release --no-build --verbosity normal
+
+    - name: Zip
+      run: zip -qr Hangfire.Mongo-${{ github.event.inputs.version }}.zip ./release
+
+    - name: Create Release on github
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.event.inputs.version }}
+        release_name: Release ${{ github.event.inputs.version }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./Hangfire.Mongo-${{ github.event.inputs.version }}.zip
+        asset_name: Hangfire.Mongo-${{ github.event.inputs.version }}.zip
+        asset_content_type: application/zip
