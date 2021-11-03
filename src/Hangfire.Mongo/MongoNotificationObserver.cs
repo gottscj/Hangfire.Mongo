@@ -140,7 +140,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Warn(
                     $"'{_dbContext.Notifications.CollectionNamespace.CollectionName}' collection is not capped.\r\n" +
-                    "Trying to drop and creating again");
+                    "Trying to convert to capped");
                 try
                 {
                     _dbContext.Database.RunCommand<BsonDocument>(new BsonDocument
@@ -155,7 +155,7 @@ namespace Hangfire.Mongo
                 catch (Exception e)
                 {
                     Logger.Warn(
-                        $"Failed to drop and recreate '{_dbContext.Notifications.CollectionNamespace.CollectionName}' with message: {e.Message}");
+                        $"Failed to convert '{_dbContext.Notifications.CollectionNamespace.CollectionName}' with message: {e.Message}");
                 }
             }
             else
