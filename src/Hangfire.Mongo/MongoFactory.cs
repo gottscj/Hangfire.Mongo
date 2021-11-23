@@ -23,7 +23,7 @@ namespace Hangfire.Mongo
         /// <param name="databaseName"></param>
         /// <param name="prefix"></param>
         /// <returns></returns>
-        public virtual HangfireDbContext CreateDbContext(MongoClient mongoClient, string databaseName, string prefix)
+        public virtual HangfireDbContext CreateDbContext(IMongoClient mongoClient, string databaseName, string prefix)
         {
             return new HangfireDbContext(mongoClient, databaseName, prefix);
         }

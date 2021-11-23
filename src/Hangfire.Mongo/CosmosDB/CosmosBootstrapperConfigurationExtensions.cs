@@ -16,7 +16,7 @@ namespace Hangfire.Mongo.CosmosDB
         /// <param name="storageOptions">Storage options</param>
         /// <returns></returns>
         public static CosmosStorage UseCosmosStorage(this IGlobalConfiguration configuration,
-            MongoClient mongoClient,
+            IMongoClient mongoClient,
             string databaseName,
             CosmosStorageOptions storageOptions)
         {
