@@ -13,7 +13,7 @@ namespace Hangfire.Mongo.CosmosDB
         /// <param name="mongoClient"></param>
         /// <param name="databaseName"></param>
         /// <param name="storageOptions"></param>
-        public CosmosStorage(MongoClient mongoClient, string databaseName, CosmosStorageOptions storageOptions) 
+        public CosmosStorage(IMongoClient mongoClient, string databaseName, CosmosStorageOptions storageOptions) 
             : base(mongoClient, databaseName, storageOptions)
         {
         }
