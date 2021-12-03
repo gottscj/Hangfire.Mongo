@@ -25,7 +25,7 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Mongo client instance used for hangfire mongo
         /// </summary>
-        protected readonly MongoClient MongoClient;
+        protected readonly IMongoClient MongoClient;
 
         /// <summary>
         /// Storage options
@@ -66,7 +66,7 @@ namespace Hangfire.Mongo
         /// <param name="databaseName"></param>
         /// <param name="storageOptions"></param>
         /// <exception cref="ArgumentNullException"></exception>
-        public MongoStorage(MongoClient mongoClient, string databaseName, MongoStorageOptions storageOptions)
+        public MongoStorage(IMongoClient mongoClient, string databaseName, MongoStorageOptions storageOptions)
         {
             if (string.IsNullOrWhiteSpace(databaseName))
             {

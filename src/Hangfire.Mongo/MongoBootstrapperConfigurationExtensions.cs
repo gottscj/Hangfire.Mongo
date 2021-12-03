@@ -117,7 +117,7 @@ namespace Hangfire.Mongo
         /// <param name="storageOptions">Storage options</param>
         /// <returns></returns>
         public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
-            MongoClient mongoClient,
+            IMongoClient mongoClient,
             string databaseName,
             MongoStorageOptions storageOptions)
         {
