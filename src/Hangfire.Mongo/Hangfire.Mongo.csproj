@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>0.7.27</VersionPrefix>
+    <VersionPrefix>0.7.28</VersionPrefix>
     <TargetFramework>netstandard2.0</TargetFramework>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -21,12 +21,10 @@
     <owners>Sergey Zwezdin, Jonas Gottschau</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>0.7.27
-      - Update to latest Hangfire (v1.7.27)
-      - Dont notify distributed lock released, too noisy.
-      - Add support for change streams (watch).
-      - Remove transactions, issues with write conflicts and performance. schema supports bulk writes just fine.
-      - NotificationsObserver will try to convert 'notifications' collection to capped if dropped.
+    <PackageReleaseNotes>0.7.28
+      - Update to latest Hangfire (v1.7.28)
+      - Replace MongoClient for IMongoClient #301
+      - Better error description for 'CheckQueuedJobsStrategy'
 </PackageReleaseNotes>
     <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
     <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
@@ -36,7 +34,7 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Hangfire.Core" Version="1.7.27" />
-    <PackageReference Include="MongoDB.Driver" Version="2.13.2" />
+    <PackageReference Include="Hangfire.Core" Version="1.7.28" />
+    <PackageReference Include="MongoDB.Driver" Version="2.14.1" />
   </ItemGroup>
 </Project>

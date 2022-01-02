@@ -14,7 +14,7 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// MongoClient used for this db context instance
         /// </summary>
-        public MongoClient Client { get; }
+        public IMongoClient Client { get; }
 
         /// <summary>
         /// Database instance used for this db context instance
@@ -32,7 +32,7 @@ namespace Hangfire.Mongo.Database
         /// <param name="mongoClient"></param>
         /// <param name="databaseName"></param>
         /// <param name="prefix"></param>
-        public HangfireDbContext(MongoClient mongoClient, string databaseName, string prefix = "hangfire")
+        public HangfireDbContext(IMongoClient mongoClient, string databaseName, string prefix = "hangfire")
         {
             _prefix = prefix;
             Client = mongoClient;

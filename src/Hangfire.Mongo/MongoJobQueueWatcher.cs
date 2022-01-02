@@ -64,7 +64,9 @@ namespace Hangfire.Mongo
                 {
                     if (e.Message.Contains("$changeStream stage is only supported on replica sets"))
                     {
-                        Logger.ErrorException("Current db does not support change stream (not a replica set), consider using 'CheckQueuedJobsStrategy.TailNotificationsCollection' instead", e);
+                        Logger.ErrorException(
+                            "Current db does not support change stream (not a replica set, https://docs.mongodb.com/manual/reference/method/db.collection.watch/)\r\n" +
+                                    "if you need instant (almost) handling of enqueued jobs, please set 'CheckQueuedJobsStrategy' to 'TailNotificationsCollection' in MongoStorageOptions", e);
                         throw;
                     }
                     // wait max allowed

@@ -1,5 +1,10 @@
 
-## What's New (2021-08-07)
+## What's New (2022-01-02)
+
+### v0.7.28
+- Update to latest Hangfire (v1.7.28)
+- Replace MongoClient for IMongoClient #301
+- Better error description for 'CheckQueuedJobsStrategy'
 
 ### v0.7.27
 - Update to latest Hangfire (v1.7.27)
