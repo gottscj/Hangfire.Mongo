@@ -59,7 +59,8 @@ namespace Hangfire.Mongo.Tests.Utils
                 : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
             _runner = MongoDbRunner.Start(
                 dataDirectory: Path.Combine(homePath, "db"),
-                singleNodeReplSet: true);
+                singleNodeReplSet: true,
+                logger: new NullLogger<MongoDbRunner>());
             DisposalTracker.Add(_runner);
         }
     }
