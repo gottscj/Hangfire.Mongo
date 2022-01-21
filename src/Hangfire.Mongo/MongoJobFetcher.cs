@@ -119,7 +119,7 @@ namespace Hangfire.Mongo
         }
 
         /// <summary>
-        /// Tries to fetche a job from specified queue 
+        /// Tries to fetch a job from specified queue 
         /// </summary>
         /// <param name="queue"></param>
         /// <param name="cancellationToken"></param>
@@ -142,8 +142,8 @@ namespace Hangfire.Mongo
                 new BsonDocument(nameof(JobQueueDto.Queue), queue),
                 fetchedAtQuery
             });
-            
-            var update = new BsonDocument("$set", new BsonDocument(nameof(JobQueueDto.FetchedAt), DateTime.UtcNow));
+            var fetchedAt = DateTime.UtcNow;
+            var update = new BsonDocument("$set", new BsonDocument(nameof(JobQueueDto.FetchedAt), fetchedAt));
             
             var fetchedJob = _dbContext
                 .JobGraph
@@ -159,7 +159,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"Fetched job {fetchedJob.JobId} from '{queue}' Thread[{Thread.CurrentThread.ManagedThreadId}]");
             }
-            return _storageOptions.Factory.CreateFetchedJob(_dbContext, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
+            return _storageOptions.Factory.CreateFetchedJob(_dbContext, _storageOptions, fetchedAt, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
         }
     }
 }
