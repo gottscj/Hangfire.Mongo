@@ -46,6 +46,39 @@ namespace Hangfire.Mongo
             var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
             _writeModels.Add(writeModel);
         }
+
+        public virtual void RemoveFromQueue(ObjectId id, DateTime fetchedAt, string queue)
+        {
+            var writeModel = new DeleteOneModel<BsonDocument>(new BsonDocument
+            {
+                ["_id"] = id,
+                ["_t"] = nameof(JobQueueDto),
+                [nameof(JobQueueDto.FetchedAt)] = BsonValue.Create(fetchedAt),
+                [nameof(JobQueueDto.Queue)] = queue
+            });
+            _writeModels.Add(writeModel);
+        }
+
+        public virtual void Requeue(ObjectId id, string queue)
+        {
+            var filter = new BsonDocument
+            {
+                ["_id"] = id,
+                ["_t"] = nameof(JobQueueDto),
+                [nameof(JobQueueDto.Queue)] = queue
+            };
+            var update = new BsonDocument
+            {
+                ["$set"] = new BsonDocument
+                {
+                    [nameof(JobQueueDto.FetchedAt)] = BsonNull.Value
+                }
+            };
+            var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
+            
+            _writeModels.Add(writeModel);
+            JobsAddedToQueue.Add(queue);
+        }
         
         public virtual string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
             TimeSpan expireIn)

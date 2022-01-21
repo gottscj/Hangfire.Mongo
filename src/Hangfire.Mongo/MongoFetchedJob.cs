@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Threading;
-using Hangfire.Logging;
 using Hangfire.Mongo.Database;
-using Hangfire.Mongo.Dto;
 using Hangfire.Storage;
 using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace Hangfire.Mongo
 {
@@ -14,8 +10,6 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoFetchedJob : IFetchedJob
     {
-        private readonly object _syncRoot = new object();
-        private static readonly ILog Logger = LogProvider.For<MongoFetchedJob>();
         private readonly HangfireDbContext _db;
         private readonly MongoStorageOptions _storageOptions;
         private readonly DateTime _fetchedAt;
@@ -67,29 +61,12 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void RemoveFromQueue()
         {
-            lock (_syncRoot)
+            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_db, _storageOptions))
             {
-                var filter = new BsonDocument
-                {
-                    ["_id"] = _id,
-                    [nameof(JobQueueDto.FetchedAt)] = BsonValue.Create(_fetchedAt),
-                    [nameof(JobQueueDto.Queue)] = Queue
-                };
-                var result = _db.JobGraph.OfType<JobQueueDto>().DeleteOne(filter);
-                
-                if (Logger.IsTraceEnabled())
-                {
-                    if (result.DeletedCount > 0)
-                    {
-                        Logger.Trace($"Remove job '{JobId}' from queue '{Queue}'");
-                    }
-                    else
-                    {
-                        Logger.Trace($"Did not remove job '{JobId}' from queue '{Queue}', could be invisibility timeout is exceeded");
-                    }
-                }
-                _removedFromQueue = true;
+                transaction.RemoveFromQueue(_id, _fetchedAt, Queue);
+                transaction.Commit();
             }
+            _removedFromQueue = true;
         }
 
         /// <summary>
@@ -97,26 +74,12 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void Requeue()
         {
-            lock (_syncRoot)
+            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_db, _storageOptions))
             {
-                _db.JobGraph.OfType<JobQueueDto>().FindOneAndUpdate(
-                    Builders<JobQueueDto>.Filter.Eq(_ => _.Id, _id),
-                    Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null));
-                
-                if (_storageOptions.CheckQueuedJobsStrategy == CheckQueuedJobsStrategy.TailNotificationsCollection)
-                {
-                    _db.Notifications.InsertOne(NotificationDto.JobEnqueued(Queue), new InsertOneOptions
-                    {
-                        BypassDocumentValidation = false
-                    });    
-                }
-                
-                if (Logger.IsTraceEnabled())
-                {
-                    Logger.Trace($"Requeue job '{JobId}' from queue '{Queue}'");
-                }
-                _requeued = true;
+                transaction.Requeue(_id, Queue);
+                transaction.Commit();
             }
+            _requeued = true;
         }
 
         /// <summary>
@@ -125,15 +88,11 @@ namespace Hangfire.Mongo
         public virtual void Dispose()
         {
             if (_disposed) return;
-            lock (_syncRoot)
+            if (!_removedFromQueue && !_requeued)
             {
-                if (!_removedFromQueue && !_requeued)
-                {
-                    Requeue();
-                }
+                Requeue();
             }
             
-
             _disposed = true;
         }
     }
