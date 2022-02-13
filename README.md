@@ -147,8 +147,8 @@ public void Configuration(IAppBuilder app)
 }
 ```
 
-NOTE: By default the parameter InvisibilityTimeout of the MongoStorageOptions is configure with the value null, making the job to stay in the status 'processing' in the case of the error in the application. To solved this issue, set the value for 30 minutes how in the SqlServerStorageOptions.
-    
+NOTE: By default the parameter `InvisibilityTimeout` of the `MongoStorageOptions` is configured with the value `null`, making the job to stay in status 'processing' in case of an error in the application. To solve this issue, set the value for 30 minutes like in the [SqlServerStorageOptions](https://docs.hangfire.io/en/latest/configuration/using-sql-server.html).
+
 ```csharp
 public void Configuration(IAppBuilder app)
 {
@@ -177,7 +177,12 @@ Alternatively you can just write your own, by inheriting MongoBackupStrategy and
 
 NOTE: This software is made by humans in our sparetime - we do our best but will not be held responsible for any data loss.
 
-### Configuration overrides
+### Configuration Overrides
+
+- `CheckQueuedJobsStrategy` (default: `Watch`)
+  - `Watch` uses change streams to watch for enqueued jobs. Will still poll using 'QueuePollInterval'.
+  - `Poll` will poll periodically using 'QueuePollInterval', recommended for large installments.
+  - `TailNotificationsCollection` uses a capped, tailable collection to notify nodes of enqueued jobs. Will still poll using 'QueuePollInterval'. Works with single node MongoDB instances.
 
 TODO.
 
