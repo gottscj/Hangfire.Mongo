@@ -147,7 +147,7 @@ public void Configuration(IAppBuilder app)
 }
 ```
 
-NOTE: By default the parameter `InvisibilityTimeout` of the `MongoStorageOptions` is configured with the value `null`, making the job to stay in status 'processing' in case of an error in the application. To solve this issue, set the value for 30 minutes like in the [SqlServerStorageOptions](https://docs.hangfire.io/en/latest/configuration/using-sql-server.html).
+NOTE: By default the parameter `InvisibilityTimeout` of the `MongoStorageOptions` is configured with the value `null`, making the job to stay in status 'processing' in case of an error in the application. To solve this issue, set the value to 30 minutes like in the [SqlServerStorageOptions](https://docs.hangfire.io/en/latest/configuration/using-sql-server.html).
 
 ```csharp
 public void Configuration(IAppBuilder app)
