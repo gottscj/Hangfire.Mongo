@@ -12,7 +12,8 @@ namespace Hangfire.Mongo
     /// <summary>
     /// Observes if jobs are enqueued and signals 
     /// </summary>
-    public class MongoNotificationObserver : IBackgroundProcess, IServerComponent
+    public class 
+        MongoNotificationObserver : IBackgroundProcess, IServerComponent
     {
         private static readonly ILog Logger = LogProvider.For<MongoNotificationObserver>();
         private readonly HangfireDbContext _dbContext;

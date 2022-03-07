@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Threading;
-using Hangfire.Logging;
 using Hangfire.Mongo.Database;
-using Hangfire.Mongo.Dto;
 using Hangfire.Storage;
 using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace Hangfire.Mongo
 {
@@ -14,8 +10,9 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoFetchedJob : IFetchedJob
     {
-        private static readonly ILog Logger = LogProvider.For<MongoFetchedJob>();
-        private readonly HangfireDbContext _connection;
+        private readonly HangfireDbContext _db;
+        private readonly MongoStorageOptions _storageOptions;
+        private readonly DateTime _fetchedAt;
         private readonly ObjectId _id;
 
         private bool _disposed;
@@ -27,13 +24,23 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Constructs fetched job by database connection, identifier, job ID and queue
         /// </summary>
-        /// <param name="connection">Database connection</param>
+        /// <param name="db">Database connection</param>
+        /// <param name="storageOptions">storage options</param>
+        /// <param name="fetchedAt"></param>
         /// <param name="id">Identifier</param>
         /// <param name="jobId">Job ID</param>
         /// <param name="queue">Queue name</param>
-        public MongoFetchedJob(HangfireDbContext connection, ObjectId id, ObjectId jobId, string queue)
+        public MongoFetchedJob(
+            HangfireDbContext db, 
+            MongoStorageOptions storageOptions, 
+            DateTime fetchedAt,
+            ObjectId id, 
+            ObjectId jobId, 
+            string queue)
         {
-            _connection = connection ?? throw new ArgumentNullException(nameof(connection));
+            _db = db ?? throw new ArgumentNullException(nameof(db));
+            _storageOptions = storageOptions;
+            _fetchedAt = fetchedAt;
             _id = id;
             JobId = jobId.ToString();
             Queue = queue ?? throw new ArgumentNullException(nameof(queue));
@@ -54,12 +61,10 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void RemoveFromQueue()
         {
-            _connection
-               .JobGraph.OfType<JobQueueDto>()
-               .DeleteOne(Builders<JobQueueDto>.Filter.Eq(_ => _.Id, _id));
-            if (Logger.IsTraceEnabled())
+            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_db, _storageOptions))
             {
-                Logger.Trace($"Remove job '{JobId}' from queue '{Queue}'");
+                transaction.RemoveFromQueue(_id, _fetchedAt, Queue);
+                transaction.Commit();
             }
             _removedFromQueue = true;
         }
@@ -69,16 +74,10 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void Requeue()
         {
-            _connection.JobGraph.OfType<JobQueueDto>().FindOneAndUpdate(
-                Builders<JobQueueDto>.Filter.Eq(_ => _.Id, _id),
-                Builders<JobQueueDto>.Update.Set(_ => _.FetchedAt, null));
-            _connection.Notifications.InsertOne(NotificationDto.JobEnqueued(Queue), new InsertOneOptions
+            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_db, _storageOptions))
             {
-                BypassDocumentValidation = false
-            });
-            if (Logger.IsTraceEnabled())
-            {
-                Logger.Trace($"Requeue job '{JobId}' from queue '{Queue}'");
+                transaction.Requeue(_id, Queue);
+                transaction.Commit();
             }
             _requeued = true;
         }
@@ -89,12 +88,11 @@ namespace Hangfire.Mongo
         public virtual void Dispose()
         {
             if (_disposed) return;
-
             if (!_removedFromQueue && !_requeued)
             {
                 Requeue();
             }
-
+            
             _disposed = true;
         }
     }

@@ -15,22 +15,24 @@ namespace Hangfire.Mongo.Tests
     {
         private static readonly ObjectId JobId = ObjectId.GenerateNewId();
         private const string Queue = "queue";
+        private MongoStorageOptions _mongoStorageOptions = new MongoStorageOptions();
+        private readonly DateTime _fetchedAt = DateTime.UtcNow;
         private readonly HangfireDbContext _dbContext = ConnectionUtils.CreateDbContext();
 
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoFetchedJob(null, ObjectId.GenerateNewId(), JobId, Queue));
+                () => new MongoFetchedJob(null, _mongoStorageOptions, _fetchedAt, ObjectId.GenerateNewId(), JobId, Queue));
 
-            Assert.Equal("connection", exception.ParamName);
+            Assert.Equal("db", exception.ParamName);
         }
 
         [Fact]
         public void Ctor_ThrowsAnException_WhenQueueIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoFetchedJob(_dbContext, ObjectId.GenerateNewId(), JobId, null));
+                () => new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, ObjectId.GenerateNewId(), JobId, null));
 
             Assert.Equal("queue", exception.ParamName);
         }
@@ -38,7 +40,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_CorrectlySets_AllInstanceProperties()
         {
-            var fetchedJob = new MongoFetchedJob(_dbContext, ObjectId.GenerateNewId(), JobId, Queue);
+            var fetchedJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, ObjectId.GenerateNewId(), JobId, Queue);
 
             Assert.Equal(JobId.ToString(), fetchedJob.JobId);
             Assert.Equal(Queue, fetchedJob.Queue);
@@ -51,7 +53,7 @@ namespace Hangfire.Mongo.Tests
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
             var id = CreateJobQueueRecord(_dbContext, jobId, queue);
-            var processingJob = new MongoFetchedJob(_dbContext, id, jobId, queue);
+            var processingJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, id, jobId, queue);
 
             // Act
             processingJob.RemoveFromQueue();
@@ -69,7 +71,7 @@ namespace Hangfire.Mongo.Tests
             CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(2), "critical");
             CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(3), "default");
 
-            var fetchedJob = new MongoFetchedJob(_dbContext, ObjectId.GenerateNewId(), ObjectId.GenerateNewId(999), "default");
+            var fetchedJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, ObjectId.GenerateNewId(), ObjectId.GenerateNewId(999), "default");
 
             // Act
             fetchedJob.RemoveFromQueue();
@@ -86,7 +88,7 @@ namespace Hangfire.Mongo.Tests
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
             var id = CreateJobQueueRecord(_dbContext, jobId, queue);
-            var processingJob = new MongoFetchedJob(_dbContext, id, jobId, queue);
+            var processingJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, id, jobId, queue);
 
             // Act
             processingJob.Requeue();
@@ -103,7 +105,7 @@ namespace Hangfire.Mongo.Tests
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
             var id = CreateJobQueueRecord(_dbContext, jobId, queue);
-            var processingJob = new MongoFetchedJob(_dbContext, id, jobId, queue);
+            var processingJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, id, jobId, queue);
 
             // Act
             processingJob.Dispose();
@@ -113,14 +115,14 @@ namespace Hangfire.Mongo.Tests
             Assert.Null(record.FetchedAt);
         }
 
-        private static ObjectId CreateJobQueueRecord(HangfireDbContext connection, ObjectId jobId, string queue)
+        private ObjectId CreateJobQueueRecord(HangfireDbContext connection, ObjectId jobId, string queue)
         {
             var jobQueue = new JobQueueDto
             {
                 Id = ObjectId.GenerateNewId(),
                 JobId = jobId,
                 Queue = queue,
-                FetchedAt = DateTime.UtcNow
+                FetchedAt = _fetchedAt
             };
 
             connection.JobGraph.InsertOne(jobQueue);

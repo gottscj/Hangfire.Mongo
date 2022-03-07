@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
+using Microsoft.Extensions.Logging.Abstractions;
 using Mongo2Go;
 using MongoDB.Driver;
 using Xunit.Abstractions;
@@ -60,7 +61,7 @@ namespace Hangfire.Mongo.Tests.Utils
             _runner = MongoDbRunner.Start(
                 dataDirectory: Path.Combine(homePath, "db"),
                 singleNodeReplSet: true,
-                logger: new Microsoft.Extensions.Logging.Abstractions.NullLogger<MongoDbRunner>());
+                logger: new NullLogger<MongoDbRunner>());
             DisposalTracker.Add(_runner);
         }
     }
