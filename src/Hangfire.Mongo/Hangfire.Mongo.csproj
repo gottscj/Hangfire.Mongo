@@ -34,7 +34,7 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="../../README.md" />
+    <None Include="../../README.md" pack="true" PackagePath="." />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Hangfire.Core" Version="1.7.28" />
