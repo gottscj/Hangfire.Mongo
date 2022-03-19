@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>0.7.28</VersionPrefix>
+    <VersionPrefix>1.7.0</VersionPrefix>
     <TargetFramework>netstandard2.0</TargetFramework>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -21,10 +21,10 @@
     <owners>Sergey Zwezdin, Jonas Gottschau</owners>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>0.7.28
-      - Update to latest Hangfire (v1.7.28)
-      - Replace MongoClient for IMongoClient #301
-      - Better error description for 'CheckQueuedJobsStrategy'
+    <PackageReleaseNotes>1.7.0
+      - Fix jobqueue entity deleted if job times out (#307)
+      - Documented usage of CheckQueuedJobsStrategy in Readme (thanks corentinaltepe) (#300)
+      - Update version to only match Hangfire.Core Major.Minor
 </PackageReleaseNotes>
     <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
     <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
@@ -32,6 +32,9 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="app.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../../README.md" pack="true" PackagePath="." />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Hangfire.Core" Version="1.7.28" />
