@@ -1,5 +1,14 @@
 
-## What's New (2022-01-02)
+## What's New (2022-06-08)
+
+### v1.7.1
+ - Update to Hangfire.Core 1.7.29
+ - Update to MongoDB.Driver 2.16.0
+
+### v1.7.0
+- Fix jobqueue entity deleted if job times out (#307)
+- Documented usage of CheckQueuedJobsStrategy in Readme (thanks corentinaltepe) (#300)
+- Update version to only match Hangfire.Core Major.Minor
 
 ### v0.7.28
 - Update to latest Hangfire (v1.7.28)
