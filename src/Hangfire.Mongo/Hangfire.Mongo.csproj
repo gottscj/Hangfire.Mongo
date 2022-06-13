@@ -1,42 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <VersionPrefix>1.7.1</VersionPrefix>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <NoWarn>$(NoWarn);CS0618</NoWarn>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <AssemblyName>Hangfire.Mongo</AssemblyName>
-    <PackageId>Hangfire.Mongo</PackageId>
-    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <title>Hangfire MongoDB Storage</title>
-    <owners>Sergey Zwezdin, Jonas Gottschau</owners>
-    <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
-    <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-    <PackageReleaseNotes>1.7.1
-      - Update to Hangfire.Core 1.7.29
-      - Update to MongoDB.Driver 2.16.0
-</PackageReleaseNotes>
-    <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
-    <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
-    <Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="../../README.md" pack="true" PackagePath="." />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Hangfire.Core" Version="1.7.29" />
-    <PackageReference Include="MongoDB.Driver" Version="2.16.0" />
-  </ItemGroup>
+    <PropertyGroup>
+        <VersionPrefix>1.7.2</VersionPrefix>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <NoWarn>$(NoWarn);CS0618</NoWarn>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <AssemblyName>Hangfire.Mongo</AssemblyName>
+        <PackageId>Hangfire.Mongo</PackageId>
+        <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+        <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+        <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+        <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+        <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+        <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+        <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+        <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+        <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+        <title>Hangfire MongoDB Storage</title>
+        <owners>Sergey Zwezdin, Jonas Gottschau</owners>
+        <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
+        <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
+        <PackageReleaseNotes>1.7.2
+            - Update to Hangfire.Core 1.7.30
+        </PackageReleaseNotes>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
+        <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
+        <Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Include="../../README.md" pack="true" PackagePath="." />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Hangfire.Core" Version="1.7.30" />
+        <PackageReference Include="MongoDB.Driver" Version="2.16.0" />
+    </ItemGroup>
 </Project>

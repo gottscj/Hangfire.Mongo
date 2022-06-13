@@ -1,7 +1,10 @@
 
-## What's New (2022-06-08)
+## What's New 
 
-### v1.7.1
+### v1.7.2 (2022-06-13)
+- Update to Hangfire.Core 1.7.30
+
+### v1.7.1 (2022-06-08)
  - Update to Hangfire.Core 1.7.29
  - Update to MongoDB.Driver 2.16.0
 
