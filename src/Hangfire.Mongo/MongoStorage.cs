@@ -98,7 +98,7 @@ namespace Hangfire.Mongo
                 }
                 catch (Exception e)
                 {
-                    throw new MongoConnectException(HangfireDbContext, CreateObscuredConnectionString(), e);
+                    throw new MongoConnectException(HangfireDbContext, CreateObscuredConnectionString(), StorageOptions.ConnectionCheckTimeout, e);
                 }
             }
         }
