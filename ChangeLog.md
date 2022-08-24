@@ -1,6 +1,11 @@
 
-## What's New 
+## Change log
 
+### v1.7.3 (2022-08-24)
+- Fix hardcoded timeout in MongoConnectException message (#315)
+- Update to Hangfire.Core 1.7.31
+- Update MongoDB.Driver to 2.17.1
+- 
 ### v1.7.2 (2022-06-13)
 - Update to Hangfire.Core 1.7.30
 
