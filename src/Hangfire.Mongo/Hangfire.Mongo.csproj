@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <VersionPrefix>1.7.2</VersionPrefix>
+        <VersionPrefix>1.7.3</VersionPrefix>
         <TargetFramework>netstandard2.0</TargetFramework>
         <NoWarn>$(NoWarn);CS0618</NoWarn>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -21,8 +21,10 @@
         <owners>Sergey Zwezdin, Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.7.2
-            - Update to Hangfire.Core 1.7.30
+        <PackageReleaseNotes>1.7.3
+            - Fix hardcoded timeout in MongoConnectException message (#315)
+            - Update to Hangfire.Core 1.7.31
+            - Update MongoDB.Driver to 2.17.1
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -33,7 +35,7 @@
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.7.30" />
-        <PackageReference Include="MongoDB.Driver" Version="2.16.0" />
+        <PackageReference Include="Hangfire.Core" Version="1.7.31" />
+        <PackageReference Include="MongoDB.Driver" Version="2.17.1" />
     </ItemGroup>
 </Project>
