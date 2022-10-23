@@ -101,6 +101,13 @@ public void Configuration(IAppBuilder app)
 }
 ```
 
+### Configuration Overrides
+
+- `CheckQueuedJobsStrategy` (default: `Watch`)
+  - `Watch` uses change streams to watch for enqueued jobs. Will still poll using 'QueuePollInterval'.
+  - `Poll` will poll periodically using 'QueuePollInterval', recommended for large installments.
+  - `TailNotificationsCollection` uses a capped, tailable collection to notify nodes of enqueued jobs. Will still poll using 'QueuePollInterval'. Works with single node MongoDB instances.
+
 ## Naming Convention
 Hangfire.Mongo will ignore any naming conventions configured by your application.
 E.g. if your application use camel casing like this:
@@ -176,15 +183,6 @@ You can backup Hangfire collections by "cloning" each collection to the same dat
 Alternatively you can just write your own, by inheriting MongoBackupStrategy and use that implementation.
 
 NOTE: This software is made by humans in our sparetime - we do our best but will not be held responsible for any data loss.
-
-### Configuration Overrides
-
-- `CheckQueuedJobsStrategy` (default: `Watch`)
-  - `Watch` uses change streams to watch for enqueued jobs. Will still poll using 'QueuePollInterval'.
-  - `Poll` will poll periodically using 'QueuePollInterval', recommended for large installments.
-  - `TailNotificationsCollection` uses a capped, tailable collection to notify nodes of enqueued jobs. Will still poll using 'QueuePollInterval'. Works with single node MongoDB instances.
-
-TODO.
 
 Contributors
 ------------
