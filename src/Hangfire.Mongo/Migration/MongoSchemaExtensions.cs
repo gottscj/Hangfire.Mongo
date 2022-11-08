@@ -7,9 +7,15 @@ namespace Hangfire.Mongo.Migration
     /// <summary>
     /// Helpers for MongoSchema
     /// </summary>
-    internal static class MongoSchemaExtensions
+    public static class MongoSchemaExtensions
     {
-        internal static IList<string> CollectionNames(this MongoSchema schema, string prefix)
+        /// <summary>
+        /// Gets collection names for given schema
+        /// </summary>
+        /// <param name="schema"></param>
+        /// <param name="prefix"></param>
+        /// <returns></returns>
+        public static IList<string> CollectionNames(this MongoSchema schema, string prefix)
         {
             switch (schema)
             {
@@ -139,8 +145,5 @@ namespace Hangfire.Mongo.Migration
                     throw new ArgumentException($@"Unknown schema: '{schema}'", nameof(schema));
             }
         }
-
-
-        
     }
 }
