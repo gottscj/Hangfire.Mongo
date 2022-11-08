@@ -6,7 +6,10 @@ using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration
 {
-    internal abstract class IndexMigration
+    /// <summary>
+    /// Base for creating a migration which updates/creates indexes
+    /// </summary>
+    public abstract class IndexMigration
     {
         /// <summary>
         /// Create indexes with <paramref name="indexNames"/> in the <paramref name="collection"/>.
@@ -33,7 +36,7 @@ namespace Hangfire.Mongo.Migration
         /// collection.TryCreateIndexes(Builders{BsonDocument}.IndexKeys.Descending, "Name")
         /// </code>
         /// </example>
-        protected void TryCreateIndexes(IMongoCollection<BsonDocument> collection, Func<FieldDefinition<BsonDocument>, IndexKeysDefinition<BsonDocument>> indexType, params string[] indexNames)
+        protected virtual void TryCreateIndexes(IMongoCollection<BsonDocument> collection, Func<FieldDefinition<BsonDocument>, IndexKeysDefinition<BsonDocument>> indexType, params string[] indexNames)
         {
             if (collection == null)
             {
@@ -60,7 +63,13 @@ namespace Hangfire.Mongo.Migration
             });
         }
 
-        protected void TryCreateUniqueIndexes(IMongoCollection<BsonDocument> collection,
+        /// <summary>
+        /// Creates indexes on specified collection
+        /// </summary>
+        /// <param name="collection"></param>
+        /// <param name="indexType"></param>
+        /// <param name="indexNames"></param>
+        protected virtual void TryCreateUniqueIndexes(IMongoCollection<BsonDocument> collection,
             Func<FieldDefinition<BsonDocument>, IndexKeysDefinition<BsonDocument>> indexType,
             params string[] indexNames)
         {

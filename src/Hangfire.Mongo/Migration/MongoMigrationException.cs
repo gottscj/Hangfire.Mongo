@@ -9,7 +9,7 @@ namespace Hangfire.Mongo.Migration
 #if !NETSTANDARD1_5
     [Serializable]
 #endif
-    internal class MongoMigrationException : Exception
+    public class MongoMigrationException : Exception
     {
 
         /// <summary>

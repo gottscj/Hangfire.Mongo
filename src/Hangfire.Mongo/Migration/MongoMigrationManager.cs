@@ -12,21 +12,35 @@ namespace Hangfire.Mongo.Migration
     /// <summary>
     /// Manages migration from one schema version to the required.
     /// </summary>
-    internal class MongoMigrationManager
+    public class MongoMigrationManager
     {
         private readonly MongoStorageOptions _storageOptions;
         private readonly IMongoDatabase _database;
- 
+
+        /// <summary>
+        /// Gets required schema based on codebase
+        /// </summary>
         public static MongoSchema RequiredSchemaVersion =>
             Enum.GetValues(typeof(MongoSchema)).Cast<MongoSchema>().OrderBy(v => v).Last();
 
 
-        internal MongoMigrationManager(MongoStorageOptions storageOptions, IMongoDatabase database)
+        /// <summary>
+        /// ctor
+        /// </summary>
+        /// <param name="storageOptions"></param>
+        /// <param name="database"></param>
+        public MongoMigrationManager(MongoStorageOptions storageOptions, IMongoDatabase database)
         {
             _storageOptions = storageOptions;
             _database = database;
         }
 
+        /// <summary>
+        /// static convinience wrapper for aquireing lock and running migrations
+        /// </summary>
+        /// <param name="storageOptions"></param>
+        /// <param name="database"></param>
+        /// <returns></returns>
         public static bool MigrateIfNeeded(MongoStorageOptions storageOptions, IMongoDatabase database)
         {
             using (var migrationLock = new MigrationLock(database, storageOptions.Prefix, storageOptions.MigrationLockTimeout))
@@ -37,13 +51,16 @@ namespace Hangfire.Mongo.Migration
             }
         }
 
-        private bool Migrate(MongoBackupStrategy backupStrategy, MongoMigrationStrategy migrationStrategy)
+        /// <summary>
+        /// Runs migrations with given strategies
+        /// </summary>
+        /// <param name="backupStrategy"></param>
+        /// <param name="migrationStrategy"></param>
+        /// <returns></returns>
+        protected virtual bool Migrate(MongoBackupStrategy backupStrategy, MongoMigrationStrategy migrationStrategy)
         {
-            var currentSchema = _database
-                .GetCollection<SchemaDto>(_storageOptions.Prefix + ".schema")
-                .Find(_ => true)
-                .FirstOrDefault();
-            
+            var currentSchema = GetCurrentSchema(_database);
+
             if (currentSchema == null)
             {
                 // We do not have a schema version yet
@@ -75,14 +92,27 @@ namespace Hangfire.Mongo.Migration
                     $"{Environment.NewLine}You need to choose a migration strategy by setting the {nameof(MongoStorageOptions)}.{nameof(MongoStorageOptions.MigrationOptions)} property." +
                     $"{Environment.NewLine}Please see https://github.com/sergeyzwezdin/Hangfire.Mongo#migration for further information.");
             }
-            
+
             backupStrategy
                 .Backup(_storageOptions, _database, currentSchema.Version, RequiredSchemaVersion);
-            
+
             migrationStrategy
                 .Execute(_storageOptions, _database, currentSchema.Version, RequiredSchemaVersion);
 
             return true;
+        }
+
+        /// <summary>
+        /// Gets current schema from DB
+        /// </summary>
+        /// <param name="database"></param>
+        /// <returns></returns>
+        protected virtual SchemaDto GetCurrentSchema(IMongoDatabase database)
+        {
+            return database
+                .GetCollection<SchemaDto>(_storageOptions.Prefix + ".schema")
+                .Find(_ => true)
+                .FirstOrDefault();
         }
     }
 }
