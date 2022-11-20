@@ -15,7 +15,7 @@ namespace Hangfire.Mongo
         /// <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:password@host:port/database'</param>
         /// <remarks>The connection string must include the database name</remarks>
         /// <returns></returns>
-        public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
+        public static IGlobalConfiguration<MongoStorage> UseMongoStorage(this IGlobalConfiguration configuration,
             string connectionString)
         {
             return UseMongoStorage(configuration, connectionString, new MongoStorageOptions());
@@ -28,7 +28,7 @@ namespace Hangfire.Mongo
         /// <param name="connectionString">Connection string for Mongo database, for example 'mongodb://username:password@host:port'</param>
         /// <param name="databaseName">Name of database at Mongo server</param>
         /// <returns></returns>
-        public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
+        public static IGlobalConfiguration<MongoStorage> UseMongoStorage(this IGlobalConfiguration configuration,
             string connectionString,
             string databaseName)
         {
@@ -43,7 +43,7 @@ namespace Hangfire.Mongo
         /// <param name="storageOptions">Storage options</param>
         /// <exception cref="ArgumentException">Thrown if the connection string does not include the database name</exception>
         /// <returns></returns>
-        public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
+        public static IGlobalConfiguration<MongoStorage> UseMongoStorage(this IGlobalConfiguration configuration,
             string connectionString,
             MongoStorageOptions storageOptions)
         {
@@ -65,7 +65,7 @@ namespace Hangfire.Mongo
         /// <param name="databaseName">Name of database at Mongo server</param>
         /// <param name="storageOptions">Storage options</param>
         /// <returns></returns>
-        public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
+        public static IGlobalConfiguration<MongoStorage> UseMongoStorage(this IGlobalConfiguration configuration,
             string connectionString,
             string databaseName,
             MongoStorageOptions storageOptions)
@@ -81,7 +81,7 @@ namespace Hangfire.Mongo
         /// <param name="mongoClientSettings">Client settings for Mongo</param>
         /// <param name="databaseName">Name of database at Mongo server</param>
         /// <returns></returns>
-        public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
+        public static IGlobalConfiguration<MongoStorage> UseMongoStorage(this IGlobalConfiguration configuration,
             MongoClientSettings mongoClientSettings,
             string databaseName)
         {
@@ -96,16 +96,14 @@ namespace Hangfire.Mongo
         /// <param name="databaseName">Name of database at Mongo server</param>
         /// <param name="storageOptions">Storage options</param>
         /// <returns></returns>
-        public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
+        public static IGlobalConfiguration<MongoStorage> UseMongoStorage(this IGlobalConfiguration configuration,
             MongoClientSettings mongoClientSettings,
             string databaseName,
             MongoStorageOptions storageOptions)
         {
             var storage = new MongoStorage(mongoClientSettings, databaseName, storageOptions);
 
-            configuration.UseStorage(storage);
-
-            return storage;
+            return configuration.UseStorage(storage);
         }
 
         /// <summary>
@@ -116,16 +114,14 @@ namespace Hangfire.Mongo
         /// <param name="databaseName">Name of database at Mongo server</param>
         /// <param name="storageOptions">Storage options</param>
         /// <returns></returns>
-        public static MongoStorage UseMongoStorage(this IGlobalConfiguration configuration,
+        public static IGlobalConfiguration<MongoStorage> UseMongoStorage(this IGlobalConfiguration configuration,
             IMongoClient mongoClient,
             string databaseName,
             MongoStorageOptions storageOptions)
         {
             var storage = new MongoStorage(mongoClient, databaseName, storageOptions);
 
-            configuration.UseStorage(storage);
-
-            return storage;
+            return configuration.UseStorage(storage);
         }
     }
 }
