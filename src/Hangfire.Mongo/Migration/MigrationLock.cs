@@ -15,7 +15,7 @@ namespace Hangfire.Mongo.Migration
     {
         private static readonly ILog Logger = LogProvider.For<MigrationLock>();
         private readonly TimeSpan _timeout;
-        private readonly IMongoCollection<MigrationLockDto> _migrationLock;
+        private readonly IMongoCollection<BsonDocument> _migrationLock;
 
         private readonly BsonDocument _migrationIdFilter =
             new BsonDocument("_id", new BsonObjectId("5c351d07197a9bcdba4832fc"));
@@ -29,7 +29,7 @@ namespace Hangfire.Mongo.Migration
         public MigrationLock(IMongoDatabase database, string migrateLockCollectionPrefix, TimeSpan timeout)
         {
             _timeout = timeout;
-            _migrationLock = database.GetCollection<MigrationLockDto>(migrateLockCollectionPrefix + ".migrationLock");
+            _migrationLock = database.GetCollection<BsonDocument>(migrateLockCollectionPrefix + ".migrationLock");
         }
 
         /// <summary>
@@ -56,11 +56,15 @@ namespace Hangfire.Mongo.Migration
                 while (!isLockAcquired && (lockTimeoutTime >= now))
                 {
                     // Acquire the lock if it does not exist - Notice: ReturnDocument.Before
-                    var update = Builders<MigrationLockDto>
-                        .Update
-                        .SetOnInsert(_ => _.ExpireAt, lockTimeoutTime);
+                    var update = new BsonDocument
+                    {
+                        ["$setOnInsert"] = new BsonDocument
+                        {
+                            [nameof(MigrationLockDto.ExpireAt)] = BsonValue.Create(lockTimeoutTime)
+                        }
+                    };
                     
-                    var options = new FindOneAndUpdateOptions<MigrationLockDto>
+                    var options = new FindOneAndUpdateOptions<BsonDocument>
                     {
                         IsUpsert = true,
                         ReturnDocument = ReturnDocument.Before
@@ -73,6 +77,7 @@ namespace Hangfire.Mongo.Migration
                         // If result is null, it means we acquired the lock
                         if (result == null)
                         {
+                            Console.WriteLine(($"Acquired lock for migration [{Thread.CurrentThread.ManagedThreadId}]"));
                             if (Logger.IsDebugEnabled())
                             {
                                 Logger.Debug("Acquired lock for migration");

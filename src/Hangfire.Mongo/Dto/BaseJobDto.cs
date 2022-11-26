@@ -1,24 +1,38 @@
 ﻿using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
-    [BsonDiscriminator(nameof(BaseJobDto), RootClass = true)]
-    [BsonKnownTypes(
-        typeof(ExpiringJobDto),
-        typeof(KeyJobDto),
-        typeof(CounterDto),
-        typeof(ListDto),
-        typeof(SetDto),
-        typeof(HashDto),
-        typeof(JobQueueDto),
-        typeof(JobDto))]
-    public class BaseJobDto
+    public abstract class BaseJobDto
     {
-        [BsonId]
-        [BsonElement("_id")]
         public ObjectId Id { get; set; }
+
+        public BaseJobDto()
+        {
+            Id = ObjectId.GenerateNewId();
+        }
+
+        protected BaseJobDto(BsonDocument doc)
+        {
+            if (doc == null)
+            {
+                return;
+            }
+            Id = doc["_id"].AsObjectId;
+        }
+
+        public BsonDocument Serialize()
+        {
+            var document = new BsonDocument
+            {
+                { "_id", Id },
+                { "_t", new BsonArray { nameof(BaseJobDto) }}
+            };
+            Serialize(document);
+            return document;
+        }
+        
+        protected abstract void Serialize(BsonDocument document);        
     }
 #pragma warning restore 1591
 }

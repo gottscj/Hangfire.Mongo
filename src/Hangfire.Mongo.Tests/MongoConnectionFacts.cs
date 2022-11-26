@@ -65,7 +65,7 @@ namespace Hangfire.Mongo.Tests
             };
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
                 
-            _dbContext.JobGraph.InsertOne(jobQueueDto);
+            _dbContext.JobGraph.InsertOne(jobQueueDto.Serialize());
                 
             var fetchedJob = _connection.FetchNextJob(queues, token);
 
@@ -127,7 +127,10 @@ namespace Hangfire.Mongo.Tests
             Assert.NotNull(jobId);
             Assert.NotEmpty(jobId);
 
-            var databaseJob = _dbContext.JobGraph.OfType<JobDto>().Find(new BsonDocument()).ToList().Single();
+            var databaseJob = _dbContext.JobGraph
+                .Find(new BsonDocument("_t", nameof(JobDto)))
+                .Project(b => new JobDto(b))
+                .ToList().Single();
             Assert.Equal(jobId, databaseJob.Id.ToString());
             Assert.Equal(createdAt, databaseJob.CreatedAt);
             Assert.Null(databaseJob.StateName);
@@ -144,11 +147,11 @@ namespace Hangfire.Mongo.Tests
             Assert.True(databaseJob.ExpireAt < createdAt.AddDays(1).AddMinutes(1));
 
             var parameters = _dbContext
-                .JobGraph.OfType<JobDto>()
-                .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)))
-                .Project(j => j.Parameters)
+                .JobGraph
+                .Find(new BsonDocument("_t", nameof(JobDto)){ ["_id"] = ObjectId.Parse(jobId) })
+                .Project(j => new JobDto(j))
                 .ToList()
-                .SelectMany(j => j)
+                .SelectMany(j => j.Parameters)
                 .ToDictionary(p => p.Key, x => x.Value);
 
             Assert.NotNull(parameters);
@@ -182,7 +185,7 @@ namespace Hangfire.Mongo.Tests
                 StateName = SucceededState.StateName,
                 CreatedAt = DateTime.UtcNow
             };
-            _dbContext.JobGraph.InsertOne(jobDto);
+            _dbContext.JobGraph.InsertOne(jobDto.Serialize());
 
             var result = _connection.GetJobData(jobDto.Id.ToString());
 
@@ -231,21 +234,34 @@ namespace Hangfire.Mongo.Tests
                 StateHistory = new[] { state }
             };
 
-            _dbContext.JobGraph.InsertOne(jobDto);
+            _dbContext.JobGraph.InsertOne(jobDto.Serialize());
             var jobId = jobDto.Id;
 
-            var update = Builders<JobDto>
-                .Update
-                .Set(j => j.StateName, state.Name)
-                .Push(j => j.StateHistory, new StateDto
+            var update = new BsonDocument
+            {
+                ["$set"] = new BsonDocument
                 {
-                    Name = "Name",
-                    Reason = "Reason",
-                    Data = data,
-                    CreatedAt = DateTime.UtcNow
-                });
+                    [nameof(JobDto.StateName)] = state.Name
+                },
+                ["$push"] = new BsonDocument
+                {
+                    [nameof(JobDto.StateHistory)] = new StateDto
+                    {
+                        Name = "Name",
+                        Reason = "Reason",
+                        Data = data,
+                        CreatedAt = DateTime.UtcNow
+                    }.Serialize()
+                }
+            };
+                
+            var filter = new BsonDocument
+            {
+                ["_id"] = jobId,
+                ["_t"] = nameof(JobDto),
+            };
 
-            _dbContext.JobGraph.OfType<JobDto>().UpdateOne(j => j.Id == jobId, update);
+            _dbContext.JobGraph.UpdateOne(filter, update);
 
             var result = _connection.GetStateData(jobId.ToString());
             Assert.NotNull(result);
@@ -266,7 +282,7 @@ namespace Hangfire.Mongo.Tests
                 StateName = SucceededState.StateName,
                 CreatedAt = DateTime.UtcNow
             };
-            _dbContext.JobGraph.InsertOne(jobDto);
+            _dbContext.JobGraph.InsertOne(jobDto.Serialize());
             var jobId = jobDto.Id;
 
             var result = _connection.GetJobData(jobId.ToString());
@@ -301,19 +317,23 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow
             };
-            _dbContext.JobGraph.InsertOne(jobDto);
+            _dbContext.JobGraph.InsertOne(jobDto.Serialize());
             var jobId = jobDto.Id;
 
             _connection.SetJobParameter(jobId.ToString(), "Name", "Value");
-
-            var parameters = _dbContext
-                .JobGraph.OfType<JobDto>()
-                .Find(j => j.Id == jobId)
-                .Project(j => j.Parameters)
+            var filter = new BsonDocument
+            {
+                ["_id"] = jobId,
+                ["_t"] = nameof(JobDto),
+            };
+            var job = _dbContext
+                .JobGraph
+                .Find(filter)
+                .Project(j => new JobDto(j))
                 .FirstOrDefault();
 
-            Assert.NotNull(parameters);
-            Assert.Equal("Value", parameters["Name"]);
+            Assert.NotNull(job.Parameters);
+            Assert.Equal("Value", job.Parameters["Name"]);
         }
 
         [Fact, CleanDatabase]
@@ -326,20 +346,25 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow
             };
-            _dbContext.JobGraph.InsertOne(jobDto);
+            _dbContext.JobGraph.InsertOne(jobDto.Serialize());
             var jobId = jobDto.Id;
 
             _connection.SetJobParameter(jobId.ToString(), "Name", "Value");
             _connection.SetJobParameter(jobId.ToString(), "Name", "AnotherValue");
 
-            var parameters = _dbContext
-                .JobGraph.OfType<JobDto>()
-                .Find(j => j.Id == jobId)
-                .Project(j => j.Parameters)
+            var filter = new BsonDocument
+            {
+                ["_id"] = jobId,
+                ["_t"] = nameof(JobDto),
+            };
+            var job = _dbContext
+                .JobGraph
+                .Find(filter)
+                .Project(j => new JobDto(j))
                 .FirstOrDefault();
 
-            Assert.NotNull(parameters);
-            Assert.Equal("AnotherValue", parameters["Name"]);
+            Assert.NotNull(job.Parameters);
+            Assert.Equal("AnotherValue", job.Parameters["Name"]);
         }
 
         [Fact, CleanDatabase]
@@ -352,19 +377,24 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow
             };
-            _dbContext.JobGraph.InsertOne(jobDto);
+            _dbContext.JobGraph.InsertOne(jobDto.Serialize());
             var jobId = jobDto.Id;
 
             _connection.SetJobParameter(jobId.ToString(), "Name", null);
 
-            var parameters = _dbContext
-                .JobGraph.OfType<JobDto>()
-                .Find(j => j.Id == jobId)
-                .Project(j => j.Parameters)
+            var filter = new BsonDocument
+            {
+                ["_id"] = jobId,
+                ["_t"] = nameof(JobDto),
+            };
+            var job = _dbContext
+                .JobGraph
+                .Find(filter)
+                .Project(j => new JobDto(j))
                 .FirstOrDefault();
 
-            Assert.NotNull(parameters);
-            Assert.Null(parameters["Name"]);
+            Assert.NotNull(job.Parameters);
+            Assert.Null(job.Parameters["Name"]);
         }
 
         [Fact, CleanDatabase]
@@ -402,7 +432,7 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow
             };
-            _dbContext.JobGraph.InsertOne(jobDto);
+            _dbContext.JobGraph.InsertOne(jobDto.Serialize());
 
 
             _connection.SetJobParameter(jobDto.Id.ToString(), "name", "value");
@@ -447,7 +477,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "1.0",
                 Score = 1.0,
                 SetType = "key"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -455,7 +485,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "-1.0",
                 Score = -1.0,
                 SetType = "key"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -463,7 +493,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "-5.0",
                 Score = -5.0,
                 SetType = "key"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -471,7 +501,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "-2.0",
                 Score = -2.0,
                 SetType = "another-key"
-            });
+            }.Serialize());
 
             var result = _connection.GetFirstByLowestScoreFromSet("key", -1.0, 3.0);
 
@@ -490,7 +520,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "1.0",
                 Score = 1.0,
                 SetType = key
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -498,7 +528,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "-1.0",
                 Score = -1.0,
                 SetType = key
-            });
+            }.Serialize());
 
             var result = _connection.GetFirstByLowestScoreFromSet(key, -1.0, 3.0);
 
@@ -533,7 +563,7 @@ namespace Hangfire.Mongo.Tests
             };
             _connection.AnnounceServer("server", context1);
 
-            var server = _dbContext.Server.Find(new BsonDocument()).Single();
+            var server = _dbContext.Server.Find(new BsonDocument()).Project(b => new ServerDto(b)).Single();
             Assert.Equal("server", server.Id);
             Assert.Equal(context1.WorkerCount, server.WorkerCount);
             Assert.Equal(context1.Queues, server.Queues);
@@ -546,7 +576,7 @@ namespace Hangfire.Mongo.Tests
                 WorkerCount = 1000
             };
             _connection.AnnounceServer("server", context2);
-            var sameServer = _dbContext.Server.Find(new BsonDocument()).Single();
+            var sameServer = _dbContext.Server.Find(new BsonDocument()).Project(b => new ServerDto(b)).Single();
             Assert.Equal("server", sameServer.Id);
             Assert.Equal(context2.WorkerCount, sameServer.WorkerCount);
         }
@@ -564,16 +594,16 @@ namespace Hangfire.Mongo.Tests
             {
                 Id = "Server1",
                 LastHeartbeat = DateTime.UtcNow
-            });
+            }.Serialize());
             _dbContext.Server.InsertOne(new ServerDto
             {
                 Id = "Server2",
                 LastHeartbeat = DateTime.UtcNow
-            });
+            }.Serialize());
 
             _connection.RemoveServer("Server1");
 
-            var server = _dbContext.Server.Find(new BsonDocument()).ToList().Single();
+            var server = _dbContext.Server.Find(new BsonDocument()).Project(b => new ServerDto(b)).ToList().Single();
             Assert.NotEqual("Server1", server.Id, StringComparer.OrdinalIgnoreCase);
         }
 
@@ -600,16 +630,16 @@ namespace Hangfire.Mongo.Tests
             {
                 Id = "server1",
                 LastHeartbeat = new DateTime(2012, 12, 12, 12, 12, 12, DateTimeKind.Utc)
-            });
+            }.Serialize());
             _dbContext.Server.InsertOne(new ServerDto
             {
                 Id = "server2",
                 LastHeartbeat = new DateTime(2012, 12, 12, 12, 12, 12, DateTimeKind.Utc)
-            });
+            }.Serialize());
 
             _connection.Heartbeat("server1");
 
-            var servers = _dbContext.Server.Find(new BsonDocument()).ToList()
+            var servers = _dbContext.Server.Find(new BsonDocument()).Project(b => new ServerDto(b)).ToList()
                 .ToDictionary(x => x.Id, x => x.LastHeartbeat);
 
             Assert.True(servers.ContainsKey("server1"));
@@ -636,16 +666,16 @@ namespace Hangfire.Mongo.Tests
             {
                 Id = "server1",
                 LastHeartbeat = DateTime.UtcNow.AddDays(-1)
-            });
+            }.Serialize());
             _dbContext.Server.InsertOne(new ServerDto
             {
                 Id = "server2",
                 LastHeartbeat = DateTime.UtcNow.AddHours(-12)
-            });
+            }.Serialize());
 
             _connection.RemoveTimedOutServers(TimeSpan.FromHours(15));
 
-            var liveServer = _dbContext.Server.Find(new BsonDocument()).ToList().Single();
+            var liveServer = _dbContext.Server.Find(new BsonDocument()).Project(b => new ServerDto(b)).Single();
             Assert.Equal("server2", liveServer.Id);
         }
 
@@ -675,7 +705,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "1",
                 Score = 0.0,
                 SetType = "some-set"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -683,7 +713,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "2",
                 Score = 0.0,
                 SetType = "some-set"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -691,7 +721,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "3",
                 Score = 0.0,
                 SetType = "another-set"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -699,7 +729,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "4",
                 Score = 0.0,
                 SetType = "some-set"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -707,7 +737,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "5",
                 Score = 0.0,
                 SetType = "some-set"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -715,7 +745,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "6",
                 Score = 0.0,
                 SetType = "some-set"
-            });
+            }.Serialize());
             // Act
             var result = _connection.GetAllItemsFromSet("some-set");
 
@@ -789,9 +819,14 @@ namespace Hangfire.Mongo.Tests
                 { "Key1", "Value1" },
                 { "Key2", "Value2" }
             });
-
-            var result = _dbContext.JobGraph.OfType<HashDto>()
-                .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, "some-hash"))
+            var filter = new BsonDocument
+            {
+                [nameof(HashDto.Key)] = "some-hash",
+                ["_t"] = nameof(HashDto)
+            };
+            var result = _dbContext.JobGraph
+                .Find(filter)
+                .Project(b => new HashDto(b))
                 .First()
                 .Fields;
 
@@ -816,7 +851,7 @@ namespace Hangfire.Mongo.Tests
         public void GetAllEntriesFromHash_ReturnsAllKeysAndTheirValues()
         {
             // Arrange
-            _dbContext.JobGraph.InsertOne(new HashDto
+            var someHash = new HashDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "some-hash",
@@ -825,8 +860,9 @@ namespace Hangfire.Mongo.Tests
                     ["Key1"] = "Value1",
                     ["Key2"] = "Value2",
                 },
-            });
-            _dbContext.JobGraph.InsertOne(new HashDto
+            }.Serialize();
+            _dbContext.JobGraph.InsertOne(someHash);
+            var anotherHash = new HashDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "another-hash",
@@ -834,7 +870,8 @@ namespace Hangfire.Mongo.Tests
                 {
                     ["Key3"] = "Value3"
                 },
-            });
+            }.Serialize();
+            _dbContext.JobGraph.InsertOne(anotherHash);
 
             // Act
             var result = _connection.GetAllEntriesFromHash("some-hash");
@@ -868,21 +905,21 @@ namespace Hangfire.Mongo.Tests
                 Key = "set-1<value-1>",
                 Value = "value-1",
                 SetType = "set-1"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-2<value-1>",
                 Value = "value-1",
                 SetType = "set-2"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "set-1<value-2>",
                 Value = "value-2",
                 SetType = "set-1"
-            });
+            }.Serialize());
 
             var result = _connection.GetSetCount("set-1");
 
@@ -900,14 +937,14 @@ namespace Hangfire.Mongo.Tests
                 Key = $"{key}<value-1>",
                 Value = "value-1",
                 SetType = key
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = $"{key}<value-2>",
                 Value = "value-2",
                 SetType = key
-            });
+            }.Serialize());
 
             var result = _connection.GetSetCount(key);
 
@@ -930,7 +967,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "1",
                 Score = 0.0,
                 SetType = "set-1"
-            });
+            }.Serialize());
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
@@ -939,7 +976,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "2",
                 Score = 0.0,
                 SetType = "set-1"
-            });
+            }.Serialize());
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
@@ -948,7 +985,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "3",
                 Score = 0.0,
                 SetType = "set-1"
-            });
+            }.Serialize());
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
@@ -957,7 +994,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "4",
                 Score = 0.0,
                 SetType = "set-1"
-            });
+            }.Serialize());
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
@@ -966,7 +1003,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "5",
                 Score = 0.0,
                 SetType = "set-2"
-            });
+            }.Serialize());
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
@@ -975,7 +1012,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "6",
                 Score = 0.0,
                 SetType = "set-1"
-            });
+            }.Serialize());
 
             var result = _connection.GetRangeFromSet("set-1", 1, 8);
 
@@ -994,7 +1031,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "1",
                 Score = 0.0,
                 SetType = key
-            });
+            }.Serialize());
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
@@ -1003,7 +1040,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "2",
                 Score = 0.0,
                 SetType = key
-            });
+            }.Serialize());
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
@@ -1012,7 +1049,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "3",
                 Score = 0.0,
                 SetType = key
-            });
+            }.Serialize());
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
@@ -1021,7 +1058,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "4",
                 Score = 0.0,
                 SetType = key
-            });
+            }.Serialize());
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
@@ -1030,7 +1067,7 @@ namespace Hangfire.Mongo.Tests
                 Value = "6",
                 Score = 0.0,
                 SetType = key
-            });
+            }.Serialize());
 
             var result = _connection.GetRangeFromSet(key, 1, 8);
 
@@ -1061,7 +1098,7 @@ namespace Hangfire.Mongo.Tests
                 Score = 0.0,
                 ExpireAt = DateTime.UtcNow.AddMinutes(60),
                 SetType = "set-1"
-            });
+            }.Serialize());
 
             _dbContext.JobGraph.InsertOne(new SetDto
             {
@@ -1070,7 +1107,7 @@ namespace Hangfire.Mongo.Tests
                 Score = 0.0,
                 ExpireAt = null,
                 SetType = "set-2"
-            });
+            }.Serialize());
 
             // Act
             var result = _connection.GetSetTtl("set-1");
@@ -1093,7 +1130,7 @@ namespace Hangfire.Mongo.Tests
                 Score = 0.0,
                 ExpireAt = DateTime.UtcNow.AddMinutes(60),
                 SetType = key
-            });
+            }.Serialize());
 
             // Act
             var result = _connection.GetSetTtl(key);
@@ -1125,13 +1162,13 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Key = "counter-1",
                 Value = 2L
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "counter-2",
                 Value = 1L
-            });
+            }.Serialize());
                 
             // Act
             var result = _connection.GetCounter("counter-1");
@@ -1167,7 +1204,7 @@ namespace Hangfire.Mongo.Tests
                         
                 },
                 Key = "hash-1",
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new HashDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -1177,7 +1214,7 @@ namespace Hangfire.Mongo.Tests
                     ["field-1"] = "field-1-value",
                         
                 },
-            });
+            }.Serialize());
 
             // Act
             var result = _connection.GetHashCount("hash-1");
@@ -1213,7 +1250,7 @@ namespace Hangfire.Mongo.Tests
                         
                 },
                 ExpireAt = DateTime.UtcNow.AddHours(1)
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new HashDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -1224,7 +1261,7 @@ namespace Hangfire.Mongo.Tests
                         
                 },
                 ExpireAt = null
-            });
+            }.Serialize());
 
             // Act
             var result = _connection.GetHashTtl("hash-1");
@@ -1270,7 +1307,7 @@ namespace Hangfire.Mongo.Tests
                     ["field-1"] = "1",
                     ["field-2"] = "2",
                 },
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new HashDto
             {
                 Id = ObjectId.GenerateNewId(),
@@ -1279,7 +1316,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     ["field-1"] = "2"
                 },
-            });
+            }.Serialize());
 
             // Act
             var result = _connection.GetValueFromHash("hash-1", "field-1");
@@ -1309,17 +1346,17 @@ namespace Hangfire.Mongo.Tests
             {
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-1",
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-1",
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-2",
-            });
+            }.Serialize());
 
             // Act
             var result = _connection.GetListCount("list-1");
@@ -1350,13 +1387,13 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-1",
                 ExpireAt = DateTime.UtcNow.AddHours(1)
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-2",
                 ExpireAt = null
-            });
+            }.Serialize());
 
             // Act
             var result = _connection.GetListTtl("list-1");
@@ -1390,31 +1427,31 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-1",
                 Value = "1"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-2",
                 Value = "2"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-1",
                 Value = "3"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-1",
                 Value = "4"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-1",
                 Value = "5"
-            });
+            }.Serialize());
 
             // Act
             var result = _connection.GetRangeFromList("list-1", 1, 2);
@@ -1460,7 +1497,7 @@ namespace Hangfire.Mongo.Tests
                     Value = "5"
                 }
             };
-            _dbContext.JobGraph.InsertMany(listDtos);
+            _dbContext.JobGraph.InsertMany(listDtos.Select(l => l.Serialize()));
 
             // Act
             var result = _connection.GetRangeFromList("list-1", 1, 5);
@@ -1491,31 +1528,31 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-1",
                 Value = "1"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-2",
                 Value = "2"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-1",
                 Value = "3"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-1",
                 Value = "4"
-            });
+            }.Serialize());
             _dbContext.JobGraph.InsertOne(new ListDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Item = "list-1",
                 Value = "5"
-            });
+            }.Serialize());
 
             // Act
             var result = _connection.GetAllItemsFromList("list-1");

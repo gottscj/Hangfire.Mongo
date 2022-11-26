@@ -68,7 +68,7 @@ namespace Hangfire.Mongo.Tests
                 Key = "key",
                 Value = 1L,
                 ExpireAt = DateTime.UtcNow.AddMonths(-1)
-            });
+            }.Serialize());
 
             var manager = CreateManager();
 
@@ -76,7 +76,7 @@ namespace Hangfire.Mongo.Tests
             manager.Execute(_token);
 
             // Assert
-            var count = _dbContext.JobGraph.OfType<CounterDto>().Count(new BsonDocument());
+            var count = _dbContext.JobGraph.Count(new BsonDocument("_t", nameof(CounterDto)));
             Assert.Equal(0, count);
         }
 
@@ -91,7 +91,7 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow,
                 ExpireAt = DateTime.UtcNow.AddMonths(-1),
-            });
+            }.Serialize());
 
             var manager = CreateManager();
 
@@ -99,7 +99,7 @@ namespace Hangfire.Mongo.Tests
             manager.Execute(_token);
 
             // Assert
-            var count = _dbContext.JobGraph.OfType<JobDto>().Count(new BsonDocument());
+            var count = _dbContext.JobGraph.Count(new BsonDocument("_t", nameof(JobDto)));
             Assert.Equal(0, count);
         }
 
@@ -112,7 +112,7 @@ namespace Hangfire.Mongo.Tests
                 Id = ObjectId.GenerateNewId(),
                 Item = "key",
                 ExpireAt = DateTime.UtcNow.AddMonths(-1)
-            });
+            }.Serialize());
 
             var manager = CreateManager();
 
@@ -122,8 +122,7 @@ namespace Hangfire.Mongo.Tests
             // Assert
             var count = _dbContext
                 .JobGraph
-                .OfType<ListDto>()
-                .Count(new BsonDocument());
+                .Count(new BsonDocument("_t", nameof(ListDto)));
             Assert.Equal(0, count);
         }
 
@@ -131,13 +130,14 @@ namespace Hangfire.Mongo.Tests
         public void Execute_Processes_SetTable()
         {
             // Arrange
-            _dbContext.JobGraph.InsertOne(new SetDto
+            var setDto = new SetDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Key = "key<>",
                 Score = 0,
                 ExpireAt = DateTime.UtcNow.AddMonths(-1)
-            });
+            }.Serialize();
+            _dbContext.JobGraph.InsertOne(setDto);
 
             var manager = CreateManager();
 
@@ -147,8 +147,7 @@ namespace Hangfire.Mongo.Tests
             // Assert
             var count = _dbContext
                 .JobGraph
-                .OfType<SetDto>()
-                .Count(new BsonDocument());
+                .Count(new BsonDocument("_t", nameof(SetDto)));
             Assert.Equal(0, count);
         }
 
@@ -162,7 +161,7 @@ namespace Hangfire.Mongo.Tests
                 Key = "key",
                 Fields = new Dictionary<string, string> {["field"] = ""},
                 ExpireAt = DateTime.UtcNow.AddMonths(-1)
-            });
+            }.Serialize());
 
             var manager = CreateManager();
 
@@ -172,8 +171,7 @@ namespace Hangfire.Mongo.Tests
             // Assert
             var count = _dbContext
                 .JobGraph
-                .OfType<HashDto>()
-                .Count(new BsonDocument());
+                .Count(new BsonDocument("_t", nameof(HashDto)));
             Assert.Equal(0, count);
         }
 
@@ -187,7 +185,7 @@ namespace Hangfire.Mongo.Tests
                 Key = "key",
                 Value = 1,
                 ExpireAt = DateTime.UtcNow.AddMonths(-1)
-            });
+            }.Serialize());
 
             var manager = CreateManager();
 
@@ -197,8 +195,7 @@ namespace Hangfire.Mongo.Tests
             // Assert
             Assert.Equal(0, _dbContext
                 .JobGraph
-                .OfType<CounterDto>()
-                .Find(new BsonDocument()).Count());
+                .Count(new BsonDocument("_t", nameof(CounterDto))));
         }
 
 
@@ -222,8 +219,7 @@ namespace Hangfire.Mongo.Tests
         {
             var count = connection
                 .JobGraph
-                .OfType<ExpiringJobDto>()
-                .Count(new BsonDocument());
+                .Count(new BsonDocument("_t", nameof(ExpiringJobDto)));
 
             return count == 0;
         }

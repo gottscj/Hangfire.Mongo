@@ -22,7 +22,7 @@ namespace Hangfire.Mongo
 
         private readonly HangfireDbContext _dbContext;
 
-        private static readonly FindOneAndUpdateOptions<JobQueueDto> Options = new FindOneAndUpdateOptions<JobQueueDto>
+        private static readonly FindOneAndUpdateOptions<BsonDocument> Options = new FindOneAndUpdateOptions<BsonDocument>
         {
             IsUpsert = false,
             ReturnDocument = ReturnDocument.After
@@ -140,21 +140,22 @@ namespace Hangfire.Mongo
             var filter = new BsonDocument("$and", new BsonArray
             {
                 new BsonDocument(nameof(JobQueueDto.Queue), queue),
+                new BsonDocument("_t", nameof(JobQueueDto)),
                 fetchedAtQuery
             });
             var fetchedAt = DateTime.UtcNow;
             var update = new BsonDocument("$set", new BsonDocument(nameof(JobQueueDto.FetchedAt), fetchedAt));
             
-            var fetchedJob = _dbContext
+            var fetchedJobDoc = _dbContext
                 .JobGraph
-                .OfType<JobQueueDto>()
                 .FindOneAndUpdate(filter, update, Options, cancellationToken);
             
-            if (fetchedJob == null)
+            if (fetchedJobDoc == null)
             {
                 return null;
             }
-            
+
+            var fetchedJob = new JobQueueDto(fetchedJobDoc);
             if (Logger.IsTraceEnabled())
             {
                 Logger.Trace($"Fetched job {fetchedJob.JobId} from '{queue}' Thread[{Thread.CurrentThread.ManagedThreadId}]");

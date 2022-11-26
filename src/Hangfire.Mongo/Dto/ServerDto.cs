@@ -1,30 +1,49 @@
 ﻿using System;
+using System.Linq;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
     public class ServerDto
     {
-        [BsonId]
-        [BsonElement("_id")]
-        [BsonRepresentation(BsonType.String)]
+        public ServerDto()
+        {
+
+        }
+        public ServerDto(BsonDocument doc)
+        {
+            Id = doc["_id"].AsString;
+            WorkerCount = doc[nameof(WorkerCount)].AsInt32;
+            Queues = doc[nameof(Queues)].AsBsonArray.Select(q => q.StringOrNull()).ToArray();
+            StartedAt = doc[nameof(StartedAt)].ToNullableUniversalTime();
+            LastHeartbeat = doc[nameof(LastHeartbeat)].ToNullableUniversalTime();
+        }
         public string Id { get; set; }
 
-        [BsonElement(nameof(WorkerCount))]
         public int WorkerCount { get; set; }
 
-        [BsonElement(nameof(Queues))]
         public string[] Queues { get; set; }
 
-        [BsonElement(nameof(StartedAt))]
-        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime? StartedAt { get; set; }
-        
-        [BsonElement(nameof(LastHeartbeat))]
-        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+
         public DateTime? LastHeartbeat { get; set; }
-    }
+
+        /// <summary>
+        /// Serializes to BsonDocument
+        /// </summary>
+        /// <returns></returns>
+        public BsonDocument Serialize()
+        {
+            return new BsonDocument
+            {
+                [nameof(WorkerCount)] = WorkerCount,
+                [nameof(Queues)] = Queues != null ? new BsonArray(Queues) : new BsonArray(),
+                [nameof(StartedAt)] = BsonValue.Create(StartedAt?.ToUniversalTime()),
+                [nameof(LastHeartbeat)] = BsonValue.Create(LastHeartbeat?.ToUniversalTime()),
+                ["_id"] = Id
+            };
+        }
 #pragma warning restore 1591
+    }
 }

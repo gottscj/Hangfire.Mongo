@@ -5,6 +5,7 @@ using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.Storage;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Xunit;
 
@@ -41,9 +42,8 @@ namespace Hangfire.Mongo.Tests
             var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
             using (lock1.AcquireLock())
             {
-                var locksCount =
-                    _database.DistributedLock.Count(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource,
-                        "resource1"));
+                var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "resource1");
+                var locksCount = _database.DistributedLock.Count(filter);
                 Assert.Equal(1, locksCount);
             }
         }
@@ -52,17 +52,15 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_SetReleaseLock_WhenResourceIsNotLocked()
         {
             var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
+            var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "resource1");
             using (lock1.AcquireLock())
             {
-                var locksCount =
-                    _database.DistributedLock.Count(
-                        Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
+                
+                var locksCount = _database.DistributedLock.Count(filter);
                 Assert.Equal(1, locksCount);
             }
 
-            var locksCountAfter =
-                _database.DistributedLock.Count(
-                    Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
+            var locksCountAfter = _database.DistributedLock.Count(filter);
             Assert.Equal(0, locksCountAfter);
         }
 
@@ -70,20 +68,17 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_AcquireLockWithinSameThread_WhenResourceIsLocked()
         {
             var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
+            var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "resource1");
             using (lock1.AcquireLock())
             {
                 
-                var locksCount =
-                    _database.DistributedLock.Count(
-                        Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
+                var locksCount = _database.DistributedLock.Count(filter);
                 Assert.Equal(1, locksCount);
 
                 var lock2 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
                 using (lock2.AcquireLock())
                 {
-                    locksCount =
-                        _database.DistributedLock.Count(
-                            Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
+                    locksCount = _database.DistributedLock.Count(filter);
                     Assert.Equal(1, locksCount);
                 }
             }
@@ -93,11 +88,10 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_ThrowsAnException_WhenResourceIsLocked()
         {
             var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
+            var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "resource1");
             using (lock1.AcquireLock())
             {
-                var locksCount =
-                    _database.DistributedLock.Count(
-                        Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1"));
+                var locksCount = _database.DistributedLock.Count(filter);
                 Assert.Equal(1, locksCount);
 
                 var t = new Thread(() =>
@@ -158,13 +152,18 @@ namespace Hangfire.Mongo.Tests
         {
             var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database,
                 new MongoStorageOptions() {DistributedLockLifetime = TimeSpan.FromSeconds(3)});
+            var filter = new BsonDocument
+            {
+                [nameof(DistributedLockDto.Resource)] = "resource1"
+            };
             using (lock1.AcquireLock())
             {
                 DateTime initialExpireAt = DateTime.UtcNow;
                 Thread.Sleep(TimeSpan.FromSeconds(5));
 
                 DistributedLockDto lockEntry = _database.DistributedLock
-                    .Find(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1")).FirstOrDefault();
+                    .Find(filter)
+                    .Project(b => new DistributedLockDto(b)).FirstOrDefault();
                 Assert.NotNull(lockEntry);
                 Assert.True(lockEntry.ExpireAt > initialExpireAt);
             }
@@ -175,14 +174,23 @@ namespace Hangfire.Mongo.Tests
         {
             // simulate situation when lock was not disposed correctly (app crash) and there is no heartbeats to prolong ExpireAt value
             var initialExpireAt = DateTime.UtcNow.AddSeconds(3);
-            _database.DistributedLock.InsertOne(new DistributedLockDto {ExpireAt = initialExpireAt, Resource = "resource1" });
+            _database.DistributedLock
+                .InsertOne(new DistributedLockDto {ExpireAt = initialExpireAt, Resource = "resource1" }.Serialize());
 
             var lock1 = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(5), _database,
                 new MongoStorageOptions());
+            var filter = new BsonDocument
+            {
+                [nameof(DistributedLockDto.Resource)] = "resource1"
+            };
             using (lock1.AcquireLock())
             {
-                var lockEntry = _database.DistributedLock
-                    .Find(Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, "resource1")).Single();
+                var lockEntry = _database
+                    .DistributedLock
+                    .Find(filter)
+                    .Project(b => new DistributedLockDto(b))
+                    .Single();
+
                 Assert.True(lockEntry.ExpireAt > initialExpireAt);
             }
         }

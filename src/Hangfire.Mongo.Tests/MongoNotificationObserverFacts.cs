@@ -53,7 +53,7 @@ namespace Hangfire.Mongo.Tests
                 .Callback(() => signal.Release());
             
             // ACT
-            _dbContext.Notifications.InsertOne(NotificationDto.JobEnqueued("test"));
+            _dbContext.Notifications.InsertOne(NotificationDto.JobEnqueued("test").Serialize());
             signal.Wait(1000);
             
             // ASSERT

@@ -262,14 +262,14 @@ namespace Hangfire.Mongo.Tests
             var date = DateTime.UtcNow.Date;
             var succededCount = 10L;
                 
-            _database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
+            _database.JobGraph.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 // this might fail if we test during date change... seems unlikely
                 // TODO, wrap Datetime in a mock friendly wrapper
                 Key = $"stats:succeeded:{date:yyyy-MM-dd}", 
                 Value = succededCount
-            });
+            }.Serialize());
                 
             var results = _monitoringApi.SucceededByDatesCount();
                 
@@ -290,7 +290,7 @@ namespace Hangfire.Mongo.Tests
                 // TODO, wrap Datetime in a mock friendly wrapper
                 Key = $"stats:succeeded:{now:yyyy-MM-dd-HH}", 
                 Value = succeededCount
-            });
+            }.Serialize());
                 
             var results = _monitoringApi.HourlySucceededJobs();
                 
@@ -304,13 +304,13 @@ namespace Hangfire.Mongo.Tests
             var date = DateTime.UtcNow.Date;
             var failedCount = 10L;
                 
-            _database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
+            _database.JobGraph.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 // this might fail if we test during date change... seems unlikely
                 Key = $"stats:failed:{date:yyyy-MM-dd}", 
                 Value = failedCount
-            });
+            }.Serialize());
                 
             var results = _monitoringApi.FailedByDatesCount();
                 
@@ -324,14 +324,14 @@ namespace Hangfire.Mongo.Tests
             var now = DateTime.UtcNow;
             var failedCount = 10L;
               
-            _database.JobGraph.OfType<CounterDto>().InsertOne(new CounterDto
+            _database.JobGraph.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 // this might fail if we test during hour change... still unlikely
                 // TODO, wrap Datetime in a mock friendly wrapper
                 Key = $"stats:failed:{now:yyyy-MM-dd-HH}", 
                 Value = failedCount
-            });
+            }.Serialize());
                
             var results = _monitoringApi.HourlyFailedJobs();
                 
@@ -392,7 +392,7 @@ namespace Hangfire.Mongo.Tests
             {
                 jobDto = visitor(jobDto);
             }
-            dbContext.JobGraph.InsertOne(jobDto);
+            dbContext.JobGraph.InsertOne(jobDto.Serialize());
 
             var jobQueueDto = new JobQueueDto
             {
@@ -406,7 +406,7 @@ namespace Hangfire.Mongo.Tests
                 jobQueueDto.FetchedAt = DateTime.UtcNow;
             }
 
-            dbContext.JobGraph.InsertOne(jobQueueDto);
+            dbContext.JobGraph.InsertOne(jobQueueDto.Serialize());
 
             return jobDto;
         }

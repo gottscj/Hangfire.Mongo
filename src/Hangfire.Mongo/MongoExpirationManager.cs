@@ -5,6 +5,7 @@ using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Migration;
 using Hangfire.Server;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -47,14 +48,16 @@ namespace Hangfire.Mongo
         /// <param name="cancellationToken">Cancellation token</param>
         public void Execute(CancellationToken cancellationToken)
         {
-            var outDatedFilter = Builders<ExpiringJobDto>
-                .Filter
-                .Lt(_ => _.ExpireAt, DateTime.UtcNow);
-            
             var result = _dbContext
                 .JobGraph
-                .OfType<ExpiringJobDto>()
-                .DeleteMany(outDatedFilter);
+                .DeleteMany(new BsonDocument
+                {
+                    ["_t"] = nameof(ExpiringJobDto),
+                    [nameof(ExpiringJobDto.ExpireAt)] = new BsonDocument
+                    {
+                        ["$lt"] = DateTime.UtcNow
+                    }
+                });
 
             if(Logger.IsDebugEnabled())
             {

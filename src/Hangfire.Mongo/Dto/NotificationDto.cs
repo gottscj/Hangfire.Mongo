@@ -21,14 +21,33 @@ namespace Hangfire.Mongo.Dto
             };
         }
 
+        public NotificationDto()
+        {
+
+        }
+        public NotificationDto(BsonDocument doc)
+        {
+            Id = doc["_id"].AsObjectId;
+            Type = (NotificationType)doc[nameof(Type)].AsInt32;
+            Value = doc[nameof(Value)].StringOrNull();
+        }
+
         [BsonId]
         public ObjectId Id { get; set; }
 
-        [BsonElement(nameof(Type))]
         public NotificationType Type { get; set; }
         
-        [BsonElement(nameof(Value))]
         public string Value { get; set; }
+
+        public BsonDocument Serialize()
+        {
+            return new BsonDocument
+            {
+                ["_id"] = Id,
+                [nameof(Type)] = Type,
+                [nameof(Value)] = Value,
+            };
+        }
     }
 #pragma warning restore 1591
 }

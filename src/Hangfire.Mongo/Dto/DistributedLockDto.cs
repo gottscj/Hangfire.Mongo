@@ -1,6 +1,5 @@
 ﻿using System;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 
 namespace Hangfire.Mongo.Dto
 {
@@ -10,16 +9,30 @@ namespace Hangfire.Mongo.Dto
     public class DistributedLockDto
     {
         /// <summary>
-        /// The unique id of the document.
+        /// ctor
         /// </summary>
-        [BsonId]
-        [BsonElement("_id")]
+        public DistributedLockDto()
+        {
+
+        }
+        /// <summary>
+        /// fills properties from given doc
+        /// </summary>
+        /// <param name="doc"></param>
+        public DistributedLockDto(BsonDocument doc)
+        {
+            Id = doc["_id"].AsObjectId;
+            Resource = doc[nameof(Resource)].StringOrNull();
+            ExpireAt = doc[nameof(ExpireAt)].ToUniversalTime();
+        }
+        /// <summary>
+        /// Id
+        /// </summary>
         public ObjectId Id { get; set; }
 
         /// <summary>
         /// The name of the resource being held.
         /// </summary>
-        [BsonElement(nameof(Resource))]
         public string Resource { get; set; }
 
         /// <summary>
@@ -27,8 +40,21 @@ namespace Hangfire.Mongo.Dto
         /// This is used if the lock is not maintained or 
         /// cleaned up by the owner (e.g. process was shut down).
         /// </summary>
-        [BsonElement(nameof(ExpireAt))]
-        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime ExpireAt { get; set; }
+
+        /// <summary>
+        /// Serializes to BsonDocument
+        /// </summary>
+        /// <returns></returns>
+        public virtual BsonDocument Serialize()
+        {
+            return new BsonDocument
+            {
+                ["_id"] = Id,
+                [nameof(Resource)] = Resource,
+                [nameof(ExpireAt)] = ExpireAt.ToUniversalTime(),
+            };
+        }
+        
     }
 }

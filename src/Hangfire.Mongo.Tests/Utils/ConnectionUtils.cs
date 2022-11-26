@@ -2,10 +2,12 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Microsoft.Extensions.Logging.Abstractions;
 using Mongo2Go;
+using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -42,6 +44,14 @@ namespace Hangfire.Mongo.Tests.Utils
 
         public static HangfireDbContext CreateDbContext(string dbName = null)
         {
+            ConventionRegistry.Register(
+               "Hangfire Mongo Conventions",
+               new ConventionPack
+            {
+                new DelegateClassMapConvention("Set Hangfire Mongo Discriminator", cm => 
+                cm.SetDiscriminator(cm.ClassType.Name))
+            },
+               t => t.FullName.StartsWith("Hangfire.Mongo.Dto"));
             return new HangfireDbContext(_runner.ConnectionString, dbName ?? DefaultDatabaseName);
         }
 

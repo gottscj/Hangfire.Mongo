@@ -1,19 +1,40 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson;
 
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
-    [BsonDiscriminator(nameof(SetDto))]
     public class SetDto : KeyJobDto
     {
-        [BsonElement(nameof(Score))]
+        public SetDto()
+        {
+
+        }
+        public SetDto(BsonDocument doc) : base(doc)
+        {
+            if(doc == null)
+            {
+                return;
+            }
+
+            Score = doc[nameof(Score)].AsDouble;
+            Value = doc[nameof(Value)].StringOrNull();
+            SetType = doc[nameof(SetType)].StringOrNull();
+        }
         public double Score { get; set; }
 
-        [BsonElement(nameof(Value))]
         public string Value { get; set; }
 
-        [BsonElement(nameof(SetType))]
         public string SetType { get; set; }
+
+        protected override void Serialize(BsonDocument document)
+        {
+            base.Serialize(document);
+            document[nameof(Score)] = BsonValue.Create(Score);
+            document[nameof(Value)] = BsonValue.Create(Value);
+            document[nameof(SetType)] = BsonValue.Create(SetType);
+            document["_t"].AsBsonArray.Add(nameof(SetDto));
+        }
+        
     }
 #pragma warning restore 1591
 }

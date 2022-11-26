@@ -39,6 +39,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version08
             "Key",
             "Value",
             "Version",
+            "Identifier",
             "WorkerCount",
             "Queues",
             "Data",

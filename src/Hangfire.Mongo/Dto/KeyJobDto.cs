@@ -1,13 +1,33 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace Hangfire.Mongo.Dto
 {
 #pragma warning disable 1591
-    [BsonDiscriminator(nameof(KeyJobDto))]
     public abstract class KeyJobDto : ExpiringJobDto
     {
-        [BsonElement(nameof(Key))]
         public string Key { get; set; }
+
+        protected KeyJobDto()
+        {
+
+        }
+
+        protected KeyJobDto(BsonDocument doc) : base(doc)
+        {
+            if (doc == null)
+            {
+                return;
+            }
+            Key = doc[nameof(Key)].StringOrNull();
+        }
+
+        protected override void Serialize(BsonDocument document)
+        {
+            base.Serialize(document);
+            document[nameof(Key)] = Key;
+            document["_t"].AsBsonArray.Add(nameof(KeyJobDto));
+        }
     }
 
 #pragma warning restore 1591

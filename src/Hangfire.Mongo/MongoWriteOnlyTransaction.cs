@@ -9,6 +9,7 @@ using Hangfire.Mongo.Dto;
 using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -101,7 +102,7 @@ namespace Hangfire.Mongo
                 ExpireAt = createdAt.Add(expireIn)
             };
 
-            var writeModel = new InsertOneModel<BsonDocument>(jobDto.ToBsonDocument());
+            var writeModel = new InsertOneModel<BsonDocument>(jobDto.Serialize());
             _writeModels.Add(writeModel);
 
             var jobId = jobDto.Id.ToString();
@@ -127,8 +128,8 @@ namespace Hangfire.Mongo
                 Reason = state.Reason,
                 CreatedAt = DateTime.UtcNow,
                 Data = state.SerializeData()
-            }.ToBsonDocument();
-            
+            }.Serialize();
+
             var update = new BsonDocument
             {
                 ["$set"] = new BsonDocument(nameof(JobDto.StateName), state.Name),
@@ -148,7 +149,7 @@ namespace Hangfire.Mongo
                 Reason = state.Reason,
                 CreatedAt = DateTime.UtcNow,
                 Data = state.SerializeData()
-            }.ToBsonDocument();
+            }.Serialize();
 
             var update = new BsonDocument("$push", new BsonDocument(nameof(JobDto.StateHistory), stateDto));
 
@@ -196,7 +197,7 @@ namespace Hangfire.Mongo
                 Queue = queue,
                 Id = ObjectId.GenerateNewId(),
                 FetchedAt = null
-            }.ToBsonDocument();
+            }.Serialize();
 
             JobsAddedToQueue.Add(queue);
             var writeModel = new InsertOneModel<BsonDocument>(jobQueueDto);
@@ -237,7 +238,7 @@ namespace Hangfire.Mongo
             {
                 bsonDate = BsonValue.Create(DateTime.UtcNow.Add(expireIn.Value));
             }
-            
+
             var update = new BsonDocument
             {
                 ["$inc"] = new BsonDocument(nameof(CounterDto.Value), amount),
@@ -289,7 +290,7 @@ namespace Hangfire.Mongo
                 Value = value
             };
 
-            var writeModel = new InsertOneModel<BsonDocument>(listDto.ToBsonDocument());
+            var writeModel = new InsertOneModel<BsonDocument>(listDto.Serialize());
             _writeModels.Add(writeModel);
         }
 
@@ -322,9 +323,11 @@ namespace Hangfire.Mongo
             var end = keepEndingAt + 1;
 
             // get all ids
-            var allIds = DbContext.JobGraph.OfType<ListDto>()
-                .Find(new BsonDocument())
-                .Project(doc => doc.Id)
+            var allIds = DbContext.JobGraph
+                .Find(new BsonDocument("_t", nameof(ListDto)))
+                .Project(new BsonDocument("_id", 1))
+                .ToList()
+                .Select(b => b["_id"].AsObjectId)
                 .ToList();
             
             // Add LisDto's scheduled for insertion writemodels collection, add it here.
@@ -447,7 +450,7 @@ namespace Hangfire.Mongo
                 return;
             }
             
-            var jobsEnqueued = queues.Select(NotificationDto.JobEnqueued);
+            var jobsEnqueued = queues.Select(q => NotificationDto.JobEnqueued(q).Serialize());
             DbContext.Notifications.InsertMany(jobsEnqueued, new InsertManyOptions
             {
                 BypassDocumentValidation = false,
