@@ -12,17 +12,20 @@ namespace Hangfire.Mongo.Dto
         {
 
         }
-        public StateDto(BsonValue doc)
+        public StateDto(BsonDocument doc)
         {
             Name = doc[nameof(Name)].StringOrNull();
             Reason = doc[nameof(Reason)].StringOrNull();
             CreatedAt = doc[nameof(CreatedAt)].ToUniversalTime();
             Data = new Dictionary<string, string>();
-
-            foreach (var b in doc[nameof(Data)].AsBsonDocument)
+            if(doc.TryGetValue(nameof(Data), out var data))
             {
-                Data[b.Name] = b.Value.StringOrNull();
+                foreach (var b in data.AsBsonDocument)
+                {
+                    Data[b.Name] = b.Value.StringOrNull();
+                }
             }
+            
         }
         public string Name { get; set; }
 
@@ -36,9 +39,9 @@ namespace Hangfire.Mongo.Dto
         {
             var document = new BsonDocument
             {
-                [nameof(Name)] = BsonValue.Create(Name),
-                [nameof(Reason)] = BsonValue.Create(Reason),
-                [nameof(CreatedAt)] = BsonValue.Create(CreatedAt.ToUniversalTime())
+                [nameof(Name)] = Name.ToBsonValue(),
+                [nameof(Reason)] = Reason.ToBsonValue(),
+                [nameof(CreatedAt)] = CreatedAt.ToUniversalTime()
             };
             var data = new BsonDocument();
 
@@ -46,7 +49,7 @@ namespace Hangfire.Mongo.Dto
             {
                 foreach (var d in Data)
                 {
-                    data[d.Key] = BsonValue.Create(d.Value);
+                    data[d.Key] = d.Value.ToBsonValue();
                 }
             }
             

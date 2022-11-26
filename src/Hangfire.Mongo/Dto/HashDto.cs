@@ -40,7 +40,7 @@ namespace Hangfire.Mongo.Dto
                 var fields = new BsonDocument();
                 foreach (var field in Fields)
                 {
-                    fields[field.Key] = field.Value;
+                    fields[field.Key] = field.Value.ToBsonValue();
                 }
                 document[nameof(Fields)] = fields;
             }

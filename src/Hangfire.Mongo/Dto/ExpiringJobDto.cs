@@ -21,15 +21,15 @@ namespace Hangfire.Mongo.Dto
             {
                 return;
             }
-            if (doc.TryGetElement(nameof(ExpireAt), out var expireAt))
+            if (doc.TryGetValue(nameof(ExpireAt), out var expireAt))
             {
-                ExpireAt = expireAt.Value.ToNullableUniversalTime();
+                ExpireAt = expireAt.ToNullableUniversalTime();
             }
         }
 
         protected override void Serialize(BsonDocument document)
         {
-            document[nameof(ExpireAt)] = BsonValue.Create(ExpireAt?.ToUniversalTime());
+            document[nameof(ExpireAt)] = ExpireAt?.ToUniversalTime();
             document["_t"].AsBsonArray.Add(nameof(ExpiringJobDto));
         }
     }

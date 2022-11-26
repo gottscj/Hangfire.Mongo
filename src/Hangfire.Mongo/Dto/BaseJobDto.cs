@@ -32,7 +32,7 @@ namespace Hangfire.Mongo.Dto
             return document;
         }
         
-        protected abstract void Serialize(BsonDocument document);        
+        protected abstract void Serialize(BsonDocument document);
     }
 #pragma warning restore 1591
 }

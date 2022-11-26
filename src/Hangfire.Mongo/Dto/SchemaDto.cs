@@ -53,7 +53,7 @@ namespace Hangfire.Mongo.Dto
         {
             return new BsonDocument
             {
-                [nameof(Identifier)] = BsonValue.Create(Identifier),
+                [nameof(Identifier)] = Identifier.ToBsonValue(),
                 ["_id"] = (int)Version
             };
         }

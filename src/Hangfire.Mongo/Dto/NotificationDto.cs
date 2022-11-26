@@ -44,8 +44,8 @@ namespace Hangfire.Mongo.Dto
             return new BsonDocument
             {
                 ["_id"] = Id,
-                [nameof(Type)] = Type,
-                [nameof(Value)] = Value,
+                [nameof(Type)] = (int)Type,
+                [nameof(Value)] = Value.ToBsonValue(),
             };
         }
     }

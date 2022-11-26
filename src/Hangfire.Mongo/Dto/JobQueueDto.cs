@@ -26,8 +26,8 @@ namespace Hangfire.Mongo.Dto
         protected override void Serialize(BsonDocument document)
         {
             document[nameof(JobId)] = JobId;
-            document[nameof(Queue)] = Queue;
-            document[nameof(FetchedAt)] = BsonValue.Create(FetchedAt?.ToUniversalTime()); 
+            document[nameof(Queue)] = Queue.ToBsonValue();
+            document[nameof(FetchedAt)] = FetchedAt?.ToUniversalTime(); 
             document["_t"].AsBsonArray.Add(nameof(JobQueueDto));
         }
     }

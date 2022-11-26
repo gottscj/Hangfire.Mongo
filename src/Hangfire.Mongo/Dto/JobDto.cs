@@ -14,7 +14,7 @@ namespace Hangfire.Mongo.Dto
         }
         public JobDto(BsonDocument doc) : base(doc)
         {
-            if(doc == null)
+            if (doc == null)
             {
                 return;
             }
@@ -23,12 +23,21 @@ namespace Hangfire.Mongo.Dto
             InvocationData = doc[nameof(InvocationData)].StringOrNull();
             Arguments = doc[nameof(Arguments)].StringOrNull();
             Parameters = new Dictionary<string, string>();
-            foreach (var b in doc[nameof(Parameters)].AsBsonDocument)
+            if (doc.TryGetValue(nameof(Parameters), out var parameters))
             {
-                Parameters[b.Name] = b.Value.StringOrNull();
+                foreach (var b in parameters.AsBsonDocument)
+                {
+                    Parameters[b.Name] = b.Value.StringOrNull();
+                }
+
             }
+
             CreatedAt = doc[nameof(CreatedAt)].ToUniversalTime();
-            StateHistory = doc[nameof(StateHistory)].AsBsonArray.Select(b => new StateDto(b)).ToArray();
+            StateHistory = doc[nameof(StateHistory)]
+                .AsBsonArray
+                .Select(b => b.AsBsonDocument)
+                .Select(b => new StateDto(b))
+                .ToArray();
         }
 
         public string StateName { get; set; }
@@ -46,13 +55,13 @@ namespace Hangfire.Mongo.Dto
         protected override void Serialize(BsonDocument document)
         {
             base.Serialize(document);
-            document[nameof(StateName)] = BsonValue.Create(StateName);
-            document[nameof(InvocationData)] = BsonValue.Create(InvocationData);
-            document[nameof(Arguments)] = BsonValue.Create(Arguments);
+            document[nameof(StateName)] = StateName.ToBsonValue();
+            document[nameof(InvocationData)] = InvocationData.ToBsonValue();
+            document[nameof(Arguments)] = Arguments.ToBsonValue();
             var parameters = new BsonDocument();
             foreach (var p in Parameters)
             {
-                parameters[p.Key] = BsonValue.Create(p.Value);
+                parameters[p.Key] = p.Value.ToBsonValue();
             }
             document[nameof(Parameters)] = parameters;
             var history = new BsonArray();

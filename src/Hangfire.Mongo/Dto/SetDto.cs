@@ -29,9 +29,9 @@ namespace Hangfire.Mongo.Dto
         protected override void Serialize(BsonDocument document)
         {
             base.Serialize(document);
-            document[nameof(Score)] = BsonValue.Create(Score);
-            document[nameof(Value)] = BsonValue.Create(Value);
-            document[nameof(SetType)] = BsonValue.Create(SetType);
+            document[nameof(Score)] = Score;
+            document[nameof(Value)] = Value.ToBsonValue();
+            document[nameof(SetType)] = SetType.ToBsonValue(); ;
             document["_t"].AsBsonArray.Add(nameof(SetDto));
         }
         

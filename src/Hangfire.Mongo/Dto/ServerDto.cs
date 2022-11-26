@@ -39,8 +39,8 @@ namespace Hangfire.Mongo.Dto
             {
                 [nameof(WorkerCount)] = WorkerCount,
                 [nameof(Queues)] = Queues != null ? new BsonArray(Queues) : new BsonArray(),
-                [nameof(StartedAt)] = BsonValue.Create(StartedAt?.ToUniversalTime()),
-                [nameof(LastHeartbeat)] = BsonValue.Create(LastHeartbeat?.ToUniversalTime()),
+                [nameof(StartedAt)] = StartedAt?.ToUniversalTime(),
+                [nameof(LastHeartbeat)] = LastHeartbeat?.ToUniversalTime(),
                 ["_id"] = Id
             };
         }

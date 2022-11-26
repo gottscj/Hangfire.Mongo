@@ -16,5 +16,14 @@ namespace Hangfire.Mongo.Dto
 
             return bsonValue.AsString;
         }
+
+        public static BsonValue ToBsonValue(this string value)
+        {
+            if(value == null)
+            {
+                return BsonNull.Value;
+            }
+            return (BsonString)value;
+        }
     }
 }

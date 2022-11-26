@@ -54,7 +54,7 @@ namespace Hangfire.Mongo
             {
                 ["_id"] = id,
                 ["_t"] = nameof(JobQueueDto),
-                [nameof(JobQueueDto.FetchedAt)] = BsonValue.Create(fetchedAt),
+                [nameof(JobQueueDto.FetchedAt)] = fetchedAt,
                 [nameof(JobQueueDto.Queue)] = queue
             });
             _writeModels.Add(writeModel);
@@ -236,7 +236,7 @@ namespace Hangfire.Mongo
             BsonValue bsonDate = BsonNull.Value;
             if (expireIn != null)
             {
-                bsonDate = BsonValue.Create(DateTime.UtcNow.Add(expireIn.Value));
+                bsonDate = DateTime.UtcNow.Add(expireIn.Value);
             }
 
             var update = new BsonDocument

@@ -60,7 +60,7 @@ namespace Hangfire.Mongo.Migration
                     {
                         ["$setOnInsert"] = new BsonDocument
                         {
-                            [nameof(MigrationLockDto.ExpireAt)] = BsonValue.Create(lockTimeoutTime)
+                            [nameof(MigrationLockDto.ExpireAt)] = lockTimeoutTime
                         }
                     };
                     

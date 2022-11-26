@@ -240,7 +240,7 @@ namespace Hangfire.Mongo
                 {
                     ["$set"] = new BsonDocument
                     {
-                        [nameof(ServerDto.LastHeartbeat)] = BsonValue.Create(DateTime.UtcNow)
+                        [nameof(ServerDto.LastHeartbeat)] = DateTime.UtcNow
                     }
                 });
 
@@ -263,7 +263,7 @@ namespace Hangfire.Mongo
                 {
                     [nameof(ServerDto.LastHeartbeat)] = new BsonDocument
                     {
-                        ["$lt"] = BsonValue.Create(DateTime.UtcNow.Add(timeOut.Negate()))
+                        ["$lt"] = DateTime.UtcNow.Add(timeOut.Negate())
                     }
                 })
                 .DeletedCount;

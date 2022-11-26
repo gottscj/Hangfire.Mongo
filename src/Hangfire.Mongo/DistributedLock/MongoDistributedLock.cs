@@ -157,8 +157,7 @@ namespace Hangfire.Mongo.DistributedLock
                     {
                         ["$setOnInsert"] = new BsonDocument
                         {
-                            [nameof(DistributedLockDto.ExpireAt)] =
-                                BsonValue.Create(DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime))
+                            [nameof(DistributedLockDto.ExpireAt)] = DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime)
                         }
                     };
                     try
@@ -249,7 +248,7 @@ namespace Hangfire.Mongo.DistributedLock
                     [nameof(DistributedLockDto.Resource)] = _resource,
                     [nameof(DistributedLockDto.ExpireAt)] = new BsonDocument
                     {
-                        ["$lt"] = BsonValue.Create(DateTime.UtcNow)
+                        ["$lt"] = DateTime.UtcNow
                     }
                 });
             }
@@ -281,7 +280,7 @@ namespace Hangfire.Mongo.DistributedLock
                         {
                             ["$set"] = new BsonDocument
                             {
-                                [nameof(DistributedLockDto.ExpireAt)] = BsonValue.Create(DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime))
+                                [nameof(DistributedLockDto.ExpireAt)] = DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime)
                             }
                         };
                         _dbContext.DistributedLock.FindOneAndUpdate(filter, update);

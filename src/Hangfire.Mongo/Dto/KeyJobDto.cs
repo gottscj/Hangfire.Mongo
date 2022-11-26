@@ -25,7 +25,7 @@ namespace Hangfire.Mongo.Dto
         protected override void Serialize(BsonDocument document)
         {
             base.Serialize(document);
-            document[nameof(Key)] = Key;
+            document[nameof(Key)] = Key.ToBsonValue();
             document["_t"].AsBsonArray.Add(nameof(KeyJobDto));
         }
     }

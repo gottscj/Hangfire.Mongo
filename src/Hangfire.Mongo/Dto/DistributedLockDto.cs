@@ -51,7 +51,7 @@ namespace Hangfire.Mongo.Dto
             return new BsonDocument
             {
                 ["_id"] = Id,
-                [nameof(Resource)] = Resource,
+                [nameof(Resource)] = Resource.ToBsonValue(),
                 [nameof(ExpireAt)] = ExpireAt.ToUniversalTime(),
             };
         }
