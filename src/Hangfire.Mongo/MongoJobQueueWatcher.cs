@@ -37,22 +37,42 @@ namespace Hangfire.Mongo
         /// <inheritdoc />
         public void Execute(CancellationToken cancellationToken)
         {
-            var pipeline = new EmptyPipelineDefinition<ChangeStreamDocument<BsonDocument>>()
-                .Match(j =>
-                    j.OperationType == ChangeStreamOperationType.Insert && j.FullDocument["_t"] == nameof(JobQueueDto));
+            var pipeline = new BsonDocument[]
+            {
+                new BsonDocument
+                {
+                    ["$match"] = new BsonDocument
+                    {
+                        ["operationType"] =  "update",
+                        [$"updateDescription.updatedFields.{nameof(JobDto.Queue)}"] = new BsonDocument
+                        {
+                            ["$exists"] = true
+                        }
+                        [$"updateDescription.updatedFields.{nameof(JobDto.Queue)}"] = new BsonDocument
+                        {
+                            ["$ne"] = BsonNull.Value
+                        }
+                    }
+                }
+            };
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
-                    var cursor = _dbContext.Database.GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName).Watch(pipeline);
+                    var cursor = _dbContext
+                    .Database
+                    .GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName)
+                    .Watch<BsonDocument>(pipeline);
+                    
                     if (Logger.IsTraceEnabled())
                     {
                         Logger.Trace("Watcher: Watching for enqueued jobs");
                     }
-                    
+
                     foreach (var change in cursor.ToEnumerable(cancellationToken))
                     {
-                        var queue = change.FullDocument[nameof(JobQueueDto.Queue)].AsString;
+                        var queue = change["updateDescription"]["updatedFields"][nameof(JobDto.Queue)].AsString;
                         _jobQueueSemaphore.Release(queue);
                         if (Logger.IsTraceEnabled())
                         {

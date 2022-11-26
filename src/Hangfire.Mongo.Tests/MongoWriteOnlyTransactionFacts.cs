@@ -190,29 +190,26 @@ namespace Hangfire.Mongo.Tests
         [CleanDatabase]
         public void AddToQueue_CallsEnqueue_OnTargetPersistentQueue()
         {
-            ConventionRegistry.Register(
-               "Hangfire Mongo Conventions",
-               new ConventionPack
+            var jobId = ObjectId.GenerateNewId();
+            _database.JobGraph.InsertOne(new JobDto
             {
-                     new DelegateClassMapConvention("Hangfire Mongo Convention", cm =>
-                     cm.SetDiscriminator(cm.ClassType.FullName))
-            },
-               t => t.FullName.StartsWith("Hangfire.Mongo.Dto"));
-            var jobId = ObjectId.GenerateNewId().ToString();
-            Commit(x => x.AddToQueue("default", jobId));
+                Id = jobId
+            }.Serialize());
 
-            var jobQueueDto = _database
+            Commit(x => x.AddToQueue("default", jobId.ToString()));
+
+            var jobDto = _database
                 .JobGraph
                 .Find(new BsonDocument
                 {
-                    ["_t"] = nameof(JobQueueDto),
-                    [nameof(JobQueueDto.Queue)] = "default",
-                    [nameof(JobQueueDto.JobId)] = ObjectId.Parse(jobId),
+                    ["_t"] = nameof(JobDto),
+                    [nameof(JobDto.Queue)] = "default",
+                    ["_id"] = jobId,
                 })
-                .Project(b => new JobQueueDto(b))
+                .Project(b => new JobDto(b))
                 .FirstOrDefault();
 
-            Assert.NotNull(jobQueueDto);
+            Assert.NotNull(jobDto);
         }
 
         [Fact]

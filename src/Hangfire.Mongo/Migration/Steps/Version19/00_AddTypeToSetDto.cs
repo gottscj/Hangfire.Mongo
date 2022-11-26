@@ -13,8 +13,6 @@ namespace Hangfire.Mongo.Migration.Steps.Version19
             var jobGraph = database.GetCollection<BsonDocument>($@"{storageOptions.Prefix}.jobGraph");
             var indexBuilder = Builders<BsonDocument>.IndexKeys;
 
-            
-
             var cursor = jobGraph
                 .FindSync(new BsonDocument("_t", "SetDto"));
 

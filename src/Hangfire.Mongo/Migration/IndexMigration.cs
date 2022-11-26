@@ -36,7 +36,11 @@ namespace Hangfire.Mongo.Migration
         /// collection.TryCreateIndexes(Builders{BsonDocument}.IndexKeys.Descending, "Name")
         /// </code>
         /// </example>
-        protected virtual void TryCreateIndexes(IMongoCollection<BsonDocument> collection, Func<FieldDefinition<BsonDocument>, IndexKeysDefinition<BsonDocument>> indexType, params string[] indexNames)
+        protected virtual void TryCreateIndexes(
+                IMongoCollection<BsonDocument> collection, 
+                Func<FieldDefinition<BsonDocument>, 
+                IndexKeysDefinition<BsonDocument>> indexType, 
+                params string[] indexNames)
         {
             if (collection == null)
             {
@@ -99,7 +103,14 @@ namespace Hangfire.Mongo.Migration
             });
         }
 
-        private static void CreateIndexes(IMongoCollection<BsonDocument> collection,
+        /// <summary>
+        /// Creates indexes
+        /// </summary>
+        /// <param name="collection"></param>
+        /// <param name="getIndexType"></param>
+        /// <param name="indexNames"></param>
+        /// <param name="createOptions"></param>
+        protected virtual void CreateIndexes(IMongoCollection<BsonDocument> collection,
             Func<FieldDefinition<BsonDocument>, IndexKeysDefinition<BsonDocument>> getIndexType, string[] indexNames,
             Func<string, CreateIndexOptions> createOptions)
         {
@@ -112,7 +123,12 @@ namespace Hangfire.Mongo.Migration
             collection.Indexes.CreateMany(indexModels);
         }
 
-        private static void DropExistingIndexes(IMongoCollection<BsonDocument> collection, string[] indexNames)
+        /// <summary>
+        /// Drops indexes
+        /// </summary>
+        /// <param name="collection"></param>
+        /// <param name="indexNames"></param>
+        protected virtual void DropExistingIndexes(IMongoCollection<BsonDocument> collection, string[] indexNames)
         {
             // drop existing indexes for the 'Resource' field if any exist
             using (var cursor = collection.Indexes.List())

@@ -19,6 +19,8 @@ namespace Hangfire.Mongo.Dto
                 return;
             }
 
+            Queue = doc[nameof(Queue)].StringOrNull();
+            FetchedAt = doc[nameof(FetchedAt)].ToNullableLocalTime();
             StateName = doc[nameof(StateName)].StringOrNull();
             InvocationData = doc[nameof(InvocationData)].StringOrNull();
             Arguments = doc[nameof(Arguments)].StringOrNull();
@@ -52,26 +54,32 @@ namespace Hangfire.Mongo.Dto
 
         public DateTime CreatedAt { get; set; }
 
-        protected override void Serialize(BsonDocument document)
+        public DateTime? FetchedAt { get; set; }
+
+        public string Queue { get; set; }
+
+        protected override void Serialize(BsonDocument doc)
         {
-            base.Serialize(document);
-            document[nameof(StateName)] = StateName.ToBsonValue();
-            document[nameof(InvocationData)] = InvocationData.ToBsonValue();
-            document[nameof(Arguments)] = Arguments.ToBsonValue();
+            base.Serialize(doc);
+            doc[nameof(Queue)] = Queue.ToBsonValue();
+            doc[nameof(FetchedAt)] = FetchedAt;
+            doc[nameof(StateName)] = StateName.ToBsonValue();
+            doc[nameof(InvocationData)] = InvocationData.ToBsonValue();
+            doc[nameof(Arguments)] = Arguments.ToBsonValue();
             var parameters = new BsonDocument();
             foreach (var p in Parameters)
             {
                 parameters[p.Key] = p.Value.ToBsonValue();
             }
-            document[nameof(Parameters)] = parameters;
+            doc[nameof(Parameters)] = parameters;
             var history = new BsonArray();
             foreach (var h in StateHistory)
             {
                 history.Add(h.Serialize());
             }
-            document[nameof(StateHistory)] = history;
-            document[nameof(CreatedAt)] = CreatedAt.ToUniversalTime();
-            document["_t"].AsBsonArray.Add(nameof(JobDto));
+            doc[nameof(StateHistory)] = history;
+            doc[nameof(CreatedAt)] = CreatedAt.ToUniversalTime();
+            doc["_t"].AsBsonArray.Add(nameof(JobDto));
         }
     }
 #pragma warning restore 1591

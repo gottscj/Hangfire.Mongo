@@ -1,0 +1,4 @@
+{
+    "testExplorer.useNativeTesting": true,
+    "dotnetCoreExplorer.searchpatterns":"**/bin/**/*.{dll,exe}"
+}

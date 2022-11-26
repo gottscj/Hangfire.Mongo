@@ -35,7 +35,7 @@
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.7.31" />
+        <PackageReference Include="Hangfire.Core" Version="1.7.32" />
         <PackageReference Include="MongoDB.Driver" Version="2.18.0" />
     </ItemGroup>
 </Project>

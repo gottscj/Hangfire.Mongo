@@ -56,20 +56,19 @@ namespace Hangfire.Mongo.Tests
         {
             var token = new CancellationToken();
             var queues = new[] { "default" };
-            var jobQueueDto = new JobQueueDto
+            var jobDto = new JobDto
             {
                 Id = ObjectId.GenerateNewId(),
                 Queue = "default",
-                FetchedAt = null,
-                JobId = ObjectId.GenerateNewId()
+                FetchedAt = null
             };
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
-                
-            _dbContext.JobGraph.InsertOne(jobQueueDto.Serialize());
+            var serializedJob = jobDto.Serialize();
+            _dbContext.JobGraph.InsertOne(serializedJob);
                 
             var fetchedJob = _connection.FetchNextJob(queues, token);
 
-            Assert.Equal(fetchedJob.JobId, jobQueueDto.JobId.ToString());
+            Assert.Equal(fetchedJob.JobId, jobDto.Id.ToString());
             
             _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
         }
