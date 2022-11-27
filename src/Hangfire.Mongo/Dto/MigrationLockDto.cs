@@ -7,12 +7,27 @@ namespace Hangfire.Mongo.Dto
 #pragma warning disable 1591
     public class MigrationLockDto
     {
-        [BsonId]
+        public MigrationLockDto()
+        {
+
+        }
+        public MigrationLockDto(BsonDocument doc)
+        {
+            Id = doc["_id"].AsObjectId;
+            ExpireAt = doc[nameof(ExpireAt)].ToUniversalTime();
+        }
         public ObjectId Id { get; set; }
         
-        [BsonElement(nameof(ExpireAt))]
-        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime ExpireAt { get; set; }
+
+        public BsonDocument Serialize()
+        {
+            return new BsonDocument
+            {
+                ["_id"] = Id,
+                [nameof(ExpireAt)] = ExpireAt.ToUniversalTime(),
+            };
+        }
     }
 #pragma warning restore 1591
 }

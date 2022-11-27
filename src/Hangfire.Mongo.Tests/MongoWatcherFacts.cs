@@ -52,7 +52,7 @@ namespace Hangfire.Mongo.Tests
             _dbContext.JobGraph.InsertOne(new JobQueueDto
             {
                 Queue = "test"
-            });
+            }.Serialize());
             
             signal.Wait(100000);
             

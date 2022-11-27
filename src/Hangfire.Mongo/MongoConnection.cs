@@ -91,16 +91,19 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(name));
             }
-
-            var parameters = _dbContext
+            var objectId = ObjectId.Parse(id);
+            var jobDto = _dbContext
                 .JobGraph
-                .OfType<JobDto>()
-                .Find(j => j.Id == ObjectId.Parse(id))
-                .Project(job => job.Parameters)
+                .Find(new BsonDocument
+                {
+                    ["_id"] = objectId,
+                    ["_t"] = nameof(JobDto)
+                })
+                .Project(b => new JobDto(b))
                 .FirstOrDefault();
 
             string value = null;
-            parameters?.TryGetValue(name, out value);
+            jobDto?.Parameters?.TryGetValue(name, out value);
 
             return value;
         }
@@ -112,20 +115,25 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(jobId));
             }
 
-            var jobData = _dbContext
+            var objectId = ObjectId.Parse(jobId);
+            var jobDto = _dbContext
                 .JobGraph
-                .OfType<JobDto>()
-                .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)))
+                .Find(new BsonDocument
+                {
+                    ["_id"] = objectId,
+                    ["_t"] = nameof(JobDto)
+                })
+                .Project(b => new JobDto(b))
                 .FirstOrDefault();
 
-            if (jobData == null)
+            if (jobDto == null)
             {
                 return null;
             }
 
             // TODO: conversion exception could be thrown.
-            var invocationData = JobHelper.FromJson<InvocationData>(jobData.InvocationData);
-            invocationData.Arguments = jobData.Arguments;
+            var invocationData = JobHelper.FromJson<InvocationData>(jobDto.InvocationData);
+            invocationData.Arguments = jobDto.Arguments;
 
             Job job = null;
             JobLoadException loadException = null;
@@ -142,8 +150,8 @@ namespace Hangfire.Mongo
             return new JobData
             {
                 Job = job,
-                State = jobData.StateName,
-                CreatedAt = jobData.CreatedAt,
+                State = jobDto.StateName,
+                CreatedAt = jobDto.CreatedAt,
                 LoadException = loadException
             };
         }
@@ -154,19 +162,24 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(jobId));
             }
-            
-            var job = _dbContext
+
+            var objectId = ObjectId.Parse(jobId);
+            var jobDto = _dbContext
                 .JobGraph
-                .OfType<JobDto>()
-                .Find(j => j.Id == ObjectId.Parse(jobId))
+                .Find(new BsonDocument
+                {
+                    ["_id"] = objectId,
+                    ["_t"] = nameof(JobDto)
+                })
+                .Project(b => new JobDto(b))
                 .FirstOrDefault();
 
-            if (job == null)
+            if (jobDto == null)
             {
                 return null;
             }
 
-            var state = job.StateHistory.LastOrDefault();
+            var state = jobDto.StateHistory.LastOrDefault();
 
             if (state == null)
             {
@@ -201,7 +214,7 @@ namespace Hangfire.Mongo
                 [nameof(ServerDto.LastHeartbeat)] = DateTime.UtcNow
             });
 
-            var filter = Builders<ServerDto>.Filter.Eq(s => s.Id, serverId);
+            var filter = new BsonDocument("_id", serverId);
             _dbContext.Server.UpdateOne(filter, set, new UpdateOptions {IsUpsert = true});
         }
 
@@ -212,7 +225,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(serverId));
             }
 
-            _dbContext.Server.DeleteMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId));
+            _dbContext.Server.DeleteMany(new BsonDocument("_id", serverId));
         }
 
         public override void Heartbeat(string serverId)
@@ -222,8 +235,14 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(serverId));
             }
 
-            var updateResult = _dbContext.Server.UpdateMany(Builders<ServerDto>.Filter.Eq(_ => _.Id, serverId),
-                Builders<ServerDto>.Update.Set(_ => _.LastHeartbeat, DateTime.UtcNow));
+            var updateResult = _dbContext.Server.UpdateMany(new BsonDocument("_id", serverId),
+                new BsonDocument
+                {
+                    ["$set"] = new BsonDocument
+                    {
+                        [nameof(ServerDto.LastHeartbeat)] = DateTime.UtcNow
+                    }
+                });
 
             if (updateResult != null && updateResult.IsAcknowledged && updateResult.ModifiedCount == 0)
             {
@@ -240,7 +259,13 @@ namespace Hangfire.Mongo
 
             return (int)_dbContext
                 .Server
-                .DeleteMany(Builders<ServerDto>.Filter.Lt(_ => _.LastHeartbeat, DateTime.UtcNow.Add(timeOut.Negate())))
+                .DeleteMany(new BsonDocument
+                {
+                    [nameof(ServerDto.LastHeartbeat)] = new BsonDocument
+                    {
+                        ["$lt"] = DateTime.UtcNow.Add(timeOut.Negate())
+                    }
+                })
                 .DeletedCount;
         }
 
@@ -258,13 +283,16 @@ namespace Hangfire.Mongo
 
             var result = _dbContext
                 .JobGraph
-                .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key))
-                .SortBy(_ => _.Id)
-                .Project(_ => _.Value)
+                .Find(new BsonDocument
+                {
+                    [nameof(SetDto.SetType)] = key,
+                    ["_t"] = nameof(SetDto)
+                })
+                .Sort(new BsonDocument("_id", 1))
+                .Project(new BsonDocument(nameof(SetDto.Value), 1))
                 .ToList();
 
-            return new HashSet<string>(result);
+            return new HashSet<string>(result.Select(b => b[nameof(SetDto.Value)].AsString));
         }
 
         public override string GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore)
@@ -289,16 +317,24 @@ namespace Hangfire.Mongo
                 throw new ArgumentException("The `toScore` value must be higher or equal to the `fromScore` value.");
             }
 
-            return _dbContext
+            var results = _dbContext
                 .JobGraph
-                .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key) &
-                      Builders<SetDto>.Filter.Gte(_ => _.Score, fromScore) &
-                      Builders<SetDto>.Filter.Lte(_ => _.Score, toScore))
-                .SortBy(_ => _.Score)
-                .Project(_ => _.Value)
+                .Find(new BsonDocument
+                {
+                    ["_t"] = nameof(SetDto),
+                    [nameof(SetDto.SetType)] = key,
+                    [nameof(SetDto.Score)] = new BsonDocument
+                    {
+                        ["$gte"] = fromScore,
+                        ["$lte"] = toScore
+                    }
+                })
+                .Sort(new BsonDocument(nameof(SetDto.Score), 1))
+                .Project(new BsonDocument(nameof(SetDto.Value), 1))
                 .Limit(count)
                 .ToList();
+
+            return results.Select(b => b[nameof(SetDto.Value)].AsString).ToList();
         }
 
         public override void SetRangeInHash(string key, IEnumerable<KeyValuePair<string, string>> keyValuePairs)
@@ -329,11 +365,14 @@ namespace Hangfire.Mongo
 
             var hash = _dbContext
                 .JobGraph
-                .OfType<HashDto>()
-                .Find(new BsonDocument(nameof(KeyJobDto.Key), key))
+                .Find(new BsonDocument
+                {
+                    [nameof(KeyJobDto.Key)] = key,
+                    ["_t"] = nameof(HashDto)
+                })
                 .FirstOrDefault();
 
-            return hash?.Fields;
+            return new HashDto(hash).Fields;
         }
 
         public override long GetSetCount(string key)
@@ -350,8 +389,11 @@ namespace Hangfire.Mongo
 
             return _dbContext
                 .JobGraph
-                .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key))
+                .Find(new BsonDocument
+                {
+                    [nameof(SetDto.SetType)] = key,
+                    ["_t"] = nameof(SetDto)
+                })
                 .Count();
         }
 
@@ -367,15 +409,19 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            return _dbContext
+            var result = _dbContext
                 .JobGraph
-                .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key))
-                .SortBy(_ => _.Id)
+                .Find(new BsonDocument
+                {
+                    [nameof(SetDto.SetType)] = key,
+                    ["_t"] = nameof(SetDto)
+                })
+                .Sort(new BsonDocument("_id", 1))
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
-                .Project(dto => dto.Value)
+                .Project(new BsonDocument(nameof(SetDto.Value), 1))
                 .ToList();
+            return result.Select(b => b[nameof(SetDto.Value)].AsString).ToList();
         }
 
         public override TimeSpan GetSetTtl(string key)
@@ -392,10 +438,18 @@ namespace Hangfire.Mongo
 
             var values = _dbContext
                 .JobGraph
-                .OfType<SetDto>()
-                .Find(Builders<SetDto>.Filter.Eq(_ => _.SetType, key) &
-                      Builders<SetDto>.Filter.Not(Builders<SetDto>.Filter.Eq(_ => _.ExpireAt, null)))
-                .Project(dto => dto.ExpireAt.Value)
+                .Find(new BsonDocument
+                {
+                    [nameof(SetDto.SetType)] = key,
+                    ["_t"] = nameof(SetDto),
+                    [nameof(SetDto.ExpireAt)] = new BsonDocument
+                    {
+                        ["$not"] = new BsonDocument("$eq", BsonNull.Value)
+                    }
+                })
+                .Project(new BsonDocument(nameof(SetDto.ExpireAt), 1))
+                .ToList()
+                .Select(b => b[nameof(SetDto.ExpireAt)].ToUniversalTime())
                 .ToList();
 
             return values.Any() ? values.Min() - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
@@ -415,8 +469,12 @@ namespace Hangfire.Mongo
 
             var counter = _dbContext
                 .JobGraph
-                .OfType<CounterDto>()
-                .Find(new BsonDocument(nameof(KeyJobDto.Key), key))
+                .Find(new BsonDocument
+                {
+                    [nameof(CounterDto.Key)] = key,
+                    ["_t"] = nameof(CounterDto)
+                })
+                .Project(b => new CounterDto(b))
                 .FirstOrDefault();
 
             return counter?.Value ?? 0;
@@ -436,8 +494,12 @@ namespace Hangfire.Mongo
 
             var hash = _dbContext
                 .JobGraph
-                .OfType<HashDto>()
-                .Find(new BsonDocument(nameof(KeyJobDto.Key), key))
+                .Find(new BsonDocument
+                {
+                    [nameof(HashDto.Key)] = key,
+                    ["_t"] = nameof(HashDto)
+                })
+                .Project(b => new HashDto(b))
                 .FirstOrDefault();
 
             return hash?.Fields.Count ?? 0;
@@ -454,14 +516,22 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(key));
             }
+            var hash = _dbContext
+               .JobGraph
+               .Find(new BsonDocument
+               {
+                   [nameof(HashDto.Key)] = key,
+                   ["_t"] = nameof(HashDto)
+               })
+               .Sort(new BsonDocument(nameof(HashDto.ExpireAt), 1))
+               .Project(new BsonDocument(nameof(HashDto.ExpireAt), 1))
+               .FirstOrDefault();
 
-            var result = _dbContext
-                .JobGraph
-                .OfType<HashDto>()
-                .Find(Builders<HashDto>.Filter.Eq(_ => _.Key, key))
-                .SortBy(dto => dto.ExpireAt)
-                .Project(_ => _.ExpireAt)
-                .FirstOrDefault();
+            if(hash == null)
+            {
+                return TimeSpan.FromSeconds(-1);
+            }
+            var result = hash[nameof(HashDto.ExpireAt)].ToNullableUniversalTime();
 
             return result.HasValue ? result.Value - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
@@ -485,14 +555,15 @@ namespace Hangfire.Mongo
 
             var hashWithField = new BsonDocument("$and", new BsonArray
             {
+                new BsonDocument("_t", nameof(HashDto)),
                 new BsonDocument(nameof(KeyJobDto.Key), key),
                 new BsonDocument($"{nameof(HashDto.Fields)}.{name}", new BsonDocument("$exists", true))
             });
             
             var result = _dbContext
                 .JobGraph
-                .OfType<HashDto>()
                 .Find(hashWithField)
+                .Project(b => new HashDto(b))
                 .FirstOrDefault();
 
             return result?.Fields[name];
@@ -512,8 +583,11 @@ namespace Hangfire.Mongo
 
             return _dbContext
                 .JobGraph
-                .OfType<ListDto>()
-                .Find(new BsonDocument(nameof(ListDto.Item), key))
+                .Find(new BsonDocument
+                {
+                    [nameof(ListDto.Item)] = key,
+                    ["_t"] = nameof(ListDto)
+                })
                 .Count();
         }
 
@@ -529,14 +603,22 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(key));
             }
 
-            var result = _dbContext
+            var listDto = _dbContext
                 .JobGraph
-                .OfType<ListDto>()
-                .Find(new BsonDocument(nameof(ListDto.Item), key))
-                .SortBy(_ => _.ExpireAt)
-                .Project(_ => _.ExpireAt)
+                .Find(new BsonDocument
+                {
+                    [nameof(ListDto.Item)] = key,
+                    ["_t"] = nameof(ListDto)
+                })
+                .Sort(new BsonDocument(nameof(ListDto.ExpireAt), 1))
+                .Project(new BsonDocument(nameof(ListDto.ExpireAt), 1))
                 .FirstOrDefault();
                 
+            if(listDto == null)
+            {
+                return TimeSpan.FromSeconds(-1);
+            }
+            var result = listDto[nameof(ListDto.ExpireAt)].ToNullableUniversalTime();
             return result.HasValue ? result.Value - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
 
@@ -553,14 +635,17 @@ namespace Hangfire.Mongo
             }
 
             return _dbContext
-                .JobGraph
-                .OfType<ListDto>()
-                .Find(new BsonDocument(nameof(ListDto.Item), key))
-                .SortByDescending(_ => _.Id)
+                .JobGraph.Find(new BsonDocument
+                {
+                    [nameof(ListDto.Item)] = key,
+                    ["_t"] = nameof(ListDto)
+                })
+                .Sort(new BsonDocument("_id", -1))
                 .Skip(startingFrom)
                 .Limit(endingAt - startingFrom + 1) // inclusive -- ensure the last element is included
-                .Project(_ => _.Value)
-                .ToList();
+                .Project(new BsonDocument(nameof(ListDto.Value), 1))
+                .ToList()
+                .Select(b => b[nameof(ListDto.Value)].AsString).ToList();
         }
 
         public override List<string> GetAllItemsFromList(string key)
@@ -574,14 +659,16 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(key));
             }
-
             return _dbContext
-                .JobGraph
-                .OfType<ListDto>()
-                .Find(new BsonDocument(nameof(ListDto.Item), key))
-                .SortByDescending(_ => _.Id)
-                .Project(_ => _.Value)
-                .ToList();
+                .JobGraph.Find(new BsonDocument
+                {
+                    [nameof(ListDto.Item)] = key,
+                    ["_t"] = nameof(ListDto)
+                })
+                .Sort(new BsonDocument("_id", -1))
+                .Project(new BsonDocument(nameof(ListDto.Value), 1))
+                .ToList()
+                .Select(b => b[nameof(ListDto.Value)].AsString).ToList();
         }
     }
 #pragma warning restore 1591

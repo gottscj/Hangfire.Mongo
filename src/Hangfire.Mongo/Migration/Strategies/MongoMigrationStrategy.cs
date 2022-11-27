@@ -48,7 +48,7 @@ namespace Hangfire.Mongo.Migration.Strategies
                 .GroupBy(step => step.TargetSchema);
 
             var migrationSw = Stopwatch.StartNew();
-            var schemas = database.GetCollection<SchemaDto>(StorageOptions.Prefix + ".schema");
+            var schemas = database.GetCollection<BsonDocument>(StorageOptions.Prefix + ".schema");
             foreach (var migrationGroup in migrationSteps)
             {
                 Logger.Info(() =>
@@ -79,9 +79,10 @@ namespace Hangfire.Mongo.Migration.Strategies
                 // We just completed a migration to the next schema.
                 // Update the schema info and continue.
                 
-                var schemaDto = schemas.FindOneAndDelete(new BsonDocument()) ?? new SchemaDto();
+                var schemaDoc = schemas.FindOneAndDelete(new BsonDocument());
+                var schemaDto = new SchemaDto(schemaDoc);
                 schemaDto.Version = migrationGroup.Key;
-                schemas.InsertOne(schemaDto);   
+                schemas.InsertOne(schemaDto.Serialize());   
             }
             
             Logger.Info(() =>

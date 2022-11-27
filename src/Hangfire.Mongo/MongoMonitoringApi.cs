@@ -48,7 +48,7 @@ namespace Hangfire.Mongo
 
         public virtual IList<ServerDto> Servers()
         {
-            var servers = _dbContext.Server.Find(new BsonDocument()).ToList();
+            var servers = _dbContext.Server.Find(new BsonDocument()).Project(b => new Dto.ServerDto(b)).ToList();
 
             var result = new List<ServerDto>();
 
@@ -69,22 +69,26 @@ namespace Hangfire.Mongo
 
         public virtual JobDetailsDto JobDetails(string jobId)
         {
-            JobDto job = _dbContext
-                .JobGraph
-                .OfType<JobDto>()
-                .Find(Builders<JobDto>.Filter.Eq(_ => _.Id, ObjectId.Parse(jobId)))
-                .FirstOrDefault();
+            var id = ObjectId.Parse(jobId);
+            var filter = new BsonDocument
+            {
+                ["_id"] = id,
+                ["_t"] = nameof(JobDto)
+            };
+            var jobDoc = _dbContext.JobGraph.Find(filter).FirstOrDefault();
 
-            if (job == null)
+            if (jobDoc == null)
+            {
                 return null;
-
+            }
+            var job = new JobDto(jobDoc);
             var history = job.StateHistory.Select(x => new StateHistoryDto
-                {
-                    StateName = x.Name,
-                    CreatedAt = x.CreatedAt,
-                    Reason = x.Reason,
-                    Data = x.Data
-                })
+            {
+                StateName = x.Name,
+                CreatedAt = x.CreatedAt,
+                Reason = x.Reason,
+                Data = x.Data
+            })
                 .Reverse()
                 .ToList();
 
@@ -97,7 +101,7 @@ namespace Hangfire.Mongo
             };
         }
 
-        private static readonly string[] StatisticsStateNames = 
+        private static readonly BsonArray StatisticsStateNames = new BsonArray
         {
             EnqueuedState.StateName,
             FailedState.StateName,
@@ -108,15 +112,31 @@ namespace Hangfire.Mongo
         public virtual StatisticsDto GetStatistics()
         {
             var stats = new StatisticsDto();
+            var filter = new BsonDocument
+            {
+                ["_t"] = nameof(JobDto),
+                [nameof(JobDto.StateName)] = new BsonDocument
+                {
+                    ["$in"] = StatisticsStateNames
+                }
+
+            };
+            var pipeline = new BsonDocument[]
+            {
+                new BsonDocument("$match", filter),
+                new BsonDocument("$group",
+                new BsonDocument
+                    {
+                        { "_id", $"${nameof(JobDto.StateName)}" },
+                        { "count", new BsonDocument("$sum", 1) }
+                    })
+            };
 
             var countByStates = _dbContext
                 .JobGraph
-                .OfType<JobDto>()
-                .Aggregate()
-                .Match(Builders<JobDto>.Filter.In(_ => _.StateName, StatisticsStateNames))
-                .Group(dto => new {dto.StateName},
-                    dtos => new {StateName = dtos.First().StateName, Count = dtos.Count()})
-                .ToList().ToDictionary(kv => kv.StateName, kv => kv.Count);
+                .Aggregate<BsonDocument>(pipeline)
+                .ToList()
+                .ToDictionary(b => b["_id"].ToString(), b => b["count"].AsInt32);
 
             int GetCountIfExists(string name) => countByStates.ContainsKey(name) ? countByStates[name] : 0;
 
@@ -128,23 +148,30 @@ namespace Hangfire.Mongo
             stats.Servers = _dbContext.Server.Count(new BsonDocument());
 
             var statsSucceeded = $@"stats:{State.Succeeded}";
-            var succeededCounter = _dbContext.JobGraph.OfType<CounterDto>()
-                .Find(new BsonDocument(nameof(KeyJobDto.Key), statsSucceeded))
-                .FirstOrDefault();
-                
-            stats.Succeeded = succeededCounter?.Value ?? 0;
+            filter = new BsonDocument
+            {
+                ["_t"] = nameof(CounterDto),
+                [nameof(KeyJobDto.Key)] = statsSucceeded
+            };
+            var succeededCounter = _dbContext.JobGraph.Find(filter).FirstOrDefault();
+
+            stats.Succeeded = succeededCounter?.GetElement(nameof(CounterDto.Value)).Value.AsInt64 ?? 0;
 
             var statsDeleted = $@"stats:{State.Deleted}";
-            var deletedCounter = _dbContext.JobGraph.OfType<CounterDto>()
-                .Find(new BsonDocument(nameof(KeyJobDto.Key), statsDeleted))
-                .FirstOrDefault();
-            
-            stats.Deleted = deletedCounter?.Value ?? 0;
+            filter = new BsonDocument
+            {
+                ["_t"] = nameof(CounterDto),
+                [nameof(KeyJobDto.Key)] = statsDeleted
+            };
+            var deletedCounter = _dbContext.JobGraph.Find(filter).FirstOrDefault();
 
-            stats.Recurring = _dbContext
-                .JobGraph
-                .OfType<SetDto>()
-                .Count(new BsonDocument(nameof(KeyJobDto.Key), new BsonDocument("$regex", "^recurring-jobs")));
+            stats.Deleted = deletedCounter?.GetElement(nameof(CounterDto.Value)).Value.AsInt64 ?? 0;
+            filter = new BsonDocument
+            {
+                [nameof(KeyJobDto.Key)] = new BsonDocument("$regex", "^recurring-jobs"),
+                ["_t"] = nameof(SetDto)
+            };
+            stats.Recurring = _dbContext.JobGraph.Count(filter);
 
             stats.Queues = GetQueues().Count;
 
@@ -196,8 +223,8 @@ namespace Hangfire.Mongo
                     Job = job,
                     Result = stateData.ContainsKey("Result") ? stateData["Result"] : null,
                     TotalDuration = stateData.ContainsKey("PerformanceDuration") && stateData.ContainsKey("Latency")
-                        ? (long?) long.Parse(stateData["PerformanceDuration"]) +
-                          (long?) long.Parse(stateData["Latency"])
+                        ? (long?)long.Parse(stateData["PerformanceDuration"]) +
+                          (long?)long.Parse(stateData["Latency"])
                         : null,
                     SucceededAt = JobHelper.DeserializeNullableDateTime(stateData["SucceededAt"])
                 });
@@ -231,7 +258,7 @@ namespace Hangfire.Mongo
         {
             return GetNumberOfJobsByStateName(ScheduledState.StateName);
         }
-       
+
         public virtual long EnqueuedCount(string queue)
         {
             var counters = GetEnqueuedAndFetchedCount(queue);
@@ -288,52 +315,94 @@ namespace Hangfire.Mongo
 
         public virtual IReadOnlyList<string> GetQueues()
         {
-            return _dbContext.JobGraph.OfType<JobQueueDto>()
-                .Find(new BsonDocument())
-                .Project(_ => _.Queue)
-                .ToList().Distinct().ToList();
+            return _dbContext.JobGraph
+                .Find(new BsonDocument("_t", nameof(JobQueueDto)))
+                .Project(new BsonDocument(nameof(JobQueueDto.Queue), 1))
+                .ToList()
+                .Select(b => b[nameof(JobQueueDto.Queue)].AsString)
+                .Distinct().ToList();
         }
 
         public virtual IReadOnlyList<string> GetEnqueuedJobIds(string queue, int from, int perPage)
         {
-            return _dbContext.JobGraph.OfType<JobQueueDto>()
-                .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null))
+            var filter =
+            new BsonDocument
+            {
+                ["_t"] = nameof(JobQueueDto),
+                [nameof(JobQueueDto.Queue)] = queue,
+                [nameof(JobQueueDto.FetchedAt)] = BsonNull.Value,
+            };
+            return _dbContext.JobGraph
+                .Find(filter)
                 .Skip(from)
                 .Limit(perPage)
-                .Project(_ => _.JobId)
+                .Project(new BsonDocument(nameof(JobQueueDto.JobId), 1))
                 .ToList()
-                .Where(jobQueueJobId =>
+                .Where(jobQueueJob =>
                 {
-                    return _dbContext.JobGraph.OfType<JobDto>().Find(j => j.Id == jobQueueJobId && j.StateHistory.Length > 0).Any();
+                    var jobFilter = new BsonDocument
+                    {
+                        ["_t"] = nameof(JobDto),
+                        ["_id"] = jobQueueJob[nameof(JobQueueDto.JobId)].AsObjectId,
+                        [$"{nameof(JobDto.StateHistory)}.0"] = new BsonDocument("$exists", true)
+                    };
+
+                    return _dbContext.JobGraph.Find(jobFilter).Any();
                 })
-                .Select(jobQueueJobId => jobQueueJobId.ToString())
+                .Select(jobQueueJob => jobQueueJob[nameof(JobQueueDto.JobId)].ToString())
                 .ToArray();
         }
 
         public virtual IReadOnlyList<string> GetFetchedJobIds(string queue, int from, int perPage)
         {
-            return _dbContext.JobGraph.OfType<JobQueueDto>()
-                .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) & Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null))
+            var filter = new BsonDocument
+            {
+                ["_t"] = nameof(JobQueueDto),
+                [nameof(JobQueueDto.Queue)] = queue,
+                [nameof(JobQueueDto.FetchedAt)] = new BsonDocument
+                {
+                    ["$ne"] = BsonNull.Value
+                }
+            };
+            return _dbContext.JobGraph
+                .Find(filter)
                 .Skip(from)
                 .Limit(perPage)
-                .Project(_ => _.JobId)
+                .Project(new BsonDocument(nameof(JobQueueDto.JobId), 1))
                 .ToList()
                 .Where(jobQueueJobId =>
                 {
-                    var job = _dbContext.JobGraph.OfType<JobDto>().Find(Builders<JobDto>.Filter.Eq(_ => _.Id, jobQueueJobId)).FirstOrDefault();
-                    return job != null;
+                    var jobFilter = new BsonDocument
+                    {
+                        ["_t"] = nameof(JobDto),
+                        ["_id"] = jobQueueJobId[nameof(JobQueueDto.JobId)].AsObjectId
+                    };
+                    return _dbContext.JobGraph.Find(jobFilter).Any();
                 })
-                .Select(jobQueueJobId => jobQueueJobId.ToString())
+                .Select(jobQueueJobId => jobQueueJobId[nameof(JobQueueDto.JobId)].ToString())
                 .ToArray();
         }
 
         public virtual EnqueuedAndFetchedCountDto GetEnqueuedAndFetchedCount(string queue)
         {
-            int enqueuedCount = (int)_dbContext.JobGraph.OfType<JobQueueDto>().Count(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
-                                                Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null));
+            var nonFetched = new BsonDocument
+            {
+                ["_t"] = nameof(JobQueueDto),
+                [nameof(JobQueueDto.Queue)] = queue,
+                [nameof(JobQueueDto.FetchedAt)] = BsonNull.Value,
+            };
+            int enqueuedCount = (int)_dbContext.JobGraph.Count(nonFetched);
 
-            int fetchedCount = (int)_dbContext.JobGraph.OfType<JobQueueDto>().Count(Builders<JobQueueDto>.Filter.Eq(_ => _.Queue, queue) &
-                                                Builders<JobQueueDto>.Filter.Ne(_ => _.FetchedAt, null));
+            var fetched = new BsonDocument
+            {
+                ["_t"] = nameof(JobQueueDto),
+                [nameof(JobQueueDto.Queue)] = queue,
+                [nameof(JobQueueDto.FetchedAt)] = new BsonDocument
+                {
+                    ["$ne"] = BsonNull.Value
+                }
+            };
+            int fetchedCount = (int)_dbContext.JobGraph.Count(fetched);
 
             return new EnqueuedAndFetchedCountDto
             {
@@ -344,20 +413,35 @@ namespace Hangfire.Mongo
 
         public virtual JobList<EnqueuedJobDto> EnqueuedJobs(IEnumerable<string> jobIds)
         {
-            var jobObjectIds = jobIds.Select(ObjectId.Parse);
+            var jobObjectIds = new BsonArray(jobIds.Select(ObjectId.Parse));
+
+            var jobsByIdsFilter = new BsonDocument
+            {
+                ["_t"] = nameof(JobDto),
+                ["_id"] = new BsonDocument
+                {
+                    ["$in"] = jobObjectIds
+                }
+            };
             var jobs = _dbContext
                 .JobGraph
-                .OfType<JobDto>()
-                .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobObjectIds))
+                .Find(jobsByIdsFilter)
+                .Project(b => new JobDto(b))
                 .ToList();
 
-            var filterBuilder = Builders<JobQueueDto>.Filter;
+            var enqueuedJobsFilter = new BsonDocument
+            {
+                ["_t"] = nameof(JobQueueDto),
+                [nameof(JobQueueDto.FetchedAt)] = BsonNull.Value,
+                [nameof(JobQueueDto.JobId)] = new BsonDocument
+                {
+                    ["$in"] = new BsonArray(jobs.Select(job => job.Id))
+                }
+            };
             var enqueuedJobs = _dbContext
                 .JobGraph
-                .OfType<JobQueueDto>()
-                .Find(filterBuilder.In(_ => _.JobId, jobs.Select(job => job.Id)) &
-                      (filterBuilder.Not(filterBuilder.Exists(_ => _.FetchedAt)) |
-                       filterBuilder.Eq(_ => _.FetchedAt, null)))
+                .Find(enqueuedJobsFilter)
+                .Project(b => new JobQueueDto(b))
                 .ToList();
 
             var jobsFiltered = enqueuedJobs
@@ -427,23 +511,47 @@ namespace Hangfire.Mongo
 
         public virtual JobList<FetchedJobDto> FetchedJobs(HangfireDbContext connection, IEnumerable<string> jobIds)
         {
-            var jobObjectIds = jobIds.Select(ObjectId.Parse);
+            if(!jobIds.Any())
+            {
+                return new JobList<FetchedJobDto>(new List<KeyValuePair<string, FetchedJobDto>>());
+            }
+
+            var jobObjectIds = new BsonArray(jobIds.Select(ObjectId.Parse));
+            var jobsByIdsFilter = new BsonDocument
+            {
+                ["_t"] = nameof(JobDto),
+                ["_id"] = new BsonDocument
+                {
+                    ["$in"] = jobObjectIds
+                }
+            };
             var jobs = connection
                 .JobGraph
-                .OfType<JobDto>()
-                .Find(Builders<JobDto>.Filter.In(_ => _.Id, jobObjectIds))
+                .Find(jobsByIdsFilter)
+                .Project(b => new JobDto(b))
                 .ToList();
 
-            var jobIdToJobQueueDtos = connection.JobGraph.OfType<JobQueueDto>()
-                .Find(Builders<JobQueueDto>.Filter.In(_ => _.JobId, jobs.Select(job => job.Id))
-                      & Builders<JobQueueDto>.Filter.Exists(_ => _.FetchedAt)
-                      & Builders<JobQueueDto>.Filter.Not(Builders<JobQueueDto>.Filter.Eq(_ => _.FetchedAt, null)))
-                .Project(_ => _.JobId)
+            var fetchedJobsFilter = new BsonDocument
+            {
+                ["_t"] = nameof(JobQueueDto),
+                [nameof(JobQueueDto.FetchedAt)] = new BsonDocument
+                {
+                    ["$ne"] = BsonNull.Value,
+                },
+                [nameof(JobQueueDto.JobId)] = new BsonDocument
+                {
+                    ["$in"] = new BsonArray(jobs.Select(job => job.Id))
+                }
+            };
+            var jobIdToJobQueueDtos = connection.JobGraph
+                .Find(fetchedJobsFilter)
+                .Project(new BsonDocument(nameof(JobQueueDto.JobId), 1))
                 .ToList();
-            
-            IEnumerable<JobDto> jobsFiltered = jobs.Where(job => jobIdToJobQueueDtos.Contains(job.Id));
 
-            List<JobSummary> joinedJobs = jobsFiltered
+            var jobsFiltered = jobs
+                .Where(job => jobIdToJobQueueDtos.Any(jobId => job.Id == jobId[nameof(JobQueueDto.JobId)].AsObjectId));
+
+            var joinedJobs = jobsFiltered
                 .Select(job =>
                 {
                     var state = job.StateHistory.LastOrDefault(s => s.Name == job.StateName);
@@ -482,17 +590,19 @@ namespace Hangfire.Mongo
             Func<JobSummary, Job, Dictionary<string, string>, TDto> selector)
         {
             // only retrieve job ids
-            var filter = Builders<JobDto>
-                .Filter
-                .Eq(j => j.StateName, stateName);
+            var filter = new BsonDocument
+            {
+                ["_t"] = nameof(JobDto),
+                [nameof(JobDto.StateName)] = stateName
+            };
 
             var jobs = _dbContext
                 .JobGraph
-                .OfType<JobDto>()
                 .Find(filter)
-                .SortByDescending(_ => _.Id)
+                .Sort(new BsonDocument("_id", -1))
                 .Skip(from)
                 .Limit(count)
+                .Project(b => new JobDto(b))
                 .ToList();
 
             var joinedJobs = jobs
@@ -519,7 +629,12 @@ namespace Hangfire.Mongo
 
         public virtual long GetNumberOfJobsByStateName(string stateName)
         {
-            var count = _dbContext.JobGraph.OfType<JobDto>().Count(Builders<JobDto>.Filter.Eq(_ => _.StateName, stateName));
+            var filter = new BsonDocument
+            {
+                ["_t"] = nameof(JobDto),
+                [nameof(JobDto.StateName)] = stateName
+            };
+            var count = _dbContext.JobGraph.Count(filter);
             return count;
         }
 
@@ -559,8 +674,17 @@ namespace Hangfire.Mongo
         public virtual Dictionary<DateTime, long> CreateTimeLineStats(IEnumerable<string> keys, IList<DateTime> dates)
         {
             var bsonKeys = BsonArray.Create(keys);
-            var valuesMap = _dbContext.JobGraph.OfType<CounterDto>()
-                .Find(new BsonDocument(nameof(CounterDto.Key), new BsonDocument("$in", bsonKeys)))
+            var filter = new BsonDocument
+            {
+                ["_t"] = nameof(CounterDto),
+                [nameof(CounterDto.Key)] = new BsonDocument
+                {
+                    ["$in"] = bsonKeys
+                }
+            };
+            var valuesMap = _dbContext.JobGraph
+                .Find(filter)
+                .Project(b => new CounterDto(b))
                 .ToList()
                 .GroupBy(counter => counter.Key, counter => counter)
                 .ToDictionary(counter => counter.Key, grouping => grouping.Sum(c => c.Value));

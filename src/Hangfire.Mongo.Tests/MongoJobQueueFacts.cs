@@ -99,7 +99,7 @@ namespace Hangfire.Mongo.Tests
                 Queue = "default"
             };
 
-            _hangfireDbContext.JobGraph.InsertOne(jobQueue);
+            _hangfireDbContext.JobGraph.InsertOne(jobQueue.Serialize());
             var token = CreateTimingOutCancellationToken();
             var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
@@ -124,14 +124,14 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow
             };
-            _hangfireDbContext.JobGraph.InsertOne(job);
+            _hangfireDbContext.JobGraph.InsertOne(job.Serialize());
 
             var jobQueue = new JobQueueDto
             {
                 JobId = job.Id,
                 Queue = "default"
             };
-            _hangfireDbContext.JobGraph.InsertOne(jobQueue);
+            _hangfireDbContext.JobGraph.InsertOne(jobQueue.Serialize());
 
             var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
@@ -140,9 +140,14 @@ namespace Hangfire.Mongo.Tests
 
             // Assert
             Assert.NotNull(payload);
-
-            var fetchedAt = _hangfireDbContext.JobGraph.OfType<JobQueueDto>()
-                .Find(Builders<JobQueueDto>.Filter.Eq(_ => _.JobId, ObjectId.Parse(payload.JobId)))
+            var filter = new BsonDocument
+            {
+                ["_t"] = nameof(JobQueueDto),
+                [nameof(JobQueueDto.JobId)] = ObjectId.Parse(payload.JobId)
+            };
+            var fetchedAt = _hangfireDbContext.JobGraph
+                .Find(filter)
+                .Project(b => new JobQueueDto(b))
                 .FirstOrDefault()
                 .FetchedAt;
 
@@ -161,7 +166,7 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow
             };
-            _hangfireDbContext.JobGraph.InsertOne(job);
+            _hangfireDbContext.JobGraph.InsertOne(job.Serialize());
 
             var jobQueue = new JobQueueDto
             {
@@ -174,7 +179,7 @@ namespace Hangfire.Mongo.Tests
                 InvisibilityTimeout = TimeSpan.FromMinutes(30)
             };
             
-            _hangfireDbContext.JobGraph.InsertOne(jobQueue);
+            _hangfireDbContext.JobGraph.InsertOne(jobQueue.Serialize());
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
             var queue =new MongoJobFetcher(_hangfireDbContext, options, _jobQueueSemaphoreMock.Object);
 
@@ -196,7 +201,7 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow
             };
-            _hangfireDbContext.JobGraph.InsertOne(job);
+            _hangfireDbContext.JobGraph.InsertOne(job.Serialize());
 
             var jobQueue = new JobQueueDto
             {
@@ -206,7 +211,7 @@ namespace Hangfire.Mongo.Tests
             };
             var options = new MongoStorageOptions();
             
-            _hangfireDbContext.JobGraph.InsertOne(jobQueue);
+            _hangfireDbContext.JobGraph.InsertOne(jobQueue.Serialize());
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
             var queue =new MongoJobFetcher(_hangfireDbContext, options, _jobQueueSemaphoreMock.Object);
 
@@ -231,7 +236,7 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow
             };
-            _hangfireDbContext.JobGraph.InsertOne(job1);
+            _hangfireDbContext.JobGraph.InsertOne(job1.Serialize());
 
             var job2 = new JobDto
             {
@@ -239,19 +244,21 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow
             };
-            _hangfireDbContext.JobGraph.InsertOne(job2);
+            _hangfireDbContext.JobGraph.InsertOne(job2.Serialize());
 
-            _hangfireDbContext.JobGraph.InsertOne(new JobQueueDto
+            var jobQueue1 = new JobQueueDto
             {
                 JobId = job1.Id,
                 Queue = "default"
-            });
+            };
+            _hangfireDbContext.JobGraph.InsertOne(jobQueue1.Serialize());
 
-            _hangfireDbContext.JobGraph.InsertOne(new JobQueueDto
+            var jobQueue2 = new JobQueueDto
             {
                 JobId = job2.Id,
                 Queue = "default"
-            });
+            };
+            _hangfireDbContext.JobGraph.InsertOne(jobQueue2.Serialize());
 
             var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
                 
@@ -261,10 +268,17 @@ namespace Hangfire.Mongo.Tests
             var payload = queue.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken());
 
             // Assert
-            var otherJobFetchedAt = _hangfireDbContext
-                .JobGraph.OfType<JobQueueDto>().Find(Builders<JobQueueDto>.Filter.Ne(_ => _.JobId, ObjectId.Parse(payload.JobId)))
-                .FirstOrDefault()
-                .FetchedAt;
+            var filter = new BsonDocument
+            {
+                ["_t"] = nameof(JobQueueDto),
+                [nameof(JobQueueDto.JobId)] = new BsonDocument("$ne", ObjectId.Parse(payload.JobId))
+            };
+            var otherJob = _hangfireDbContext
+                .JobGraph.Find(filter).Project(b => new JobQueueDto(b))
+                .FirstOrDefault();
+            Assert.NotNull(otherJob);
+
+            var otherJobFetchedAt = otherJob.FetchedAt;
 
             Assert.Null(otherJobFetchedAt);
             _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
@@ -279,13 +293,13 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow
             };
-            _hangfireDbContext.JobGraph.InsertOne(job1);
+            _hangfireDbContext.JobGraph.InsertOne(job1.Serialize());
 
             _hangfireDbContext.JobGraph.InsertOne(new JobQueueDto
             {
                 JobId = job1.Id,
                 Queue = "critical"
-            });
+            }.Serialize());
 
 
             var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
@@ -302,7 +316,7 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow
             };
-            _hangfireDbContext.JobGraph.InsertOne(criticalJob);
+            _hangfireDbContext.JobGraph.InsertOne(criticalJob.Serialize());
 
             var defaultJob = new JobDto
             {
@@ -310,19 +324,19 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "",
                 CreatedAt = DateTime.UtcNow
             };
-            _hangfireDbContext.JobGraph.InsertOne(defaultJob);
+            _hangfireDbContext.JobGraph.InsertOne(defaultJob.Serialize());
 
             _hangfireDbContext.JobGraph.InsertOne(new JobQueueDto
             {
                 JobId = defaultJob.Id,
                 Queue = "default"
-            });
+            }.Serialize());
 
             _hangfireDbContext.JobGraph.InsertOne(new JobQueueDto
             {
                 JobId = criticalJob.Id,
                 Queue = "critical"
-            });
+            }.Serialize());
 
             var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("critical")).Returns(true);

@@ -44,24 +44,24 @@ namespace Hangfire.Mongo
         /// <param name="cancellationToken"></param>
         public virtual void Execute(CancellationToken cancellationToken)
         {
-            var options = new FindOptions<NotificationDto> {CursorType = CursorType.TailableAwait};
+            var options = new FindOptions<BsonDocument> {CursorType = CursorType.TailableAwait};
 
             var lastId = ObjectId.GenerateNewId(new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc));
             var filter = new BsonDocument("_id", new BsonDocument("$gt", lastId));
 
-            var update = Builders<NotificationDto>
-                .Update
-                .SetOnInsert(j => j.Value, null);
-
+            var update = new BsonDocument
+            {
+                ["$setOnInsert"] = new BsonDocument(nameof(NotificationDto.Value), BsonNull.Value)
+            };
             var lastEnqueued = _dbContext.Notifications.FindOneAndUpdate(filter, update,
-                new FindOneAndUpdateOptions<NotificationDto>
+                new FindOneAndUpdateOptions<BsonDocument>
                 {
                     IsUpsert = true,
-                    Sort = Builders<NotificationDto>.Sort.Descending(j => j.Id),
+                    Sort = new BsonDocument("_id", -1),
                     ReturnDocument = ReturnDocument.After
                 });
 
-            lastId = lastEnqueued.Id;
+            lastId = lastEnqueued["_id"].AsObjectId;
             filter = new BsonDocument("_id", new BsonDocument("$gt", lastId));
             if (Logger.IsTraceEnabled())
             {
@@ -75,9 +75,10 @@ namespace Hangfire.Mongo
                     // Start the cursor and wait for the initial response
                     using (var cursor = _dbContext.Notifications.FindSync(filter, options, cancellationToken))
                     {
-                        foreach (var notification in cursor.ToEnumerable(cancellationToken))
+                        foreach (var doc in cursor.ToEnumerable(cancellationToken))
                         {
                             // Set the last value we saw 
+                            var notification = new NotificationDto(doc);
                             lastId = notification.Id;
                             if (string.IsNullOrEmpty(notification.Value))
                             {

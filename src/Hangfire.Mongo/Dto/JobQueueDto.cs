@@ -1,6 +1,5 @@
 ﻿using System;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 
 namespace Hangfire.Mongo.Dto
 {
@@ -8,15 +7,29 @@ namespace Hangfire.Mongo.Dto
 #pragma warning disable 1591
     public class JobQueueDto : BaseJobDto
     {
-        [BsonElement(nameof(JobId))]
+        public JobQueueDto()
+        {
+
+        }
+        public JobQueueDto(BsonDocument doc) : base(doc)
+        {
+            JobId = doc[nameof(JobId)].AsObjectId;
+            Queue = doc[nameof(Queue)].StringOrNull();
+            FetchedAt = doc[nameof(FetchedAt)].ToNullableUniversalTime();
+        }
         public ObjectId JobId { get; set; }
 
-        [BsonElement(nameof(Queue))]
         public string Queue { get; set; }
 
-        [BsonElement(nameof(FetchedAt))]
-        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime? FetchedAt { get; set; }
+
+        protected override void Serialize(BsonDocument document)
+        {
+            document[nameof(JobId)] = JobId;
+            document[nameof(Queue)] = Queue.ToBsonValue();
+            document[nameof(FetchedAt)] = FetchedAt?.ToUniversalTime(); 
+            document["_t"].AsBsonArray.Add(nameof(JobQueueDto));
+        }
     }
 #pragma warning restore 1591
 }

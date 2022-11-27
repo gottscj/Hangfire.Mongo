@@ -1,5 +1,6 @@
 ﻿using System;
 using Hangfire.Mongo.Dto;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Database
@@ -49,28 +50,28 @@ namespace Hangfire.Mongo.Database
         /// <summary>
         /// Reference to tailable collection which contains signal dtos for enqueued job items
         /// </summary>
-        public IMongoCollection<NotificationDto> Notifications =>
-            Database.GetCollection<NotificationDto>(_prefix + ".notifications");
+        public IMongoCollection<BsonDocument> Notifications =>
+            Database.GetCollection<BsonDocument>(_prefix + ".notifications");
         
         /// <summary>
         /// Reference to job graph collection
         /// </summary>
-        public IMongoCollection<BaseJobDto> JobGraph => Database.GetCollection<BaseJobDto>(_prefix + ".jobGraph");
+        public IMongoCollection<BsonDocument> JobGraph => Database.GetCollection<BsonDocument>(_prefix + ".jobGraph");
 
         /// <summary>
         /// Reference to collection which contains distributed locks
         /// </summary>
-        public IMongoCollection<DistributedLockDto> DistributedLock => Database
-            .GetCollection<DistributedLockDto>(_prefix + ".locks");
+        public IMongoCollection<BsonDocument> DistributedLock => Database
+            .GetCollection<BsonDocument>(_prefix + ".locks");
 
         /// <summary>
         /// Reference to collection which contains schemas
         /// </summary>
-        public IMongoCollection<SchemaDto> Schema => Database.GetCollection<SchemaDto>(_prefix + ".schema");
+        public IMongoCollection<BsonDocument> Schema => Database.GetCollection<BsonDocument>(_prefix + ".schema");
 
         /// <summary>
         /// Reference to collection which contains servers information
         /// </summary>
-        public IMongoCollection<ServerDto> Server => Database.GetCollection<ServerDto>(_prefix + ".server");
+        public IMongoCollection<BsonDocument> Server => Database.GetCollection<BsonDocument>(_prefix + ".server");
     }
 }

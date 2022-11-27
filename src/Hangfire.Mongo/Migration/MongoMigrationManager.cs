@@ -4,6 +4,7 @@ using System.Reflection;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration
@@ -110,8 +111,9 @@ namespace Hangfire.Mongo.Migration
         protected virtual SchemaDto GetCurrentSchema(IMongoDatabase database)
         {
             return database
-                .GetCollection<SchemaDto>(_storageOptions.Prefix + ".schema")
-                .Find(_ => true)
+                .GetCollection<BsonDocument>(_storageOptions.Prefix + ".schema")
+                .Find(new BsonDocument())
+                .Project(b => new SchemaDto(b))
                 .FirstOrDefault();
         }
     }

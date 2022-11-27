@@ -6,6 +6,7 @@ namespace Hangfire.Mongo.Dto
         public int? EnqueuedCount { get; set; }
 
         public int? FetchedCount { get; set; }
+
     }
 #pragma warning restore 1591
 }

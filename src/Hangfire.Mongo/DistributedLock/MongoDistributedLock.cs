@@ -67,7 +67,6 @@ namespace Hangfire.Mongo.DistributedLock
         /// <returns></returns>
         public IDisposable AcquireLock()
         {
-            
             if (!AcquiredLocks.Value.ContainsKey(_resource) || AcquiredLocks.Value[_resource] == 0)
             {
                 Cleanup();
@@ -140,9 +139,12 @@ namespace Hangfire.Mongo.DistributedLock
                 var isLockAcquired = false;
                 var now = DateTime.UtcNow;
                 var lockTimeoutTime = now.Add(timeout);
-                var filter = new BsonDocument(nameof(DistributedLockDto.Resource), _resource);
-                
-                var options = new FindOneAndUpdateOptions<DistributedLockDto>
+                var filter = new BsonDocument
+                {
+                    [nameof(DistributedLockDto.Resource)] = _resource
+                };
+
+                var options = new FindOneAndUpdateOptions<BsonDocument>
                 {
                     IsUpsert = true,
                     ReturnDocument = ReturnDocument.Before
@@ -155,8 +157,7 @@ namespace Hangfire.Mongo.DistributedLock
                     {
                         ["$setOnInsert"] = new BsonDocument
                         {
-                            [nameof(DistributedLockDto.ExpireAt)] =
-                                BsonValue.Create(DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime))
+                            [nameof(DistributedLockDto.ExpireAt)] = DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime)
                         }
                     };
                     try
@@ -242,9 +243,14 @@ namespace Hangfire.Mongo.DistributedLock
             try
             {
                 // Delete expired locks
-                _dbContext.DistributedLock.DeleteOne(
-                    Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource) &
-                    Builders<DistributedLockDto>.Filter.Lt(_ => _.ExpireAt, DateTime.UtcNow));
+                _dbContext.DistributedLock.DeleteOne(new BsonDocument
+                {
+                    [nameof(DistributedLockDto.Resource)] = _resource,
+                    [nameof(DistributedLockDto.ExpireAt)] = new BsonDocument
+                    {
+                        ["$lt"] = DateTime.UtcNow
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -266,8 +272,17 @@ namespace Hangfire.Mongo.DistributedLock
                 {
                     try
                     {
-                        var filter = Builders<DistributedLockDto>.Filter.Eq(_ => _.Resource, _resource);
-                        var update = Builders<DistributedLockDto>.Update.Set(_ => _.ExpireAt, DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime));
+                        var filter = new BsonDocument
+                        {
+                            [nameof(DistributedLockDto.Resource)] = _resource
+                        };
+                        var update = new BsonDocument
+                        {
+                            ["$set"] = new BsonDocument
+                            {
+                                [nameof(DistributedLockDto.ExpireAt)] = DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime)
+                            }
+                        };
                         _dbContext.DistributedLock.FindOneAndUpdate(filter, update);
                     }
                     catch (Exception ex)
