@@ -333,6 +333,7 @@ namespace Hangfire.Mongo
             return _dbContext.JobGraph
             .Aggregate<BsonDocument>(pipeline)
                 .ToList()
+                .Where(b => b["_id"] != BsonNull.Value)
                 .Select(b => b["_id"].AsString)
                 .ToList();
         }

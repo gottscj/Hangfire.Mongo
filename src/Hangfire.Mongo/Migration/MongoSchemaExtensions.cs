@@ -141,6 +141,15 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".server",
                         prefix + ".notifications"
                     };
+                case MongoSchema.Version19:
+                    return new[]
+                    {
+                        prefix + ".jobGraph",
+                        prefix + ".locks",
+                        prefix + ".schema",
+                        prefix + ".server",
+                        prefix + ".notifications"
+                    };
                 default:
                     throw new ArgumentException($@"Unknown schema: '{schema}'", nameof(schema));
             }
