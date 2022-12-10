@@ -14,6 +14,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
+using Newtonsoft.Json;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests.Migration.Mongo
@@ -37,7 +38,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         [InlineData("Hangfire-Mongo-Schema-015.zip", true)]
         [InlineData("Hangfire-Mongo-Schema-016.zip", true)]
         [InlineData("Hangfire-Mongo-Schema-017.zip", true)]
-        [InlineData("Hangfire-Mongo-Schema-018.zip", true)]
+        //[InlineData("Hangfire-Mongo-Schema-018.zip", true)]
         //[InlineData("Hangfire-Mongo-Schema-019.zip", true)]
         public void Migrate_Full_Success(string seedFile, bool assertCollectionHasItems)
         {
@@ -184,7 +185,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                 return;
             }
             var documents = new List<BsonDocument>();
-            using (var jsonReader = new JsonReader(json))
+            using (var jsonReader = new MongoDB.Bson.IO.JsonReader(json))
             {
                 while (!jsonReader.IsAtEndOfFile())
                 {
