@@ -11,7 +11,7 @@ namespace Hangfire.Mongo.Tests.Utils
     public class ConnectionUtils
     {
         private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
-        private const string ConnectionString = "mongodb://localhost:27017";
+        private const string ConnectionString = "mongodb://localhost:27017?replicaSet=rs0&readPreference=primary&ssl=false";
         public static MongoStorage CreateStorage(string databaseName = null)
         {
             var storageOptions = new MongoStorageOptions

@@ -41,7 +41,7 @@ namespace Hangfire.Mongo.Tests
             _cts.Dispose();
         }
         
-        [Fact]
+        [Fact(Skip = "Needs replica set, enable when you figure out how to set it up in github actions")]
         public void Execute_JobEnqueued_Signaled()
         {
             // ARRANGE
