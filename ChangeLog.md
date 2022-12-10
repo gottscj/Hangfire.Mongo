@@ -1,11 +1,19 @@
 
 ## Change log
 
+### v1.9.0 (2022-12-10)
+- Update to Hangfire.Core 1.7.32
+- Update MongoDB.Driver to 2.18.0
+- Using manual serialization to not be subject to serializer conventions (#328)
+- Returns IGlobalConfiguration<MongoStorage> instead of MongoStorage in all UseMongoStorage (#317)
+- Added indexes (#330)
+- Merge JobQueueDto fields into JobDto (schema change, requires migration)
+
 ### v1.7.3 (2022-08-24)
 - Fix hardcoded timeout in MongoConnectException message (#315)
 - Update to Hangfire.Core 1.7.31
 - Update MongoDB.Driver to 2.17.1
-- 
+
 ### v1.7.2 (2022-06-13)
 - Update to Hangfire.Core 1.7.30
 
