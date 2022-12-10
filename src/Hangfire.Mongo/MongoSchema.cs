@@ -89,7 +89,12 @@
         /// <summary>
         /// Schema Version 19
         /// </summary>
-        Version19 = 19
+        Version19 = 19,
+
+        /// <summary>
+        /// Schema Version 19
+        /// </summary>
+        Version20 = 20
     }
 
 }

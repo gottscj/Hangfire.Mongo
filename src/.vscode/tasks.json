@@ -24,18 +24,18 @@
             "command": "dotnet",
             "args": [
                 "build",
-                "${workspaceRoot}/src/Hangfire.Mongo/Hangfire.Mongo.csproj"
+                "${workspaceRoot}/Hangfire.Mongo/Hangfire.Mongo.csproj"
             ],
             "osx": {
                 "args": [
                     "-f",
-                    "netstandard1.5"
+                    "netstandard2.0"
                 ]
             },
             "linux": {
                 "args": [
                     "-f",
-                    "netstandard1.5"
+                    "netstandard2.0"
                 ]
             },
             "group": {
@@ -51,7 +51,7 @@
             "command": "dotnet",
             "args": [
                 "build",
-                "${workspaceRoot}/src/Hangfire.Mongo.Sample.NETCore/Hangfire.Mongo.Sample.NETCore.csproj"
+                "${workspaceRoot}/Hangfire.Mongo.Sample.NETCore/Hangfire.Mongo.Sample.NETCore.csproj"
             ],
             "group": {
                 "kind": "build",
@@ -66,7 +66,7 @@
             "command": "dotnet",
             "args": [
                 "build",
-                "${workspaceRoot}/src/Hangfire.Mongo.Sample.ASPNetCore/Hangfire.Mongo.Sample.ASPNetCore.csproj"
+                "${workspaceRoot}/Hangfire.Mongo.Sample.ASPNetCore/Hangfire.Mongo.Sample.ASPNetCore.csproj"
             ],
             "group": {
                 "kind": "build",
@@ -81,7 +81,7 @@
             "command": "dotnet",
             "args": [
                 "build",
-                "${workspaceRoot}/src/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
+                "${workspaceRoot}/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
             ],
             "osx": {
                 "args": [
@@ -110,18 +110,18 @@
                 "test",
                 "--filter",
                 "Category!=DataGeneration",
-                "${workspaceRoot}/src/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
+                "${workspaceRoot}/Hangfire.Mongo.Tests/Hangfire.Mongo.Tests.csproj"
             ],
             "osx": {
                 "args": [
                     "-f",
-                    "netcoreapp2.0"
+                    "net6.0"
                 ]
             },
             "linux": {
                 "args": [
                     "-f",
-                    "netcoreapp2.0"
+                    "net6.0"
                 ]
             },
             "group": {

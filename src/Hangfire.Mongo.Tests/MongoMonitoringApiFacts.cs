@@ -386,27 +386,20 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "[\"\\\"Arguments\\\"\"]",
                 StateName = stateName,
                 CreatedAt = DateTime.UtcNow,
-                StateHistory = new[] { jobState }
+                StateHistory = new[] { jobState },
+                Queue = DefaultQueue,
+                FetchedAt = null
             };
             if (visitor != null)
             {
                 jobDto = visitor(jobDto);
             }
-            dbContext.JobGraph.InsertOne(jobDto.Serialize());
-
-            var jobQueueDto = new JobQueueDto
-            {
-                FetchedAt = null,
-                JobId = jobId,
-                Queue = DefaultQueue
-            };
-
             if (stateName == FetchedStateName)
             {
-                jobQueueDto.FetchedAt = DateTime.UtcNow;
+                jobDto.FetchedAt = DateTime.UtcNow;
             }
 
-            dbContext.JobGraph.InsertOne(jobQueueDto.Serialize());
+            dbContext.JobGraph.InsertOne(jobDto.Serialize());
 
             return jobDto;
         }

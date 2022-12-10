@@ -52,14 +52,19 @@ namespace Hangfire.Mongo.Tests
             // Arrange
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
-            var id = CreateJobQueueRecord(_dbContext, jobId, queue);
+            var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt);
             var processingJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, id, jobId, queue);
 
             // Act
             processingJob.RemoveFromQueue();
 
             // Assert
-            var count = _dbContext.JobGraph.Count(new BsonDocument("_t", nameof(JobQueueDto)));
+            var filter = new BsonDocument
+            {
+                ["_t"] = nameof(JobDto),
+                [nameof(JobDto.Queue)] = new BsonDocument("$ne", BsonNull.Value)
+            };
+            var count = _dbContext.JobGraph.Count(filter);
             Assert.Equal(0, count);
         }
 
@@ -67,9 +72,9 @@ namespace Hangfire.Mongo.Tests
         public void RemoveFromQueue_DoesNotDelete_UnrelatedJobs()
         {
             // Arrange
-            CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(1), "default");
-            CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(2), "critical");
-            CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(3), "default");
+            CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(1), "default", _fetchedAt);
+            CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(2), "critical", _fetchedAt);
+            CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(3), "default", _fetchedAt);
 
             var fetchedJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, ObjectId.GenerateNewId(), ObjectId.GenerateNewId(999), "default");
 
@@ -77,7 +82,12 @@ namespace Hangfire.Mongo.Tests
             fetchedJob.RemoveFromQueue();
 
             // Assert
-            var count = _dbContext.JobGraph.Count(new BsonDocument("_t", nameof(JobQueueDto)));
+            var filter = new BsonDocument
+            {
+                ["_t"] = nameof(JobDto),
+                [nameof(JobDto.Queue)] = new BsonDocument("$ne", BsonNull.Value)
+            };
+            var count = _dbContext.JobGraph.Count(filter);
             Assert.Equal(3, count);
         }
 
@@ -87,15 +97,15 @@ namespace Hangfire.Mongo.Tests
             // Arrange
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
-            var id = CreateJobQueueRecord(_dbContext, jobId, queue);
+            var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt);
             var processingJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, id, jobId, queue);
 
             // Act
             processingJob.Requeue();
 
             // Assert
-            var record = new JobQueueDto( 
-                _dbContext.JobGraph.Find(new BsonDocument("_t", nameof(JobQueueDto))).ToList().Single());
+            var record = new JobDto( 
+                _dbContext.JobGraph.Find(new BsonDocument("_t", nameof(JobDto))).ToList().Single());
             Assert.Null(record.FetchedAt);
         }
 
@@ -105,26 +115,25 @@ namespace Hangfire.Mongo.Tests
             // Arrange
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
-            var id = CreateJobQueueRecord(_dbContext, jobId, queue);
+            var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt);
             var processingJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, id, jobId, queue);
 
             // Act
             processingJob.Dispose();
 
             // Assert
-            var record = new JobQueueDto(
-                _dbContext.JobGraph.Find(new BsonDocument("_t", nameof(JobQueueDto))).ToList().Single());
+            var record = new JobDto(
+                _dbContext.JobGraph.Find(new BsonDocument("_t", nameof(JobDto))).ToList().Single());
             Assert.Null(record.FetchedAt);
         }
 
-        private ObjectId CreateJobQueueRecord(HangfireDbContext connection, ObjectId jobId, string queue)
+        private ObjectId CreateJobQueueRecord(HangfireDbContext connection, ObjectId jobId, string queue, DateTime? fetchedAt)
         {
-            var jobQueue = new JobQueueDto
+            var jobQueue = new JobDto
             {
-                Id = ObjectId.GenerateNewId(),
-                JobId = jobId,
+                Id = jobId,
                 Queue = queue,
-                FetchedAt = _fetchedAt
+                FetchedAt = fetchedAt
             };
 
             connection.JobGraph.InsertOne(jobQueue.Serialize());

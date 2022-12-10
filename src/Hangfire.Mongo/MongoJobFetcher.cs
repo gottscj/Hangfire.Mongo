@@ -126,25 +126,25 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual MongoFetchedJob TryGetEnqueuedJob(string queue, CancellationToken cancellationToken)
         {
-            var fetchedAtQuery = new BsonDocument(nameof(JobQueueDto.FetchedAt), BsonNull.Value);
+            var fetchedAtQuery = new BsonDocument(nameof(JobDto.FetchedAt), BsonNull.Value);
             if(_storageOptions.InvisibilityTimeout.HasValue)
             {
                 var date  =
                     DateTime.UtcNow.AddSeconds(_storageOptions.InvisibilityTimeout.Value.Negate().TotalSeconds);
                 fetchedAtQuery = new BsonDocument("$or", new BsonArray
                 {
-                    new BsonDocument(nameof(JobQueueDto.FetchedAt), BsonNull.Value),
-                    new BsonDocument(nameof(JobQueueDto.FetchedAt), new BsonDocument("$lt", date))
+                    new BsonDocument(nameof(JobDto.FetchedAt), BsonNull.Value),
+                    new BsonDocument(nameof(JobDto.FetchedAt), new BsonDocument("$lt", date))
                 });
             }
             var filter = new BsonDocument("$and", new BsonArray
             {
-                new BsonDocument(nameof(JobQueueDto.Queue), queue),
-                new BsonDocument("_t", nameof(JobQueueDto)),
+                new BsonDocument(nameof(JobDto.Queue), queue),
+                new BsonDocument("_t", nameof(JobDto)),
                 fetchedAtQuery
             });
             var fetchedAt = DateTime.UtcNow;
-            var update = new BsonDocument("$set", new BsonDocument(nameof(JobQueueDto.FetchedAt), fetchedAt));
+            var update = new BsonDocument("$set", new BsonDocument(nameof(JobDto.FetchedAt), fetchedAt));
             
             var fetchedJobDoc = _dbContext
                 .JobGraph
@@ -155,12 +155,12 @@ namespace Hangfire.Mongo
                 return null;
             }
 
-            var fetchedJob = new JobQueueDto(fetchedJobDoc);
+            var fetchedJob = new JobDto(fetchedJobDoc);
             if (Logger.IsTraceEnabled())
             {
-                Logger.Trace($"Fetched job {fetchedJob.JobId} from '{queue}' Thread[{Thread.CurrentThread.ManagedThreadId}]");
+                Logger.Trace($"Fetched job {fetchedJob.Id} from '{queue}' Thread[{Thread.CurrentThread.ManagedThreadId}]");
             }
-            return _storageOptions.Factory.CreateFetchedJob(_dbContext, _storageOptions, fetchedAt, fetchedJob.Id, fetchedJob.JobId, fetchedJob.Queue);
+            return _storageOptions.Factory.CreateFetchedJob(_dbContext, _storageOptions, fetchedAt, fetchedJob.Id, fetchedJob.Id, fetchedJob.Queue);
         }
     }
 }
