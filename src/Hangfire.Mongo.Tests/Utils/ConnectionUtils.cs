@@ -2,6 +2,7 @@
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using MongoDB.Driver;
+using System;
 
 [assembly: Xunit.TestFramework("Hangfire.Mongo.Tests.Utils.ConnectionUtils", "Hangfire.Mongo.Tests")]
 
@@ -11,7 +12,9 @@ namespace Hangfire.Mongo.Tests.Utils
     public class ConnectionUtils
     {
         private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
-        private const string ConnectionString = "mongodb://localhost:27017?replicaSet=rs0&readPreference=primary&ssl=false";
+        private static string ConnectionString = "mongodb://localhost:27017";
+            // "mongodb://localhost:27017?replicaSet=rs0&readPreference=primary&ssl=false";
+
         public static MongoStorage CreateStorage(string databaseName = null)
         {
             var storageOptions = new MongoStorageOptions
