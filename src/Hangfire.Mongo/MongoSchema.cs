@@ -1,4 +1,4 @@
-﻿namespace Hangfire.Mongo
+namespace Hangfire.Mongo
 {
 
     /// <summary>
@@ -92,7 +92,7 @@
         Version19 = 19,
 
         /// <summary>
-        /// Schema Version 19
+        /// Schema Version 20
         /// </summary>
         Version20 = 20
     }

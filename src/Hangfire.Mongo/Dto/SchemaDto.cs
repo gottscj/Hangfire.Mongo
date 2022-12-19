@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using System;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace Hangfire.Mongo.Dto
@@ -29,7 +30,17 @@ namespace Hangfire.Mongo.Dto
             {
                 Identifier = identifier.StringOrNull();
             }
-            Version = (MongoSchema)doc["_id"].AsInt32;
+
+            var id = doc["_id"];
+            if (id.IsString)
+            {
+                // Before schema version 20, the _id was stored as a string
+                Version = (MongoSchema)Enum.Parse(typeof(MongoSchema), id.AsString);
+            }
+            else
+            {
+                Version = (MongoSchema)id.AsInt32;
+            }
         }
 
         /// <summary>
