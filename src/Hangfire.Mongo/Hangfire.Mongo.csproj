@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <VersionPrefix>1.9.0</VersionPrefix>
+        <VersionPrefix>1.9.1</VersionPrefix>
         <TargetFramework>netstandard2.0</TargetFramework>
         <NoWarn>$(NoWarn);CS0618</NoWarn>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -21,13 +21,8 @@
         <owners>Sergey Zwezdin, Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.9.0
-			- Update to Hangfire.Core 1.7.32
-			- Update MongoDB.Driver to 2.18.0
-			- Using manual serialization to not be subject to serializer conventions (#328)
-			- Returns IGlobalConfiguration&lt;MongoStorage	&gt; instead of MongoStorage in all UseMongoStorage (#317)
-			- Added indexes (#330)
-			- Merge JobQueueDto fields into JobDto (schema change, requires migration)
+        <PackageReleaseNotes>1.9.1
+			- Fixes SchemaDto deserialization bug (#333)
 		</PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
