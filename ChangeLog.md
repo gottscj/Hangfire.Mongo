@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.9.1 (2022-12-19)
+- Fixes SchemaDto deserialization bug (#333)
+
 ### v1.9.0 (2022-12-10)
 - Update to Hangfire.Core 1.7.32
 - Update MongoDB.Driver to 2.18.0
