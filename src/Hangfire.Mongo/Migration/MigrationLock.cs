@@ -77,7 +77,6 @@ namespace Hangfire.Mongo.Migration
                         // If result is null, it means we acquired the lock
                         if (result == null)
                         {
-                            Console.WriteLine(($"Acquired lock for migration [{Thread.CurrentThread.ManagedThreadId}]"));
                             if (Logger.IsDebugEnabled())
                             {
                                 Logger.Debug("Acquired lock for migration");
