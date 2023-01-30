@@ -14,14 +14,14 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
+    [Collection("Database")]
     public class MongoDiscriminatorTests
     {
         private readonly HangfireDbContext _dbContext;
 
-        public MongoDiscriminatorTests()
+        public MongoDiscriminatorTests(MongoDbFixture fixture)
         {
-            _dbContext = ConnectionUtils.CreateDbContext();
-
+            _dbContext = fixture.CreateDbContext();
         }
 
         [Fact]

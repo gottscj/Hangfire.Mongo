@@ -17,14 +17,15 @@ namespace Hangfire.Mongo.Tests
         private readonly HangfireDbContext _dbContext;
         private readonly CancellationToken _token;
 
-        public ExpirationManagerFacts()
+        public ExpirationManagerFacts(MongoDbFixture fixture)
         {
-            _dbContext = ConnectionUtils.CreateDbContext();
+            fixture.CleanDatabase();
+            _dbContext = fixture.CreateDbContext();
 
             _token = new CancellationToken(true);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Execute_RemovesOutdatedRecords()
         {
             CreateExpirationEntries(_dbContext, DateTime.UtcNow.AddMonths(-1));
@@ -35,7 +36,7 @@ namespace Hangfire.Mongo.Tests
             Assert.True(IsEntryExpired(_dbContext));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Execute_DoesNotRemoveEntries_WithNoExpirationTimeSet()
         {
             CreateExpirationEntries(_dbContext, null);
@@ -46,7 +47,7 @@ namespace Hangfire.Mongo.Tests
             Assert.False(IsEntryExpired(_dbContext));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Execute_DoesNotRemoveEntries_WithFreshExpirationTime()
         {
             CreateExpirationEntries(_dbContext, DateTime.UtcNow.AddMonths(1));
@@ -58,7 +59,7 @@ namespace Hangfire.Mongo.Tests
             Assert.False(IsEntryExpired(_dbContext));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Execute_Processes_CounterTable()
         {
             // Arrange
@@ -80,7 +81,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(0, count);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Execute_Processes_JobTable()
         {
             // Arrange
@@ -103,7 +104,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(0, count);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Execute_Processes_ListTable()
         {
             // Arrange
@@ -126,7 +127,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(0, count);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Execute_Processes_SetTable()
         {
             // Arrange
@@ -151,7 +152,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(0, count);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Execute_Processes_HashTable()
         {
             // Arrange
@@ -176,7 +177,7 @@ namespace Hangfire.Mongo.Tests
         }
 
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Execute_Processes_AggregatedCounterTable()
         {
             // Arrange

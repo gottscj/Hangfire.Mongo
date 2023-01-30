@@ -15,9 +15,15 @@ namespace Hangfire.Mongo.Tests
     {
         private static readonly ObjectId JobId = ObjectId.GenerateNewId();
         private const string Queue = "queue";
-        private MongoStorageOptions _mongoStorageOptions = new MongoStorageOptions();
+        private readonly MongoStorageOptions _mongoStorageOptions = new MongoStorageOptions();
         private readonly DateTime _fetchedAt = DateTime.UtcNow;
-        private readonly HangfireDbContext _dbContext = ConnectionUtils.CreateDbContext();
+        private readonly HangfireDbContext _dbContext;
+
+        public MongoFetchedJobFacts(MongoDbFixture fixture)
+        {
+            fixture.CleanDatabase();
+            _dbContext = fixture.CreateDbContext();
+        }
 
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
@@ -46,7 +52,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(Queue, fetchedJob.Queue);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void RemoveFromQueue_ReallyDeletesTheJobFromTheQueue()
         {
             // Arrange
@@ -68,7 +74,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(0, count);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void RemoveFromQueue_DoesNotDelete_UnrelatedJobs()
         {
             // Arrange
@@ -91,7 +97,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(3, count);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Requeue_SetsFetchedAtValueToNull()
         {
             // Arrange
@@ -104,12 +110,12 @@ namespace Hangfire.Mongo.Tests
             processingJob.Requeue();
 
             // Assert
-            var record = new JobDto( 
+            var record = new JobDto(
                 _dbContext.JobGraph.Find(new BsonDocument("_t", nameof(JobDto))).ToList().Single());
             Assert.Null(record.FetchedAt);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Dispose_SetsFetchedAtValueToNull_IfThereWereNoCallsToComplete()
         {
             // Arrange

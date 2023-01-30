@@ -23,12 +23,14 @@ namespace Hangfire.Mongo.Tests
         private readonly HangfireDbContext _database;
         private readonly MongoMonitoringApi _monitoringApi;
 
-        public MongoMonitoringApiFacts()
+        public MongoMonitoringApiFacts(MongoDbFixture fixture)
         {
-            _database = ConnectionUtils.CreateDbContext();
+            fixture.CleanDatabase();
+            _database = fixture.CreateDbContext();
             _monitoringApi = new MongoMonitoringApi(_database);
         }
-        [Fact, CleanDatabase]
+
+        [Fact]
         public void GetStatistics_ReturnsZero_WhenNoJobsExist()
         {
             var result = _monitoringApi.GetStatistics();
@@ -38,7 +40,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(0, result.Scheduled);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetStatistics_ReturnsExpectedCounts_WhenJobsExist()
         {
             CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
@@ -54,8 +56,8 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(1, result.Processing);
             Assert.Equal(2, result.Scheduled);
         }
-        
-        [Fact, CleanDatabase]
+
+        [Fact]
         public void GetStatistics_RecurringJob_CountsSets()
         {
             const string setJson = @"
@@ -71,19 +73,19 @@ namespace Hangfire.Mongo.Tests
                 .Database
                 .GetCollection<BsonDocument>(_database.JobGraph.CollectionNamespace.CollectionName)
                 .InsertOne(BsonDocument.Parse(setJson));
-                
+
             var result = _monitoringApi.GetStatistics();
             Assert.Equal(1, result.Recurring);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void JobDetails_ReturnsNull_WhenThereIsNoSuchJob()
         {
             var result = _monitoringApi.JobDetails(ObjectId.GenerateNewId().ToString());
             Assert.Null(result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void JobDetails_ReturnsResult_WhenJobExists()
         {
             var job1 = CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
@@ -97,7 +99,7 @@ namespace Hangfire.Mongo.Tests
             Assert.True(result.CreatedAt < DateTime.UtcNow.AddMinutes(1));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void EnqueuedJobs_ReturnsEmpty_WhenThereIsNoJobs()
         {
             var resultList = _monitoringApi.EnqueuedJobs(DefaultQueue, From, PerPage);
@@ -105,7 +107,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Empty(resultList);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void EnqueuedJobs_ReturnsSingleJob_WhenOneJobExistsThatIsNotFetched()
         {
             CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
@@ -114,7 +116,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Single(resultList);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void EnqueuedJobs_ReturnsEmpty_WhenOneJobExistsThatIsFetched()
         {
             CreateJobInState(_database, ObjectId.GenerateNewId(1), FetchedStateName);
@@ -123,7 +125,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Empty(resultList);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void EnqueuedJobs_ReturnsUnfetchedJobsOnly_WhenMultipleJobsExistsInFetchedAndUnfetchedStates()
         {
             CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
@@ -135,7 +137,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(2, resultList.Count);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void FetchedJobs_ReturnsEmpty_WhenThereIsNoJobs()
         {
             var resultList = _monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
@@ -143,7 +145,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Empty(resultList);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void FetchedJobs_ReturnsSingleJob_WhenOneJobExistsThatIsFetched()
         {
             CreateJobInState(_database, ObjectId.GenerateNewId(1), FetchedStateName);
@@ -152,7 +154,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Single(resultList);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void FetchedJobs_ReturnsEmpty_WhenOneJobExistsThatIsNotFetched()
         {
             CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName);
@@ -161,7 +163,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Empty(resultList);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void FetchedJobs_ReturnsFetchedJobsOnly_WhenMultipleJobsExistsInFetchedAndUnfetchedStates()
         {
             CreateJobInState(_database, ObjectId.GenerateNewId(1), FetchedStateName);
@@ -173,7 +175,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(2, resultList.Count);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void ProcessingJobs_ReturnsProcessingJobsOnly_WhenMultipleJobsExistsInProcessingSucceededAndEnqueuedState()
         {
             CreateJobInState(_database, ObjectId.GenerateNewId(1), ProcessingState.StateName);
@@ -206,7 +208,7 @@ namespace Hangfire.Mongo.Tests
 
 
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void ProcessingJobs_ReturnsLatestStateHistory_WhenJobRequeued()
         {
             var oldServerId = "oldserverid";
@@ -234,7 +236,7 @@ namespace Hangfire.Mongo.Tests
                 jobDto.StateHistory = new[] { firstProcessingState, latestProcessingState };
                 return jobDto;
             });
-                
+
             var resultList = _monitoringApi.ProcessingJobs(From, PerPage);
 
             Assert.Single(resultList);
@@ -242,7 +244,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(newStartTime, resultList[0].Value.StartedAt);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void FailedJobs_ReturnsFailedJobs_InDescendingOrder()
         {
             var failedJob0 = CreateJobInState(_database, ObjectId.GenerateNewId(1), FailedState.StateName);
@@ -255,86 +257,86 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(failedJob1.Id.ToString(), resultList[1].Key);
             Assert.Equal(failedJob2.Id.ToString(), resultList[0].Key);
         }
-        
-        [Fact, CleanDatabase]
+
+        [Fact]
         public void SucceededByDatesCount_ReturnsSuccededJobs_ForLastWeek()
         {
             var date = DateTime.UtcNow.Date;
             var succededCount = 10L;
-                
+
             _database.JobGraph.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 // this might fail if we test during date change... seems unlikely
                 // TODO, wrap Datetime in a mock friendly wrapper
-                Key = $"stats:succeeded:{date:yyyy-MM-dd}", 
+                Key = $"stats:succeeded:{date:yyyy-MM-dd}",
                 Value = succededCount
             }.Serialize());
-                
+
             var results = _monitoringApi.SucceededByDatesCount();
-                
+
             Assert.Equal(succededCount, results[date]);
             Assert.Equal(8, results.Count);
         }
-        
-        [Fact, CleanDatabase]
+
+        [Fact]
         public void HourlySucceededJobs_ReturnsSuccededJobs_ForLast24Hours()
         {
             var now = DateTime.UtcNow;
-                
+
             var succeededCount = 10L;
             _database.JobGraph.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 // this might fail if we test during hour change... still unlikely
                 // TODO, wrap Datetime in a mock friendly wrapper
-                Key = $"stats:succeeded:{now:yyyy-MM-dd-HH}", 
+                Key = $"stats:succeeded:{now:yyyy-MM-dd-HH}",
                 Value = succeededCount
             }.Serialize());
-                
+
             var results = _monitoringApi.HourlySucceededJobs();
-                
+
             Assert.Equal(succeededCount, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
             Assert.Equal(24, results.Count);
         }
-        
-        [Fact, CleanDatabase]
+
+        [Fact]
         public void FailedByDatesCount_ReturnsFailedJobs_ForLastWeek()
         {
             var date = DateTime.UtcNow.Date;
             var failedCount = 10L;
-                
+
             _database.JobGraph.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 // this might fail if we test during date change... seems unlikely
-                Key = $"stats:failed:{date:yyyy-MM-dd}", 
+                Key = $"stats:failed:{date:yyyy-MM-dd}",
                 Value = failedCount
             }.Serialize());
-                
+
             var results = _monitoringApi.FailedByDatesCount();
-                
+
             Assert.Equal(failedCount, results[date]);
             Assert.Equal(8, results.Count);
         }
-        
-        [Fact, CleanDatabase]
+
+        [Fact]
         public void HourlyFailedJobs_ReturnsFailedJobs_ForLast24Hours()
         {
             var now = DateTime.UtcNow;
             var failedCount = 10L;
-              
+
             _database.JobGraph.InsertOne(new CounterDto
             {
                 Id = ObjectId.GenerateNewId(),
                 // this might fail if we test during hour change... still unlikely
                 // TODO, wrap Datetime in a mock friendly wrapper
-                Key = $"stats:failed:{now:yyyy-MM-dd-HH}", 
+                Key = $"stats:failed:{now:yyyy-MM-dd-HH}",
                 Value = failedCount
             }.Serialize());
-               
+
             var results = _monitoringApi.HourlyFailedJobs();
-                
+
             Assert.Equal(failedCount, results.First(kv => kv.Key.Hour.Equals(now.Hour)).Value);
             Assert.Equal(24, results.Count);
         }

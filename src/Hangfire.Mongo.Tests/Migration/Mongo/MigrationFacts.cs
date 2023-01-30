@@ -22,6 +22,14 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
     [Collection("Database")]
     public class MigrationFacts
     {
+        private readonly MongoDbFixture _fixture;
+
+        public MigrationFacts(MongoDbFixture fixture)
+        {
+            fixture.CleanDatabase();
+            _fixture = fixture;
+        }
+
         [Theory]
         [InlineData(null, false)]
         [InlineData("Hangfire-Mongo-Schema-004.zip", false)]
@@ -43,7 +51,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         public void Migrate_Full_Success(string seedFile, bool assertCollectionHasItems)
         {
 
-            var dbContext = ConnectionUtils.CreateDbContext("Hangfire-Mongo-Migration-Tests");
+            var dbContext = _fixture.CreateDbContext("Hangfire-Mongo-Migration-Tests");
 
             // ARRANGE
             dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
@@ -51,7 +59,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             {
                 SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", seedFile));
             }
-            
+
             var storageOptions = new MongoStorageOptions
             {
                 MigrationOptions = new MongoMigrationOptions
@@ -70,10 +78,10 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             AssertDataIntegrity(dbContext, assertCollectionHasItems);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Migrate_MultipleInstances_ThereCanBeOnlyOne()
         {
-            var dbContext = ConnectionUtils.CreateDbContext();
+            var dbContext = _fixture.CreateDbContext();
             // ARRANGE
             dbContext.Database.DropCollection(dbContext.Schema.CollectionNamespace.CollectionName);
             var storageOptions = new MongoStorageOptions
@@ -114,12 +122,12 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             // ASSERT
             Assert.True(tasks.Select(t => t.Result).Single(b => b));
         }
-        
+
         [Fact]
         public void Migrate_DropNoBackup_Success()
         {
-            var dbContext = ConnectionUtils.CreateDbContext("Hangfire-Mongo-Migration-Tests");
-            
+            var dbContext = _fixture.CreateDbContext("Hangfire-Mongo-Migration-Tests");
+
             // ARRANGE
             dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
             SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", "Hangfire-Mongo-Schema-006.zip"));
@@ -146,14 +154,14 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             var locks = dbContext.DistributedLock.Find(new BsonDocument()).ToList();
             var schema = dbContext.Schema.Find(new BsonDocument()).ToList();
             var servers = dbContext.Server.Find(new BsonDocument()).ToList();
-            
+
 
             if (assertCollectionHasItems)
             {
                 AssertCollectionNotEmpty(jobGraphDtos, nameof(dbContext.JobGraph));
                 AssertCollectionNotEmpty(locks, nameof(dbContext.DistributedLock));
                 AssertCollectionNotEmpty(schema, nameof(dbContext.Schema));
-                AssertCollectionNotEmpty(servers, nameof(dbContext.Server));    
+                AssertCollectionNotEmpty(servers, nameof(dbContext.Server));
             }
         }
 
@@ -161,7 +169,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         {
             Assert.True(collection.Any(), $"Expected '{collectionName}' to have items");
         }
-        
+
         #region Private Helper Methods
 
         private static void SeedCollectionFromZipArchive(HangfireDbContext connection, string fileName)
@@ -204,10 +212,10 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                     catch (Exception e)
                     {
                         Console.WriteLine($"Error seeding collection {collectionName}: {e}");
-                        
+
                         throw;
                     }
-                    
+
                 }
             }
 

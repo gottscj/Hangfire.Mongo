@@ -16,11 +16,6 @@ jobs:
   build_release:
     name: create release
     runs-on: ubuntu-latest
-    services:
-      mongodb:
-        image: mongo
-        ports:
-        - 27017:27017
         
     steps:
     - uses: actions/checkout@v2

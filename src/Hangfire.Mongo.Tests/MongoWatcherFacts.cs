@@ -16,17 +16,18 @@ namespace Hangfire.Mongo.Tests
 
         private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphoreMock;
         private readonly CancellationTokenSource _cts;
-        public MongoWatcherFacts()
+
+        public MongoWatcherFacts(MongoDbFixture fixture)
         {
-            _dbContext = ConnectionUtils.CreateDbContext();
+            _dbContext = fixture.CreateDbContext();
             _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
             var watcher = new MongoJobQueueWatcher(
                 _dbContext,
                 new MongoStorageOptions(),
                 _jobQueueSemaphoreMock.Object);
-            
+
             _cts = new CancellationTokenSource();
-            
+
             Task.Run(async () =>
             {
                 await Task.Yield();
@@ -40,7 +41,7 @@ namespace Hangfire.Mongo.Tests
             _cts.Cancel();
             _cts.Dispose();
         }
-        
+
         [Fact(Skip = "Needs replica set, enable when you figure out how to set it up in github actions")]
         public void Execute_JobEnqueued_Signaled()
         {
@@ -64,7 +65,7 @@ namespace Hangfire.Mongo.Tests
                 }
             });
             signal.Wait(100000);
-            
+
             // ASSERT
             _jobQueueSemaphoreMock.Verify(m => m.Release("test"), Times.Once);
         }

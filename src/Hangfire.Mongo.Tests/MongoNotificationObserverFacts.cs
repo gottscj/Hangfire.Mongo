@@ -10,26 +10,28 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
+    [Collection("Database")]
     public sealed class MongoNotificationObserverFacts : IDisposable
     {
         private readonly HangfireDbContext _dbContext;
 
         private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphoreMock;
         private readonly CancellationTokenSource _cts;
-        public MongoNotificationObserverFacts()
+
+        public MongoNotificationObserverFacts(MongoDbFixture fixture)
         {
-            _dbContext = ConnectionUtils.CreateDbContext();
+            _dbContext = fixture.CreateDbContext();
             _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
             var mongoNotificationObserver = new MongoNotificationObserver(
                 _dbContext,
                 new MongoStorageOptions(),
                 _jobQueueSemaphoreMock.Object);
-            
+
             _dbContext.Database.DropCollection(_dbContext.Notifications.CollectionNamespace.CollectionName);
             var migration = new AddNotificationsCollection();
             migration.Execute(_dbContext.Database, new MongoStorageOptions(), null);
             _cts = new CancellationTokenSource();
-            
+
             Task.Run(async () =>
             {
                 await Task.Yield();
@@ -43,7 +45,7 @@ namespace Hangfire.Mongo.Tests
             _cts.Cancel();
             _cts.Dispose();
         }
-        
+
         [Fact]
         public void Execute_JobEnqueued_Signaled()
         {
@@ -51,11 +53,11 @@ namespace Hangfire.Mongo.Tests
             var signal = new SemaphoreSlim(0,1);
             _jobQueueSemaphoreMock.Setup(m => m.Release("test"))
                 .Callback(() => signal.Release());
-            
+
             // ACT
             _dbContext.Notifications.InsertOne(NotificationDto.JobEnqueued("test").Serialize());
             signal.Wait(1000);
-            
+
             // ASSERT
             _jobQueueSemaphoreMock.Verify(m => m.Release("test"), Times.Once);
         }

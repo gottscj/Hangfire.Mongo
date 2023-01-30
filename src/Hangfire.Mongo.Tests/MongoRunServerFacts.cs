@@ -38,10 +38,10 @@ namespace Hangfire.Mongo.Tests
         private readonly BackgroundJobServer _server;
         public HangfireDbContext DbContext { get; }
 
-        public MongoRunFixture()
+        public MongoRunFixture(MongoDbFixture fixture)
         {
             var databaseName = "Mongo-Hangfire-CamelCase";
-            var context = ConnectionUtils.CreateDbContext(databaseName);
+            var context = fixture.CreateDbContext(databaseName);
             DbContext = context;
             // Make sure we start from scratch
             context.Database.Client.DropDatabase(databaseName);
@@ -54,8 +54,8 @@ namespace Hangfire.Mongo.Tests
                     BackupStrategy = new NoneMongoBackupStrategy()
                 }
             };
-            
-            JobStorage.Current = ConnectionUtils.CreateStorage(storageOptions, databaseName);
+
+            JobStorage.Current = fixture.CreateStorage(storageOptions, databaseName);
 
             var conventionPack = new ConventionPack {new CamelCaseElementNameConvention()};
             ConventionRegistry.Register("CamelCase", conventionPack, t => true);
@@ -111,7 +111,7 @@ namespace Hangfire.Mongo.Tests
             var parentId2 = BackgroundJob.ContinueWith<TestJob>(parentId1, j => j.AddId(parentId1));
             BackgroundJob.ContinueWith<TestJob>(parentId2, j => j.AddAndSignal(parentId2));
             var signalled = TestJob.Signal.WaitOne(20000);
-            
+
             // ASSERT
             Assert.True(signalled, "not signalled");
             Assert.Equal(3, TestJob.JobIds.Count);

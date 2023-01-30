@@ -18,10 +18,10 @@ namespace Hangfire.Mongo.Tests.Migration
     {
         private readonly Mock<IMongoMigrationContext> _mongoMigrationBagMock;
         private readonly IMongoDatabase _database;
-        
-        public Version18MigrationStepFacts()
+
+        public Version18MigrationStepFacts(MongoDbFixture fixture)
         {
-            var dbContext = ConnectionUtils.CreateDbContext();
+            var dbContext = fixture.CreateDbContext();
             _database = dbContext.Database;
             _mongoMigrationBagMock = new Mock<IMongoMigrationContext>(MockBehavior.Strict);
         }
@@ -31,12 +31,12 @@ namespace Hangfire.Mongo.Tests.Migration
         {
             // ARRANGE
             var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
-            
+
             collection.Indexes.DropAll();
-            
+
             // ACT
             var result = new UpdateIndexes().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             Assert.True(result, "Expected migration to be successful, reported 'false'");
             var indexes = collection.Indexes.List().ToList();
@@ -62,6 +62,6 @@ namespace Hangfire.Mongo.Tests.Migration
                 Assert.True(index["key"][indexName].AsInt32 == 1, "Expected index to be 'Descending'");
             }
         }
-        
+
     }
 }
