@@ -11,6 +11,14 @@ namespace Hangfire.Mongo.Tests
     [Collection("Database")]
     public class MongoStorageFacts
     {
+        private readonly MongoStorage _storage;
+
+        public MongoStorageFacts(MongoDbFixture fixture)
+        {
+            fixture.CleanDatabase();
+            _storage = fixture.CreateStorage();
+        }
+
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionStringIsEmpty()
         {
@@ -35,19 +43,17 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("storageOptions", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetMonitoringApi_ReturnsNonNullInstance()
         {
-            MongoStorage storage = ConnectionUtils.CreateStorage();
-            IMonitoringApi api = storage.GetMonitoringApi();
+            IMonitoringApi api = _storage.GetMonitoringApi();
             Assert.NotNull(api);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetConnection_ReturnsNonNullInstance()
         {
-            MongoStorage storage = ConnectionUtils.CreateStorage();
-            using (IStorageConnection connection = storage.GetConnection())
+            using (IStorageConnection connection = _storage.GetConnection())
             {
                 Assert.NotNull(connection);
             }
@@ -56,9 +62,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void GetComponents_ReturnsAllNeededComponents()
         {
-            MongoStorage storage = ConnectionUtils.CreateStorage();
-
-            var components = storage.GetComponents();
+            var components = _storage.GetComponents();
 
             Type[] componentTypes = components.Select(x => x.GetType()).ToArray();
             Assert.Contains(typeof(MongoExpirationManager), componentTypes);

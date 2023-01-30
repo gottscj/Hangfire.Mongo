@@ -19,11 +19,18 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
     [Collection("Database")]
     public class MongoDatabaseFiller
     {
+        private readonly MongoDbFixture _fixture;
+
+        public MongoDatabaseFiller(MongoDbFixture fixture)
+        {
+            _fixture = fixture;
+        }
+
         //[Fact, Trait("Category", "DataGeneration")]
         public void Clean_Database_Filled()
         {
             var databaseName = "Mongo-Hangfire-Filled";
-            var context = ConnectionUtils.CreateDbContext(databaseName);
+            var context = _fixture.CreateDbContext(databaseName);
             // Make sure we start from scratch
             context.Database.Client.DropDatabase(databaseName);
 
@@ -40,8 +47,8 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             {
                 ShutdownTimeout = TimeSpan.FromSeconds(15)
             };
-            
-            JobStorage.Current = ConnectionUtils.CreateStorage(databaseName);
+
+            JobStorage.Current = _fixture.CreateStorage(databaseName);
 
             using (new BackgroundJobServer(serverOptions))
             {
@@ -93,7 +100,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                 if (MongoMigrationManager.RequiredSchemaVersion >= MongoSchema.Version09 &&
                     MongoMigrationManager.RequiredSchemaVersion <= MongoSchema.Version15)
                 {
-                    // Signal collection work was initiated in schema version 9, 
+                    // Signal collection work was initiated in schema version 9,
                     // and still not put to use in schema version 15.
                     allowedEmptyCollections.Add($@"{storageOptions.Prefix}.signal");
                 }
@@ -106,7 +113,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         {
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, true))
             {
-                var context = ConnectionUtils.CreateDbContext(databaseName);
+                var context = _fixture.CreateDbContext(databaseName);
                 foreach (var collectionName in context.Database.ListCollections().ToList()
                     .Select(c => c["name"].AsString))
                 {

@@ -18,14 +18,14 @@ namespace Hangfire.Mongo.Tests.Migration
         private readonly HangfireDbContext _dbContext;
         private readonly Mock<IMongoMigrationContext> _mongoMigrationBagMock;
         private readonly IMongoDatabase _database;
-        
-        public Version15MigrationStepFacts()
+
+        public Version15MigrationStepFacts(MongoDbFixture fixture)
         {
-            _dbContext = ConnectionUtils.CreateDbContext();
+            _dbContext = fixture.CreateDbContext();
             _database = _dbContext.Database;
             _mongoMigrationBagMock = new Mock<IMongoMigrationContext>(MockBehavior.Strict);
         }
-        
+
         [Fact]
         public void ExecuteStep00_ValidExistingLockDto_Success()
         {
@@ -48,7 +48,7 @@ namespace Hangfire.Mongo.Tests.Migration
             // ACT
             var result = new CreateUniqueLockIndex().Execute(_dbContext.Database, new MongoStorageOptions(),
                 _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             var indexes = collection.Indexes.List().ToList();
             AssertIndex(indexes, "Resource", true);
@@ -69,11 +69,11 @@ namespace Hangfire.Mongo.Tests.Migration
             var collection = _database.GetCollection<BsonDocument>("hangfire.server");
             collection.DeleteOne(new BsonDocument("_id", "test-server"));
             collection.InsertOne(originalServerDto);
-            
+
             // ACT
             var result = new MakeServerDataEmbeddedDocument().Execute(_database, new MongoStorageOptions(),
                 _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             var migratedServerDto = collection.Find(new BsonDocument()).Single();
             Assert.True(result, "Expected migration to be successful, reported 'false'");
@@ -99,16 +99,16 @@ namespace Hangfire.Mongo.Tests.Migration
             };
             collection.DeleteMany(new BsonDocument("_t", "SetDto"));
             collection.InsertOne(originalSetDto);
-            
+
             // ACT
             var result = new CreateCompositeKeys().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             var migratedSetDto = collection.Find(new BsonDocument("_t", "SetDto")).Single();
             Assert.True(result, "Expected migration to be successful, reported 'false'");
             Assert.Equal("Key:Value", migratedSetDto["Key"].AsString);
         }
-        
+
         [Fact]
         public void ExecuteStep03_MultipleCountersNotDeleted_OldCountersDeleted()
         {
@@ -116,7 +116,7 @@ namespace Hangfire.Mongo.Tests.Migration
             var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
             collection.Indexes.DropAll();
             collection.DeleteMany(new BsonDocument("_t", "CounterDto"));
-            
+
             var counters = new List<BsonDocument>();
             foreach (var i in Enumerable.Range(0, 5))
             {
@@ -140,16 +140,16 @@ namespace Hangfire.Mongo.Tests.Migration
             };
             counters.Add(mergedCounter);
             collection.InsertMany(counters);
-            
+
             // ACT
             var result = new RemoveMergedCounters().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             var remainingCounter = collection.Find(new BsonDocument("_t", "CounterDto")).Single();
             Assert.True(result, "Expected migration to be successful, reported 'false'");
             Assert.Equal(5, remainingCounter["Value"].AsInt64);
         }
-        
+
         [Fact]
         public void ExecuteStep03_MultipleCountersDifferentValues_CountersMerged()
         {
@@ -157,7 +157,7 @@ namespace Hangfire.Mongo.Tests.Migration
             var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
             collection.Indexes.DropAll();
             collection.DeleteMany(new BsonDocument("_t", "CounterDto"));
-            
+
             var counters = new List<BsonDocument>();
             foreach (var i in Enumerable.Range(0, 5))
             {
@@ -190,22 +190,22 @@ namespace Hangfire.Mongo.Tests.Migration
             counters.Add(mergedCounter);
             counters.Add(aggregatedCounter);
             collection.InsertMany(counters);
-            
+
             // ACT
             var result = new RemoveMergedCounters().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             var remainingCounter = collection.Find(new BsonDocument("_t", "CounterDto")).Single();
             Assert.True(result, "Expected migration to be successful, reported 'false'");
             Assert.Equal(10, remainingCounter["Value"].AsInt64);
         }
-        
+
         [Fact]
         public void ExecuteStep03_OneCounter_Nothing()
         {
             // ARRANGE
             var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
-            
+
             collection.DeleteMany(new BsonDocument("Key", "stats:succeeded"));
             collection.InsertOne(new BsonDocument
             {
@@ -215,16 +215,16 @@ namespace Hangfire.Mongo.Tests.Migration
                 ["ExpireAt"] = BsonNull.Value,
                 ["_t"] = "CounterDto"
             });
-            
+
             // ACT
             var result = new RemoveMergedCounters().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             var remainingCounter = collection.Find(new BsonDocument("_t", "CounterDto")).Single();
             Assert.NotNull(remainingCounter);
             Assert.True(result, "Expected migration to be successful, reported 'false'");
         }
-        
+
         [Fact]
         public void ExecuteStep03_TwoCountersSameValue_NewestChosen()
         {
@@ -248,25 +248,25 @@ namespace Hangfire.Mongo.Tests.Migration
                 ["ExpireAt"] = BsonNull.Value,
                 ["_t"] = "CounterDto"
             };
-            
+
             collection.InsertOne(expectedDoc);
-            
+
             // ACT
             var result = new RemoveMergedCounters().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             var remainingCounter = collection.Find(new BsonDocument("_t", "CounterDto")).Single();
             Assert.NotNull(remainingCounter);
             Assert.True(result, "Expected migration to be successful, reported 'false'");
             Assert.Equal(expectedDoc["_id"], remainingCounter["_id"]);
         }
-        
+
         [Fact]
         public void ExecuteStep04_UpdateListDtoKeySchema_Success()
         {
             // ARRANGE
             var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
-            
+
             collection.DeleteMany(new BsonDocument("_t", "ListDto"));
             collection.InsertOne(new BsonDocument
             {
@@ -276,10 +276,10 @@ namespace Hangfire.Mongo.Tests.Migration
                 ["ExpireAt"] = BsonNull.Value,
                 ["_t"] = "ListDto"
             });
-            
+
             // ACT
             var result = new UpdateListDtoKeySchema().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             var listDto = collection.Find(new BsonDocument("_t", "ListDto")).Single();
             Assert.NotNull(listDto);
@@ -288,18 +288,18 @@ namespace Hangfire.Mongo.Tests.Migration
             Assert.False(listDto.Contains("Key"));
             Assert.Equal(BsonArray.Create(new[]{"BaseJobDto", "ExpiringJobDto", "ListDto"}), listDto["_t"]);
         }
-        
+
         [Fact]
         public void ExecuteStep05_UpdateIndexes_Success()
         {
             // ARRANGE
             var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
-            
+
             collection.Indexes.DropAll();
-            
+
             // ACT
             var result = new UpdateIndexes().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             Assert.True(result, "Expected migration to be successful, reported 'false'");
             var indexes = collection.Indexes.List().ToList();
@@ -332,6 +332,6 @@ namespace Hangfire.Mongo.Tests.Migration
                 Assert.True(index["key"][indexName].AsInt32 == 1, "Expected index to be 'Descending'");
             }
         }
-        
+
     }
 }

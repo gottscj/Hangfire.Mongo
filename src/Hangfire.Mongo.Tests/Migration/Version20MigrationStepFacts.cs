@@ -12,15 +12,16 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests.Migration
 {
+    [Collection("Database")]
     public class Version20MigrationStepFacts
     {
         private readonly Mock<IMongoMigrationContext> _mongoMigrationBagMock;
         private readonly IMongoDatabase _database;
         private readonly Random _random;
         private readonly IMongoMigrationStep _migration;
-        public Version20MigrationStepFacts()
+        public Version20MigrationStepFacts(MongoDbFixture fixture)
         {
-            var dbContext = ConnectionUtils.CreateDbContext();
+            var dbContext = fixture.CreateDbContext();
             _database = dbContext.Database;
             _mongoMigrationBagMock = new Mock<IMongoMigrationContext>(MockBehavior.Strict);
             _random = new Random();

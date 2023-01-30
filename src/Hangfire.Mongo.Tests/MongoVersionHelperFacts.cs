@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
-using Hangfire.Common;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -15,6 +12,10 @@ namespace Hangfire.Mongo.Tests
     [Collection("Database")]
     public class MongoVersionHelperFacts
     {
+        private readonly MongoDbFixture _fixture;
+
+        public MongoVersionHelperFacts(MongoDbFixture fixture) => _fixture = fixture;
+
         [Fact]
         public void GetVersion_HasAdditionalInfo_Success()
         {
@@ -26,10 +27,10 @@ namespace Hangfire.Mongo.Tests
             {
                 ["version"] = "3.6.4-1.2"
             });
-            
+
             // ACT
             var version = MongoVersionHelper.GetVersion(dbMock.Object);
-            
+
             // ASSERT
             Assert.Equal(version, new Version(3, 6, 4));
         }
@@ -38,8 +39,8 @@ namespace Hangfire.Mongo.Tests
         public void GetVersion_FromDb_Success()
         {
             // ARRANGE
-            var db = ConnectionUtils.CreateDbContext();
-            
+            var db = _fixture.CreateDbContext();
+
             // ACT
             var version = MongoVersionHelper.GetVersion(db.Database);
 

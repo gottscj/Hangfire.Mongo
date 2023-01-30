@@ -18,7 +18,8 @@ namespace Hangfire.Mongo.Tests
 
         private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphoreMock;
         private readonly HangfireDbContext _hangfireDbContext;
-        public MongoJobQueueFacts()
+
+        public MongoJobQueueFacts(MongoDbFixture fixture)
         {
             _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
             var queue = "default";
@@ -26,8 +27,10 @@ namespace Hangfire.Mongo.Tests
             _jobQueueSemaphoreMock.Setup(s =>
                     s.WaitAny(DefaultQueues, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>(), out queue, out timedOut))
                 .Returns(true);
-            _hangfireDbContext = ConnectionUtils.CreateDbContext();
+            fixture.CleanDatabase();
+            _hangfireDbContext = fixture.CreateDbContext();
         }
+
         [Fact]
         public void Ctor_ThrowsAnException_WhenDbContextIsNull()
         {
@@ -46,7 +49,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("storageOptions", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Dequeue_ShouldThrowAnException_WhenQueuesCollectionIsNull()
         {
             var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
@@ -57,7 +60,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("queues", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Dequeue_ShouldThrowAnException_WhenQueuesCollectionIsEmpty()
         {
             var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
@@ -79,7 +82,7 @@ namespace Hangfire.Mongo.Tests
                 queue.FetchNextJob(DefaultQueues, cts.Token));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Dequeue_ShouldWaitIndefinitely_WhenThereAreNoJobs()
         {
             var cts = new CancellationTokenSource(200);
@@ -89,7 +92,7 @@ namespace Hangfire.Mongo.Tests
                 queue.FetchNextJob(DefaultQueues, cts.Token));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Dequeue_ShouldFetchAJob_FromTheSpecifiedQueue()
         {
             // Arrange
@@ -102,18 +105,18 @@ namespace Hangfire.Mongo.Tests
             var token = CreateTimingOutCancellationToken();
             var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
-                
+
             // Act
             MongoFetchedJob payload = (MongoFetchedJob)queue.FetchNextJob(DefaultQueues, token);
 
             // Assert
             Assert.Equal(job.Id.ToString(), payload.JobId);
             Assert.Equal("default", payload.Queue);
-                
+
             _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Dequeue_ShouldLeaveJobInTheQueue_ButSetItsFetchedAtValue()
         {
             // Arrange
@@ -150,7 +153,7 @@ namespace Hangfire.Mongo.Tests
             _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Dequeue_ShouldFetchATimedOutJobs_FromTheSpecifiedQueue()
         {
             // Arrange
@@ -168,7 +171,7 @@ namespace Hangfire.Mongo.Tests
             {
                 InvisibilityTimeout = TimeSpan.FromMinutes(30)
             };
-            
+
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
             var queue =new MongoJobFetcher(_hangfireDbContext, options, _jobQueueSemaphoreMock.Object);
 
@@ -179,8 +182,8 @@ namespace Hangfire.Mongo.Tests
             Assert.NotEmpty(payload.JobId);
             _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
         }
-        
-        [Fact, CleanDatabase]
+
+        [Fact]
         public void Dequeue_NoInvisibilityTimeout_WaitsForever()
         {
             // Arrange
@@ -195,7 +198,7 @@ namespace Hangfire.Mongo.Tests
             _hangfireDbContext.JobGraph.InsertOne(job.Serialize());
 
             var options = new MongoStorageOptions();
-            
+
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
             var queue =new MongoJobFetcher(_hangfireDbContext, options, _jobQueueSemaphoreMock.Object);
 
@@ -210,7 +213,7 @@ namespace Hangfire.Mongo.Tests
             _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Never);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Dequeue_ShouldSetFetchedAt_OnlyForTheFetchedJob()
         {
             // Arrange
@@ -233,7 +236,7 @@ namespace Hangfire.Mongo.Tests
             _hangfireDbContext.JobGraph.InsertOne(job2.Serialize());
 
             var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
-                
+
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
 
             // Act
@@ -256,7 +259,7 @@ namespace Hangfire.Mongo.Tests
             _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Dequeue_ShouldFetchJobs_OnlyFromSpecifiedQueues()
         {
             var job1 = new JobDto
@@ -270,11 +273,11 @@ namespace Hangfire.Mongo.Tests
 
 
             var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
-                
+
             Assert.ThrowsAny<OperationCanceledException>(() => queue.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken()));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Dequeue_ShouldFetchJobs_FromMultipleQueuesBasedOnQueuePriority()
         {
             var criticalJob = new JobDto
@@ -299,7 +302,7 @@ namespace Hangfire.Mongo.Tests
             var queue =new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock.Object);
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("critical")).Returns(true);
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
-                
+
             var critical = (MongoFetchedJob)queue.FetchNextJob(
                 new[] { "critical", "default" },
                 CreateTimingOutCancellationToken());
@@ -313,7 +316,7 @@ namespace Hangfire.Mongo.Tests
 
             Assert.NotNull(@default.JobId);
             Assert.Equal("default", @default.Queue);
-                
+
             _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("critical"), Times.Once);
             _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
         }
@@ -321,7 +324,7 @@ namespace Hangfire.Mongo.Tests
         private static CancellationToken CreateTimingOutCancellationToken(TimeSpan timeSpan = default(TimeSpan))
         {
             timeSpan = timeSpan == default(TimeSpan) ? TimeSpan.FromSeconds(10) : timeSpan;
-            
+
             var source = new CancellationTokenSource(timeSpan);
             return source.Token;
         }

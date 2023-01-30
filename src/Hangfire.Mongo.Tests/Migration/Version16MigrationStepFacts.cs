@@ -17,14 +17,14 @@ namespace Hangfire.Mongo.Tests.Migration
         private readonly HangfireDbContext _dbContext;
         private readonly Mock<IMongoMigrationContext> _mongoMigrationBagMock;
         private readonly IMongoDatabase _database;
-        
-        public Version16MigrationStepFacts()
+
+        public Version16MigrationStepFacts(MongoDbFixture fixture)
         {
-            _dbContext = ConnectionUtils.CreateDbContext();
+            _dbContext = fixture.CreateDbContext();
             _database = _dbContext.Database;
             _mongoMigrationBagMock = new Mock<IMongoMigrationContext>(MockBehavior.Strict);
         }
-        
+
         [Fact]
         public void ExecuteStep00_SetDtoNotContainingValue_Success()
         {
@@ -40,19 +40,19 @@ namespace Hangfire.Mongo.Tests.Migration
                         'Score' : 0.0, 
                         'Value' : null
                     }";
-            
+
             collection.InsertOne(BsonDocument.Parse(setDtoJson));
-            
+
             // ACT
             var result = new UpdateSetDtoKeyAndValueField().Execute(_dbContext.Database, new MongoStorageOptions(),
                 _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             var migratedSetDto = collection.Find(_ => true).Single();
             Assert.Equal("recurring-jobs<HomeController.PrintToDebug>", migratedSetDto["Key"].AsString);
             Assert.Equal("HomeController.PrintToDebug", migratedSetDto["Value"].AsString);
         }
-        
+
         [Fact]
         public void ExecuteStep00_SetDtoNotCompositeKey_Success()
         {
@@ -68,13 +68,13 @@ namespace Hangfire.Mongo.Tests.Migration
                         'Score' : 0.0, 
                         'Value' : 'HomeController.PrintToDebug'
                     }";
-            
+
             collection.InsertOne(BsonDocument.Parse(setDtoJson));
-            
+
             // ACT
             var result = new UpdateSetDtoKeyAndValueField().Execute(_dbContext.Database, new MongoStorageOptions(),
                 _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             var migratedSetDto = collection.Find(_ => true).Single();
             Assert.Equal("recurring-jobs<HomeController.PrintToDebug>", migratedSetDto["Key"].AsString);

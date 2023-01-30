@@ -24,15 +24,16 @@ namespace Hangfire.Mongo.Tests
         private readonly MongoConnection _connection;
 		private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphoreMock;
 
-        public MongoConnectionFacts()
+        public MongoConnectionFacts(MongoDbFixture fixture)
         {
             _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
             var storageOptions = new MongoStorageOptions {Factory = {JobQueueSemaphore = _jobQueueSemaphoreMock.Object}};
 
-            _dbContext = ConnectionUtils.CreateDbContext();
+            fixture.CleanDatabase();
+            _dbContext = fixture.CreateDbContext();
             _connection = new MongoConnection(_dbContext, storageOptions);
         }
-        
+
         [Fact]
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
@@ -42,7 +43,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("database", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Ctor_ThrowsAnException_WhenProvidersCollectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -51,7 +52,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("storageOptions", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void FetchNextJob_DelegatesItsExecution_ToTheQueue()
         {
             var token = new CancellationToken();
@@ -65,29 +66,29 @@ namespace Hangfire.Mongo.Tests
             _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
             var serializedJob = jobDto.Serialize();
             _dbContext.JobGraph.InsertOne(serializedJob);
-                
+
             var fetchedJob = _connection.FetchNextJob(queues, token);
 
             Assert.Equal(fetchedJob.JobId, jobDto.Id.ToString());
-            
+
             _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void CreateWriteTransaction_ReturnsNonNullInstance()
         {
             var transaction = _connection.CreateWriteTransaction();
             Assert.NotNull(transaction);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void AcquireLock_ReturnsNonNullInstance()
         {
             var @lock = _connection.AcquireDistributedLock("1", TimeSpan.FromSeconds(1));
             Assert.NotNull(@lock);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void CreateExpiredJob_ThrowsAnException_WhenJobIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -100,7 +101,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("job", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void CreateExpiredJob_ThrowsAnException_WhenParametersCollectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -113,7 +114,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("parameters", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void CreateExpiredJob_CreatesAJobInTheStorage_AndSetsItsParameters()
         {
             var createdAt = new DateTime(2012, 12, 12, 0, 0, 0, 0, DateTimeKind.Utc);
@@ -158,20 +159,20 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("Value2", parameters["Key2"]);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetJobData_ThrowsAnException_WhenJobIdIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetJobData(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetJobData_ReturnsNull_WhenThereIsNoSuchJob()
         {
             var result = _connection.GetJobData(ObjectId.GenerateNewId().ToString());
             Assert.Null(result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetJobData_ReturnsResult_WhenJobExists()
         {
             var job = Job.FromExpression(() => HangfireTestJobs.SampleMethod("wrong"));
@@ -197,20 +198,20 @@ namespace Hangfire.Mongo.Tests
             Assert.True(result.CreatedAt < DateTime.UtcNow.AddMinutes(1));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetStateData_ThrowsAnException_WhenJobIdIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetStateData(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetStateData_ReturnsNull_IfThereIsNoSuchState()
         {
             var result = _connection.GetStateData(ObjectId.GenerateNewId().ToString());
             Assert.Null(result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetStateData_ReturnsCorrectData()
         {
             var data = new Dictionary<string, string>
@@ -253,7 +254,7 @@ namespace Hangfire.Mongo.Tests
                     }.Serialize()
                 }
             };
-                
+
             var filter = new BsonDocument
             {
                 ["_id"] = jobId,
@@ -270,7 +271,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("Value", result.Data["Key"]);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetJobData_ReturnsJobLoadException_IfThereWasADeserializationException()
         {
             var jobDto = new JobDto
@@ -289,7 +290,7 @@ namespace Hangfire.Mongo.Tests
             Assert.NotNull(result.LoadException);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void SetParameter_ThrowsAnException_WhenJobIdIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(() => _connection.SetJobParameter(null, "name", "value"));
@@ -297,7 +298,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("id", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void SetParameter_ThrowsAnException_WhenNameIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -306,7 +307,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("name", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void SetParameters_CreatesNewParameter_WhenParameterWithTheGivenNameDoesNotExists()
         {
             var jobDto = new JobDto
@@ -335,7 +336,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("Value", job.Parameters["Name"]);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void SetParameter_UpdatesValue_WhenParameterWithTheGivenName_AlreadyExists()
         {
             var jobDto = new JobDto
@@ -366,7 +367,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("AnotherValue", job.Parameters["Name"]);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void SetParameter_CanAcceptNulls_AsValues()
         {
             var jobDto = new JobDto
@@ -396,7 +397,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Null(job.Parameters["Name"]);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetParameter_ThrowsAnException_WhenJobIdIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -405,7 +406,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("id", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetParameter_ThrowsAnException_WhenNameIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -414,14 +415,14 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("name", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetParameter_ReturnsNull_WhenParameterDoesNotExists()
         {
             var value = _connection.GetJobParameter(ObjectId.GenerateNewId().ToString(), "hello");
             Assert.Null(value);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetParameter_ReturnsParameterValue_WhenJobExists()
         {
             var jobDto = new JobDto
@@ -441,7 +442,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("value", value);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetFirstByLowestScoreFromSet_ThrowsAnException_WhenKeyIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -450,14 +451,14 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("key", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetFirstByLowestScoreFromSet_ThrowsAnException_ToScoreIsLowerThanFromScore()
         {
             Assert.Throws<ArgumentException>(
                 () => _connection.GetFirstByLowestScoreFromSet("key", 0, -1));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetFirstByLowestScoreFromSet_ReturnsNull_WhenTheKeyDoesNotExist()
         {
             var result = _connection.GetFirstByLowestScoreFromSet(
@@ -466,7 +467,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Null(result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetFirstByLowestScoreFromSet_ReturnsTheValueWithTheLowestScore()
         {
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -507,7 +508,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("-1.0", result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetFirstByLowestScoreFromSet_ReturnsTheValue_WhenKeyContainsRegexSpecialChars()
         {
             var key = "some+-[regex]?-#set";
@@ -534,7 +535,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("-1.0", result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void AnnounceServer_ThrowsAnException_WhenServerIdIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -543,7 +544,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("serverId", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void AnnounceServer_ThrowsAnException_WhenContextIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -552,7 +553,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("context", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void AnnounceServer_CreatesOrUpdatesARecord()
         {
             var context1 = new ServerContext
@@ -580,13 +581,13 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(context2.WorkerCount, sameServer.WorkerCount);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void RemoveServer_ThrowsAnException_WhenServerIdIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.RemoveServer(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void RemoveServer_RemovesAServerRecord()
         {
             _dbContext.Server.InsertOne(new ServerDto
@@ -606,14 +607,14 @@ namespace Hangfire.Mongo.Tests
             Assert.NotEqual("Server1", server.Id, StringComparer.OrdinalIgnoreCase);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Heartbeat_ThrowsAnException_WhenServerIdIsNull()
         {
             Assert.Throws<ArgumentNullException>(
                 () => _connection.Heartbeat(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Heartbeat_ThrowsBackgroundServerGoneException_WhenGivenServerDoesNotExist()
         {
             var serverId = Guid.NewGuid().ToString();
@@ -622,7 +623,7 @@ namespace Hangfire.Mongo.Tests
                 () => _connection.Heartbeat(serverId));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void Heartbeat_UpdatesLastHeartbeat_OfTheServerWithGivenId()
         {
             _dbContext.Server.InsertOne(new ServerDto
@@ -647,14 +648,14 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(2012, servers["server2"].Value.Year);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void RemoveTimedOutServers_ThrowsAnException_WhenTimeOutIsNegative()
         {
             Assert.Throws<ArgumentException>(
                 () => _connection.RemoveTimedOutServers(TimeSpan.FromMinutes(-5)));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void RemoveTimedOutServers_DoItsWorkPerfectly()
         {
             var id1 = ObjectId.GenerateNewId();
@@ -678,13 +679,13 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("server2", liveServer.Id);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetAllItemsFromSet_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetAllItemsFromSet(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetAllItemsFromSet_ReturnsEmptyCollection_WhenKeyDoesNotExist()
         {
             var result = _connection.GetAllItemsFromSet("some-set");
@@ -693,7 +694,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Empty(result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetAllItemsFromSet_ReturnsAllItems_InCorrectOrder()
         {
             // Arrange
@@ -754,8 +755,8 @@ namespace Hangfire.Mongo.Tests
             Assert.Contains("2", result);
             Assert.Equal(new[] { "1", "2", "4", "5", "6" }, result);
         }
-        
-        [Fact, CleanDatabase]
+
+        [Fact]
         public void GetAllItemsFromSet_ReturnsAllItems_WithCorrectValues()
         {
             // Arrange
@@ -773,7 +774,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(new[] { "11:22", "33" }, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetAllItemsFromSet_ReturnsAllItems_WhenKeyContainsRegexSpecialChars()
         {
             var key = "some+-[regex]?-#set";
@@ -792,7 +793,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(new[] { "11:22", "33" }, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void SetRangeInHash_ThrowsAnException_WhenKeyIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -801,7 +802,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("key", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void SetRangeInHash_ThrowsAnException_WhenKeyValuePairsArgumentIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -810,7 +811,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("keyValuePairs", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void SetRangeInHash_MergesAllRecords()
         {
             _connection.SetRangeInHash("some-hash", new Dictionary<string, string>
@@ -833,20 +834,20 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("Value2", result["Key2"]);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetAllEntriesFromHash_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetAllEntriesFromHash(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetAllEntriesFromHash_ReturnsNull_IfHashDoesNotExist()
         {
             var result = _connection.GetAllEntriesFromHash("some-hash");
             Assert.Null(result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetAllEntriesFromHash_ReturnsAllKeysAndTheirValues()
         {
             // Arrange
@@ -882,20 +883,20 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("Value2", result["Key2"]);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetSetCount_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetSetCount(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetSetCount_ReturnsZero_WhenSetDoesNotExist()
         {
             var result = _connection.GetSetCount("my-set");
             Assert.Equal(0, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetSetCount_ReturnsNumberOfElements_InASet()
         {
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -925,7 +926,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(2, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetSetCount_ReturnsNumberOfElements_InASet_WhenKeyContainsRegexSpecialChars()
         {
             var key = "some+-[regex]?-#set";
@@ -950,13 +951,13 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(2, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetRangeFromSet_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetRangeFromSet(null, 0, 1));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetRangeFromSet_ReturnsPagedElementsInCorrectOrder()
         {
             _dbContext.JobGraph.InsertOne(new SetDto
@@ -1018,7 +1019,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(new[] { "2", "3", "4", "6" }, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetRangeFromSet_ReturnsPagedElementsInCorrectOrder_WhenKeyContainsRegexSpecialChars()
         {
             var key = "some+-[regex]?-#set";
@@ -1073,20 +1074,20 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(new[] { "2", "3", "4", "6" }, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetSetTtl_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetSetTtl(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetSetTtl_ReturnsNegativeValue_WhenSetDoesNotExist()
         {
             var result = _connection.GetSetTtl("my-set");
             Assert.True(result < TimeSpan.Zero, $"{result} < {TimeSpan.Zero}");
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetSetTtl_ReturnsExpirationTime_OfAGivenSet()
         {
             // Arrange
@@ -1116,7 +1117,7 @@ namespace Hangfire.Mongo.Tests
             Assert.True(result < TimeSpan.FromMinutes(61));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetSetTtl_ReturnsExpirationTime_OfAGivenSet_WhenKeyContainsRegexSpecialChars()
         {
             var key = "some+-[regex]?-#set";
@@ -1139,20 +1140,20 @@ namespace Hangfire.Mongo.Tests
             Assert.True(result < TimeSpan.FromMinutes(61));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetCounter_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetCounter(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetCounter_ReturnsZero_WhenKeyDoesNotExist()
         {
             var result = _connection.GetCounter("my-counter");
             Assert.Equal(0, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetCounter_ReturnsSumOfValues_InCounterTable()
         {
             // Arrange
@@ -1168,7 +1169,7 @@ namespace Hangfire.Mongo.Tests
                 Key = "counter-2",
                 Value = 1L
             }.Serialize());
-                
+
             // Act
             var result = _connection.GetCounter("counter-1");
 
@@ -1176,20 +1177,20 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(2, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetHashCount_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetHashCount(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetHashCount_ReturnsZero_WhenKeyDoesNotExist()
         {
             var result = _connection.GetHashCount("my-hash");
             Assert.Equal(0, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetHashCount_ReturnsNumber_OfHashFields()
         {
             // Arrange
@@ -1200,7 +1201,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     ["field-1"] = "field-1-value",
                     ["field-2"] = "field-2-value",
-                        
+
                 },
                 Key = "hash-1",
             }.Serialize());
@@ -1211,7 +1212,7 @@ namespace Hangfire.Mongo.Tests
                 Fields = new Dictionary<string, string>
                 {
                     ["field-1"] = "field-1-value",
-                        
+
                 },
             }.Serialize());
 
@@ -1222,20 +1223,20 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(2, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetHashTtl_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetHashTtl(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetHashTtl_ReturnsNegativeValue_WhenHashDoesNotExist()
         {
             var result = _connection.GetHashTtl("my-hash");
             Assert.True(result < TimeSpan.Zero);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetHashTtl_ReturnsExpirationTimeForHash()
         {
             // Arrange
@@ -1246,7 +1247,7 @@ namespace Hangfire.Mongo.Tests
                 Fields = new Dictionary<string, string>
                 {
                     ["field-1"] = "field-1-value",
-                        
+
                 },
                 ExpireAt = DateTime.UtcNow.AddHours(1)
             }.Serialize());
@@ -1257,7 +1258,7 @@ namespace Hangfire.Mongo.Tests
                 Fields = new Dictionary<string, string>
                 {
                     ["field-1"] = "field-1-value",
-                        
+
                 },
                 ExpireAt = null
             }.Serialize());
@@ -1270,7 +1271,7 @@ namespace Hangfire.Mongo.Tests
             Assert.True(result < TimeSpan.FromMinutes(61));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetValueFromHash_ThrowsAnException_WhenKeyIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(() => _connection.GetValueFromHash(null, "name"));
@@ -1278,7 +1279,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("key", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetValueFromHash_ThrowsAnException_WhenNameIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(() => _connection.GetValueFromHash("key", null));
@@ -1286,14 +1287,14 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("name", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetValueFromHash_ReturnsNull_WhenHashDoesNotExist()
         {
             var result = _connection.GetValueFromHash("my-hash", "name");
             Assert.Null(result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetValueFromHash_ReturnsValue_OfAGivenField()
         {
             // Arrange
@@ -1324,20 +1325,20 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("1", result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetListCount_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetListCount(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetListCount_ReturnsZero_WhenListDoesNotExist()
         {
             var result = _connection.GetListCount("my-list");
             Assert.Equal(0, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetListCount_ReturnsTheNumberOfListElements()
         {
             // Arrange
@@ -1364,20 +1365,20 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(2, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetListTtl_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetListTtl(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetListTtl_ReturnsNegativeValue_WhenListDoesNotExist()
         {
             var result = _connection.GetListTtl("my-list");
             Assert.True(result < TimeSpan.Zero);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetListTtl_ReturnsExpirationTimeForList()
         {
             // Arrange
@@ -1402,7 +1403,7 @@ namespace Hangfire.Mongo.Tests
             Assert.True(result < TimeSpan.FromMinutes(61));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetRangeFromList_ThrowsAnException_WhenKeyIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(() => _connection.GetRangeFromList(null, 0, 1));
@@ -1410,14 +1411,14 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("key", exception.ParamName);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetRangeFromList_ReturnsAnEmptyList_WhenListDoesNotExist()
         {
             var result = _connection.GetRangeFromList("my-list", 0, 1);
             Assert.Empty(result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetRangeFromList_ReturnsAllEntries_WithinGivenBounds()
         {
             // Arrange
@@ -1459,7 +1460,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(new[] { "4", "3" }, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetRangeFromList_ReturnsAllEntriesInCorrectOrder()
         {
             // Arrange
@@ -1505,20 +1506,20 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(new[] { "4", "3", "2", "1" }, result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetAllItemsFromList_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(() => _connection.GetAllItemsFromList(null));
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetAllItemsFromList_ReturnsAnEmptyList_WhenListDoesNotExist()
         {
             var result = _connection.GetAllItemsFromList("my-list");
             Assert.Empty(result);
         }
 
-        [Fact, CleanDatabase]
+        [Fact]
         public void GetAllItemsFromList_ReturnsAllItemsFromAGivenList_InCorrectOrder()
         {
             // Arrange

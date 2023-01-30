@@ -17,7 +17,13 @@ namespace Hangfire.Mongo.Tests
     [Collection("Database")]
     public class MongoWriteOnlyTransactionFacts
     {
-        private readonly HangfireDbContext _database = ConnectionUtils.CreateDbContext();
+        private readonly HangfireDbContext _database;
+
+        public MongoWriteOnlyTransactionFacts(MongoDbFixture fixture)
+        {
+            fixture.CleanDatabase();
+            _database = fixture.CreateDbContext();
+        }
 
         [Fact]
         public void Ctor_ThrowsAnException_IfConnectionIsNull()
@@ -28,7 +34,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void ExpireJob_SetsJobExpirationData()
         {
             var job = new JobDto
@@ -63,7 +68,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void PersistJob_ClearsTheJobExpirationData()
         {
             var job = new JobDto
@@ -99,7 +103,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void SetJobState_AppendsAStateAndSetItToTheJob()
         {
             var job = new JobDto
@@ -151,7 +154,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void AddJobState_JustAddsANewRecordInATable()
         {
             var job = new JobDto
@@ -187,7 +189,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void AddToQueue_CallsEnqueue_OnTargetPersistentQueue()
         {
             var jobId = ObjectId.GenerateNewId();
@@ -213,7 +214,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void IncrementCounter_AddsRecordToCounterTable_WithPositiveValue()
         {
             Commit(x => x.IncrementCounter("my-key"));
@@ -231,7 +231,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void IncrementCounter_WithExpiry_AddsARecord_WithExpirationTimeSet()
         {
             Commit(x => x.IncrementCounter("my-key", TimeSpan.FromDays(1)));
@@ -253,7 +252,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void IncrementCounter_WithExistingKey_AddsAnotherRecord()
         {
             Commit(x =>
@@ -274,7 +272,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void DecrementCounter_AddsRecordToCounterTable_WithNegativeValue()
         {
             Commit(x => x.DecrementCounter("my-key"));
@@ -291,7 +288,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void DecrementCounter_WithExpiry_AddsARecord_WithExpirationTimeSet()
         {
             Commit(x => x.DecrementCounter("my-key", TimeSpan.FromDays(1)));
@@ -313,7 +309,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void DecrementCounter_WithExistingKey_AddsAnotherRecord()
         {
             Commit(x =>
@@ -332,7 +327,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void AddToSet_AddsARecord_IfThereIsNo_SuchKeyAndValue()
         {
             Commit(x => x.AddToSet("my-key", "my-value"));
@@ -348,7 +342,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void AddToSet_AddsARecord_WhenKeyIsExists_ButValuesAreDifferent()
         {
             Commit(x =>
@@ -366,7 +359,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void AddToSet_DoesNotAddARecord_WhenBothKeyAndValueAreExist()
         {
             Commit(x =>
@@ -381,7 +373,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void AddToSet_WithScore_AddsARecordWithScore_WhenBothKeyAndValueAreNotExist()
         {
             Commit(x => x.AddToSet("my-key", "my-value", 3.2));
@@ -396,7 +387,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void AddToSet_WithScore_UpdatesAScore_WhenBothKeyAndValueAreExist()
         {
             Commit(x =>
@@ -412,7 +402,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void RemoveFromSet_RemovesARecord_WithGivenKeyAndValue()
         {
             Commit(x =>
@@ -427,7 +416,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void RemoveFromSet_DoesNotRemoveRecord_WithSameKey_AndDifferentValue()
         {
             Commit(x =>
@@ -442,7 +430,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void RemoveFromSet_DoesNotRemoveRecord_WithSameValue_AndDifferentKey()
         {
             Commit(x =>
@@ -457,7 +444,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void InsertToList_AddsARecord_WithGivenValues()
         {
             Commit(x => x.InsertToList("my-key", "my-value"));
@@ -468,7 +454,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void InsertToList_AddsAnotherRecord_WhenBothKeyAndValueAreExist()
         {
             Commit(x =>
@@ -483,7 +468,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void RemoveFromList_RemovesAllRecords_WithGivenKeyAndValue()
         {
             Commit(x =>
@@ -499,7 +483,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void RemoveFromList_DoesNotRemoveRecords_WithSameKey_ButDifferentValue()
         {
             Commit(x =>
@@ -514,7 +497,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void RemoveFromList_DoesNotRemoveRecords_WithSameValue_ButDifferentKey()
         {
             Commit(x =>
@@ -529,7 +511,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void TrimList_TrimsAList_ToASpecifiedRange()
         {
             Commit(x =>
@@ -550,7 +531,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void TrimList_RemovesRecordsToEnd_IfKeepAndingAt_GreaterThanMaxElementIndex()
         {
             Commit(x =>
@@ -567,7 +547,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void TrimList_RemovesAllRecords_WhenStartingFromValue_GreaterThanMaxElementIndex()
         {
             Commit(x =>
@@ -582,7 +561,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void TrimList_RemovesAllRecords_IfStartFromGreaterThanEndingAt()
         {
             Commit(x =>
@@ -597,7 +575,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void TrimList_RemovesRecords_OnlyOfAGivenKey()
         {
             Commit(x =>
@@ -612,7 +589,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void SetRangeInHash_ThrowsAnException_WhenKeyIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -622,7 +598,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void SetRangeInHash_ThrowsAnException_WhenKeyValuePairsArgumentIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
@@ -632,7 +607,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void SetRangeInHash_MergesAllRecords()
         {
             Commit(x => x.SetRangeInHash("some-hash", new Dictionary<string, string>
@@ -651,7 +625,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void RemoveHash_ThrowsAnException_WhenKeyIsNull()
         {
             Assert.Throws<ArgumentNullException>(
@@ -659,7 +632,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void RemoveHash_RemovesAllHashRecords()
         {
             // Arrange
@@ -678,7 +650,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void ExpireSet_SetsSetExpirationData()
         {
             var set1 = new SetDto {Key = "Set1<value1>", Value = "value1", SetType = "Set1"};
@@ -701,7 +672,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void ExpireSet_SetsSetExpirationData_WhenKeyContainsRegexSpecialChars()
         {
             var key = "some+-[regex]?-#set";
@@ -720,7 +690,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void ExpireList_SetsListExpirationData()
         {
             var list1 = new ListDto {Item = "List1", Value = "value1"};
@@ -740,7 +709,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void ExpireHash_SetsHashExpirationData()
         {
             var hash1 = new HashDto {Key = "Hash1"};
@@ -761,7 +729,6 @@ namespace Hangfire.Mongo.Tests
 
 
         [Fact]
-        [CleanDatabase]
         public void PersistSet_ClearsTheSetExpirationData()
         {
             var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", SetType = "Set1", ExpireAt = DateTime.UtcNow};
@@ -783,7 +750,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void PersistSet_ClearsTheSetExpirationData_WhenKeyContainsRegexSpecialChars()
         {
             var key = "some+-[regex]?-#set";
@@ -799,7 +765,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void PersistList_ClearsTheListExpirationData()
         {
             var list1 = new ListDto {Item = "List1", Value = "value1", ExpireAt = DateTime.UtcNow};
@@ -818,7 +783,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void PersistHash_ClearsTheHashExpirationData()
         {
             var hash1 = new HashDto {Key = "Hash1", ExpireAt = DateTime.UtcNow};
@@ -837,7 +801,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void AddRangeToSet_AddToExistingSetData()
         {
             // ASSERT
@@ -869,7 +832,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void RemoveSet_ClearsTheSetData()
         {
             var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", SetType = "Set1", ExpireAt = DateTime.UtcNow};
@@ -891,7 +853,6 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        [CleanDatabase]
         public void RemoveSet_ClearsTheSetData_WhenKeyContainsRegexSpecialChars()
         {
             var key = "some+-[regex]?-#set";

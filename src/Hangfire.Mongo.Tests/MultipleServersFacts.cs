@@ -10,7 +10,15 @@ namespace Hangfire.Mongo.Tests
     [Collection("Database")]
     public class MultipleServersFacts
     {
-        [Fact(Skip = "Long running and does not always fail"), CleanDatabase]
+        private readonly MongoStorage _storage;
+
+        public MultipleServersFacts(MongoDbFixture fixture)
+        {
+            fixture.CleanDatabase();
+            _storage = fixture.CreateStorage(new MongoStorageOptions { QueuePollInterval = TimeSpan.FromSeconds(1) });
+        }
+
+        [Fact(Skip = "Long running and does not always fail")]
         public void MultipleServerRunsRecurrentJobs()
         {
             // ARRANGE
@@ -18,7 +26,7 @@ namespace Hangfire.Mongo.Tests
             const int workerCount = 20;
 
             var options = new BackgroundJobServerOptions[serverCount];
-            var storage = ConnectionUtils.CreateStorage(new MongoStorageOptions { QueuePollInterval = TimeSpan.FromSeconds(1) });
+
             var servers = new BackgroundJobServer[serverCount];
 
             var jobManagers = new RecurringJobManager[serverCount];
@@ -27,8 +35,8 @@ namespace Hangfire.Mongo.Tests
             {
                 options[i] = new BackgroundJobServerOptions { Queues = new[] { $"queue_options_{i}" }, WorkerCount = workerCount };
 
-                servers[i] = new BackgroundJobServer(options[i], storage);
-                jobManagers[i] = new RecurringJobManager(storage);
+                servers[i] = new BackgroundJobServer(options[i], _storage);
+                jobManagers[i] = new RecurringJobManager(_storage);
             }
 
             try

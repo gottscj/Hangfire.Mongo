@@ -10,15 +10,16 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests.Migration
 {
+    [Collection("Database")]
     public class Version19MigrationStepFacts
     {
         private readonly Mock<IMongoMigrationContext> _mongoMigrationBagMock;
         private readonly IMongoDatabase _database;
         private readonly Random _random;
         private readonly AddTypeToSetDto _addTypeToSetDto;
-        public Version19MigrationStepFacts()
+        public Version19MigrationStepFacts(MongoDbFixture fixture)
         {
-            var dbContext = ConnectionUtils.CreateDbContext();
+            var dbContext = fixture.CreateDbContext();
             _database = dbContext.Database;
             _mongoMigrationBagMock = new Mock<IMongoMigrationContext>(MockBehavior.Strict);
             _random = new Random();
@@ -30,7 +31,7 @@ namespace Hangfire.Mongo.Tests.Migration
         {
             // ARRANGE
             var collection = _database.GetCollection<BsonDocument>("hangfire.jobGraph");
-            
+
             collection.Indexes.DropAll();
             collection.InsertMany(new []
             {
@@ -41,7 +42,7 @@ namespace Hangfire.Mongo.Tests.Migration
             });
             // ACT
             var result = _addTypeToSetDto.Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
-            
+
             // ASSERT
             Assert.True(result, "Expected migration to be successful, reported 'false'");
             var migrated = collection.Find(new BsonDocument("_t", "SetDto")).ToList();
@@ -49,7 +50,7 @@ namespace Hangfire.Mongo.Tests.Migration
             {
                 Assert.True(doc.Contains("SetType"));
             }
-            
+
             var index = collection.Indexes.List().ToList().FirstOrDefault(b => b["name"].AsString == "SetType");
             Assert.NotNull(index);
         }
