@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
@@ -142,13 +143,10 @@ namespace Hangfire.Mongo.Tests
                 ["_t"] = nameof(JobDto),
                 ["_id"] = ObjectId.Parse(payload.JobId)
             };
-            var fetchedAt = _hangfireDbContext.JobGraph
-                .Find(filter)
-                .Project(b => new JobDto(b))
-                .FirstOrDefault()
-                .FetchedAt;
+            var document = _hangfireDbContext.JobGraph.Find(filter).FirstOrDefault();
+            var fetchedAt = new JobDto(document).FetchedAt;
 
-            Assert.NotNull(fetchedAt);
+            Assert.NotNull(document);
             Assert.True(fetchedAt > DateTime.UtcNow.AddMinutes(-1));
             _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
         }
@@ -248,11 +246,10 @@ namespace Hangfire.Mongo.Tests
                 ["_t"] = nameof(JobDto),
                 ["_id"] = new BsonDocument("$ne", ObjectId.Parse(payload.JobId))
             };
-            var otherJob = _hangfireDbContext
-                .JobGraph.Find(filter).Project(b => new JobDto(b))
-                .FirstOrDefault();
-            Assert.NotNull(otherJob);
+            var document = _hangfireDbContext.JobGraph.Find(filter).FirstOrDefault();
+            Assert.NotNull(document);
 
+            var otherJob = new JobDto(document);
             var otherJobFetchedAt = otherJob.FetchedAt;
 
             Assert.Null(otherJobFetchedAt);

@@ -53,9 +53,8 @@ namespace Hangfire.Mongo.Tests
             {
                 ["_t"] = nameof(JobDto),
                 ["_id"] = ObjectId.Parse(jobId)
-            })
-                .Project(b => new JobDto(b))
-                .FirstOrDefault();
+            }).FirstOrDefault();
+
 
             // ASSERT
             Assert.NotNull(jobDto);

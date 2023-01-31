@@ -168,11 +168,9 @@ namespace Hangfire.Mongo.Tests
                 DateTime initialExpireAt = DateTime.UtcNow;
                 Thread.Sleep(TimeSpan.FromSeconds(5));
 
-                DistributedLockDto lockEntry = _database.DistributedLock
-                    .Find(filter)
-                    .Project(b => new DistributedLockDto(b)).FirstOrDefault();
+                var lockEntry = _database.DistributedLock.Find(filter).FirstOrDefault();
                 Assert.NotNull(lockEntry);
-                Assert.True(lockEntry.ExpireAt > initialExpireAt);
+                Assert.True(new DistributedLockDto(lockEntry).ExpireAt > initialExpireAt);
             }
         }
 
@@ -192,11 +190,7 @@ namespace Hangfire.Mongo.Tests
             };
             using (lock1.AcquireLock())
             {
-                var lockEntry = _database
-                    .DistributedLock
-                    .Find(filter)
-                    .Project(b => new DistributedLockDto(b))
-                    .Single();
+                var lockEntry = new DistributedLockDto(_database.DistributedLock.Find(filter).Single());
 
                 Assert.True(lockEntry.ExpireAt > initialExpireAt);
             }

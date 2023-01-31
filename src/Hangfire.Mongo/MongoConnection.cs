@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using Hangfire.Common;
 using Hangfire.Logging;
@@ -22,9 +21,9 @@ namespace Hangfire.Mongo
         private static readonly ILog Logger = LogProvider.For<MongoConnection>();
         private readonly MongoStorageOptions _storageOptions;
         private readonly MongoJobFetcher _jobFetcher;
-        
+
         private readonly HangfireDbContext _dbContext;
-        
+
 #pragma warning disable 1591
         public MongoConnection(
             HangfireDbContext database,
@@ -44,7 +43,7 @@ namespace Hangfire.Mongo
         {
             var distributedLock =
                 _storageOptions.Factory.CreateMongoDistributedLock(resource, timeout, _dbContext, _storageOptions);
-            
+
             return distributedLock.AcquireLock();
         }
 
@@ -92,18 +91,18 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(name));
             }
             var objectId = ObjectId.Parse(id);
-            var jobDto = _dbContext
+            var job = _dbContext
                 .JobGraph
                 .Find(new BsonDocument
                 {
                     ["_id"] = objectId,
                     ["_t"] = nameof(JobDto)
                 })
-                .Project(b => new JobDto(b))
                 .FirstOrDefault();
+            var jobDto = new JobDto(job);
 
             string value = null;
-            jobDto?.Parameters?.TryGetValue(name, out value);
+            jobDto.Parameters?.TryGetValue(name, out value);
 
             return value;
         }
@@ -116,22 +115,22 @@ namespace Hangfire.Mongo
             }
 
             var objectId = ObjectId.Parse(jobId);
-            var jobDto = _dbContext
+            var document = _dbContext
                 .JobGraph
                 .Find(new BsonDocument
                 {
                     ["_id"] = objectId,
                     ["_t"] = nameof(JobDto)
                 })
-                .Project(b => new JobDto(b))
                 .FirstOrDefault();
 
-            if (jobDto == null)
+            if (document == null)
             {
                 return null;
             }
 
             // TODO: conversion exception could be thrown.
+            var jobDto = new JobDto(document);
             var invocationData = JobHelper.FromJson<InvocationData>(jobDto.InvocationData);
             invocationData.Arguments = jobDto.Arguments;
 
@@ -164,21 +163,21 @@ namespace Hangfire.Mongo
             }
 
             var objectId = ObjectId.Parse(jobId);
-            var jobDto = _dbContext
+            var document = _dbContext
                 .JobGraph
                 .Find(new BsonDocument
                 {
                     ["_id"] = objectId,
                     ["_t"] = nameof(JobDto)
                 })
-                .Project(b => new JobDto(b))
                 .FirstOrDefault();
 
-            if (jobDto == null)
+            if (document == null)
             {
                 return null;
             }
 
+            var jobDto = new JobDto(document);
             var state = jobDto.StateHistory.LastOrDefault();
 
             if (state == null)
@@ -275,7 +274,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetAllItemsFromSet({key})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -306,7 +305,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetFirstByLowestScoreFromSet({key}, {fromScore}, {toScore}, {count})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -343,7 +342,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"SetRangeInHash({key})");
             }
-            
+
             using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
             {
                 transaction.SetRangeInHash(key, keyValuePairs);
@@ -357,7 +356,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetAllEntriesFromHash({key})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -381,7 +380,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetSetCount({key})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -403,7 +402,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetRangeFromSet({key}, {startingFrom}, {endingAt})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -430,7 +429,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetSetTtl({key})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -461,7 +460,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetCounter({key})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -474,10 +473,9 @@ namespace Hangfire.Mongo
                     [nameof(CounterDto.Key)] = key,
                     ["_t"] = nameof(CounterDto)
                 })
-                .Project(b => new CounterDto(b))
                 .FirstOrDefault();
 
-            return counter?.Value ?? 0;
+            return counter == null ? 0 : new CounterDto(counter).Value;
         }
 
         public override long GetHashCount(string key)
@@ -486,7 +484,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetHashCount({key})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -499,10 +497,9 @@ namespace Hangfire.Mongo
                     [nameof(HashDto.Key)] = key,
                     ["_t"] = nameof(HashDto)
                 })
-                .Project(b => new HashDto(b))
                 .FirstOrDefault();
 
-            return hash?.Fields.Count ?? 0;
+            return hash == null ? 0 : new HashDto(hash).Fields.Count;
         }
 
         public override TimeSpan GetHashTtl(string key)
@@ -511,7 +508,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetHashTtl({key})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -542,7 +539,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetValueFromHash({key}, {name})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -559,14 +556,13 @@ namespace Hangfire.Mongo
                 new BsonDocument(nameof(KeyJobDto.Key), key),
                 new BsonDocument($"{nameof(HashDto.Fields)}.{name}", new BsonDocument("$exists", true))
             });
-            
+
             var result = _dbContext
                 .JobGraph
                 .Find(hashWithField)
-                .Project(b => new HashDto(b))
                 .FirstOrDefault();
 
-            return result?.Fields[name];
+            return result == null ? null : new HashDto(result).Fields[name];
         }
 
         public override long GetListCount(string key)
@@ -575,7 +571,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetListCount({key})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -597,7 +593,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetListTtl({key})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -613,7 +609,7 @@ namespace Hangfire.Mongo
                 .Sort(new BsonDocument(nameof(ListDto.ExpireAt), 1))
                 .Project(new BsonDocument(nameof(ListDto.ExpireAt), 1))
                 .FirstOrDefault();
-                
+
             if(listDto == null)
             {
                 return TimeSpan.FromSeconds(-1);
@@ -628,7 +624,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetRangeFromList({key}, {startingFrom}, {endingAt})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -654,7 +650,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetAllItemsFromList({key})");
             }
-            
+
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
