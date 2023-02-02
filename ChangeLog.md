@@ -1,6 +1,13 @@
 
 ## Change log
 
+### v1.9.2 (2022-02-02)
+- Remove debug log written with Console.WriteLine (#336)
+- Automatically run MongoDB during the tests (with EphemeralMongo) (#337)
+- Make compatible with MongoDB.Driver linq v3 (#338)
+- Update to Hangfire.Core 1.7.33
+- Update MongoDB.Driver to 2.19.0
+
 ### v1.9.1 (2022-12-19)
 - Fixes SchemaDto deserialization bug (#333)
 

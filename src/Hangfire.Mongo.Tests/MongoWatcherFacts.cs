@@ -10,6 +10,7 @@ using Xunit;
 
 namespace Hangfire.Mongo.Tests
 {
+    [Collection("Database")]
     public sealed class MongoWatcherFacts : IDisposable
     {
         private readonly HangfireDbContext _dbContext;
@@ -42,7 +43,7 @@ namespace Hangfire.Mongo.Tests
             _cts.Dispose();
         }
 
-        [Fact(Skip = "Needs replica set, enable when you figure out how to set it up in github actions")]
+        [Fact]
         public void Execute_JobEnqueued_Signaled()
         {
             // ARRANGE
