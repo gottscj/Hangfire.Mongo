@@ -6,7 +6,6 @@ using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.States;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using Moq;
 using Xunit;
@@ -142,10 +141,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Null(anotherTestJob.StateName);
             Assert.Empty(anotherTestJob.StateHistory);
 
-            var jobWithStates = _database.JobGraph
-                .Find(new BsonDocument("_t", nameof(JobDto)))
-                .Project(b => new JobDto(b))
-                .FirstOrDefault();
+            var jobWithStates = new JobDto(_database.JobGraph.Find(new BsonDocument("_t", nameof(JobDto))).First());
 
             var jobState = jobWithStates.StateHistory.Single();
             Assert.Equal("State", jobState.Name);
@@ -178,10 +174,8 @@ namespace Hangfire.Mongo.Tests
             var testJob = GetTestJob(_database, jobId);
             Assert.Null(testJob.StateName);
 
-            var jobWithStates = _database.JobGraph
-                .Find(new BsonDocument("_t", nameof(JobDto)))
-                .Project(b => new JobDto(b))
-                .Single();
+            var jobWithStates = new JobDto(_database.JobGraph.Find(new BsonDocument("_t", nameof(JobDto))).Single());
+
             var jobState = jobWithStates.StateHistory.Last();
             Assert.Equal("State", jobState.Name);
             Assert.Equal("Reason", jobState.Reason);
@@ -199,7 +193,7 @@ namespace Hangfire.Mongo.Tests
 
             Commit(x => x.AddToQueue("default", jobId.ToString()));
 
-            var jobDto = _database
+            var job = _database
                 .JobGraph
                 .Find(new BsonDocument
                 {
@@ -207,10 +201,9 @@ namespace Hangfire.Mongo.Tests
                     [nameof(JobDto.Queue)] = "default",
                     ["_id"] = jobId,
                 })
-                .Project(b => new JobDto(b))
                 .FirstOrDefault();
 
-            Assert.NotNull(jobDto);
+            Assert.NotNull(job);
         }
 
         [Fact]
@@ -218,12 +211,7 @@ namespace Hangfire.Mongo.Tests
         {
             Commit(x => x.IncrementCounter("my-key"));
 
-            var record = _database.JobGraph
-                .Find(new BsonDocument
-                {
-                    ["_t"] = nameof(CounterDto)
-                })
-                .Project(b => new CounterDto(b)).ToList().Single();
+            var record = new CounterDto(_database.JobGraph.Find(new BsonDocument { ["_t"] = nameof(CounterDto) }).Single());
 
             Assert.Equal("my-key", record.Key);
             Assert.Equal(1L, record.Value);
@@ -235,11 +223,7 @@ namespace Hangfire.Mongo.Tests
         {
             Commit(x => x.IncrementCounter("my-key", TimeSpan.FromDays(1)));
 
-            var counter = _database.JobGraph.Find(new BsonDocument
-            {
-                ["_t"] = nameof(CounterDto)
-            })
-                .Project(b => new CounterDto(b)).Single();
+            var counter = new CounterDto(_database.JobGraph.Find(new BsonDocument { ["_t"] = nameof(CounterDto) }).Single());
 
             Assert.Equal("my-key", counter.Key);
             Assert.Equal(1L, counter.Value);
@@ -260,15 +244,14 @@ namespace Hangfire.Mongo.Tests
                 x.IncrementCounter("my-key");
             });
 
-            var counter = _database.JobGraph.Find(new BsonDocument
+            var document = _database.JobGraph.Find(new BsonDocument
             {
                 ["_t"] = nameof(CounterDto),
                 [nameof(CounterDto.Key)] = "my-key"
-            })
-                .Project(b => new CounterDto(b)).FirstOrDefault();
+            }).FirstOrDefault();
+            Assert.NotNull(document);
 
-            Assert.NotNull(counter);
-            Assert.Equal(2, counter.Value);
+            Assert.Equal(2, new CounterDto(document).Value);
         }
 
         [Fact]
@@ -276,11 +259,7 @@ namespace Hangfire.Mongo.Tests
         {
             Commit(x => x.DecrementCounter("my-key"));
 
-            var record = _database.JobGraph.Find(new BsonDocument
-            {
-                ["_t"] = nameof(CounterDto),
-            })
-                .Project(b => new CounterDto(b)).Single();
+            var record = new CounterDto(_database.JobGraph.Find(new BsonDocument { ["_t"] = nameof(CounterDto) }).Single());
 
             Assert.Equal("my-key", record.Key);
             Assert.Equal(-1L, record.Value);
@@ -292,11 +271,7 @@ namespace Hangfire.Mongo.Tests
         {
             Commit(x => x.DecrementCounter("my-key", TimeSpan.FromDays(1)));
 
-            var counter = _database.JobGraph.Find(new BsonDocument
-            {
-                ["_t"] = nameof(CounterDto)
-            })
-                .Project(b => new CounterDto(b)).Single();
+            var counter = new CounterDto(_database.JobGraph.Find(new BsonDocument { ["_t"] = nameof(CounterDto) }).Single());
 
             Assert.Equal("my-key", counter.Key);
             Assert.Equal(-1L, counter.Value);
@@ -317,11 +292,7 @@ namespace Hangfire.Mongo.Tests
                 x.DecrementCounter("my-key");
             });
 
-            var counter = _database.JobGraph.Find(new BsonDocument
-            {
-                ["_t"] = nameof(CounterDto)
-            })
-                .Project(b => new CounterDto(b)).Single();
+            var counter = new CounterDto(_database.JobGraph.Find(new BsonDocument { ["_t"] = nameof(CounterDto) }).Single());
 
             Assert.Equal(-2, counter.Value);
         }
@@ -331,11 +302,7 @@ namespace Hangfire.Mongo.Tests
         {
             Commit(x => x.AddToSet("my-key", "my-value"));
 
-            var record = _database.JobGraph.Find(new BsonDocument
-            {
-                ["_t"] = nameof(SetDto)
-            })
-                .Project(b => new SetDto(b)).ToList().Single();
+            var record = new SetDto(_database.JobGraph.Find(new BsonDocument {["_t"] = nameof(SetDto) }).Single());
 
             Assert.Equal("my-key<my-value>", record.Key);
             Assert.Equal(0.0, record.Score, 2);
@@ -377,10 +344,7 @@ namespace Hangfire.Mongo.Tests
         {
             Commit(x => x.AddToSet("my-key", "my-value", 3.2));
 
-            var record = _database.JobGraph
-                .Find(new BsonDocument("_t", nameof(SetDto)))
-                .Project(b => new SetDto(b))
-                .Single();
+            var record = new SetDto(_database.JobGraph.Find(new BsonDocument("_t", nameof(SetDto))).Single());
 
             Assert.Equal("my-key<my-value>", record.Key);
             Assert.Equal(3.2, record.Score, 3);
@@ -395,8 +359,7 @@ namespace Hangfire.Mongo.Tests
                 x.AddToSet("my-key", "my-value", 3.2);
             });
 
-            var record = _database.JobGraph.Find(new BsonDocument("_t", nameof(SetDto)))
-                .Project(b => new SetDto(b)).Single();
+            var record = new SetDto(_database.JobGraph.Find(new BsonDocument("_t", nameof(SetDto))).Single());
 
             Assert.Equal(3.2, record.Score, 3);
         }
@@ -448,7 +411,8 @@ namespace Hangfire.Mongo.Tests
         {
             Commit(x => x.InsertToList("my-key", "my-value"));
 
-            var record = _database.JobGraph.Find(new BsonDocument("_t", nameof(ListDto))).Project(b => new ListDto(b)).Single();
+            var record = new ListDto(_database.JobGraph.Find(new BsonDocument("_t", nameof(ListDto))).Single());
+
             Assert.Equal("my-key", record.Item);
             Assert.Equal("my-value", record.Value);
         }
@@ -522,8 +486,7 @@ namespace Hangfire.Mongo.Tests
                 x.TrimList("my-key", 1, 2);
             });
 
-            var records = _database.JobGraph.Find(new BsonDocument("_t", nameof(ListDto)))
-                .Project(b => new ListDto(b)).ToList();
+            var records = _database.JobGraph.Find(new BsonDocument("_t", nameof(ListDto))).ToList().Select(b => new ListDto(b)).ToList();
 
             Assert.Equal(2, records.Count);
             Assert.Equal("1", records[0].Value);
@@ -615,10 +578,7 @@ namespace Hangfire.Mongo.Tests
                 {"Key2", "Value2"}
             }));
 
-            var result = _database.JobGraph
-                .Find(new BsonDocument(nameof(KeyJobDto.Key), "some-hash") { ["_t"] = nameof(HashDto) })
-                .Project(b => new HashDto(b))
-                .FirstOrDefault();
+            var result = new HashDto(_database.JobGraph.Find(new BsonDocument(nameof(KeyJobDto.Key), "some-hash") { ["_t"] = nameof(HashDto) }).Single());
 
             Assert.Equal("Value1", result.Fields["Key1"]);
             Assert.Equal("Value2", result.Fields["Key2"]);
@@ -877,8 +837,8 @@ namespace Hangfire.Mongo.Tests
                 ["_id"] = ObjectId.Parse(jobId),
                 ["_t"] = nameof(JobDto)
             };
-            return database.JobGraph.Find(filter).Project(b => new JobDto(b))
-                .FirstOrDefault();
+            var document = database.JobGraph.Find(filter).FirstOrDefault();
+            return document == null ? null : new JobDto(document);
         }
 
         private static IList<SetDto> GetTestSet(HangfireDbContext database, string key)
@@ -888,7 +848,7 @@ namespace Hangfire.Mongo.Tests
                 [nameof(SetDto.SetType)] = key,
                 ["_t"] = nameof(SetDto)
             };
-            return database.JobGraph.Find(filter).Project(b => new SetDto(b)).ToList();
+            return database.JobGraph.Find(filter).ToList().Select(b => new SetDto(b)).ToList();
         }
 
         private static ListDto GetTestList(HangfireDbContext database, string key)
@@ -898,7 +858,8 @@ namespace Hangfire.Mongo.Tests
                 [nameof(ListDto.Item)] = key,
                 ["_t"] = nameof(ListDto)
             };
-            return database.JobGraph.Find(filter).Project(b => new ListDto(b)).FirstOrDefault();
+            var document = database.JobGraph.Find(filter).FirstOrDefault();
+            return document == null ? null : new ListDto(document);
         }
 
         private static HashDto GetTestHash(HangfireDbContext database, string key)
@@ -908,7 +869,8 @@ namespace Hangfire.Mongo.Tests
                 [nameof(HashDto.Key)] = key,
                 ["_t"] = nameof(HashDto)
             };
-            return database.JobGraph.Find(filter).Project(b => new HashDto(b)).FirstOrDefault();
+            var document = database.JobGraph.Find(filter).FirstOrDefault();
+            return document == null ? null : new HashDto(document);
         }
 
         private void Commit(Action<MongoWriteOnlyTransaction> action)

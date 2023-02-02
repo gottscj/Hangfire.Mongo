@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Threading.Tasks;
 using Hangfire.Common;
@@ -49,7 +50,7 @@ namespace Hangfire.Mongo
 
         public virtual IList<ServerDto> Servers()
         {
-            var servers = _dbContext.Server.Find(new BsonDocument()).Project(b => new Dto.ServerDto(b)).ToList();
+            var servers = _dbContext.Server.AsQueryable().ToList().Select(b => new Dto.ServerDto(b));
 
             var result = new List<ServerDto>();
 
@@ -424,8 +425,8 @@ namespace Hangfire.Mongo
             var jobs = _dbContext
                 .JobGraph
                 .Find(jobsByIdsFilter)
-                .Project(b => new JobDto(b))
-                .ToList();
+                .ToList()
+                .Select(b => new JobDto(b));
 
             var enqueuedJobs = jobs
                 .Select(job =>
@@ -509,8 +510,8 @@ namespace Hangfire.Mongo
             var jobs = connection
                 .JobGraph
                 .Find(filter)
-                .Project(b => new JobDto(b))
-                .ToList();
+                .ToList()
+                .Select(b => new JobDto(b));
 
             var fetcedJobs = jobs
                 .Select(job =>
@@ -563,8 +564,8 @@ namespace Hangfire.Mongo
                 .Sort(new BsonDocument("_id", -1))
                 .Skip(from)
                 .Limit(count)
-                .Project(b => new JobDto(b))
-                .ToList();
+                .ToList()
+                .Select(b => new JobDto(b));
 
             var joinedJobs = jobs
                 .Select(job =>
@@ -645,8 +646,8 @@ namespace Hangfire.Mongo
             };
             var valuesMap = _dbContext.JobGraph
                 .Find(filter)
-                .Project(b => new CounterDto(b))
                 .ToList()
+                .Select(b => new CounterDto(b))
                 .GroupBy(counter => counter.Key, counter => counter)
                 .ToDictionary(counter => counter.Key, grouping => grouping.Sum(c => c.Value));
 

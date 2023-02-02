@@ -127,10 +127,10 @@ namespace Hangfire.Mongo.Tests
             Assert.NotNull(jobId);
             Assert.NotEmpty(jobId);
 
-            var databaseJob = _dbContext.JobGraph
+            var document = _dbContext.JobGraph
                 .Find(new BsonDocument("_t", nameof(JobDto)))
-                .Project(b => new JobDto(b))
-                .ToList().Single();
+                .Single();
+            var databaseJob = new JobDto(document);
             Assert.Equal(jobId, databaseJob.Id.ToString());
             Assert.Equal(createdAt, databaseJob.CreatedAt);
             Assert.Null(databaseJob.StateName);
@@ -148,10 +148,9 @@ namespace Hangfire.Mongo.Tests
 
             var parameters = _dbContext
                 .JobGraph
-                .Find(new BsonDocument("_t", nameof(JobDto)){ ["_id"] = ObjectId.Parse(jobId) })
-                .Project(j => new JobDto(j))
+                .Find(new BsonDocument("_t", nameof(JobDto)) { ["_id"] = ObjectId.Parse(jobId) })
                 .ToList()
-                .SelectMany(j => j.Parameters)
+                .SelectMany(j => new JobDto(j).Parameters)
                 .ToDictionary(p => p.Key, x => x.Value);
 
             Assert.NotNull(parameters);
@@ -326,11 +325,7 @@ namespace Hangfire.Mongo.Tests
                 ["_id"] = jobId,
                 ["_t"] = nameof(JobDto),
             };
-            var job = _dbContext
-                .JobGraph
-                .Find(filter)
-                .Project(j => new JobDto(j))
-                .FirstOrDefault();
+            var job = new JobDto(_dbContext.JobGraph.Find(filter).First());
 
             Assert.NotNull(job.Parameters);
             Assert.Equal("Value", job.Parameters["Name"]);
@@ -357,11 +352,7 @@ namespace Hangfire.Mongo.Tests
                 ["_id"] = jobId,
                 ["_t"] = nameof(JobDto),
             };
-            var job = _dbContext
-                .JobGraph
-                .Find(filter)
-                .Project(j => new JobDto(j))
-                .FirstOrDefault();
+            var job = new JobDto(_dbContext.JobGraph.Find(filter).FirstOrDefault());
 
             Assert.NotNull(job.Parameters);
             Assert.Equal("AnotherValue", job.Parameters["Name"]);
@@ -387,11 +378,7 @@ namespace Hangfire.Mongo.Tests
                 ["_id"] = jobId,
                 ["_t"] = nameof(JobDto),
             };
-            var job = _dbContext
-                .JobGraph
-                .Find(filter)
-                .Project(j => new JobDto(j))
-                .FirstOrDefault();
+            var job = new JobDto(_dbContext.JobGraph.Find(filter).FirstOrDefault());
 
             Assert.NotNull(job.Parameters);
             Assert.Null(job.Parameters["Name"]);
@@ -563,7 +550,7 @@ namespace Hangfire.Mongo.Tests
             };
             _connection.AnnounceServer("server", context1);
 
-            var server = _dbContext.Server.Find(new BsonDocument()).Project(b => new ServerDto(b)).Single();
+            var server = new ServerDto(_dbContext.Server.AsQueryable().Single());
             Assert.Equal("server", server.Id);
             Assert.Equal(context1.WorkerCount, server.WorkerCount);
             Assert.Equal(context1.Queues, server.Queues);
@@ -576,7 +563,7 @@ namespace Hangfire.Mongo.Tests
                 WorkerCount = 1000
             };
             _connection.AnnounceServer("server", context2);
-            var sameServer = _dbContext.Server.Find(new BsonDocument()).Project(b => new ServerDto(b)).Single();
+            var sameServer =  new ServerDto(_dbContext.Server.AsQueryable().Single());
             Assert.Equal("server", sameServer.Id);
             Assert.Equal(context2.WorkerCount, sameServer.WorkerCount);
         }
@@ -603,7 +590,7 @@ namespace Hangfire.Mongo.Tests
 
             _connection.RemoveServer("Server1");
 
-            var server = _dbContext.Server.Find(new BsonDocument()).Project(b => new ServerDto(b)).ToList().Single();
+            var server = new ServerDto(_dbContext.Server.AsQueryable().Single());
             Assert.NotEqual("Server1", server.Id, StringComparer.OrdinalIgnoreCase);
         }
 
@@ -639,7 +626,7 @@ namespace Hangfire.Mongo.Tests
 
             _connection.Heartbeat("server1");
 
-            var servers = _dbContext.Server.Find(new BsonDocument()).Project(b => new ServerDto(b)).ToList()
+            var servers = _dbContext.Server.AsQueryable().ToList().Select(b => new ServerDto(b))
                 .ToDictionary(x => x.Id, x => x.LastHeartbeat);
 
             Assert.True(servers.ContainsKey("server1"));
@@ -675,7 +662,7 @@ namespace Hangfire.Mongo.Tests
 
             _connection.RemoveTimedOutServers(TimeSpan.FromHours(15));
 
-            var liveServer = _dbContext.Server.Find(new BsonDocument()).Project(b => new ServerDto(b)).Single();
+            var liveServer = new ServerDto(_dbContext.Server.AsQueryable().Single());
             Assert.Equal("server2", liveServer.Id);
         }
 
@@ -824,11 +811,7 @@ namespace Hangfire.Mongo.Tests
                 [nameof(HashDto.Key)] = "some-hash",
                 ["_t"] = nameof(HashDto)
             };
-            var result = _dbContext.JobGraph
-                .Find(filter)
-                .Project(b => new HashDto(b))
-                .First()
-                .Fields;
+            var result = new HashDto(_dbContext.JobGraph.Find(filter).First()).Fields;
 
             Assert.Equal("Value1", result["Key1"]);
             Assert.Equal("Value2", result["Key2"]);

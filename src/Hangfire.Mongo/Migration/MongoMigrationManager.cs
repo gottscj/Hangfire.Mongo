@@ -110,11 +110,8 @@ namespace Hangfire.Mongo.Migration
         /// <returns></returns>
         protected virtual SchemaDto GetCurrentSchema(IMongoDatabase database)
         {
-            return database
-                .GetCollection<BsonDocument>(_storageOptions.Prefix + ".schema")
-                .Find(new BsonDocument())
-                .Project(b => new SchemaDto(b))
-                .FirstOrDefault();
+            var document = database.GetCollection<BsonDocument>(_storageOptions.Prefix + ".schema").AsQueryable().FirstOrDefault();
+            return document == null ? null : new SchemaDto(document);
         }
     }
 }
