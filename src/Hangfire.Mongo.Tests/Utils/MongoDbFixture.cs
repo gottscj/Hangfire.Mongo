@@ -21,8 +21,9 @@ public sealed class MongoDbFixture : IDisposable
     {
         var options = new MongoRunnerOptions
         {
-            StandardOuputLogger = text => sink.OnMessage(new DiagnosticMessage(text)),
+            //StandardOuputLogger = text => sink.OnMessage(new DiagnosticMessage(text)),
             StandardErrorLogger = text => sink.OnMessage(new DiagnosticMessage($"MongoDB ERROR: {text}")),
+            UseSingleNodeReplicaSet = true
         };
         _runner = MongoRunner.Run(options);
     }
