@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <VersionPrefix>1.9.2</VersionPrefix>
+        <VersionPrefix>1.9.3</VersionPrefix>
         <TargetFramework>netstandard2.0</TargetFramework>
         <NoWarn>$(NoWarn);CS0618</NoWarn>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -21,12 +21,9 @@
         <owners>Sergey Zwezdin, Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.9.2
-			- Remove debug log written with Console.WriteLine (#336)
-			- Automatically run MongoDB during the tests (with EphemeralMongo) (#337)
-			- Make compatible with MongoDB.Driver linq v3 (#338)
-			- Update to Hangfire.Core 1.7.33
-			- Update MongoDB.Driver to 2.19.0
+        <PackageReleaseNotes>1.9.3
+			- Update to Hangfire.Core 1.7.34
+			- Update to MongoDB.Driver 2.19.1
 		</PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -37,7 +34,7 @@
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.7.33" />
-        <PackageReference Include="MongoDB.Driver" Version="2.19.0" />
+        <PackageReference Include="Hangfire.Core" Version="1.7.34" />
+        <PackageReference Include="MongoDB.Driver" Version="2.19.1" />
     </ItemGroup>
 </Project>

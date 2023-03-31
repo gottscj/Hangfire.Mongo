@@ -1,6 +1,10 @@
 
 ## Change log
 
+### v1.9.3 (2023-03-31)
+ - Update to Hangfire.Core 1.7.34
+ - Update to MongoDB.Driver 2.19.1
+
 ### v1.9.2 (2022-02-02)
 - Remove debug log written with Console.WriteLine (#336)
 - Automatically run MongoDB during the tests (with EphemeralMongo) (#337)
