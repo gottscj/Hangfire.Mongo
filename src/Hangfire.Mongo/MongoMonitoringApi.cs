@@ -16,7 +16,7 @@ using ServerDto = Hangfire.Storage.Monitoring.ServerDto;
 namespace Hangfire.Mongo
 {
 #pragma warning disable 1591
-    public class MongoMonitoringApi : IMonitoringApi
+    public class MongoMonitoringApi : JobStorageMonitor
     {
         private readonly HangfireDbContext _dbContext;
 
@@ -25,7 +25,7 @@ namespace Hangfire.Mongo
             _dbContext = dbContext;
         }
 
-        public virtual IList<QueueWithTopEnqueuedJobsDto> Queues()
+        public override IList<QueueWithTopEnqueuedJobsDto> Queues()
         {
             var queues = GetQueues();
 
@@ -48,7 +48,7 @@ namespace Hangfire.Mongo
             return result;
         }
 
-        public virtual IList<ServerDto> Servers()
+        public override IList<ServerDto> Servers()
         {
             var servers = _dbContext.Server.AsQueryable().ToList().Select(b => new Dto.ServerDto(b));
 
@@ -69,7 +69,7 @@ namespace Hangfire.Mongo
             return result;
         }
 
-        public virtual JobDetailsDto JobDetails(string jobId)
+        public override JobDetailsDto JobDetails(string jobId)
         {
             var id = ObjectId.Parse(jobId);
             var filter = new BsonDocument
@@ -111,7 +111,7 @@ namespace Hangfire.Mongo
             ScheduledState.StateName
         };
 
-        public virtual StatisticsDto GetStatistics()
+        public override StatisticsDto GetStatistics()
         {
             var stats = new StatisticsDto();
             var filter = new BsonDocument
@@ -180,139 +180,190 @@ namespace Hangfire.Mongo
             return stats;
         }
 
-        public virtual JobList<EnqueuedJobDto> EnqueuedJobs(string queue, int from, int perPage)
+        public override JobList<EnqueuedJobDto> EnqueuedJobs(string queue, int from, int perPage)
         {
             var enqueuedJobIds = GetEnqueuedJobIds(queue, from, perPage);
 
             return EnqueuedJobs(enqueuedJobIds);
         }
 
-        public virtual JobList<FetchedJobDto> FetchedJobs(string queue, int from, int perPage)
+        public override JobList<FetchedJobDto> FetchedJobs(string queue, int from, int perPage)
         {
             var fetchedJobIds = GetFetchedJobIds(queue, from, perPage);
 
             return FetchedJobs(_dbContext, fetchedJobIds);
         }
 
-        public virtual JobList<ProcessingJobDto> ProcessingJobs(int from, int count)
+        public override JobList<ProcessingJobDto> ProcessingJobs(int from, int count)
         {
             return GetJobs(from, count,
                 ProcessingState.StateName,
-                (sqlJob, job, stateData) => new ProcessingJobDto
+                (jobSummary, job, invocationData, loadException, stateData) => new ProcessingJobDto
                 {
                     Job = job,
+                    LoadException = loadException,
+                    InvocationData = invocationData,
+                    InProcessingState = ProcessingState.StateName.Equals(jobSummary.StateName, StringComparison.OrdinalIgnoreCase),
                     ServerId = stateData.ContainsKey("ServerId") ? stateData["ServerId"] : stateData["ServerName"],
-                    StartedAt = JobHelper.DeserializeDateTime(stateData["StartedAt"]),
+                    StartedAt = jobSummary.StateChanged,
+                    StateData = stateData
                 });
         }
 
-        public virtual JobList<ScheduledJobDto> ScheduledJobs(int from, int count)
+        public override JobList<ScheduledJobDto> ScheduledJobs(int from, int count)
         {
             return GetJobs(from, count, ScheduledState.StateName,
-                (sqlJob, job, stateData) => new ScheduledJobDto
+                (sqlJob, job, invocationData, loadException, stateData) => new ScheduledJobDto
                 {
                     Job = job,
-                    EnqueueAt = JobHelper.DeserializeDateTime(stateData["EnqueueAt"]),
-                    ScheduledAt = JobHelper.DeserializeDateTime(stateData["ScheduledAt"])
+                    LoadException = loadException,
+                    InvocationData = invocationData,
+                    InScheduledState = ScheduledState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
+                    EnqueueAt = JobHelper.DeserializeNullableDateTime(stateData["EnqueueAt"]) ?? DateTime.MinValue,
+                    ScheduledAt = sqlJob.StateChanged,
+                    StateData = stateData
                 });
         }
 
-        public virtual JobList<SucceededJobDto> SucceededJobs(int from, int count)
+        public override JobList<SucceededJobDto> SucceededJobs(int from, int count)
         {
             return GetJobs(from, count, SucceededState.StateName,
-                (sqlJob, job, stateData) => new SucceededJobDto
+                (sqlJob, job, invocationData, loadException, stateData) => new SucceededJobDto
                 {
                     Job = job,
-                    Result = stateData.ContainsKey("Result") ? stateData["Result"] : null,
+                    LoadException = loadException,
+                    InvocationData = invocationData,
+                    InSucceededState = SucceededState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
+                    Result = stateData["Result"],
                     TotalDuration = stateData.ContainsKey("PerformanceDuration") && stateData.ContainsKey("Latency")
-                        ? (long?)long.Parse(stateData["PerformanceDuration"]) +
-                          (long?)long.Parse(stateData["Latency"])
+                        ? (long?)long.Parse(stateData["PerformanceDuration"]) + (long?)long.Parse(stateData["Latency"])
                         : null,
-                    SucceededAt = JobHelper.DeserializeNullableDateTime(stateData["SucceededAt"])
+                    SucceededAt = sqlJob.StateChanged,
+                    StateData = stateData
                 });
         }
 
-        public virtual JobList<FailedJobDto> FailedJobs(int from, int count)
+        public override JobList<FailedJobDto> FailedJobs(int from, int count)
         {
             return GetJobs(from, count, FailedState.StateName,
-                (sqlJob, job, stateData) => new FailedJobDto
+                (sqlJob, job, invocationData, loadException, stateData) => new FailedJobDto
                 {
                     Job = job,
+                    LoadException = loadException,
+                    InvocationData = invocationData,
+                    InFailedState = FailedState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
                     Reason = sqlJob.StateReason,
                     ExceptionDetails = stateData["ExceptionDetails"],
                     ExceptionMessage = stateData["ExceptionMessage"],
                     ExceptionType = stateData["ExceptionType"],
-                    FailedAt = JobHelper.DeserializeNullableDateTime(stateData["FailedAt"])
+                    FailedAt = sqlJob.StateChanged,
+                    StateData = stateData
                 });
         }
 
-        public virtual JobList<DeletedJobDto> DeletedJobs(int from, int count)
+        public override JobList<DeletedJobDto> DeletedJobs(int from, int count)
         {
             return GetJobs(from, count, DeletedState.StateName,
-                (sqlJob, job, stateData) => new DeletedJobDto
+                (sqlJob, job, invocationData, loadException, stateData) => new DeletedJobDto
                 {
                     Job = job,
-                    DeletedAt = JobHelper.DeserializeNullableDateTime(stateData["DeletedAt"])
+                    LoadException = loadException,
+                    InvocationData = invocationData,
+                    InDeletedState = DeletedState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
+                    DeletedAt = sqlJob.StateChanged,
+                    StateData = stateData
                 });
         }
 
-        public virtual long ScheduledCount()
+        public override JobList<AwaitingJobDto> AwaitingJobs(int from, int count)
+        {
+            return GetJobs(from, count, AwaitingState.StateName,
+                (sqlJob, job, invocationData, loadException, stateData) => new AwaitingJobDto
+                {
+                    Job = job,
+                    LoadException = loadException,
+                    InvocationData = invocationData,
+                    InAwaitingState = AwaitingState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
+                    AwaitingAt = sqlJob.StateChanged,
+                    StateData = stateData
+
+                });
+        }
+
+        
+
+        public override long ScheduledCount()
         {
             return GetNumberOfJobsByStateName(ScheduledState.StateName);
         }
 
-        public virtual long EnqueuedCount(string queue)
+        public override long EnqueuedCount(string queue)
         {
             var counters = GetEnqueuedAndFetchedCount(queue);
 
             return counters.EnqueuedCount ?? 0;
         }
 
-        public virtual long FetchedCount(string queue)
+        public override long FetchedCount(string queue)
         {
             var counters = GetEnqueuedAndFetchedCount(queue);
 
             return counters.FetchedCount ?? 0;
         }
 
-        public virtual long FailedCount()
+        public override long FailedCount()
         {
             return GetNumberOfJobsByStateName(FailedState.StateName);
         }
 
-        public virtual long ProcessingCount()
+        public override long ProcessingCount()
         {
             return GetNumberOfJobsByStateName(ProcessingState.StateName);
         }
 
-        public virtual long SucceededListCount()
+        public override long SucceededListCount()
         {
             return GetNumberOfJobsByStateName(SucceededState.StateName);
         }
 
-        public virtual long DeletedListCount()
+        public override long DeletedListCount()
         {
             return GetNumberOfJobsByStateName(DeletedState.StateName);
         }
 
-        public virtual IDictionary<DateTime, long> SucceededByDatesCount()
+        public override long AwaitingCount()
+        {
+            return GetNumberOfJobsByStateName(AwaitingState.StateName);
+        }
+
+        public override IDictionary<DateTime, long> SucceededByDatesCount()
         {
             return GetTimelineStats(State.Succeeded);
         }
 
-        public virtual IDictionary<DateTime, long> FailedByDatesCount()
+        public override IDictionary<DateTime, long> FailedByDatesCount()
         {
             return GetTimelineStats(State.Failed);
         }
 
-        public virtual IDictionary<DateTime, long> HourlySucceededJobs()
+        public override IDictionary<DateTime, long> HourlySucceededJobs()
         {
             return GetHourlyTimelineStats(State.Succeeded);
         }
 
-        public virtual IDictionary<DateTime, long> HourlyFailedJobs()
+        public override IDictionary<DateTime, long> HourlyFailedJobs()
         {
             return GetHourlyTimelineStats(State.Failed);
+        }
+
+        public override IDictionary<DateTime, long> DeletedByDatesCount()
+        {
+            return GetTimelineStats(State.Deleted);
+        }
+
+        public override IDictionary<DateTime, long> HourlyDeletedJobs()
+        {
+            return GetHourlyTimelineStats(State.Deleted);
         }
 
         public virtual IReadOnlyList<string> GetQueues()
@@ -442,36 +493,81 @@ namespace Hangfire.Mongo
                         FetchedAt = null,
                         StateName = job.StateName,
                         StateReason = state?.Reason,
-                        StateData = state?.Data
+                        StateData = state?.Data,
+                        StateChanged = job.StateChanged
                     };
                 })
                 .ToList();
 
             return DeserializeJobs(
                 enqueuedJobs,
-                (sqlJob, job, stateData) => new EnqueuedJobDto
+                (jobSummary, job, invocationData, loadException, stateData) => new EnqueuedJobDto
                 {
                     Job = job,
-                    State = sqlJob.StateName,
-                    EnqueuedAt = sqlJob.StateName == EnqueuedState.StateName
-                        ? JobHelper.DeserializeNullableDateTime(stateData["EnqueuedAt"])
-                        : null
+                    State = jobSummary.StateName,
+                    LoadException = loadException,
+                    InvocationData = invocationData,
+                    InEnqueuedState = EnqueuedState.StateName.Equals(jobSummary.StateName, StringComparison.OrdinalIgnoreCase),
+                    EnqueuedAt = EnqueuedState.StateName.Equals(jobSummary.StateName, StringComparison.OrdinalIgnoreCase)
+                        ? jobSummary.StateChanged
+                        : null,
+                    StateData = stateData
                 });
         }
 
         private static JobList<TDto> DeserializeJobs<TDto>(ICollection<JobSummary> jobs,
-            Func<JobSummary, Job, Dictionary<string, string>, TDto> selector)
+            Func<JobSummary, Job, InvocationData, JobLoadException, SafeDictionary<string, string>, TDto> selector)
         {
             var result = new List<KeyValuePair<string, TDto>>(jobs.Count);
-
             foreach (var job in jobs)
             {
-                var stateData = job.StateData;
-                var dto = selector(job, DeserializeJob(job.InvocationData, job.Arguments), stateData);
-                result.Add(new KeyValuePair<string, TDto>(job.Id, dto));
+                var dto = default(TDto);
+
+                if (job.InvocationData != null)
+                {
+                    var deserializedData = job.StateData;
+                    var stateData = deserializedData != null
+                        ? new SafeDictionary<string, string>(deserializedData, StringComparer.OrdinalIgnoreCase)
+                        : null;
+
+                    dto = selector(job, DeserializeJob(
+                        job.InvocationData, 
+                        job.Arguments, 
+                        out var invocationData, 
+                        out var loadException), 
+                        invocationData, 
+                        loadException, 
+                        stateData);
+                }
+
+                result.Add(new KeyValuePair<string, TDto>(
+                    job.Id.ToString(), dto));
             }
 
             return new JobList<TDto>(result);
+        }
+
+        public static Job DeserializeJob(
+            string invocationData, 
+            string arguments, out InvocationData data, out JobLoadException exception)
+        {
+            data = InvocationData.DeserializePayload(invocationData);
+
+            if (!string.IsNullOrEmpty(arguments))
+            {
+                data.Arguments = arguments;
+            }
+
+            try
+            {
+                exception = null;
+                return data.DeserializeJob();
+            }
+            catch (JobLoadException ex)
+            {
+                exception = ex;
+                return null;
+            }
         }
 
         public static Job DeserializeJob(string invocationData, string arguments)
@@ -548,8 +644,8 @@ namespace Hangfire.Mongo
             return new JobList<FetchedJobDto>(result);
         }
 
-        public virtual JobList<TDto> GetJobs<TDto>(int from, int count, string stateName,
-            Func<JobSummary, Job, Dictionary<string, string>, TDto> selector)
+        private JobList<TDto> GetJobs<TDto>(int from, int count, string stateName,
+            Func<JobSummary, Job, InvocationData, JobLoadException, SafeDictionary<string, string>, TDto> selector)
         {
             // only retrieve job ids
             var filter = new BsonDocument
@@ -664,6 +760,29 @@ namespace Hangfire.Mongo
             }
 
             return result;
+        }
+        /// <summary>
+        /// Overloaded dictionary that doesn't throw if given an invalid key
+        /// Fixes issues such as https://github.com/HangfireIO/Hangfire/issues/871
+        /// </summary>
+        private class SafeDictionary<TKey, TValue> : Dictionary<TKey, TValue>
+        {
+            public SafeDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer)
+                : base(dictionary, comparer)
+            {
+            }
+
+            public new TValue this[TKey i]
+            {
+                get { return ContainsKey(i) ? base[i] : default(TValue); }
+                set { base[i] = value; }
+            }
+        }
+
+        private class ParentStateDto
+        {
+            public long Id { get; set; }
+            public string StateName { get; set; }
         }
     }
 #pragma warning restore 1591

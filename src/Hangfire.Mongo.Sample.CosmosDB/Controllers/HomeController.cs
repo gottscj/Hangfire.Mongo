@@ -45,7 +45,7 @@ namespace Hangfire.Mongo.Sample.CosmosDB.Controllers
         public ActionResult Recurring()
         {
             
-            RecurringJob.AddOrUpdate(() => PrintToDebug($@"Hangfire recurring task started - {Guid.NewGuid()}"), Cron.Minutely);
+            RecurringJob.AddOrUpdate("recurring-job", () => PrintToDebug($@"Hangfire recurring task started - {Guid.NewGuid()}"), Cron.Minutely);
 
             return RedirectToAction("Index");
         }

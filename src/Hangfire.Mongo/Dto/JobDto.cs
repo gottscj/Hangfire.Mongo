@@ -40,6 +40,15 @@ namespace Hangfire.Mongo.Dto
                 .Select(b => b.AsBsonDocument)
                 .Select(b => new StateDto(b))
                 .ToArray();
+           
+            if(doc.TryGetValue(nameof(StateChanged), out var value))
+            {
+                StateChanged = value.ToNullableUniversalTime();
+            }
+            else
+            {
+                StateChanged = CreatedAt;
+            }
         }
 
         public string StateName { get; set; }
@@ -55,6 +64,8 @@ namespace Hangfire.Mongo.Dto
         public DateTime CreatedAt { get; set; }
 
         public DateTime? FetchedAt { get; set; }
+
+        public DateTime? StateChanged { get; set; }
 
         public string Queue { get; set; }
 
@@ -79,6 +90,7 @@ namespace Hangfire.Mongo.Dto
             }
             doc[nameof(StateHistory)] = history;
             doc[nameof(CreatedAt)] = CreatedAt.ToUniversalTime();
+            doc[nameof(StateChanged)] = StateChanged;
             doc["_t"].AsBsonArray.Add(nameof(JobDto));
         }
     }

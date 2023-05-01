@@ -167,7 +167,7 @@ namespace Hangfire.Mongo
             _writeModels.Add(writeModel);
         }
         
-        public virtual void SetJobParameter(string id, string name, string value)
+        public override void SetJobParameter(string id, string name, string value)
         {
             if (id == null)
             {
@@ -684,7 +684,8 @@ namespace Hangfire.Mongo
         {
             var filter = new BsonDocument
             {
-                [nameof(SetDto.Key)] = $"{key}<{value}>"
+                [nameof(SetDto.Key)] = $"{key}<{value}>",
+                ["_t"] = nameof(SetDto)
             };
             return filter;
         }

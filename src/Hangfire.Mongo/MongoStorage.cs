@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Hangfire.Annotations;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
@@ -36,6 +37,22 @@ namespace Hangfire.Mongo
         /// DB context
         /// </summary>
         protected readonly HangfireDbContext HangfireDbContext;
+
+        private readonly Dictionary<string, bool> _features =
+            new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase)
+            {
+                { JobStorageFeatures.ExtendedApi, true },
+                { JobStorageFeatures.JobQueueProperty, true },
+                { JobStorageFeatures.Connection.BatchedGetFirstByLowest, true },
+                { JobStorageFeatures.Connection.GetUtcDateTime, true },
+                { JobStorageFeatures.Connection.GetSetContains, true },
+                { JobStorageFeatures.Connection.LimitedGetSetCount, true },
+                { JobStorageFeatures.Transaction.AcquireDistributedLock, true },
+                { JobStorageFeatures.Transaction.CreateJob, false },
+                { JobStorageFeatures.Transaction.SetJobParameter, false },
+                { JobStorageFeatures.Monitoring.DeletedStateGraphs, true },
+                { JobStorageFeatures.Monitoring.AwaitingJobs, true }
+            };
 
         /// <summary>
         /// Constructs Job Storage by Mongo client settings and name
@@ -102,7 +119,19 @@ namespace Hangfire.Mongo
                 }
             }
         }
-        
+
+        /// <inheritdoc/>
+
+        public override bool HasFeature([NotNull] string featureId)
+        {
+            if (featureId == null) throw new ArgumentNullException(nameof(featureId));
+
+            return _features.TryGetValue(featureId, out var isSupported)
+                ? isSupported
+                : base.HasFeature(featureId);
+        }
+
+
         /// <summary>
         /// Returns Monitoring API object
         /// </summary>
