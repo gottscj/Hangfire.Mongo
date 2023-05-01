@@ -1,7 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
+using Hangfire.Annotations;
 using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -36,6 +39,32 @@ namespace Hangfire.Mongo
 
         public override void Dispose()
         {
+        }
+
+        public override void AcquireDistributedLock([NotNull] string resource, TimeSpan timeout)
+        {
+            using (var distributedLock = StorageOptions.Factory.CreateMongoDistributedLock(resource, timeout, DbContext, StorageOptions))
+            {
+                distributedLock.AcquireLock();
+            }
+        }
+
+        public override string CreateJob([NotNull] Job job, [NotNull] IDictionary<string, string> parameters, DateTime createdAt, TimeSpan expireIn)
+        {
+            return CreateExpiredJob(job, parameters, createdAt, expireIn);
+        }
+
+        public override void RemoveFromQueue([NotNull] IFetchedJob fetchedJob)
+        {
+            if(fetchedJob is MongoFetchedJob mongoFetchedJob)
+            {
+                RemoveFromQueue(mongoFetchedJob.Id, mongoFetchedJob.FetchedAt, mongoFetchedJob.Queue);
+            }
+            else
+            {
+                fetchedJob.RemoveFromQueue();
+            }
+            
         }
 
         public override void ExpireJob(string jobId, TimeSpan expireIn)
@@ -107,7 +136,7 @@ namespace Hangfire.Mongo
                 Parameters = parameters.ToDictionary(kv => kv.Key, kv => kv.Value),
                 CreatedAt = createdAt,
                 ExpireAt = createdAt.Add(expireIn),
-                Queue = null,
+                Queue = job.Queue,
                 FetchedAt = null,
             };
 

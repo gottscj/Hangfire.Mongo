@@ -48,8 +48,8 @@ namespace Hangfire.Mongo
                 { JobStorageFeatures.Connection.GetSetContains, true },
                 { JobStorageFeatures.Connection.LimitedGetSetCount, true },
                 { JobStorageFeatures.Transaction.AcquireDistributedLock, true },
-                { JobStorageFeatures.Transaction.CreateJob, false },
-                { JobStorageFeatures.Transaction.SetJobParameter, false },
+                { JobStorageFeatures.Transaction.CreateJob, true },
+                { JobStorageFeatures.Transaction.SetJobParameter, true },
                 { JobStorageFeatures.Monitoring.DeletedStateGraphs, true },
                 { JobStorageFeatures.Monitoring.AwaitingJobs, true }
             };

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.Linq;
-using System.Threading.Tasks;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
@@ -289,8 +287,6 @@ namespace Hangfire.Mongo
 
                 });
         }
-
-        
 
         public override long ScheduledCount()
         {
@@ -673,6 +669,7 @@ namespace Hangfire.Mongo
                         InvocationData = job.InvocationData,
                         Arguments = job.Arguments,
                         CreatedAt = job.CreatedAt,
+                        StateChanged = job.StateChanged,
                         ExpireAt = job.ExpireAt,
                         FetchedAt = null,
                         StateName = job.StateName,

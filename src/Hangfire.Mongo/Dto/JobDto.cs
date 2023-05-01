@@ -41,7 +41,7 @@ namespace Hangfire.Mongo.Dto
                 .Select(b => new StateDto(b))
                 .ToArray();
            
-            if(doc.TryGetValue(nameof(StateChanged), out var value))
+            if(doc.TryGetValue(nameof(StateChanged), out var value) && value != BsonNull.Value)
             {
                 StateChanged = value.ToNullableUniversalTime();
             }

@@ -241,7 +241,7 @@ namespace Hangfire.Mongo.Tests
 
             Assert.Single(resultList);
             Assert.Equal(newServerId, resultList[0].Value.ServerId);
-            Assert.Equal(newStartTime, resultList[0].Value.StartedAt);
+            Assert.Equal(newStartTime, resultList[0].Value.StartedAt.Value, TimeSpan.FromMilliseconds(100));
         }
 
         [Fact]

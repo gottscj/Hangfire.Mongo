@@ -47,6 +47,16 @@ namespace Hangfire.Mongo
         }
 
         /// <summary>
+        /// Timestamp job is fetched
+        /// </summary>
+        public DateTime FetchedAt => _fetchedAt;
+
+        /// <summary>
+        /// Id of job
+        /// </summary>
+        public ObjectId Id => _id;
+
+        /// <summary>
         /// Job ID
         /// </summary>
         public string JobId { get; }
@@ -66,7 +76,15 @@ namespace Hangfire.Mongo
                 transaction.RemoveFromQueue(_id, _fetchedAt, Queue);
                 transaction.Commit();
             }
-            _removedFromQueue = true;
+            SetRemoved();
+        }
+
+        /// <summary>
+        /// Sets internal parameter to indicate if job is removed from queue
+        /// </summary>
+        public virtual void SetRemoved(bool removed = true)
+        {
+            _removedFromQueue = removed;
         }
 
         /// <summary>
