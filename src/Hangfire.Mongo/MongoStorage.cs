@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using Hangfire.Annotations;
@@ -38,8 +39,10 @@ namespace Hangfire.Mongo
         /// </summary>
         protected readonly HangfireDbContext HangfireDbContext;
 
-        private readonly Dictionary<string, bool> _features =
-            new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase)
+        /// <summary>
+        /// Enabled Hangfire features. To change enabled features, inherit this class and override 'HasFeature' method
+        /// </summary>
+        public ReadOnlyDictionary<string, bool> Features = new ReadOnlyDictionary<string, bool>(new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase)
             {
                 { JobStorageFeatures.ExtendedApi, true },
                 { JobStorageFeatures.JobQueueProperty, true },
@@ -52,7 +55,7 @@ namespace Hangfire.Mongo
                 { JobStorageFeatures.Transaction.SetJobParameter, true },
                 { JobStorageFeatures.Monitoring.DeletedStateGraphs, true },
                 { JobStorageFeatures.Monitoring.AwaitingJobs, true }
-            };
+            });
 
         /// <summary>
         /// Constructs Job Storage by Mongo client settings and name
@@ -126,10 +129,11 @@ namespace Hangfire.Mongo
         {
             if (featureId == null) throw new ArgumentNullException(nameof(featureId));
 
-            return _features.TryGetValue(featureId, out var isSupported)
+            return Features.TryGetValue(featureId, out var isSupported)
                 ? isSupported
                 : base.HasFeature(featureId);
         }
+
 
 
         /// <summary>
