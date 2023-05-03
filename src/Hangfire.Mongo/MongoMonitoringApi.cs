@@ -490,7 +490,7 @@ namespace Hangfire.Mongo
                         StateName = job.StateName,
                         StateReason = state?.Reason,
                         StateData = state?.Data,
-                        StateChanged = job.StateChanged
+                        StateChanged = state?.CreatedAt
                     };
                 })
                 .ToList();
@@ -669,7 +669,7 @@ namespace Hangfire.Mongo
                         InvocationData = job.InvocationData,
                         Arguments = job.Arguments,
                         CreatedAt = job.CreatedAt,
-                        StateChanged = job.StateChanged,
+                        StateChanged = state?.CreatedAt,
                         ExpireAt = job.ExpireAt,
                         FetchedAt = null,
                         StateName = job.StateName,

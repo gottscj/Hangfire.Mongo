@@ -82,9 +82,9 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Sets internal parameter to indicate if job is removed from queue
         /// </summary>
-        public virtual void SetRemoved(bool removed = true)
+        public virtual void SetRemoved()
         {
-            _removedFromQueue = removed;
+            _removedFromQueue = true;
         }
 
         /// <summary>

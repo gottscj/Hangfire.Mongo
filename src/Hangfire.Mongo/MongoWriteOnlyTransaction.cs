@@ -1,13 +1,12 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using Hangfire.Annotations;
 using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
 using Hangfire.States;
 using Hangfire.Storage;
@@ -26,7 +25,9 @@ namespace Hangfire.Mongo
         
         public HangfireDbContext DbContext { get; }
 
-        private readonly IList<WriteModel<BsonDocument>> _writeModels = new List<WriteModel<BsonDocument>>();
+        private readonly List<WriteModel<BsonDocument>> _writeModels = new List<WriteModel<BsonDocument>>();
+        private MongoDistributedLock _distributedLock;
+        private readonly List<MongoFetchedJob> _removedJobs = new List<MongoFetchedJob>();
 
         protected HashSet<string> JobsAddedToQueue { get; }
 
@@ -39,14 +40,13 @@ namespace Hangfire.Mongo
 
         public override void Dispose()
         {
+            _distributedLock?.Dispose();
         }
 
         public override void AcquireDistributedLock([NotNull] string resource, TimeSpan timeout)
         {
-            using (var distributedLock = StorageOptions.Factory.CreateMongoDistributedLock(resource, timeout, DbContext, StorageOptions))
-            {
-                distributedLock.AcquireLock();
-            }
+            _distributedLock = StorageOptions.Factory.CreateMongoDistributedLock(resource, timeout, DbContext, StorageOptions);
+            _distributedLock.AcquireLock();
         }
 
         public override string CreateJob([NotNull] Job job, [NotNull] IDictionary<string, string> parameters, DateTime createdAt, TimeSpan expireIn)
@@ -59,6 +59,7 @@ namespace Hangfire.Mongo
             if(fetchedJob is MongoFetchedJob mongoFetchedJob)
             {
                 RemoveFromQueue(mongoFetchedJob.Id, mongoFetchedJob.FetchedAt, mongoFetchedJob.Queue);
+                _removedJobs.Add(fetchedJob);
             }
             else
             {
@@ -464,11 +465,14 @@ namespace Hangfire.Mongo
             };
             
             jobGraph.BulkWrite(_writeModels, bulkWriteOptions);
+            _removedJobs.ForEach(j => j.SetRemoved());
+            _distributedLock?.Dispose();
             
             if (StorageOptions.CheckQueuedJobsStrategy == CheckQueuedJobsStrategy.TailNotificationsCollection)
             {
                 SignalJobsAddedToQueues(JobsAddedToQueue);
             }
+            
         }
 
         public virtual void Log(IList<WriteModel<BsonDocument>> writeModels)
