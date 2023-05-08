@@ -472,7 +472,6 @@ namespace Hangfire.Mongo
             {
                 SignalJobsAddedToQueues(JobsAddedToQueue);
             }
-            
         }
 
         public virtual void Log(IList<WriteModel<BsonDocument>> writeModels)
