@@ -81,14 +81,15 @@ namespace Hangfire.Mongo
             {
                 return null;
             }
+
             var job = new JobDto(jobDoc);
             var history = job.StateHistory.Select(x => new StateHistoryDto
-            {
-                StateName = x.Name,
-                CreatedAt = x.CreatedAt,
-                Reason = x.Reason,
-                Data = x.Data
-            })
+                {
+                    StateName = x.Name,
+                    CreatedAt = x.CreatedAt,
+                    Reason = x.Reason,
+                    Data = x.Data
+                })
                 .Reverse()
                 .ToList();
 
@@ -106,7 +107,8 @@ namespace Hangfire.Mongo
             EnqueuedState.StateName,
             FailedState.StateName,
             ProcessingState.StateName,
-            ScheduledState.StateName
+            ScheduledState.StateName,
+            AwaitingState.StateName,
         };
 
         public override StatisticsDto GetStatistics()
@@ -119,16 +121,15 @@ namespace Hangfire.Mongo
                 {
                     ["$in"] = StatisticsStateNames
                 }
-
             };
             var pipeline = new BsonDocument[]
             {
                 new BsonDocument("$match", filter),
                 new BsonDocument("$group",
-                new BsonDocument
+                    new BsonDocument
                     {
-                        { "_id", $"${nameof(JobDto.StateName)}" },
-                        { "count", new BsonDocument("$sum", 1) }
+                        {"_id", $"${nameof(JobDto.StateName)}"},
+                        {"count", new BsonDocument("$sum", 1)}
                     })
             };
 
@@ -138,12 +139,13 @@ namespace Hangfire.Mongo
                 .ToList()
                 .ToDictionary(b => b["_id"].ToString(), b => b["count"].AsInt32);
 
-            int GetCountIfExists(string name) => countByStates.ContainsKey(name) ? countByStates[name] : 0;
+            int GetCountIfExists(string name) => countByStates.TryGetValue(name, out var state) ? state : 0;
 
             stats.Enqueued = GetCountIfExists(EnqueuedState.StateName);
             stats.Failed = GetCountIfExists(FailedState.StateName);
             stats.Processing = GetCountIfExists(ProcessingState.StateName);
             stats.Scheduled = GetCountIfExists(ScheduledState.StateName);
+            stats.Awaiting = GetCountIfExists(AwaitingState.StateName);
 
             stats.Servers = _dbContext.Server.Count(new BsonDocument());
 
@@ -201,8 +203,9 @@ namespace Hangfire.Mongo
                     Job = job,
                     LoadException = loadException,
                     InvocationData = invocationData,
-                    InProcessingState = ProcessingState.StateName.Equals(jobSummary.StateName, StringComparison.OrdinalIgnoreCase),
-                    ServerId = stateData.ContainsKey("ServerId") ? stateData["ServerId"] : stateData["ServerName"],
+                    InProcessingState =
+                        ProcessingState.StateName.Equals(jobSummary.StateName, StringComparison.OrdinalIgnoreCase),
+                    ServerId = stateData.TryGetValue("ServerId", out var value) ? value : stateData["ServerName"],
                     StartedAt = jobSummary.StateChanged,
                     StateData = stateData
                 });
@@ -216,7 +219,8 @@ namespace Hangfire.Mongo
                     Job = job,
                     LoadException = loadException,
                     InvocationData = invocationData,
-                    InScheduledState = ScheduledState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
+                    InScheduledState =
+                        ScheduledState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
                     EnqueueAt = JobHelper.DeserializeNullableDateTime(stateData["EnqueueAt"]) ?? DateTime.MinValue,
                     ScheduledAt = sqlJob.StateChanged,
                     StateData = stateData
@@ -231,10 +235,12 @@ namespace Hangfire.Mongo
                     Job = job,
                     LoadException = loadException,
                     InvocationData = invocationData,
-                    InSucceededState = SucceededState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
+                    InSucceededState =
+                        SucceededState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
                     Result = stateData["Result"],
-                    TotalDuration = stateData.ContainsKey("PerformanceDuration") && stateData.ContainsKey("Latency")
-                        ? (long?)long.Parse(stateData["PerformanceDuration"]) + (long?)long.Parse(stateData["Latency"])
+                    TotalDuration = stateData.ContainsKey("PerformanceDuration") &&
+                                    stateData.TryGetValue("Latency", out var value)
+                        ? (long?) long.Parse(stateData["PerformanceDuration"]) + (long?) long.Parse(value)
                         : null,
                     SucceededAt = sqlJob.StateChanged,
                     StateData = stateData
@@ -267,7 +273,8 @@ namespace Hangfire.Mongo
                     Job = job,
                     LoadException = loadException,
                     InvocationData = invocationData,
-                    InDeletedState = DeletedState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
+                    InDeletedState =
+                        DeletedState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
                     DeletedAt = sqlJob.StateChanged,
                     StateData = stateData
                 });
@@ -281,10 +288,10 @@ namespace Hangfire.Mongo
                     Job = job,
                     LoadException = loadException,
                     InvocationData = invocationData,
-                    InAwaitingState = AwaitingState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
+                    InAwaitingState =
+                        AwaitingState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
                     AwaitingAt = sqlJob.StateChanged,
                     StateData = stateData
-
                 });
         }
 
@@ -375,11 +382,11 @@ namespace Hangfire.Mongo
             var pipeline = new BsonDocument[]
             {
                 new BsonDocument("$match",
-                new BsonDocument("_t", nameof(JobDto))),
+                    new BsonDocument("_t", nameof(JobDto))),
                 new BsonDocument("$group", new BsonDocument("_id", $"${nameof(JobDto.Queue)}"))
             };
             return _dbContext.JobGraph
-            .Aggregate<BsonDocument>(pipeline)
+                .Aggregate<BsonDocument>(pipeline)
                 .ToList()
                 .Where(b => b["_id"] != BsonNull.Value)
                 .Select(b => b["_id"].AsString)
@@ -402,7 +409,6 @@ namespace Hangfire.Mongo
                 .ToList()
                 .Select(b => b["_id"].ToString())
                 .ToList();
-
         }
 
         public virtual IReadOnlyList<string> GetFetchedJobIds(string queue, int from, int perPage)
@@ -434,7 +440,7 @@ namespace Hangfire.Mongo
                 [nameof(JobDto.Queue)] = queue,
                 [nameof(JobDto.FetchedAt)] = BsonNull.Value,
             };
-            int enqueuedCount = (int)_dbContext.JobGraph.Count(nonFetched);
+            int enqueuedCount = (int) _dbContext.JobGraph.Count(nonFetched);
 
             var fetched = new BsonDocument
             {
@@ -446,7 +452,7 @@ namespace Hangfire.Mongo
                 }
             };
 
-            int fetchedCount = (int)_dbContext.JobGraph.Count(fetched);
+            int fetchedCount = (int) _dbContext.JobGraph.Count(fetched);
 
             return new EnqueuedAndFetchedCountDto
             {
@@ -503,10 +509,12 @@ namespace Hangfire.Mongo
                     State = jobSummary.StateName,
                     LoadException = loadException,
                     InvocationData = invocationData,
-                    InEnqueuedState = EnqueuedState.StateName.Equals(jobSummary.StateName, StringComparison.OrdinalIgnoreCase),
-                    EnqueuedAt = EnqueuedState.StateName.Equals(jobSummary.StateName, StringComparison.OrdinalIgnoreCase)
-                        ? jobSummary.StateChanged
-                        : null,
+                    InEnqueuedState =
+                        EnqueuedState.StateName.Equals(jobSummary.StateName, StringComparison.OrdinalIgnoreCase),
+                    EnqueuedAt =
+                        EnqueuedState.StateName.Equals(jobSummary.StateName, StringComparison.OrdinalIgnoreCase)
+                            ? jobSummary.StateChanged
+                            : null,
                     StateData = stateData
                 });
         }
@@ -527,12 +535,12 @@ namespace Hangfire.Mongo
                         : null;
 
                     dto = selector(job, DeserializeJob(
-                        job.InvocationData, 
-                        job.Arguments, 
-                        out var invocationData, 
-                        out var loadException), 
-                        invocationData, 
-                        loadException, 
+                            job.InvocationData,
+                            job.Arguments,
+                            out var invocationData,
+                            out var loadException),
+                        invocationData,
+                        loadException,
                         stateData);
                 }
 
@@ -544,7 +552,7 @@ namespace Hangfire.Mongo
         }
 
         public static Job DeserializeJob(
-            string invocationData, 
+            string invocationData,
             string arguments, out InvocationData data, out JobLoadException exception)
         {
             data = InvocationData.DeserializePayload(invocationData);
@@ -758,6 +766,7 @@ namespace Hangfire.Mongo
 
             return result;
         }
+
         /// <summary>
         /// Overloaded dictionary that doesn't throw if given an invalid key
         /// Fixes issues such as https://github.com/HangfireIO/Hangfire/issues/871

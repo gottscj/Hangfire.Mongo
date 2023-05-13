@@ -38,6 +38,8 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(0, result.Failed);
             Assert.Equal(0, result.Processing);
             Assert.Equal(0, result.Scheduled);
+            Assert.Equal(0, result.Awaiting);
+            Assert.Equal(0, result.Deleted);
         }
 
         [Fact]
@@ -49,12 +51,17 @@ namespace Hangfire.Mongo.Tests
             CreateJobInState(_database, ObjectId.GenerateNewId(5), ProcessingState.StateName);
             CreateJobInState(_database, ObjectId.GenerateNewId(6), ScheduledState.StateName);
             CreateJobInState(_database, ObjectId.GenerateNewId(7), ScheduledState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(10), AwaitingState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(11), AwaitingState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(12), AwaitingState.StateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(13), AwaitingState.StateName);
 
             var result = _monitoringApi.GetStatistics();
             Assert.Equal(2, result.Enqueued);
             Assert.Equal(1, result.Failed);
             Assert.Equal(1, result.Processing);
             Assert.Equal(2, result.Scheduled);
+            Assert.Equal(4, result.Awaiting);
         }
 
         [Fact]
@@ -173,6 +180,30 @@ namespace Hangfire.Mongo.Tests
             var resultList = _monitoringApi.FetchedJobs(DefaultQueue, From, PerPage);
 
             Assert.Equal(2, resultList.Count);
+        }
+        
+        [Fact]
+        public void DeletedJobs_MultipleJobsExistsInDeletedAndNonDeletedStates_ReturnsDeletedJobsOnly()
+        {
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), FetchedStateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), FetchedStateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(3), DeletedState.StateName);
+
+            var resultList = _monitoringApi.DeletedJobs(From, PerPage);
+
+            Assert.Single(resultList);
+        }
+        
+        [Fact]
+        public void AwaitingJobs_MultipleJobsExistsInAwaitingAndNonAwaitingStates_ReturnsAwaitingJobsOnly()
+        {
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), FetchedStateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), FetchedStateName);
+            CreateJobInState(_database, ObjectId.GenerateNewId(3), AwaitingState.StateName);
+
+            var resultList = _monitoringApi.AwaitingJobs(From, PerPage);
+
+            Assert.Single(resultList);
         }
 
         [Fact]

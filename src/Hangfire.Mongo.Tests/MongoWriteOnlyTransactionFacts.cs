@@ -67,6 +67,70 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
+        public void AcquireDistributedLock_Aborted_LockReleased()
+        {
+            // Arrange
+            using var transaction = new MongoWriteOnlyTransaction(_database, new MongoStorageOptions());
+            
+            // Act
+            transaction.AcquireDistributedLock("test", TimeSpan.FromSeconds(1));
+            
+            // Assert
+            var lockAcquired = _database.DistributedLock.Find("{}").Single();
+            transaction.Dispose();
+            var lockReleased = _database.DistributedLock.Find("{}").SingleOrDefault();
+            
+            Assert.True(lockAcquired is not null, "expected lockAcquired to be found");
+            Assert.True(lockReleased is null, "expected lockReleased to be null");
+        }
+        
+        [Fact]
+        public void AcquireDistributedLock_Commit_LockReleased()
+        {
+            // Arrange
+            using var transaction = new MongoWriteOnlyTransaction(_database, new MongoStorageOptions());
+            
+            // Act
+            transaction.AcquireDistributedLock("test", TimeSpan.FromSeconds(1));
+            
+            // Assert
+            var lockAcquired = _database.DistributedLock.Find("{}").Single();
+            transaction.SetJobState(ObjectId.GenerateNewId().ToString(), new DeletedState());
+            
+            transaction.Commit();
+            var lockReleased = _database.DistributedLock.Find("{}").SingleOrDefault();
+            
+            Assert.True(lockAcquired is not null, "expected lockAcquired to be found");
+            Assert.True(lockReleased is null, "expected lockReleased to be null");
+        }
+        
+        [Fact]
+        public void SetJobParamater_ValidJob_Success()
+        {
+            // Arrange
+            var job = new JobDto
+            {
+                Id = ObjectId.GenerateNewId(1),
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow,
+                ExpireAt = DateTime.UtcNow
+            };
+            _database.JobGraph.InsertOne(job.Serialize());
+
+            var jobId = job.Id.ToString();
+            Commit(x => x.PersistJob(jobId));
+            
+            // Act
+            Commit(x => x.SetJobParameter(jobId, "test", "test"));
+            
+            // Assert
+            var testjob = GetTestJob(_database, jobId);
+            Assert.Contains("test", (IDictionary<string, string>)testjob.Parameters);
+            Assert.Equal("test", testjob.Parameters["test"]);
+        }
+
+        [Fact]
         public void PersistJob_ClearsTheJobExpirationData()
         {
             var job = new JobDto
@@ -875,11 +939,9 @@ namespace Hangfire.Mongo.Tests
 
         private void Commit(Action<MongoWriteOnlyTransaction> action)
         {
-            using (var transaction = new MongoWriteOnlyTransaction(_database, new MongoStorageOptions()))
-            {
-                action(transaction);
-                transaction.Commit();
-            }
+            using var transaction = new MongoWriteOnlyTransaction(_database, new MongoStorageOptions());
+            action(transaction);
+            transaction.Commit();
         }
     }
 #pragma warning restore 1591

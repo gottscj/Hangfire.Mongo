@@ -11,7 +11,6 @@ using Hangfire.Mongo.Dto;
 using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -59,7 +58,7 @@ namespace Hangfire.Mongo
             if(fetchedJob is MongoFetchedJob mongoFetchedJob)
             {
                 RemoveFromQueue(mongoFetchedJob.Id, mongoFetchedJob.FetchedAt, mongoFetchedJob.Queue);
-                _removedJobs.Add(fetchedJob);
+                _removedJobs.Add(mongoFetchedJob);
             }
             else
             {
