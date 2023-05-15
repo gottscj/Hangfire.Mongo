@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Hangfire.Annotations;
 using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -665,6 +666,68 @@ namespace Hangfire.Mongo
                 .Project(new BsonDocument(nameof(ListDto.Value), 1))
                 .ToList()
                 .Select(b => b[nameof(ListDto.Value)].AsString).ToList();
+        }
+
+        public override DateTime GetUtcDateTime()
+        {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetUtcDateTime()");
+            }
+            // hostInfo.system.currentTime
+            var command = new JsonCommand<BsonDocument>("{'hostInfo': 1}");
+            var database = _dbContext.Client.GetDatabase("admin");
+            var cmdResponse = database.RunCommand(command);
+            var serverTime = cmdResponse["system"]["currentTime"].ToUniversalTime();
+            return serverTime;
+        }
+
+        public override bool GetSetContains([NotNull] string key, [NotNull] string value)
+        {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetSetContains({key}, {value})");
+            }
+
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            return _dbContext
+                .JobGraph
+                .Find(new BsonDocument
+                {
+                    [nameof(SetDto.Key)] = $"{key}<{value}>",
+                    ["_t"] = nameof(SetDto)
+                })
+                .Any();
+        }
+
+        public override long GetSetCount([NotNull] IEnumerable<string> keys, int limit)
+        {
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetSetCount({string.Join(",", keys)}, {limit})");
+            }
+
+            if (!keys.Any())
+            {
+                return 0;
+            }
+
+            if (keys == null) throw new ArgumentNullException(nameof(keys));
+            if (limit < 0) throw new ArgumentOutOfRangeException(nameof(limit), "Value must be greater or equal to 0.");
+
+            return _dbContext
+                .JobGraph
+                .Find(new BsonDocument
+                {
+                    [nameof(SetDto.SetType)] = new BsonDocument("$in", BsonArray.Create(keys)),
+                    ["_t"] = nameof(SetDto)
+                })
+                .Limit(limit)
+                .Count();
         }
     }
 #pragma warning restore 1591

@@ -2,14 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Hangfire.Annotations;
 using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
 using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo
@@ -23,7 +24,9 @@ namespace Hangfire.Mongo
         
         public HangfireDbContext DbContext { get; }
 
-        private readonly IList<WriteModel<BsonDocument>> _writeModels = new List<WriteModel<BsonDocument>>();
+        private readonly List<WriteModel<BsonDocument>> _writeModels = new List<WriteModel<BsonDocument>>();
+        private MongoDistributedLock _distributedLock;
+        private readonly List<MongoFetchedJob> _removedJobs = new List<MongoFetchedJob>();
 
         protected HashSet<string> JobsAddedToQueue { get; }
 
@@ -36,6 +39,32 @@ namespace Hangfire.Mongo
 
         public override void Dispose()
         {
+            _distributedLock?.Dispose();
+        }
+
+        public override void AcquireDistributedLock([NotNull] string resource, TimeSpan timeout)
+        {
+            _distributedLock = StorageOptions.Factory.CreateMongoDistributedLock(resource, timeout, DbContext, StorageOptions);
+            _distributedLock.AcquireLock();
+        }
+
+        public override string CreateJob([NotNull] Job job, [NotNull] IDictionary<string, string> parameters, DateTime createdAt, TimeSpan expireIn)
+        {
+            return CreateExpiredJob(job, parameters, createdAt, expireIn);
+        }
+
+        public override void RemoveFromQueue([NotNull] IFetchedJob fetchedJob)
+        {
+            if(fetchedJob is MongoFetchedJob mongoFetchedJob)
+            {
+                RemoveFromQueue(mongoFetchedJob.Id, mongoFetchedJob.FetchedAt, mongoFetchedJob.Queue);
+                _removedJobs.Add(mongoFetchedJob);
+            }
+            else
+            {
+                fetchedJob.RemoveFromQueue();
+            }
+            
         }
 
         public override void ExpireJob(string jobId, TimeSpan expireIn)
@@ -107,7 +136,7 @@ namespace Hangfire.Mongo
                 Parameters = parameters.ToDictionary(kv => kv.Key, kv => kv.Value),
                 CreatedAt = createdAt,
                 ExpireAt = createdAt.Add(expireIn),
-                Queue = null,
+                Queue = job.Queue,
                 FetchedAt = null,
             };
 
@@ -167,7 +196,7 @@ namespace Hangfire.Mongo
             _writeModels.Add(writeModel);
         }
         
-        public virtual void SetJobParameter(string id, string name, string value)
+        public override void SetJobParameter(string id, string name, string value)
         {
             if (id == null)
             {
@@ -435,6 +464,8 @@ namespace Hangfire.Mongo
             };
             
             jobGraph.BulkWrite(_writeModels, bulkWriteOptions);
+            _removedJobs.ForEach(j => j.SetRemoved());
+            _distributedLock?.Dispose();
             
             if (StorageOptions.CheckQueuedJobsStrategy == CheckQueuedJobsStrategy.TailNotificationsCollection)
             {
@@ -684,7 +715,8 @@ namespace Hangfire.Mongo
         {
             var filter = new BsonDocument
             {
-                [nameof(SetDto.Key)] = $"{key}<{value}>"
+                [nameof(SetDto.Key)] = $"{key}<{value}>",
+                ["_t"] = nameof(SetDto)
             };
             return filter;
         }

@@ -13,6 +13,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Moq;
 using Xunit;
+using static Hangfire.Storage.JobStorageFeatures;
 
 namespace Hangfire.Mongo.Tests
 {
@@ -1542,6 +1543,84 @@ namespace Hangfire.Mongo.Tests
 
             // Assert
             Assert.Equal(new[] { "5", "4", "3", "1" }, result);
+        }
+
+        [Fact]
+        public void GetUtcDateTime_FromConnection_Success()
+        {
+            // Arrange
+
+            // Act
+            var serverTime = _connection.GetUtcDateTime();
+
+            // Assert
+            Assert.Equal(DateTime.UtcNow.Date, serverTime.Date);
+        }
+
+        [Fact]
+        public void GetSetCount_LimitedWhenSetsArgumentIsEmpty_ReturnsZero()
+        {
+            // Arrange
+
+            // Act
+            var result = _connection.GetSetCount(Enumerable.Empty<string>(), 10);
+
+            // Assert
+            Assert.Equal(0, result);
+        }
+
+        [Fact]
+        public void GetSetCount_LimitedWhenGivenSetsDoNotExist_ReturnsZero()
+        {
+            // Arrange
+
+            // Act
+            var result = _connection.GetSetCount(new[] { "set-1", "set-2" }, 10);
+
+            // Assert
+            Assert.Equal(0, result);
+        }
+
+        [Fact]
+        public void GetSetCount_LimitedOfGivenSetCardinalities_ReturnsTheSum()
+        {
+            // Arrange
+            _dbContext.JobGraph.InsertMany(new List<BsonDocument>
+            {
+                new SetDto{SetType = "set-1", Value = "1"}.Serialize(),
+                new SetDto{SetType = "set-1", Value = "2"}.Serialize(),
+                new SetDto{SetType = "set-2", Value = "2"}.Serialize(),
+                new SetDto{SetType = "set-2", Value = "3"}.Serialize(),
+                new SetDto{SetType = "set-3", Value = "1"}.Serialize(),
+            });
+
+            // Act
+            var result = _connection.GetSetCount(new[] { "set-1", "set-2" }, 10);
+            
+
+            // Assert
+            Assert.Equal(4, result);
+        }
+
+        [Fact]
+        public void GetSetCount_LimitedIsConsidered_LimitValue()
+        {
+            // Arrange
+            _dbContext.JobGraph.InsertMany(new List<BsonDocument>
+            {
+                new SetDto{SetType = "set-1", Value = "1"}.Serialize(),
+                new SetDto{SetType = "set-1", Value = "2"}.Serialize(),
+                new SetDto{SetType = "set-2", Value = "2"}.Serialize(),
+                new SetDto{SetType = "set-2", Value = "3"}.Serialize(),
+                new SetDto{SetType = "set-3", Value = "1"}.Serialize(),
+            });
+
+            // Act
+            var result = _connection.GetSetCount(new[] { "set-1", "set-2" }, 2);
+
+
+            // Assert
+            Assert.Equal(2, result);
         }
 
     }

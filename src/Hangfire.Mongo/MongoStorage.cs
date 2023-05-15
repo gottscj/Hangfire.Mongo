@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
+using Hangfire.Annotations;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
@@ -36,6 +38,24 @@ namespace Hangfire.Mongo
         /// DB context
         /// </summary>
         protected readonly HangfireDbContext HangfireDbContext;
+
+        /// <summary>
+        /// Enabled Hangfire features. To change enabled features, inherit this class and override 'HasFeature' method
+        /// </summary>
+        public ReadOnlyDictionary<string, bool> Features = new ReadOnlyDictionary<string, bool>(new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase)
+            {
+                { JobStorageFeatures.ExtendedApi, true },
+                { JobStorageFeatures.JobQueueProperty, true },
+                { JobStorageFeatures.Connection.BatchedGetFirstByLowest, true },
+                { JobStorageFeatures.Connection.GetUtcDateTime, true },
+                { JobStorageFeatures.Connection.GetSetContains, true },
+                { JobStorageFeatures.Connection.LimitedGetSetCount, true },
+                { JobStorageFeatures.Transaction.AcquireDistributedLock, true },
+                { JobStorageFeatures.Transaction.CreateJob, true },
+                { JobStorageFeatures.Transaction.SetJobParameter, true },
+                { JobStorageFeatures.Monitoring.DeletedStateGraphs, true },
+                { JobStorageFeatures.Monitoring.AwaitingJobs, true }
+            });
 
         /// <summary>
         /// Constructs Job Storage by Mongo client settings and name
@@ -102,7 +122,20 @@ namespace Hangfire.Mongo
                 }
             }
         }
-        
+
+        /// <inheritdoc/>
+
+        public override bool HasFeature([NotNull] string featureId)
+        {
+            if (featureId == null) throw new ArgumentNullException(nameof(featureId));
+
+            return Features.TryGetValue(featureId, out var isSupported)
+                ? isSupported
+                : base.HasFeature(featureId);
+        }
+
+
+
         /// <summary>
         /// Returns Monitoring API object
         /// </summary>

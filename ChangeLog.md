@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.9.43 (2023-05-08)
+ - Update to Hangfire.Core 1.8.0
+
 ### v1.9.3 (2023-03-31)
  - Update to Hangfire.Core 1.7.34
  - Update to MongoDB.Driver 2.19.1

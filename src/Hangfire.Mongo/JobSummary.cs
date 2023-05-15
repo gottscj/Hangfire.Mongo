@@ -22,6 +22,8 @@ namespace Hangfire.Mongo
 
         public string StateReason { get; set; }
 
+        public DateTime? StateChanged { get; set; }
+
         public Dictionary<string, string> StateData { get; set; }
     }
 #pragma warning restore 1591
