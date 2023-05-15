@@ -24,7 +24,7 @@ public void ConfigureServices(IServiceCollection services)
 
     // Add Hangfire services. Hangfire.AspNetCore nuget required
     services.AddHangfire(configuration => configuration
-        .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
         .UseSimpleAssemblyNameTypeSerializer()
         .UseRecommendedSerializerSettings()
         .UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, new MongoStorageOptions
