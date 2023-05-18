@@ -674,12 +674,26 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"GetUtcDateTime()");
             }
-            // hostInfo.system.currentTime
-            var command = new JsonCommand<BsonDocument>("{'hostInfo': 1}");
-            var database = _dbContext.Client.GetDatabase("admin");
-            var cmdResponse = database.RunCommand(command);
-            var serverTime = cmdResponse["system"]["currentTime"].ToUniversalTime();
-            return serverTime;
+
+            try
+            {
+                var pipeline = new[]
+                {
+                    new BsonDocument("$project", new BsonDocument("date", "$$NOW"))
+                };
+                // we should always have a schema document in the db, and this 
+                var time = _dbContext.Schema.Aggregate<BsonDocument>(pipeline).FirstOrDefault();
+                if (time is null)
+                {
+                    throw new InvalidOperationException("No documents in the schema collection");
+                }
+                return time["date"].ToUniversalTime();
+            }
+            catch (Exception e)
+            {
+                Logger.WarnException("Failed to get UTC datetime from mongodb server, using local UTC", e);
+                return DateTime.UtcNow;
+            }
         }
 
         public override bool GetSetContains([NotNull] string key, [NotNull] string value)
@@ -708,9 +722,11 @@ namespace Hangfire.Mongo
         {
             if (Logger.IsTraceEnabled())
             {
+                // ReSharper disable once PossibleMultipleEnumeration
                 Logger.Trace($"GetSetCount({string.Join(",", keys)}, {limit})");
             }
 
+            // ReSharper disable once PossibleMultipleEnumeration
             if (!keys.Any())
             {
                 return 0;

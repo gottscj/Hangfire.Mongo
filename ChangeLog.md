@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.9.5 (2023-05-18)
+- Update to Hangfire.Core 1.8.1
+
 ### v1.9.4 (2023-05-08)
  - Update to Hangfire.Core 1.8.0
 

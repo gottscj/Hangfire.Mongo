@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Microsoft.AspNetCore.Builder;
@@ -56,7 +55,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                 };
 
                 //config.UseLogProvider(new FileLogProvider());
-
+                config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180);
                 config.UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, storageOptions)
                       .UseColouredConsoleLogProvider(LogLevel.Info);
             });
