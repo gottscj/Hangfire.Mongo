@@ -13,7 +13,6 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Moq;
 using Xunit;
-using static Hangfire.Storage.JobStorageFeatures;
 
 namespace Hangfire.Mongo.Tests
 {
