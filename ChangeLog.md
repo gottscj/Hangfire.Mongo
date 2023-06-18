@@ -1,6 +1,10 @@
 
 ## Change log
 
+### v1.9.6 (2023-06-12)
+- Update to Hangfire.Core 1.8.2
+- Update to MongoDB.Driver 2.19.2
+
 ### v1.9.5 (2023-05-18)
 - Update to Hangfire.Core 1.8.1
 
