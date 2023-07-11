@@ -235,12 +235,13 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(serverId));
             }
 
+            var now = GetUtcDateTime();
             var updateResult = _dbContext.Server.UpdateMany(new BsonDocument("_id", serverId),
                 new BsonDocument
                 {
                     ["$set"] = new BsonDocument
                     {
-                        [nameof(ServerDto.LastHeartbeat)] = DateTime.UtcNow
+                        [nameof(ServerDto.LastHeartbeat)] = now
                     }
                 });
 
@@ -257,13 +258,14 @@ namespace Hangfire.Mongo
                 throw new ArgumentException("The `timeOut` value must be positive.", nameof(timeOut));
             }
 
+            var now = GetUtcDateTime();
             return (int)_dbContext
                 .Server
                 .DeleteMany(new BsonDocument
                 {
                     [nameof(ServerDto.LastHeartbeat)] = new BsonDocument
                     {
-                        ["$lt"] = DateTime.UtcNow.Add(timeOut.Negate())
+                        ["$lt"] = now.Add(timeOut.Negate())
                     }
                 })
                 .DeletedCount;
