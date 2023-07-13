@@ -1,6 +1,11 @@
 
 ## Change log
 
+### v1.9.7 (2023-07-11)
+- Update to Hangfire.Core 1.8.3
+- Update to MongoDB.Driver 2.20.0
+- Fix using local server time for server heartbeats #356 
+
 ### v1.9.6 (2023-06-12)
 - Update to Hangfire.Core 1.8.2
 - Update to MongoDB.Driver 2.19.2

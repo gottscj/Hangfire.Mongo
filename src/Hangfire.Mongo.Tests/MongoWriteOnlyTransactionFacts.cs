@@ -852,7 +852,7 @@ namespace Hangfire.Mongo.Tests
 
             var testSet2 = GetTestSet(_database, "Set2");
             Assert.NotNull(testSet2);
-            Assert.Equal(1, testSet2.Count);
+            Assert.Single( testSet2);
         }
 
         [Fact]
@@ -870,10 +870,10 @@ namespace Hangfire.Mongo.Tests
             Commit(x => x.RemoveSet("Set1"));
 
             var testSet1 = GetTestSet(_database, "Set1");
-            Assert.Equal(0, testSet1.Count);
+            Assert.Empty(testSet1);
 
             var testSet2 = GetTestSet(_database, "Set2");
-            Assert.Equal(1, testSet2.Count);
+            Assert.Single(testSet2);
         }
 
         [Fact]
@@ -891,7 +891,7 @@ namespace Hangfire.Mongo.Tests
             Commit(x => x.RemoveSet(key));
 
             var testSet1 = GetTestSet(_database, key);
-            Assert.Equal(0, testSet1.Count);
+            Assert.Empty(testSet1);
         }
 
         private static JobDto GetTestJob(HangfireDbContext database, string jobId)
