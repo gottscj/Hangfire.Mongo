@@ -1,8 +1,11 @@
 
 ## Change log
 
-### v1.9.8 (2023-08-05)
-- Update to Hangfire.Core 1.8.4
+### v1.9.8 (2023-08-14)
+- Update to Hangfire.Core 1.8.5
+- Update to MongoDB.Driver 2.21.0
+- Replaced Moq with NSubstitue because Sponsorlink.
+  - https://www.reddit.com/r/dotnet/comments/15ljdcc/does_moq_in_its_latest_version_extract_and_send/
 
 ### v1.9.7 (2023-07-11)
 - Update to Hangfire.Core 1.8.3

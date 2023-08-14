@@ -11,7 +11,7 @@ using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Moq;
+using NSubstitute;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests
@@ -22,12 +22,18 @@ namespace Hangfire.Mongo.Tests
     {
         private readonly HangfireDbContext _dbContext;
         private readonly MongoConnection _connection;
-		private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphoreMock;
+		private readonly IJobQueueSemaphore _jobQueueSemaphoreMock;
 
         public MongoConnectionFacts(MongoDbFixture fixture)
         {
-            _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
-            var storageOptions = new MongoStorageOptions {Factory = {JobQueueSemaphore = _jobQueueSemaphoreMock.Object}};
+            _jobQueueSemaphoreMock = Substitute.For<IJobQueueSemaphore>();
+            var storageOptions = new MongoStorageOptions
+            {
+                Factory =
+                {
+                    JobQueueSemaphore = _jobQueueSemaphoreMock
+                }
+            };
 
             fixture.CleanDatabase();
             _dbContext = fixture.CreateDbContext();
@@ -63,7 +69,7 @@ namespace Hangfire.Mongo.Tests
                 Queue = "default",
                 FetchedAt = null
             };
-            _jobQueueSemaphoreMock.Setup(m => m.WaitNonBlock("default")).Returns(true);
+            _jobQueueSemaphoreMock.WaitNonBlock("default").Returns(true);
             var serializedJob = jobDto.Serialize();
             _dbContext.JobGraph.InsertOne(serializedJob);
 
@@ -71,7 +77,7 @@ namespace Hangfire.Mongo.Tests
 
             Assert.Equal(fetchedJob.JobId, jobDto.Id.ToString());
 
-            _jobQueueSemaphoreMock.Verify(m => m.WaitNonBlock("default"), Times.Once);
+            _jobQueueSemaphoreMock.Received(1).WaitNonBlock("default");
         }
 
         [Fact]

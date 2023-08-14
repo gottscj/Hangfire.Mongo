@@ -7,7 +7,6 @@ using Hangfire.Mongo.Migration.Steps.Version20;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Moq;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests.Migration
@@ -15,7 +14,6 @@ namespace Hangfire.Mongo.Tests.Migration
     [Collection("Database")]
     public class Version20MigrationStepFacts
     {
-        private readonly Mock<IMongoMigrationContext> _mongoMigrationBagMock;
         private readonly IMongoDatabase _database;
         private readonly Random _random;
         private readonly IMongoMigrationStep _migration;
@@ -23,7 +21,6 @@ namespace Hangfire.Mongo.Tests.Migration
         {
             var dbContext = fixture.CreateDbContext();
             _database = dbContext.Database;
-            _mongoMigrationBagMock = new Mock<IMongoMigrationContext>(MockBehavior.Strict);
             _random = new Random();
             _migration = new RemoveJobQueueDto();
         }
@@ -37,7 +34,7 @@ namespace Hangfire.Mongo.Tests.Migration
             collection.InsertMany(CreateJobQueueDtos());
 
             // ACT
-            var result = _migration.Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
+            var result = _migration.Execute(_database, new MongoStorageOptions(), new MongoMigrationContext());
 
             // ASSERT
             Assert.True(result, "Expected migration to be successful, reported 'false'");
@@ -62,7 +59,7 @@ namespace Hangfire.Mongo.Tests.Migration
             collection.InsertMany(jobs);
 
             // ACT
-            var result = _migration.Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
+            var result = _migration.Execute(_database, new MongoStorageOptions(), new MongoMigrationContext());
 
             // ASSERT
             Assert.True(result, "Expected migration to be successful, reported 'false'");
@@ -92,7 +89,7 @@ namespace Hangfire.Mongo.Tests.Migration
             collection.InsertMany(CreateJobQueueDtos(0, 5));
             var migration = new CompoundIndexes();
             // ACT
-            var result = migration.Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
+            var result = migration.Execute(_database, new MongoStorageOptions(), new MongoMigrationContext());
 
             // ASSERT
             var index = collection.Indexes.List().ToList().FirstOrDefault(b => b["name"].AsString == "IX_SetType_T_Score");

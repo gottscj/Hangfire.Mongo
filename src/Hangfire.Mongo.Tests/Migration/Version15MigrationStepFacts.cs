@@ -7,7 +7,6 @@ using Hangfire.Mongo.Migration.Steps.Version15;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Moq;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests.Migration
@@ -16,14 +15,12 @@ namespace Hangfire.Mongo.Tests.Migration
     public class Version15MigrationStepFacts
     {
         private readonly HangfireDbContext _dbContext;
-        private readonly Mock<IMongoMigrationContext> _mongoMigrationBagMock;
         private readonly IMongoDatabase _database;
 
         public Version15MigrationStepFacts(MongoDbFixture fixture)
         {
             _dbContext = fixture.CreateDbContext();
             _database = _dbContext.Database;
-            _mongoMigrationBagMock = new Mock<IMongoMigrationContext>(MockBehavior.Strict);
         }
 
         [Fact]
@@ -47,7 +44,7 @@ namespace Hangfire.Mongo.Tests.Migration
 
             // ACT
             var result = new CreateUniqueLockIndex().Execute(_dbContext.Database, new MongoStorageOptions(),
-                _mongoMigrationBagMock.Object);
+                new MongoMigrationContext());
 
             // ASSERT
             var indexes = collection.Indexes.List().ToList();
@@ -72,7 +69,7 @@ namespace Hangfire.Mongo.Tests.Migration
 
             // ACT
             var result = new MakeServerDataEmbeddedDocument().Execute(_database, new MongoStorageOptions(),
-                _mongoMigrationBagMock.Object);
+                new MongoMigrationContext());
 
             // ASSERT
             var migratedServerDto = collection.Find(new BsonDocument()).Single();
@@ -101,7 +98,7 @@ namespace Hangfire.Mongo.Tests.Migration
             collection.InsertOne(originalSetDto);
 
             // ACT
-            var result = new CreateCompositeKeys().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
+            var result = new CreateCompositeKeys().Execute(_database, new MongoStorageOptions(), new MongoMigrationContext());
 
             // ASSERT
             var migratedSetDto = collection.Find(new BsonDocument("_t", "SetDto")).Single();
@@ -142,7 +139,7 @@ namespace Hangfire.Mongo.Tests.Migration
             collection.InsertMany(counters);
 
             // ACT
-            var result = new RemoveMergedCounters().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
+            var result = new RemoveMergedCounters().Execute(_database, new MongoStorageOptions(), new MongoMigrationContext());
 
             // ASSERT
             var remainingCounter = collection.Find(new BsonDocument("_t", "CounterDto")).Single();
@@ -192,7 +189,7 @@ namespace Hangfire.Mongo.Tests.Migration
             collection.InsertMany(counters);
 
             // ACT
-            var result = new RemoveMergedCounters().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
+            var result = new RemoveMergedCounters().Execute(_database, new MongoStorageOptions(), new MongoMigrationContext());
 
             // ASSERT
             var remainingCounter = collection.Find(new BsonDocument("_t", "CounterDto")).Single();
@@ -217,7 +214,7 @@ namespace Hangfire.Mongo.Tests.Migration
             });
 
             // ACT
-            var result = new RemoveMergedCounters().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
+            var result = new RemoveMergedCounters().Execute(_database, new MongoStorageOptions(), new MongoMigrationContext());
 
             // ASSERT
             var remainingCounter = collection.Find(new BsonDocument("_t", "CounterDto")).Single();
@@ -252,7 +249,7 @@ namespace Hangfire.Mongo.Tests.Migration
             collection.InsertOne(expectedDoc);
 
             // ACT
-            var result = new RemoveMergedCounters().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
+            var result = new RemoveMergedCounters().Execute(_database, new MongoStorageOptions(), new MongoMigrationContext());
 
             // ASSERT
             var remainingCounter = collection.Find(new BsonDocument("_t", "CounterDto")).Single();
@@ -278,7 +275,7 @@ namespace Hangfire.Mongo.Tests.Migration
             });
 
             // ACT
-            var result = new UpdateListDtoKeySchema().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
+            var result = new UpdateListDtoKeySchema().Execute(_database, new MongoStorageOptions(), new MongoMigrationContext());
 
             // ASSERT
             var listDto = collection.Find(new BsonDocument("_t", "ListDto")).Single();
@@ -298,7 +295,7 @@ namespace Hangfire.Mongo.Tests.Migration
             collection.Indexes.DropAll();
 
             // ACT
-            var result = new UpdateIndexes().Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
+            var result = new UpdateIndexes().Execute(_database, new MongoStorageOptions(), new MongoMigrationContext());
 
             // ASSERT
             Assert.True(result, "Expected migration to be successful, reported 'false'");

@@ -7,7 +7,7 @@ using Hangfire.Mongo.Tests.Utils;
 using Hangfire.States;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Moq;
+using NSubstitute;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests
@@ -190,12 +190,12 @@ namespace Hangfire.Mongo.Tests
             var anotherJobId = anotherJob.Id.ToString();
             var serializedData = new Dictionary<string, string> {{"Name", "Value"}};
 
-            var state = new Mock<IState>();
-            state.Setup(x => x.Name).Returns("State");
-            state.Setup(x => x.Reason).Returns("Reason");
-            state.Setup(x => x.SerializeData()).Returns(serializedData);
+            var state = Substitute.For<IState>();
+            state.Name.Returns("State");
+            state.Reason.Returns("Reason");
+            state.SerializeData().Returns(serializedData);
 
-            Commit(x => x.SetJobState(jobId, state.Object));
+            Commit(x => x.SetJobState(jobId, state));
 
             var testJob = GetTestJob(_database, jobId);
             Assert.Equal("State", testJob.StateName);
@@ -228,12 +228,12 @@ namespace Hangfire.Mongo.Tests
             var jobId = job.Id.ToString();
             var serializedData = new Dictionary<string, string> {{"Name", "Value"}};
 
-            var state = new Mock<IState>();
-            state.Setup(x => x.Name).Returns("State");
-            state.Setup(x => x.Reason).Returns("Reason");
-            state.Setup(x => x.SerializeData()).Returns(serializedData);
+            var state = Substitute.For<IState>();
+            state.Name.Returns("State");
+            state.Reason.Returns("Reason");
+            state.SerializeData().Returns(serializedData);
 
-            Commit(x => x.AddJobState(jobId, state.Object));
+            Commit(x => x.AddJobState(jobId, state));
 
             var testJob = GetTestJob(_database, jobId);
             Assert.Null(testJob.StateName);
