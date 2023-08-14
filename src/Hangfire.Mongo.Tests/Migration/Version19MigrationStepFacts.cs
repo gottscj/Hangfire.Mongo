@@ -5,7 +5,6 @@ using Hangfire.Mongo.Migration.Steps.Version19;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Moq;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests.Migration
@@ -13,7 +12,6 @@ namespace Hangfire.Mongo.Tests.Migration
     [Collection("Database")]
     public class Version19MigrationStepFacts
     {
-        private readonly Mock<IMongoMigrationContext> _mongoMigrationBagMock;
         private readonly IMongoDatabase _database;
         private readonly Random _random;
         private readonly AddTypeToSetDto _addTypeToSetDto;
@@ -21,7 +19,6 @@ namespace Hangfire.Mongo.Tests.Migration
         {
             var dbContext = fixture.CreateDbContext();
             _database = dbContext.Database;
-            _mongoMigrationBagMock = new Mock<IMongoMigrationContext>(MockBehavior.Strict);
             _random = new Random();
             _addTypeToSetDto = new AddTypeToSetDto();
         }
@@ -41,7 +38,7 @@ namespace Hangfire.Mongo.Tests.Migration
                 CreateSetDto(),
             });
             // ACT
-            var result = _addTypeToSetDto.Execute(_database, new MongoStorageOptions(), _mongoMigrationBagMock.Object);
+            var result = _addTypeToSetDto.Execute(_database, new MongoStorageOptions(), new MongoMigrationContext());
 
             // ASSERT
             Assert.True(result, "Expected migration to be successful, reported 'false'");

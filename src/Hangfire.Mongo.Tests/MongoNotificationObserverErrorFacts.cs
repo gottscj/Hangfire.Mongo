@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Tests.Utils;
-using Moq;
+using NSubstitute;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests
@@ -14,17 +14,17 @@ namespace Hangfire.Mongo.Tests
     {
         private readonly HangfireDbContext _dbContext;
 
-        private readonly Mock<IJobQueueSemaphore> _jobQueueSemaphoreMock;
+        private readonly IJobQueueSemaphore _jobQueueSemaphoreMock;
         private readonly CancellationTokenSource _cts;
 
         public MongoNotificationObserverErrorFacts(MongoDbFixture fixture)
         {
             _dbContext = fixture.CreateDbContext();
-            _jobQueueSemaphoreMock = new Mock<IJobQueueSemaphore>(MockBehavior.Strict);
+            _jobQueueSemaphoreMock = Substitute.For<IJobQueueSemaphore>();
             var mongoNotificationObserver = new MongoNotificationObserver(
                 _dbContext,
                 new MongoStorageOptions(),
-                _jobQueueSemaphoreMock.Object);
+                _jobQueueSemaphoreMock);
 
             _dbContext.Database.DropCollection(_dbContext.Notifications.CollectionNamespace.CollectionName);
             _cts = new CancellationTokenSource();
@@ -48,8 +48,9 @@ namespace Hangfire.Mongo.Tests
         {
             // ARRANGE
             var signal = new SemaphoreSlim(0,1);
-            _jobQueueSemaphoreMock.Setup(m => m.Release("test"))
-                .Callback(() => signal.Release());
+            _jobQueueSemaphoreMock
+                .When(s => s.Release("test"))
+                .Do(_ => signal.Release());
 
             // ACT
             _dbContext.Notifications.InsertOne(NotificationDto.JobEnqueued("test").Serialize());
@@ -57,7 +58,7 @@ namespace Hangfire.Mongo.Tests
 
             // ASSERT
             Assert.True(signalled);
-            _jobQueueSemaphoreMock.Verify(m => m.Release("test"), Times.Once);
+            _jobQueueSemaphoreMock.Received(1).Release("test");
         }
     }
 }

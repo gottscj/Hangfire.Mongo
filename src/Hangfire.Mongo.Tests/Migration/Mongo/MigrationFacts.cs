@@ -11,10 +11,8 @@ using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
-using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests.Migration.Mongo

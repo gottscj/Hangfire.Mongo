@@ -1,12 +1,9 @@
-using System.Linq;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration;
-using Hangfire.Mongo.Migration.Steps.Version15;
 using Hangfire.Mongo.Migration.Steps.Version16;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Moq;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests.Migration
@@ -15,14 +12,12 @@ namespace Hangfire.Mongo.Tests.Migration
     public class Version16MigrationStepFacts
     {
         private readonly HangfireDbContext _dbContext;
-        private readonly Mock<IMongoMigrationContext> _mongoMigrationBagMock;
         private readonly IMongoDatabase _database;
 
         public Version16MigrationStepFacts(MongoDbFixture fixture)
         {
             _dbContext = fixture.CreateDbContext();
             _database = _dbContext.Database;
-            _mongoMigrationBagMock = new Mock<IMongoMigrationContext>(MockBehavior.Strict);
         }
 
         [Fact]
@@ -45,7 +40,7 @@ namespace Hangfire.Mongo.Tests.Migration
 
             // ACT
             var result = new UpdateSetDtoKeyAndValueField().Execute(_dbContext.Database, new MongoStorageOptions(),
-                _mongoMigrationBagMock.Object);
+                new MongoMigrationContext());
 
             // ASSERT
             var migratedSetDto = collection.Find(_ => true).Single();
@@ -73,7 +68,7 @@ namespace Hangfire.Mongo.Tests.Migration
 
             // ACT
             var result = new UpdateSetDtoKeyAndValueField().Execute(_dbContext.Database, new MongoStorageOptions(),
-                _mongoMigrationBagMock.Object);
+                new MongoMigrationContext());
 
             // ASSERT
             var migratedSetDto = collection.Find(_ => true).Single();
