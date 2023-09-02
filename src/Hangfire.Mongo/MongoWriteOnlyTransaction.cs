@@ -130,6 +130,8 @@ namespace Hangfire.Mongo
                 Parameters = parameters.ToDictionary(kv => kv.Key, kv => kv.Value),
                 CreatedAt = createdAt,
                 ExpireAt = createdAt.Add(expireIn),
+                // dont persist queue as this will be set when job is actually queued in "AddToQueue" below
+                // also MongoJobFetcher will fetch jobs which are assigned a value to Queue property see issue: #359
                 Queue = null,
                 FetchedAt = null,
             };

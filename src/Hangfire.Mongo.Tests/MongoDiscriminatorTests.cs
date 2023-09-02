@@ -37,7 +37,7 @@ namespace Hangfire.Mongo.Tests
             },
                t => t.FullName.StartsWith("Hangfire.Mongo") && t.IsAssignableFrom(typeof(BaseJobDto)));
             var createdAt = new DateTime(2012, 12, 12, 0, 0, 0, 0, DateTimeKind.Utc);
-            var job = Job.FromExpression(() => HangfireTestJobs.SampleMethod("Hello"));
+            var job = Job.FromExpression(() => HangfireTestJobs.SampleMethod("Hello"), "queue");
             string jobId;
             using (var transaction = new MongoWriteOnlyTransaction(_dbContext, new MongoStorageOptions()))
             {
@@ -49,15 +49,20 @@ namespace Hangfire.Mongo.Tests
             }
 
             // ACT
-            var jobDto = _dbContext.JobGraph.Find(new BsonDocument
+            var jobDoc = _dbContext.JobGraph.Find(new BsonDocument
             {
                 ["_t"] = nameof(JobDto),
                 ["_id"] = ObjectId.Parse(jobId)
-            }).FirstOrDefault();
+            })
+                .FirstOrDefault();
 
 
             // ASSERT
-            Assert.NotNull(jobDto);
+            Assert.Equal("queue", job.Queue);
+            Assert.NotNull(jobDoc);
+            var jobDto = new JobDto(jobDoc);
+            // queue should always be null when first created. see #359
+            Assert.Null(jobDto.Queue);
          }
 
     }
