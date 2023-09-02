@@ -371,14 +371,6 @@ namespace Hangfire.Mongo
 
         public virtual IReadOnlyList<string> GetQueues()
         {
-            var filter = new BsonDocument
-            {
-                ["_t"] = nameof(JobDto),
-                [nameof(JobDto.Queue)] = new BsonDocument
-                {
-                    ["$ne"] = BsonNull.Value
-                }
-            };
             var pipeline = new BsonDocument[]
             {
                 new BsonDocument("$match",

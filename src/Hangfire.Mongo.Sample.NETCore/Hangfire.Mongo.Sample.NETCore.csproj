@@ -13,6 +13,7 @@
     <PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
     <PackageTags>Hangfire AspNet OWIN MongoDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
+    <LangVersion>latestmajor</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Hangfire.Mongo\Hangfire.Mongo.csproj" />

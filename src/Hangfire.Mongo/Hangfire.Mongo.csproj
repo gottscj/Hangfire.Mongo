@@ -31,6 +31,7 @@
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
         <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
         <Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
+        <LangVersion>latestmajor</LangVersion>
     </PropertyGroup>
     <ItemGroup>
         <None Include="../../README.md" pack="true" PackagePath="." />

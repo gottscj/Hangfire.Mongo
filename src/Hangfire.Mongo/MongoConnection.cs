@@ -672,11 +672,8 @@ namespace Hangfire.Mongo
 
         public override DateTime GetUtcDateTime()
         {
-            if (Logger.IsTraceEnabled())
-            {
-                Logger.Trace($"GetUtcDateTime()");
-            }
 
+            DateTime now;
             try
             {
                 var pipeline = new[]
@@ -689,13 +686,20 @@ namespace Hangfire.Mongo
                 {
                     throw new InvalidOperationException("No documents in the schema collection");
                 }
-                return time["date"].ToUniversalTime();
+                now = time["date"].ToUniversalTime();
             }
             catch (Exception e)
             {
                 Logger.WarnException("Failed to get UTC datetime from mongodb server, using local UTC", e);
-                return DateTime.UtcNow;
+                now = DateTime.UtcNow;
             }
+            
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"GetUtcDateTime() => {now}");
+            }
+
+            return now;
         }
 
         public override bool GetSetContains([NotNull] string key, [NotNull] string value)
