@@ -24,9 +24,10 @@ namespace Hangfire.Mongo
         
         public HangfireDbContext DbContext { get; }
 
-        private readonly List<WriteModel<BsonDocument>> _writeModels = new List<WriteModel<BsonDocument>>();
+        private readonly List<WriteModel<BsonDocument>> _writeModels = new ();
+        private readonly Dictionary<string, MongoJobUpdates> _jobWriteModels = new();
         private MongoDistributedLock _distributedLock;
-        private readonly List<MongoFetchedJob> _removedJobs = new List<MongoFetchedJob>();
+        private readonly List<MongoFetchedJob> _removedJobs = new();
 
         protected HashSet<string> JobsAddedToQueue { get; }
 
@@ -37,6 +38,15 @@ namespace Hangfire.Mongo
             JobsAddedToQueue = new HashSet<string>();
         }
 
+        private MongoJobUpdates GetOrAddJobUpdates(string jobId)
+        {
+            if (_jobWriteModels.TryGetValue(jobId, out var updates)) return updates;
+            
+            updates = new MongoJobUpdates();
+            _jobWriteModels[jobId] = updates;
+
+            return updates;
+        }
         public override void Dispose()
         {
             _distributedLock?.Dispose();
@@ -69,12 +79,8 @@ namespace Hangfire.Mongo
 
         public override void ExpireJob(string jobId, TimeSpan expireIn)
         {
-            var filter = CreateJobIdFilter(jobId);
-            var update = new BsonDocument("$set",
-                new BsonDocument(nameof(KeyJobDto.ExpireAt), DateTime.UtcNow.Add(expireIn)));
-
-            var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
-            _writeModels.Add(writeModel);
+            var updates = GetOrAddJobUpdates(jobId);
+            updates.Set[nameof(KeyJobDto.ExpireAt)] = DateTime.UtcNow.Add(expireIn);
         }
 
         public virtual void RemoveFromQueue(ObjectId id, DateTime fetchedAt, string queue)
@@ -99,21 +105,9 @@ namespace Hangfire.Mongo
 
         public virtual void Requeue(ObjectId id, string queue)
         {
-            var filter = new BsonDocument
-            {
-                ["_id"] = id
-            };
-            var update = new BsonDocument
-            {
-                ["$set"] = new BsonDocument
-                {
-                    [nameof(JobDto.FetchedAt)] = BsonNull.Value,
-                    [nameof(JobDto.Queue)] = queue.ToBsonValue()
-                }
-            };
-            var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
-            
-            _writeModels.Add(writeModel);
+            var updates = GetOrAddJobUpdates(id.ToString());
+            updates.Set[nameof(JobDto.FetchedAt)] = BsonNull.Value;
+            updates.Set[nameof(JobDto.Queue)] = queue.ToBsonValue();
             JobsAddedToQueue.Add(queue);
         }
         
@@ -136,7 +130,9 @@ namespace Hangfire.Mongo
                 Parameters = parameters.ToDictionary(kv => kv.Key, kv => kv.Value),
                 CreatedAt = createdAt,
                 ExpireAt = createdAt.Add(expireIn),
-                Queue = job.Queue,
+                // dont persist queue as this will be set when job is actually queued in "AddToQueue" below
+                // also MongoJobFetcher will fetch jobs which are assigned a value to Queue property see issue: #359
+                Queue = null,
                 FetchedAt = null,
             };
 
@@ -150,16 +146,12 @@ namespace Hangfire.Mongo
 
         public override void PersistJob(string jobId)
         {
-            var filter = CreateJobIdFilter(jobId);
-            var update = new BsonDocument("$set", new BsonDocument(nameof(KeyJobDto.ExpireAt), BsonNull.Value));
-
-            var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
-            _writeModels.Add(writeModel);
+            var updates = GetOrAddJobUpdates(jobId);
+            updates.Set[nameof(KeyJobDto.ExpireAt)] = BsonNull.Value;
         }
 
         public override void SetJobState(string jobId, IState state)
         {
-            var filter = CreateJobIdFilter(jobId);
             var stateDto = new StateDto
             {
                 Name = state.Name,
@@ -168,19 +160,14 @@ namespace Hangfire.Mongo
                 Data = state.SerializeData()
             }.Serialize();
 
-            var update = new BsonDocument
-            {
-                ["$set"] = new BsonDocument(nameof(JobDto.StateName), state.Name),
-                ["$push"] = new BsonDocument(nameof(JobDto.StateHistory), stateDto)
-            };
-            var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
-
-            _writeModels.Add(writeModel);
+            var updates = GetOrAddJobUpdates(jobId);
+            updates.Set[nameof(JobDto.StateName)] = state.Name;
+            updates.Push[nameof(JobDto.StateHistory)] = stateDto;
         }
 
         public override void AddJobState(string jobId, IState state)
         {
-            var filter = CreateJobIdFilter(jobId);
+            // var filter = CreateJobIdFilter(jobId);
             var stateDto = new StateDto
             {
                 Name = state.Name,
@@ -189,11 +176,8 @@ namespace Hangfire.Mongo
                 Data = state.SerializeData()
             }.Serialize();
 
-            var update = new BsonDocument("$push", new BsonDocument(nameof(JobDto.StateHistory), stateDto));
-
-            var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
-
-            _writeModels.Add(writeModel);
+            var updates = GetOrAddJobUpdates(jobId);
+            updates.Push[nameof(JobDto.StateHistory)] = stateDto;
         }
         
         public override void SetJobParameter(string id, string name, string value)
@@ -208,8 +192,6 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(name));
             }
 
-            var filter = new BsonDocument("_id", ObjectId.Parse(id));
-            
             BsonValue bsonValue;
             if (value == null)
             {
@@ -219,32 +201,16 @@ namespace Hangfire.Mongo
             {
                 bsonValue = value;
             }
-
-            var update = new BsonDocument("$set", new BsonDocument($"{nameof(JobDto.Parameters)}.{name}", bsonValue));
-            
-            var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
-            
-            _writeModels.Add(writeModel);
+            var updates = GetOrAddJobUpdates(id);
+            updates.Set[$"{nameof(JobDto.Parameters)}.{name}"] = bsonValue;
         }
 
         public override void AddToQueue(string queue, string jobId)
         {
-            var filter = new BsonDocument
-            {
-                ["_t"] = nameof(JobDto),
-                ["_id"] = ObjectId.Parse(jobId)
-            };
-            var update = new BsonDocument
-            {
-                ["$set"] = new BsonDocument
-                {
-                    [nameof(JobDto.Queue)] = queue
-                }
-            };
+            var updates = GetOrAddJobUpdates(jobId);
+            updates.Set[nameof(JobDto.Queue)] = queue;
 
             JobsAddedToQueue.Add(queue);
-            var writeModel = new UpdateOneModel<BsonDocument>(filter, update);
-            _writeModels.Add(writeModel);
         }
 
         public override void IncrementCounter(string key)
@@ -382,8 +348,8 @@ namespace Hangfire.Mongo
             var toTrim = allIds
                 .OrderByDescending(id => id.Timestamp)    
                 .Select((id, i) => new {Index = i + 1, Id = id})
-                .Where(_ => (_.Index >= start && (_.Index <= end)) == false)
-                .Select(_ => _.Id)
+                .Where(x => (x.Index >= start && x.Index <= end) == false)
+                .Select(x => x.Id)
                 .ToList();
 
             var filter = new BsonDocument
@@ -447,6 +413,14 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
+            foreach (var kvp in _jobWriteModels)
+            {
+                var jobId = kvp.Key;
+                var updates = kvp.Value;
+                var updateModel = updates.CreateUpdateModel(jobId);
+                _writeModels.Add(updateModel);
+            }
+            
             Log(_writeModels);
 
             if (!_writeModels.Any())
@@ -556,8 +530,7 @@ namespace Hangfire.Mongo
             return serializedDoc;
         }
         // New methods to support Hangfire pro feature - batches.
-
-
+        
         public override void ExpireSet(string key, TimeSpan expireIn)
         {
             if (key == null)
@@ -698,11 +671,6 @@ namespace Hangfire.Mongo
             var filter = CreateSetFilter(key);
             var writeModel = new DeleteManyModel<BsonDocument>(filter);
             _writeModels.Add(writeModel);
-        }
-
-        public virtual BsonDocument CreateJobIdFilter(string jobId)
-        {
-            return new BsonDocument("_id", ObjectId.Parse(jobId));
         }
 
         public virtual bool ListDtoHasItem(string key, InsertOneModel<BsonDocument> model)
