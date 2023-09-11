@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.9.9
+- Fix Jobs queued directly when queue is specified when scheduling #359
+
 ### v1.9.8 (2023-08-14)
 - Update to Hangfire.Core 1.8.5
 - Update to MongoDB.Driver 2.21.0

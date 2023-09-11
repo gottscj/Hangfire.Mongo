@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <VersionPrefix>1.9.8</VersionPrefix>
+        <VersionPrefix>1.9.9</VersionPrefix>
         <TargetFramework>netstandard2.0</TargetFramework>
         <NoWarn>$(NoWarn);CS0618</NoWarn>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -21,11 +21,8 @@
         <owners>Sergey Zwezdin, Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.9.8
-            - Update to Hangfire.Core 1.8.5
-            - Update to MongoDB.Driver 2.21.0
-            - Replaced Moq with NSubstitue because Sponsorlink.
-               - https://www.reddit.com/r/dotnet/comments/15ljdcc/does_moq_in_its_latest_version_extract_and_send/
+        <PackageReleaseNotes>1.9.9
+            - Fix Jobs queued directly when queue is specified when scheduling #359
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
