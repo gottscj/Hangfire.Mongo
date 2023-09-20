@@ -12,9 +12,10 @@ namespace Hangfire.Mongo.CosmosDB
         /// </summary>
         public CosmosStorageOptions()
         {
-            CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Poll;
+            CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Watch;
             CheckConnection = false;
             MigrationLockTimeout = TimeSpan.FromMinutes(2);
+            Factory = new CosmosFactory();
         }
     }
 }
