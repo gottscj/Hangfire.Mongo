@@ -39,7 +39,7 @@ public class CosmosDbWriteOnlyTransaction : MongoWriteOnlyTransaction
         }
         
         var trys = 3;
-        while (trys > 0)
+        do
         {
             try
             {
@@ -56,7 +56,7 @@ public class CosmosDbWriteOnlyTransaction : MongoWriteOnlyTransaction
                     throw;
                 }
             }
-        }
+        } while (true);
     }
 }
 
