@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using Hangfire.Server;
 using Hangfire.Storage;
 using MongoDB.Driver;
 
@@ -39,6 +40,28 @@ namespace Hangfire.Mongo.CosmosDB
                     {JobStorageFeatures.Monitoring.DeletedStateGraphs, true},
                     {JobStorageFeatures.Monitoring.AwaitingJobs, true}
                 });
+        }
+        
+        /// <summary>
+        /// Returns collection of server components
+        /// </summary>
+        /// <returns>Collection of server components</returns>
+        public override IEnumerable<IServerComponent> GetComponents()
+        {
+            yield return StorageOptions.Factory.CreateMongoExpirationManager(HangfireDbContext, StorageOptions);
+            switch (StorageOptions.CheckQueuedJobsStrategy)
+            {
+                case CheckQueuedJobsStrategy.Watch:
+                    
+                    yield return StorageOptions.Factory.CreateMongoJobQueueWatcher(HangfireDbContext, StorageOptions);
+                    break;
+                case CheckQueuedJobsStrategy.Poll:
+                    break;
+                case CheckQueuedJobsStrategy.TailNotificationsCollection:
+                    throw new NotSupportedException("CosmosDB does not support capped collections");
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
 }

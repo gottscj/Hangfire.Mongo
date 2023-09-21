@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Hangfire.Common;
+using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Storage;
@@ -36,7 +37,26 @@ public class CosmosDbWriteOnlyTransaction : MongoWriteOnlyTransaction
                 insertOneModel.Document[nameof(KeyJobDto.Key)] = insertOneModel.Document["_id"].ToString();
             }
         }
-        base.ExecuteCommit(jobGraph, writeModels, bulkWriteOptions);
+        
+        var trys = 3;
+        while (trys > 0)
+        {
+            try
+            {
+                base.ExecuteCommit(jobGraph, writeModels, bulkWriteOptions);
+                break;
+            }
+            catch (Exception e)
+            {
+                trys -= 1;
+                Logger.WarnException("Error writing to DB", e);
+                if (trys == 0)
+                {
+                    Logger.ErrorException("Throwing after 3 re-trys", e);
+                    throw;
+                }
+            }
+        }
     }
 }
 

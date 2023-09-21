@@ -17,4 +17,10 @@ public class CosmosFactory : MongoFactory
     {
         return new CosmosConnection(dbContext, storageOptions);
     }
+
+    /// <inheritdoc />
+    public override MongoJobQueueWatcher CreateMongoJobQueueWatcher(HangfireDbContext dbContext, MongoStorageOptions storageOptions)
+    {
+        return new CosmosQueueWatcher(dbContext, storageOptions, JobQueueSemaphore);
+    }
 }

@@ -13,10 +13,22 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoJobQueueWatcher : IBackgroundProcess, IServerComponent
     {
-        private static readonly ILog Logger = LogProvider.For<MongoJobQueueWatcher>();
-        private readonly HangfireDbContext _dbContext;
-        private readonly MongoStorageOptions _storageOptions;
-        private readonly IJobQueueSemaphore _jobQueueSemaphore;
+        /// <summary>
+        /// Logger instance
+        /// </summary>
+        protected static readonly ILog Logger = LogProvider.For<MongoJobQueueWatcher>();
+        /// <summary>
+        /// DbContext
+        /// </summary>
+        protected readonly HangfireDbContext DbContext;
+        /// <summary>
+        /// StorageOptions
+        /// </summary>
+        protected readonly MongoStorageOptions StorageOptions;
+        /// <summary>
+        /// JobQueue semaphore
+        /// </summary>
+        protected readonly IJobQueueSemaphore JobQueueSemaphore;
 
         /// <summary>
         /// ctor
@@ -29,15 +41,15 @@ namespace Hangfire.Mongo
             MongoStorageOptions storageOptions,
             IJobQueueSemaphore jobQueueSemaphore)
         {
-            _dbContext = dbContext;
-            _storageOptions = storageOptions;
-            _jobQueueSemaphore = jobQueueSemaphore;
+            DbContext = dbContext;
+            StorageOptions = storageOptions;
+            JobQueueSemaphore = jobQueueSemaphore;
 
         }
         /// <inheritdoc />
-        public void Execute(CancellationToken cancellationToken)
+        public virtual void Execute(CancellationToken cancellationToken)
         {
-            var pipeline = new BsonDocument[]
+            var pipeline = new[]
             {
                 new BsonDocument
                 {
@@ -47,7 +59,7 @@ namespace Hangfire.Mongo
                         [$"updateDescription.updatedFields.{nameof(JobDto.Queue)}"] = new BsonDocument
                         {
                             ["$exists"] = true
-                        }
+                        },
                         [$"updateDescription.updatedFields.{nameof(JobDto.Queue)}"] = new BsonDocument
                         {
                             ["$ne"] = BsonNull.Value
@@ -60,9 +72,9 @@ namespace Hangfire.Mongo
             {
                 try
                 {
-                    var cursor = _dbContext
+                    var cursor = DbContext
                     .Database
-                    .GetCollection<BsonDocument>(_dbContext.JobGraph.CollectionNamespace.CollectionName)
+                    .GetCollection<BsonDocument>(DbContext.JobGraph.CollectionNamespace.CollectionName)
                     .Watch<BsonDocument>(pipeline);
                     
                     if (Logger.IsTraceEnabled())
@@ -73,7 +85,7 @@ namespace Hangfire.Mongo
                     foreach (var change in cursor.ToEnumerable(cancellationToken))
                     {
                         var queue = change["updateDescription"]["updatedFields"][nameof(JobDto.Queue)].AsString;
-                        _jobQueueSemaphore.Release(queue);
+                        JobQueueSemaphore.Release(queue);
                         if (Logger.IsTraceEnabled())
                         {
                             Logger.Trace("Watcher: Job enqueued, queue: " + queue);
