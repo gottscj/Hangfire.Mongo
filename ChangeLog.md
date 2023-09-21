@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.9.10
+- Fix CosmosDB duplicate key error #362
+
 ### v1.9.9
 - Fix Jobs queued directly when queue is specified when scheduling #359
 
