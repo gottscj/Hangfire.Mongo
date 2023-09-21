@@ -42,7 +42,7 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Enabled Hangfire features. To change enabled features, inherit this class and override 'HasFeature' method
         /// </summary>
-        public ReadOnlyDictionary<string, bool> Features = new ReadOnlyDictionary<string, bool>(new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase)
+        public ReadOnlyDictionary<string, bool> Features { get; protected set; }  = new ReadOnlyDictionary<string, bool>(new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase)
             {
                 { JobStorageFeatures.ExtendedApi, true },
                 { JobStorageFeatures.JobQueueProperty, true },

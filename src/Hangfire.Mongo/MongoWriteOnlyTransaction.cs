@@ -21,11 +21,11 @@ namespace Hangfire.Mongo
     {
         protected MongoStorageOptions StorageOptions { get; }
         protected static readonly ILog Logger = LogProvider.For<MongoWriteOnlyTransaction>();
-        
+
         public HangfireDbContext DbContext { get; }
 
-        private readonly List<WriteModel<BsonDocument>> _writeModels = new ();
-        private readonly Dictionary<string, MongoJobUpdates> _jobWriteModels = new();
+        private readonly List<WriteModel<BsonDocument>> _writeModels = new();
+        private readonly Dictionary<string, MongoJobUpdates> _jobUpdates = new();
         private MongoDistributedLock _distributedLock;
         private readonly List<MongoFetchedJob> _removedJobs = new();
 
@@ -40,13 +40,14 @@ namespace Hangfire.Mongo
 
         private MongoJobUpdates GetOrAddJobUpdates(string jobId)
         {
-            if (_jobWriteModels.TryGetValue(jobId, out var updates)) return updates;
-            
+            if (_jobUpdates.TryGetValue(jobId, out var updates)) return updates;
+
             updates = new MongoJobUpdates();
-            _jobWriteModels[jobId] = updates;
+            _jobUpdates[jobId] = updates;
 
             return updates;
         }
+
         public override void Dispose()
         {
             _distributedLock?.Dispose();
@@ -54,18 +55,20 @@ namespace Hangfire.Mongo
 
         public override void AcquireDistributedLock([NotNull] string resource, TimeSpan timeout)
         {
-            _distributedLock = StorageOptions.Factory.CreateMongoDistributedLock(resource, timeout, DbContext, StorageOptions);
+            _distributedLock =
+                StorageOptions.Factory.CreateMongoDistributedLock(resource, timeout, DbContext, StorageOptions);
             _distributedLock.AcquireLock();
         }
 
-        public override string CreateJob([NotNull] Job job, [NotNull] IDictionary<string, string> parameters, DateTime createdAt, TimeSpan expireIn)
+        public override string CreateJob([NotNull] Job job, [NotNull] IDictionary<string, string> parameters,
+            DateTime createdAt, TimeSpan expireIn)
         {
             return CreateExpiredJob(job, parameters, createdAt, expireIn);
         }
 
         public override void RemoveFromQueue([NotNull] IFetchedJob fetchedJob)
         {
-            if(fetchedJob is MongoFetchedJob mongoFetchedJob)
+            if (fetchedJob is MongoFetchedJob mongoFetchedJob)
             {
                 RemoveFromQueue(mongoFetchedJob.Id, mongoFetchedJob.FetchedAt, mongoFetchedJob.Queue);
                 _removedJobs.Add(mongoFetchedJob);
@@ -74,7 +77,6 @@ namespace Hangfire.Mongo
             {
                 fetchedJob.RemoveFromQueue();
             }
-            
         }
 
         public override void ExpireJob(string jobId, TimeSpan expireIn)
@@ -110,7 +112,7 @@ namespace Hangfire.Mongo
             updates.Set[nameof(JobDto.Queue)] = queue.ToBsonValue();
             JobsAddedToQueue.Add(queue);
         }
-        
+
         public virtual string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt,
             TimeSpan expireIn)
         {
@@ -167,7 +169,6 @@ namespace Hangfire.Mongo
 
         public override void AddJobState(string jobId, IState state)
         {
-            // var filter = CreateJobIdFilter(jobId);
             var stateDto = new StateDto
             {
                 Name = state.Name,
@@ -179,7 +180,7 @@ namespace Hangfire.Mongo
             var updates = GetOrAddJobUpdates(jobId);
             updates.Push[nameof(JobDto.StateHistory)] = stateDto;
         }
-        
+
         public override void SetJobParameter(string id, string name, string value)
         {
             if (id == null)
@@ -201,6 +202,7 @@ namespace Hangfire.Mongo
             {
                 bsonValue = value;
             }
+
             var updates = GetOrAddJobUpdates(id);
             updates.Set[$"{nameof(JobDto.Parameters)}.{name}"] = bsonValue;
         }
@@ -222,17 +224,17 @@ namespace Hangfire.Mongo
         {
             SetCounter(key, 1, expireIn);
         }
-        
-       public override void DecrementCounter(string key)
+
+        public override void DecrementCounter(string key)
         {
             SetCounter(key, -1, null);
         }
 
         public override void DecrementCounter(string key, TimeSpan expireIn)
         {
-           SetCounter(key, -1, expireIn);
+            SetCounter(key, -1, expireIn);
         }
-        
+
         protected virtual void SetCounter(string key, long amount, TimeSpan? expireIn)
         {
             if (key == null)
@@ -241,7 +243,7 @@ namespace Hangfire.Mongo
             }
 
             var filter = new BsonDocument(nameof(CounterDto.Key), key);
-            
+
             BsonValue bsonDate = BsonNull.Value;
             if (expireIn != null)
             {
@@ -254,14 +256,15 @@ namespace Hangfire.Mongo
                 ["$set"] = new BsonDocument(nameof(KeyJobDto.ExpireAt), bsonDate),
                 ["$setOnInsert"] = new BsonDocument
                 {
-                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(CounterDto)},
+                    ["_t"] = new BsonArray
+                        {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(CounterDto)},
                 }
             };
-            
-            var writeModel = new UpdateOneModel<BsonDocument>(filter, update){IsUpsert = true};
+
+            var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
             _writeModels.Add(writeModel);
         }
-        
+
         public override void AddToSet(string key, string value)
         {
             AddToSet(key, value, 0.0);
@@ -338,7 +341,7 @@ namespace Hangfire.Mongo
                 .ToList()
                 .Select(b => b["_id"].AsObjectId)
                 .ToList();
-            
+
             // Add LisDto's scheduled for insertion writemodels collection, add it here.
             allIds
                 .AddRange(_writeModels.OfType<InsertOneModel<BsonDocument>>()
@@ -346,7 +349,7 @@ namespace Hangfire.Mongo
                     .Select(model => model.Document["_id"].AsObjectId));
 
             var toTrim = allIds
-                .OrderByDescending(id => id.Timestamp)    
+                .OrderByDescending(id => id.Timestamp)
                 .Select((id, i) => new {Index = i + 1, Id = id})
                 .Where(x => (x.Index >= start && x.Index <= end) == false)
                 .Select(x => x.Id)
@@ -357,7 +360,7 @@ namespace Hangfire.Mongo
                 ["_id"] = new BsonDocument("$in", new BsonArray(toTrim)),
                 [nameof(ListDto.Item)] = key
             };
-              
+
             var writeModel = new DeleteManyModel<BsonDocument>(filter);
             _writeModels.Add(writeModel);
         }
@@ -375,27 +378,28 @@ namespace Hangfire.Mongo
             }
 
             var fields = new BsonDocument();
-            
+
             foreach (var pair in keyValuePairs)
             {
                 var field = pair.Key;
                 var value = pair.Value;
                 fields[$"{nameof(HashDto.Fields)}.{field}"] = value;
             }
-            
+
             var update = new BsonDocument
             {
                 ["$set"] = fields,
                 ["$setOnInsert"] = new BsonDocument
                 {
-                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(HashDto)},
+                    ["_t"] = new BsonArray
+                        {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(HashDto)},
                     [nameof(HashDto.ExpireAt)] = BsonNull.Value
                 }
             };
-            
+
             var filter = new BsonDocument(nameof(HashDto.Key), key);
 
-            var writeModel = new UpdateOneModel<BsonDocument>(filter, update){IsUpsert = true};
+            var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
             _writeModels.Add(writeModel);
         }
 
@@ -413,45 +417,55 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
-            foreach (var kvp in _jobWriteModels)
+            foreach (var kvp in _jobUpdates)
             {
                 var jobId = kvp.Key;
                 var updates = kvp.Value;
                 var updateModel = updates.CreateUpdateModel(jobId);
                 _writeModels.Add(updateModel);
             }
-            
-            Log(_writeModels);
 
             if (!_writeModels.Any())
             {
                 return;
             }
 
-            var jobGraph= DbContext
+            Log(_writeModels);
+
+            var jobGraph = DbContext
                 .Database
                 .GetCollection<BsonDocument>(DbContext.JobGraph.CollectionNamespace.CollectionName);
+
             var bulkWriteOptions = new BulkWriteOptions
             {
                 IsOrdered = true,
-                BypassDocumentValidation = false,
+                BypassDocumentValidation = false
             };
-            
-            jobGraph.BulkWrite(_writeModels, bulkWriteOptions);
+
+            ExecuteCommit(jobGraph, _writeModels, bulkWriteOptions);
+
             _removedJobs.ForEach(j => j.SetRemoved());
             _distributedLock?.Dispose();
-            
+
             if (StorageOptions.CheckQueuedJobsStrategy == CheckQueuedJobsStrategy.TailNotificationsCollection)
             {
                 SignalJobsAddedToQueues(JobsAddedToQueue);
             }
         }
 
-        public virtual void Log(IList<WriteModel<BsonDocument>> writeModels)
+        protected virtual void ExecuteCommit(
+            IMongoCollection<BsonDocument> jobGraph,
+            List<WriteModel<BsonDocument>> writeModels,
+            BulkWriteOptions bulkWriteOptions)
+        {
+            jobGraph.BulkWrite(writeModels, bulkWriteOptions);
+        }
+
+        protected virtual void Log(IList<WriteModel<BsonDocument>> writeModels)
         {
             if (!Logger.IsTraceEnabled())
             {
-                return;                
+                return;
             }
 
             var builder = new StringBuilder();
@@ -460,15 +474,17 @@ namespace Hangfire.Mongo
                 var serializedModel = SerializeWriteModel(writeModel);
                 builder.AppendLine($"{writeModel.ModelType}={serializedModel}");
             }
-            Logger.Trace($"BulkWrite:\r\n{builder}" );
+
+            Logger.Trace($"BulkWrite:\r\n{builder}");
         }
+
         public virtual void SignalJobsAddedToQueues(ICollection<string> queues)
         {
             if (!queues.Any())
             {
                 return;
             }
-            
+
             var jobsEnqueued = queues.Select(q => NotificationDto.JobEnqueued(q).Serialize());
             DbContext.Notifications.InsertMany(jobsEnqueued, new InsertManyOptions
             {
@@ -476,7 +492,7 @@ namespace Hangfire.Mongo
                 IsOrdered = true
             });
         }
-        
+
         public virtual string SerializeWriteModel(WriteModel<BsonDocument> writeModel)
         {
             string serializedDoc;
@@ -513,14 +529,16 @@ namespace Hangfire.Mongo
                     serializedDoc = new Dictionary<string, BsonDocument>
                     {
                         ["Filter"] = ((UpdateOneModel<BsonDocument>) writeModel).Filter.Render(serializer, registry),
-                        ["Update"] = ((UpdateOneModel<BsonDocument>) writeModel).Update.Render(serializer, registry).AsBsonDocument
+                        ["Update"] = ((UpdateOneModel<BsonDocument>) writeModel).Update.Render(serializer, registry)
+                            .AsBsonDocument
                     }.ToJson();
                     break;
                 case WriteModelType.UpdateMany:
                     serializedDoc = new Dictionary<string, BsonDocument>
                     {
                         ["Filter"] = ((UpdateManyModel<BsonDocument>) writeModel).Filter.Render(serializer, registry),
-                        ["Update"] = ((UpdateManyModel<BsonDocument>) writeModel).Update.Render(serializer, registry).AsBsonDocument
+                        ["Update"] = ((UpdateManyModel<BsonDocument>) writeModel).Update.Render(serializer, registry)
+                            .AsBsonDocument
                     }.ToJson();
                     break;
                 default:
@@ -530,7 +548,7 @@ namespace Hangfire.Mongo
             return serializedDoc;
         }
         // New methods to support Hangfire pro feature - batches.
-        
+
         public override void ExpireSet(string key, TimeSpan expireIn)
         {
             if (key == null)
@@ -655,7 +673,7 @@ namespace Hangfire.Mongo
             {
                 var filter = CreateSetFilter(key, item);
                 var update = CreateSetUpdate(key, item, score);
-                
+
                 var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
                 _writeModels.Add(writeModel);
             }
@@ -688,7 +706,7 @@ namespace Hangfire.Mongo
             };
             return filter;
         }
-        
+
         public virtual BsonDocument CreateSetFilter(string key)
         {
             var filter = new BsonDocument
@@ -698,7 +716,7 @@ namespace Hangfire.Mongo
             };
             return filter;
         }
-        
+
         public virtual BsonDocument CreateSetUpdate(string key, string value, double score)
         {
             var update = new BsonDocument
@@ -709,7 +727,8 @@ namespace Hangfire.Mongo
                 },
                 ["$setOnInsert"] = new BsonDocument
                 {
-                    ["_t"] = new BsonArray {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(SetDto)},
+                    ["_t"] = new BsonArray
+                        {nameof(BaseJobDto), nameof(ExpiringJobDto), nameof(KeyJobDto), nameof(SetDto)},
                     [nameof(SetDto.Value)] = value,
                     [nameof(SetDto.SetType)] = key,
                     [nameof(SetDto.ExpireAt)] = BsonNull.Value
