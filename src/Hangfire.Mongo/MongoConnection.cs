@@ -215,7 +215,7 @@ namespace Hangfire.Mongo
             });
 
             var filter = new BsonDocument("_id", serverId);
-            _dbContext.Server.UpdateOne(filter, set, new UpdateOptions {IsUpsert = true});
+            _dbContext.Server.UpdateOne(filter, set, new UpdateOptions { IsUpsert = true });
         }
 
         public override void RemoveServer(string serverId)
@@ -527,7 +527,7 @@ namespace Hangfire.Mongo
                .Project(new BsonDocument(nameof(HashDto.ExpireAt), 1))
                .FirstOrDefault();
 
-            if(hash == null)
+            if (hash == null)
             {
                 return TimeSpan.FromSeconds(-1);
             }
@@ -613,7 +613,7 @@ namespace Hangfire.Mongo
                 .Project(new BsonDocument(nameof(ListDto.ExpireAt), 1))
                 .FirstOrDefault();
 
-            if(listDto == null)
+            if (listDto == null)
             {
                 return TimeSpan.FromSeconds(-1);
             }
@@ -672,31 +672,43 @@ namespace Hangfire.Mongo
 
         public override DateTime GetUtcDateTime()
         {
-
             DateTime now;
-            try
+            //https://www.mongodb.com/docs/v5.3/release-notes/4.2/
+            if (_dbContext.IsVersionGreaterThanOrEqualTo(4, 2))
             {
-                var pipeline = new[]
+                try
                 {
+                    var pipeline = new[]
+                    {
                     new BsonDocument("$project", new BsonDocument("date", "$$NOW"))
                 };
-                // we should always have a schema document in the db, and this 
-                var time = _dbContext.Schema.Aggregate<BsonDocument>(pipeline).FirstOrDefault();
-                if (time is null)
-                {
-                    throw new InvalidOperationException("No documents in the schema collection");
+                    // we should always have a schema document in the db, and this 
+                    var time = _dbContext.Schema.Aggregate<BsonDocument>(pipeline).FirstOrDefault();
+                    if (time is null)
+                    {
+                        throw new InvalidOperationException("No documents in the schema collection");
+                    }
+                    now = time["date"].ToUniversalTime();
                 }
-                now = time["date"].ToUniversalTime();
+                catch (Exception e)
+                {
+                    Logger.WarnException("Failed to get UTC datetime from mongodb server, using local UTC", e);
+                    now = DateTime.UtcNow;
+                }
+
+                if (Logger.IsTraceEnabled())
+                {
+                    Logger.Trace($"GetUtcDateTime() => {now}");
+                }
             }
-            catch (Exception e)
+            else
             {
-                Logger.WarnException("Failed to get UTC datetime from mongodb server, using local UTC", e);
+                //Feature not supported.
                 now = DateTime.UtcNow;
-            }
-            
-            if (Logger.IsTraceEnabled())
-            {
-                Logger.Trace($"GetUtcDateTime() => {now}");
+                if (Logger.IsTraceEnabled())
+                {
+                    Logger.Trace($"GetUtcDateTime() not supported by current database version. Fallback to  DateTime.UtcNow => {now}");
+                }
             }
 
             return now;
