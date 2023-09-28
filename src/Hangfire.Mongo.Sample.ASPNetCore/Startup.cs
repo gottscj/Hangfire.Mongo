@@ -56,8 +56,11 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
 
                 //config.UseLogProvider(new FileLogProvider());
                 config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180);
-                config.UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, storageOptions)
-                      .UseColouredConsoleLogProvider(LogLevel.Info);
+                var storage = new CustomMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, storageOptions);
+                config.UseStorage(storage).UseColouredConsoleLogProvider(LogLevel.Info);;
+                // config
+                //     .UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, storageOptions)
+                //       .UseColouredConsoleLogProvider(LogLevel.Info);
             });
             services.AddHangfireServer(options =>
             {
