@@ -16,6 +16,7 @@ namespace Hangfire.Mongo.CosmosDB
             CheckConnection = false;
             MigrationLockTimeout = TimeSpan.FromMinutes(2);
             Factory = new CosmosFactory();
+            SupportsCappedCollection = false;
         }
     }
 }

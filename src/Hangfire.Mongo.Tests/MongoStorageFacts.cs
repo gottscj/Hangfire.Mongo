@@ -42,6 +42,21 @@ namespace Hangfire.Mongo.Tests
 
             Assert.Equal("storageOptions", exception.ParamName);
         }
+        
+        [Fact]
+        public void Ctor_DoesNotSupportCappedAndTailNotificationChosen_ThrowsAnException()
+        {
+            var exception = Assert.Throws<NotSupportedException>(() => new MongoStorage(
+                MongoClientSettings.FromConnectionString("mongodb://localhost"), 
+                "test",
+                new MongoStorageOptions
+                {
+                    CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection,
+                    SupportsCappedCollection = false
+                }));
+
+            Assert.Contains("CheckQueuedJobsStrategy, cannot be TailNotificationsCollection if", exception.Message);
+        }
 
         [Fact]
         public void GetMonitoringApi_ReturnsNonNullInstance()

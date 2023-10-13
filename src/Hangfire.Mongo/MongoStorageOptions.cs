@@ -98,6 +98,14 @@ namespace Hangfire.Mongo
                 _queuePollInterval = value;
             }
         }
+
+        /// <summary>
+        /// Indicates if the underlying storage supports capped collections
+        /// default set to true.
+        /// MongoStorage will throw NotSupportedException if 'SupportsCappedCollection' is false
+        /// and 'CheckQueuedJobsStrategy' is TailNotificationsCollection
+        /// </summary>
+        public bool SupportsCappedCollection { get; set; } = true;
         
         /// <summary>
         /// Invisibility timeout
