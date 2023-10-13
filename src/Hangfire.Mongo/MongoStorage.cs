@@ -93,7 +93,8 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(databaseName));
             }
-
+            StorageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
+            
             if (storageOptions.CheckQueuedJobsStrategy == CheckQueuedJobsStrategy.TailNotificationsCollection &&
                 storageOptions.SupportsCappedCollection == false)
             {
@@ -105,7 +106,7 @@ namespace Hangfire.Mongo
 
             DatabaseName = databaseName;
             MongoClient = mongoClient ?? throw new ArgumentNullException(nameof(mongoClient));
-            StorageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
+            
             HangfireDbContext =
                 StorageOptions.Factory.CreateDbContext(mongoClient, databaseName, storageOptions.Prefix);
 
