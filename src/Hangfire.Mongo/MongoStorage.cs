@@ -33,7 +33,7 @@ namespace Hangfire.Mongo
         /// Storage options
         /// </summary>
         protected readonly MongoStorageOptions StorageOptions;
-        
+
         /// <summary>
         /// DB context
         /// </summary>
@@ -42,19 +42,20 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Enabled Hangfire features. To change enabled features, inherit this class and override 'HasFeature' method
         /// </summary>
-        public ReadOnlyDictionary<string, bool> Features { get; protected set; }  = new ReadOnlyDictionary<string, bool>(new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase)
+        public ReadOnlyDictionary<string, bool> Features { get; protected set; } = new ReadOnlyDictionary<string, bool>(
+            new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase)
             {
-                { JobStorageFeatures.ExtendedApi, true },
-                { JobStorageFeatures.JobQueueProperty, true },
-                { JobStorageFeatures.Connection.BatchedGetFirstByLowest, true },
-                { JobStorageFeatures.Connection.GetUtcDateTime, true },
-                { JobStorageFeatures.Connection.GetSetContains, true },
-                { JobStorageFeatures.Connection.LimitedGetSetCount, true },
-                { JobStorageFeatures.Transaction.AcquireDistributedLock, true },
-                { JobStorageFeatures.Transaction.CreateJob, true },
-                { JobStorageFeatures.Transaction.SetJobParameter, true },
-                { JobStorageFeatures.Monitoring.DeletedStateGraphs, true },
-                { JobStorageFeatures.Monitoring.AwaitingJobs, true }
+                {JobStorageFeatures.ExtendedApi, true},
+                {JobStorageFeatures.JobQueueProperty, true},
+                {JobStorageFeatures.Connection.BatchedGetFirstByLowest, true},
+                {JobStorageFeatures.Connection.GetUtcDateTime, true},
+                {JobStorageFeatures.Connection.GetSetContains, true},
+                {JobStorageFeatures.Connection.LimitedGetSetCount, true},
+                {JobStorageFeatures.Transaction.AcquireDistributedLock, true},
+                {JobStorageFeatures.Transaction.CreateJob, true},
+                {JobStorageFeatures.Transaction.SetJobParameter, true},
+                {JobStorageFeatures.Monitoring.DeletedStateGraphs, true},
+                {JobStorageFeatures.Monitoring.AwaitingJobs, true}
             });
 
         /// <summary>
@@ -73,10 +74,10 @@ namespace Hangfire.Mongo
         /// <param name="mongoClientSettings">Client settings for MongoDB</param>
         /// <param name="databaseName">Database name</param>
         /// <param name="storageOptions">Storage options</param>
-        public MongoStorage(MongoClientSettings mongoClientSettings, string databaseName, MongoStorageOptions storageOptions)
+        public MongoStorage(MongoClientSettings mongoClientSettings, string databaseName,
+            MongoStorageOptions storageOptions)
             : this(new MongoClient(mongoClientSettings), databaseName, storageOptions)
         {
-            
         }
 
         /// <summary>
@@ -92,10 +93,22 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(databaseName));
             }
+            StorageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
+            
+            if (storageOptions.CheckQueuedJobsStrategy == CheckQueuedJobsStrategy.TailNotificationsCollection &&
+                storageOptions.SupportsCappedCollection == false)
+            {
+                throw new NotSupportedException(
+                    $"{nameof(MongoStorageOptions.CheckQueuedJobsStrategy)}, cannot be {CheckQueuedJobsStrategy.TailNotificationsCollection}" +
+                    $" if {nameof(MongoStorageOptions.SupportsCappedCollection)} is false"
+                );
+            }
+
             DatabaseName = databaseName;
             MongoClient = mongoClient ?? throw new ArgumentNullException(nameof(mongoClient));
-            StorageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
-            HangfireDbContext = StorageOptions.Factory.CreateDbContext(mongoClient, databaseName, storageOptions.Prefix);
+            
+            HangfireDbContext =
+                StorageOptions.Factory.CreateDbContext(mongoClient, databaseName, storageOptions.Prefix);
 
             if (StorageOptions.CheckConnection)
             {
@@ -107,24 +120,25 @@ namespace Hangfire.Mongo
                 MongoMigrationManager.MigrateIfNeeded(storageOptions, HangfireDbContext.Database);
             }
         }
-        
+
         private void CheckConnection()
         {
             using (var cts = new CancellationTokenSource(StorageOptions.ConnectionCheckTimeout))
             {
                 try
                 {
-                    HangfireDbContext.Database.RunCommand((Command<BsonDocument>)"{ping:1}", cancellationToken: cts.Token);
+                    HangfireDbContext.Database.RunCommand((Command<BsonDocument>) "{ping:1}",
+                        cancellationToken: cts.Token);
                 }
                 catch (Exception e)
                 {
-                    throw new MongoConnectException(HangfireDbContext, CreateObscuredConnectionString(), StorageOptions.ConnectionCheckTimeout, e);
+                    throw new MongoConnectException(HangfireDbContext, CreateObscuredConnectionString(),
+                        StorageOptions.ConnectionCheckTimeout, e);
                 }
             }
         }
 
         /// <inheritdoc/>
-
         public override bool HasFeature([NotNull] string featureId)
         {
             if (featureId == null) throw new ArgumentNullException(nameof(featureId));
@@ -133,7 +147,6 @@ namespace Hangfire.Mongo
                 ? isSupported
                 : base.HasFeature(featureId);
         }
-
 
 
         /// <summary>
@@ -167,7 +180,11 @@ namespace Hangfire.Mongo
                     yield return StorageOptions.Factory.CreateMongoJobQueueWatcher(HangfireDbContext, StorageOptions);
                     break;
                 case CheckQueuedJobsStrategy.TailNotificationsCollection:
-                    yield return StorageOptions.Factory.CreateMongoNotificationObserver(HangfireDbContext, StorageOptions);
+                    if (StorageOptions.SupportsCappedCollection)
+                    {
+                        yield return StorageOptions.Factory.CreateMongoNotificationObserver(HangfireDbContext,
+                            StorageOptions);
+                    }
                     break;
             }
         }
@@ -187,8 +204,8 @@ namespace Hangfire.Mongo
         /// </summary>
         public override string ToString()
         {
-            
-            return $"Connection string: {CreateObscuredConnectionString()}, database name: {DatabaseName}, prefix: {StorageOptions.Prefix}";
+            return
+                $"Connection string: {CreateObscuredConnectionString()}, database name: {DatabaseName}, prefix: {StorageOptions.Prefix}";
         }
 
         private string CreateObscuredConnectionString()
