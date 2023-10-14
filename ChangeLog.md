@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.9.11
+- Add flag for disable all logic related to capped collections. (will disable TailNotificationsCollection strategy)
+
 ### v1.9.10
 - Fix CosmosDB duplicate key error #362
 
