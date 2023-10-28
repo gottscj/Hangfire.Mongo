@@ -2,7 +2,7 @@
 ## Change log
 
 ### v1.9.12
-- Update to Hangfire 1.8.5
+- Update to Hangfire 1.8.6
 - Update to MongoDB 2.22.0
 - Add recommended indexes (#368)
 
