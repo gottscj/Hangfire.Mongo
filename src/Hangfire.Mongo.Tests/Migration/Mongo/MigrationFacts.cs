@@ -77,11 +77,11 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         }
 
         [Fact]
-        public void Migrate_MultipleInstances_ThereCanBeOnlyOne()
+        public async Task Migrate_MultipleInstances_ThereCanBeOnlyOne()
         {
-            var dbContext = _fixture.CreateDbContext();
             // ARRANGE
-            dbContext.Database.DropCollection(dbContext.Schema.CollectionNamespace.CollectionName);
+            var dbContext = _fixture.CreateDbContext();
+            await dbContext.Database.DropCollectionAsync(dbContext.Schema.CollectionNamespace.CollectionName);
             var storageOptions = new MongoStorageOptions
             {
                 MigrationOptions = new MongoMigrationOptions
@@ -98,9 +98,9 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             var count = 0;
 
             // ACT
-            for (int i = 0; i < taskCount; i++)
+            for (var i = 0; i < taskCount; i++)
             {
-                tasks[i] = Task.Factory.StartNew<bool>(() =>
+                tasks[i] = Task.Factory.StartNew(() =>
                 {
                     count++;
                     if (count == taskCount)
@@ -115,10 +115,10 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
 
             signalToStart.WaitOne();
             signal.Set();
-            Task.WaitAll(tasks);
+            var results = await Task.WhenAll(tasks).ContinueWith(t => t.Result);
 
             // ASSERT
-            Assert.True(tasks.Select(t => t.Result).Single(b => b));
+            Assert.True(results.Single(b => b));
         }
 
         [Fact]

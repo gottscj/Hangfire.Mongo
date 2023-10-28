@@ -19,7 +19,7 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact(Skip = "Long running and does not always fail")]
-        public void MultipleServerRunsRecurrentJobs()
+        public async Task MultipleServerRunsRecurrentJobs()
         {
             // ARRANGE
             const int serverCount = 20;
@@ -66,7 +66,7 @@ namespace Hangfire.Mongo.Tests
                 }
 
                 // let hangfire run for 1 sec
-                Task.Delay(1000).Wait();
+                await Task.Delay(1000);
             }
             finally
             {

@@ -17,7 +17,7 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        private void WaitAny_TimesOut_NullReturned()
+        private async Task WaitAny_TimesOut_NullReturned()
         {
             // ARRANGE
             var waitTask = Task.Run(async () =>
@@ -28,14 +28,14 @@ namespace Hangfire.Mongo.Tests
             });
             
             // ACT
-            var result = waitTask.GetAwaiter().GetResult();
+            var result = await waitTask;
             
             // ASSERT
             Assert.Null(result);
         }
         
         [Fact]
-        private void WaitAny_Cancelled_NullReturned()
+        private async Task WaitAny_Cancelled_NullReturned()
         {
             // ARRANGE
             var cts = new CancellationTokenSource(200);
@@ -44,17 +44,17 @@ namespace Hangfire.Mongo.Tests
                 await Task.Yield();
                 _semaphore.WaitAny(_testQueues, cts.Token, TimeSpan.FromMilliseconds(5000), out var q, out var timedOut);
                 return q;
-            });
+            }, cts.Token);
             
             // ACT
-            var result = waitTask.GetAwaiter().GetResult();
+            var result = await waitTask;
             
             // ASSERT
             Assert.Null(result);
         }
         
         [Fact]
-        private void WaitAny_Released_QueueNameReturned()
+        private async Task WaitAny_Released_QueueNameReturned()
         {
             // ARRANGE
             var waitTask = Task.Run(async () =>
@@ -67,7 +67,7 @@ namespace Hangfire.Mongo.Tests
             // ACT
             Thread.Sleep(100);
             _semaphore.Release(_testQueues.First());
-            var result = waitTask.GetAwaiter().GetResult();
+            var result = await waitTask;
             
             // ASSERT
             Assert.Equal(_testQueues.First(), result);

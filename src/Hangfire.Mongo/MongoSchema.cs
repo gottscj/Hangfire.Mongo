@@ -94,7 +94,12 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Schema Version 20
         /// </summary>
-        Version20 = 20
+        Version20 = 20,
+        
+        /// <summary>
+        /// Schema Version 21
+        /// </summary>
+        Version21 = 21
     }
 
 }
