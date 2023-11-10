@@ -9,6 +9,12 @@
 </div>
 
 <div class="row">
+<div class="col-md-4">
+        <h2>Long running tasks</h2>
+    <p><a class="btn btn-success" href="@Url.Action("LongRunning", new {id = 1, iterations = 100})">
+        Run 1 long running task &raquo;
+    </a></p>
+    </div>
     <div class="col-md-4">
         <h2>Fire-and-forget tasks</h2>
         <p><a class="btn btn-success" href="@Url.Action("FireAndForget", new {id = 1})">Run 1 task &raquo;</a></p>

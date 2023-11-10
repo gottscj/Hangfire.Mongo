@@ -373,8 +373,9 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void GetQueues_ReturnsQueues()
+        public void GetQueues_Queues_ReturnedDistinct()
         {
+            // ARRANGE
             CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName, job =>
             {
                 job.Queue = "queue_1";
@@ -392,15 +393,18 @@ namespace Hangfire.Mongo.Tests
                 job.Queue = "queue_2";
                 return job;
             });
-
+            
+            // ACT
             var results = _monitoringApi.GetQueues();
             
+            // ASSERT
             Assert.Equal(new[] { "queue_1", "queue_2" }, results);
         }
 
         [Fact]
-        public void GetQueues_ExcludesNullQueue()
+        public void GetQueues_NullQueue_Excluded()
         {
+            // ARRANGE
             CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName, job =>
             {
                 job.Queue = "queue_1";
@@ -418,9 +422,11 @@ namespace Hangfire.Mongo.Tests
                 job.Queue = null;
                 return job;
             });
-
+            
+            // ACT
             var results = _monitoringApi.GetQueues();
             
+            // ASSERT
             Assert.Equal(new[] { "queue_1", "queue_2" }, results);
         }
 
