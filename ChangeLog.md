@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.9.13
+- Improve performance of MongoMonitoringApi.GetQueues()
+
 ### v1.9.12
 - Update to Hangfire 1.8.6
 - Update to MongoDB 2.22.0
