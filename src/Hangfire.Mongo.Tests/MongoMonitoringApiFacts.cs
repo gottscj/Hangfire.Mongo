@@ -372,6 +372,84 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(24, results.Count);
         }
 
+        [Fact]
+        public void GetQueues_ReturnsQueues()
+        {
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName, job =>
+            {
+                job.Queue = "queue_1";
+                return job;
+            });
+
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), EnqueuedState.StateName, job =>
+            {
+                job.Queue = "queue_2";
+                return job;
+            });
+
+            CreateJobInState(_database, ObjectId.GenerateNewId(3), EnqueuedState.StateName, job =>
+            {
+                job.Queue = "queue_2";
+                return job;
+            });
+
+            var results = _monitoringApi.GetQueues();
+            
+            Assert.Equal(new[] { "queue_1", "queue_2" }, results);
+        }
+
+        [Fact]
+        public void GetQueues_ExcludesNullQueue()
+        {
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName, job =>
+            {
+                job.Queue = "queue_1";
+                return job;
+            });
+
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), EnqueuedState.StateName, job =>
+            {
+                job.Queue = "queue_2";
+                return job;
+            });
+
+            CreateJobInState(_database, ObjectId.GenerateNewId(3), EnqueuedState.StateName, job =>
+            {
+                job.Queue = null;
+                return job;
+            });
+
+            var results = _monitoringApi.GetQueues();
+            
+            Assert.Equal(new[] { "queue_1", "queue_2" }, results);
+        }
+
+        [Fact]
+        public void GetStatistics_ReturnsQueueCount()
+        {
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName, job =>
+            {
+                job.Queue = "queue_1";
+                return job;
+            });
+
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), EnqueuedState.StateName, job =>
+            {
+                job.Queue = "queue_2";
+                return job;
+            });
+
+            CreateJobInState(_database, ObjectId.GenerateNewId(3), EnqueuedState.StateName, job =>
+            {
+                job.Queue = "queue_2";
+                return job;
+            });
+
+            var statistics = _monitoringApi.GetStatistics();
+            
+            Assert.Equal(2, statistics.Queues);
+        }
+
         private JobDto CreateJobInState(HangfireDbContext dbContext, ObjectId jobId, string stateName, Func<JobDto, JobDto> visitor = null)
         {
             var job = Job.FromExpression(() => HangfireTestJobs.SampleMethod("wrong"));
