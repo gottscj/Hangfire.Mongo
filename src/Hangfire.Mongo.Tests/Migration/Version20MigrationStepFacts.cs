@@ -15,13 +15,11 @@ namespace Hangfire.Mongo.Tests.Migration
     public class Version20MigrationStepFacts
     {
         private readonly IMongoDatabase _database;
-        private readonly Random _random;
         private readonly IMongoMigrationStep _migration;
         public Version20MigrationStepFacts(MongoDbFixture fixture)
         {
             var dbContext = fixture.CreateDbContext();
             _database = dbContext.Database;
-            _random = new Random();
             _migration = new RemoveJobQueueDto();
         }
 

@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.9.14
+- Add index needed for improved performance of MongoMonitoringApi.GetQueues
+
 ### v1.9.13
 - Improve performance of MongoMonitoringApi.GetQueues()
 
