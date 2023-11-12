@@ -124,33 +124,10 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".server"
                     };
                 case MongoSchema.Version17:
-                    return new[]
-                    {
-                        prefix + ".jobGraph",
-                        prefix + ".locks",
-                        prefix + ".schema",
-                        prefix + ".server",
-                        prefix + ".notifications"
-                    };
                 case MongoSchema.Version18:
-                    return new[]
-                    {
-                        prefix + ".jobGraph",
-                        prefix + ".locks",
-                        prefix + ".schema",
-                        prefix + ".server",
-                        prefix + ".notifications"
-                    };
                 case MongoSchema.Version19:
-                    return new[]
-                    {
-                        prefix + ".jobGraph",
-                        prefix + ".locks",
-                        prefix + ".schema",
-                        prefix + ".server",
-                        prefix + ".notifications"
-                    };
                 case MongoSchema.Version20:
+                case MongoSchema.Version21:
                     return new[]
                     {
                         prefix + ".jobGraph",

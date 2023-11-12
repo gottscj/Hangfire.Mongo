@@ -41,6 +41,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                     MigrationStrategy = new DropMongoMigrationStrategy(),
                     BackupStrategy = new NoneMongoBackupStrategy()
                 },
+                CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection,
                 QueuePollInterval = TimeSpan.FromMilliseconds(500)
             };
             var serverOptions = new BackgroundJobServerOptions
@@ -94,7 +95,8 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             {
                 var allowedEmptyCollections = new List<string>
                 {
-                    "hangfire.migrationLock"
+                    "hangfire.migrationLock",
+                    "hangfire.notifications"
                 };
 
                 if (MongoMigrationManager.RequiredSchemaVersion >= MongoSchema.Version09 &&
