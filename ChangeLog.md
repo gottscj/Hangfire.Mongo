@@ -1,6 +1,10 @@
 
 ## Change log
 
+### v1.9.15
+- Fix Slow operations reported by Atlas #374
+- Fix Dashboard does not show exception for retries #375
+
 ### v1.9.14
 - Add index needed for improved performance of MongoMonitoringApi.GetQueues
 
