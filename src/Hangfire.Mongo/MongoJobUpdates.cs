@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -13,11 +14,11 @@ public class MongoJobUpdates
     /// Set updates
     /// </summary>
     public BsonDocument Set { get; } = new();
-    
+
     /// <summary>
     /// Push updates
     /// </summary>
-    public BsonDocument Push { get; } = new();
+    public List<BsonDocument> Pushes { get; } = new();
 
     /// <summary>
     /// Creates a UpdateOneModel with a filter for the given job id
@@ -33,12 +34,17 @@ public class MongoJobUpdates
             update["$set"] = Set;
         }
 
-        if (Push.Any())
+        if (Pushes.Any())
         {
-            update["$push"] = Push;
+            var pushByElement = Pushes
+                .SelectMany(p => p)
+                .GroupBy(elem => elem.Name)
+                .Select(g => new BsonElement(g.Key, new BsonDocument("$each", new BsonArray(g.Select(e => e.Value)))));
+
+            update["$push"] = new BsonDocument(pushByElement);
         }
-        
-        
+
+
         var updateModel = new UpdateOneModel<BsonDocument>(filter, update);
         return updateModel;
     }
