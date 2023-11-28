@@ -9,11 +9,11 @@
 </div>
 
 <div class="row">
-<div class="col-md-4">
-        <h2>Long running tasks</h2>
-    <p><a class="btn btn-success" href="@Url.Action("LongRunning", new {id = 1, iterations = 100})">
-        Run 1 long running task &raquo;
-    </a></p>
+    <div class="col-md-4">
+        <h2>Misc tasks</h2>
+        <p><a class="btn btn-success" href="@Url.Action("LongRunning", new {id = 1, iterations = 100})">Run 1 long running task &raquo;</a></p>
+        <p><a class="btn btn-success" href="@Url.Action("RandomException", new {id = 1})">Run 1 random failing task &raquo;</a></p>
+        <p><a class="btn btn-success" href="@Url.Action("Recurring")">Run 1 recurring task &raquo;</a></p>
     </div>
     <div class="col-md-4">
         <h2>Fire-and-forget tasks</h2>
@@ -30,9 +30,5 @@
         <p><a class="btn btn-success" href="@Url.Action("Delayed", new {id = 100})">Run 100 task &raquo;</a></p>
         <p><a class="btn btn-success" href="@Url.Action("Delayed", new {id = 250})">Run 250 task &raquo;</a></p>
         <p><a class="btn btn-success" href="@Url.Action("Delayed", new {id = 1000})">Run 1000 task &raquo;</a></p>
-    </div>
-    <div class="col-md-4">
-        <h2>Recurring tasks</h2>
-        <p><a class="btn btn-success" href="@Url.Action("Recurring")">Run &raquo;</a></p>
     </div>
 </div>

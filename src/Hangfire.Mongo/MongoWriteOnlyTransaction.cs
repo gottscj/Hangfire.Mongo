@@ -164,7 +164,10 @@ namespace Hangfire.Mongo
 
             var updates = GetOrAddJobUpdates(jobId);
             updates.Set[nameof(JobDto.StateName)] = state.Name;
-            updates.Push[nameof(JobDto.StateHistory)] = stateDto;
+            updates.Pushes.Add(new BsonDocument
+            {
+                [nameof(JobDto.StateHistory)] = stateDto
+            });
         }
 
         public override void AddJobState(string jobId, IState state)
@@ -178,7 +181,10 @@ namespace Hangfire.Mongo
             }.Serialize();
 
             var updates = GetOrAddJobUpdates(jobId);
-            updates.Push[nameof(JobDto.StateHistory)] = stateDto;
+            updates.Pushes.Add(new BsonDocument
+            {
+                [nameof(JobDto.StateHistory)] = stateDto
+            });
         }
 
         public override void SetJobParameter(string id, string name, string value)
@@ -334,19 +340,26 @@ namespace Hangfire.Mongo
             var start = keepStartingFrom + 1;
             var end = keepEndingAt + 1;
 
-            // get all ids
+            // get all ids for given key
+            var filter = new BsonDocument
+            {
+                ["_t"] = nameof(ListDto),
+                [nameof(ListDto.Item)] = key
+            };
             var allIds = DbContext.JobGraph
-                .Find(new BsonDocument("_t", nameof(ListDto)))
+                .Find(filter)
                 .Project(new BsonDocument("_id", 1))
                 .ToList()
                 .Select(b => b["_id"].AsObjectId)
                 .ToList();
 
             // Add LisDto's scheduled for insertion writemodels collection, add it here.
-            allIds
-                .AddRange(_writeModels.OfType<InsertOneModel<BsonDocument>>()
-                    .Where(model => ListDtoHasItem(key, model))
-                    .Select(model => model.Document["_id"].AsObjectId));
+            var existing = _writeModels.OfType<InsertOneModel<BsonDocument>>()
+                .Where(model => ListDtoHasItem(key, model))
+                .Select(model => model.Document["_id"].AsObjectId)
+                .ToList();
+
+            allIds.AddRange(existing);
 
             var toTrim = allIds
                 .OrderByDescending(id => id.Timestamp)
@@ -355,10 +368,11 @@ namespace Hangfire.Mongo
                 .Select(x => x.Id)
                 .ToList();
 
-            var filter = new BsonDocument
+            // toTrim1.AddRange(existing);
+
+            filter = new BsonDocument
             {
-                ["_id"] = new BsonDocument("$in", new BsonArray(toTrim)),
-                [nameof(ListDto.Item)] = key
+                ["_id"] = new BsonDocument("$in", new BsonArray(toTrim))
             };
 
             var writeModel = new DeleteManyModel<BsonDocument>(filter);

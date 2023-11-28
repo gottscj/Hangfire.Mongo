@@ -541,16 +541,60 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void TrimList_TrimsAList_ToASpecifiedRange()
         {
+            // ARRANGE
+            Commit(x =>
+            {
+                x.InsertToList("my-key", "0");
+                x.InsertToList("my-key", "1");
+                
+            });
+            
+            // ACT
+            Commit(x =>
+            {
+                x.InsertToList("my-key", "2");
+                x.InsertToList("my-key", "3");
+                x.TrimList("my-key", 1, 2);
+            });
+            
+            // ASSERT
+            var records = _database
+                .JobGraph
+                .Find(new BsonDocument("_t", nameof(ListDto)))
+                .ToList()
+                .Select(b => new ListDto(b))
+                .ToList();
+
+            Assert.Equal(2, records.Count);
+            Assert.Equal("1", records[0].Value);
+            Assert.Equal("2", records[1].Value);
+        }
+        
+        [Fact]
+        public void TrimList_TrimsAListInSameTransaction_ToASpecifiedRange()
+        {
+            // ARRANGE
             Commit(x =>
             {
                 x.InsertToList("my-key", "0");
                 x.InsertToList("my-key", "1");
                 x.InsertToList("my-key", "2");
                 x.InsertToList("my-key", "3");
+                
+                
+                
+                
+                // ACT
                 x.TrimList("my-key", 1, 2);
             });
-
-            var records = _database.JobGraph.Find(new BsonDocument("_t", nameof(ListDto))).ToList().Select(b => new ListDto(b)).ToList();
+            
+            // ASSERT
+            var records = _database
+                .JobGraph
+                .Find(new BsonDocument("_t", nameof(ListDto)))
+                .ToList()
+                .Select(b => new ListDto(b))
+                .ToList();
 
             Assert.Equal(2, records.Count);
             Assert.Equal("1", records[0].Value);
@@ -558,23 +602,64 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void TrimList_RemovesRecordsToEnd_IfKeepAndingAt_GreaterThanMaxElementIndex()
+        public void TrimList_GreaterThanMaxElementIndex_RemovesRecordsToEndIfKeepEndingAt()
         {
             Commit(x =>
             {
                 x.InsertToList("my-key", "0");
                 x.InsertToList("my-key", "1");
                 x.InsertToList("my-key", "2");
+                x.InsertToList("my-key1", "1");
+                x.InsertToList("my-key1", "2");
+            });
+            
+            Commit(x =>
+            {
                 x.TrimList("my-key", 1, 100);
             });
 
-            var recordCount = _database.JobGraph.Count(new BsonDocument("_t", nameof(ListDto)));
+            var filter = new BsonDocument
+            {
+                ["_t"] = nameof(ListDto),
+                [nameof(ListDto.Item)] = "my-key"
+            };
+            var recordCount = _database.JobGraph.Count(filter);
+
+            Assert.Equal(2, recordCount);
+        }
+        
+        [Fact]
+        public void TrimList_GreaterThanMaxElementIndexSameTransaction_RemovesRecordsToEndIfKeepEndingAt()
+        {
+            Commit(x =>
+            {
+                x.InsertToList("my-key", "0");
+                x.InsertToList("my-key", "1");
+                x.InsertToList("my-key1", "1");
+                x.InsertToList("my-key1", "2");
+            });
+            
+            Commit(x =>
+            {
+                x.InsertToList("my-key1", "3");
+                x.InsertToList("my-key1", "4");
+                x.InsertToList("my-key", "2");
+                x.TrimList("my-key", 1, 100);
+            });
+
+            var filter = new BsonDocument
+            {
+                ["_t"] = nameof(ListDto),
+                [nameof(ListDto.Item)] = "my-key"
+            };
+            
+            var recordCount = _database.JobGraph.Count(filter);
 
             Assert.Equal(2, recordCount);
         }
 
         [Fact]
-        public void TrimList_RemovesAllRecords_WhenStartingFromValue_GreaterThanMaxElementIndex()
+        public void TrimList_StartingFromValue_RemovesAllRecordsGreaterThanMaxElementIndex()
         {
             Commit(x =>
             {
@@ -588,21 +673,71 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void TrimList_RemovesAllRecords_IfStartFromGreaterThanEndingAt()
+        public void TrimList_StartFromGreaterThanEndingAt_RemovesAllRecords()
         {
+            // ARRANGE
             Commit(x =>
             {
                 x.InsertToList("my-key", "0");
+                
+            });
+            
+            // ACT
+            Commit(x =>
+            {
                 x.TrimList("my-key", 1, 0);
             });
 
+            // ASSERT
+            var recordCount = _database.JobGraph.Count(new BsonDocument("_t", nameof(ListDto)));
+
+            Assert.Equal(0, recordCount);
+        }
+        
+        [Fact]
+        public void TrimList_StartFromGreaterThanEndingAtSameTransaction_RemovesAllRecords()
+        {
+            // ARRANGE
+            Commit(x =>
+            {
+                x.InsertToList("my-key", "0");
+                
+                
+                
+                
+                // ACT
+                x.TrimList("my-key", 1, 0);
+            });
+
+            // ASSERT
             var recordCount = _database.JobGraph.Count(new BsonDocument("_t", nameof(ListDto)));
 
             Assert.Equal(0, recordCount);
         }
 
         [Fact]
-        public void TrimList_RemovesRecords_OnlyOfAGivenKey()
+        public void TrimList_DifferentKeys_RemovesRecordsOnlyOfGivenKey()
+        {
+            // ARRANGE
+            Commit(x =>
+            {
+                x.InsertToList("my-key", "0");
+            });
+
+            // ACT
+            Commit(x =>
+            {
+                x.TrimList("another-key", 1, 0);
+            });
+            
+            // ASSERT
+            var recordCount = _database.JobGraph.Count(new BsonDocument("_t", nameof(ListDto)));
+
+            Assert.Equal(1, recordCount);
+        }
+        
+        [Fact]
+        public void TrimList_DifferentKeysSameTransaction_RemovesRecordsOnlyOfGivenKey()
         {
             Commit(x =>
             {

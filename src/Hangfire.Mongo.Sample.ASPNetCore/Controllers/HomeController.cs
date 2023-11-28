@@ -32,6 +32,23 @@ namespace Hangfire.Mongo.Sample.ASPNetCore.Controllers
             }
         }
 
+        public class RandomExceptionJobHandler
+        {
+            public void Execute(int index)
+            {
+                Thread.Sleep(200);
+                var rand = new Random();
+                var next = rand.Next(1, 100);
+                var shouldThrow = next > 50;
+                if (shouldThrow)
+                {
+                    throw new InvalidOperationException($"Throwing exception as {next} > 50 = true");
+                }
+                Debug.WriteLine(
+                    $@"Hangfire random exception task started ({index}) - [{Thread.CurrentThread.ManagedThreadId}]");
+            }
+        }
+
         public ActionResult Index()
         {
             return View();
@@ -40,6 +57,12 @@ namespace Hangfire.Mongo.Sample.ASPNetCore.Controllers
         public ActionResult LongRunning(int id, int iterations)
         {
             BackgroundJob.Enqueue<LongRunningJobHandler>(j => j.Execute(id, iterations)); 
+            return RedirectToAction("Index");
+        }
+        
+        public ActionResult RandomException(int id)
+        {
+            BackgroundJob.Enqueue<RandomExceptionJobHandler>(j => j.Execute(id)); 
             return RedirectToAction("Index");
         }
 
