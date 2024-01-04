@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <VersionPrefix>1.9.15</VersionPrefix>
+        <VersionPrefix>1.9.16</VersionPrefix>
         <TargetFramework>netstandard2.0</TargetFramework>
         <NoWarn>$(NoWarn);CS0618</NoWarn>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -21,9 +21,9 @@
         <owners>Sergey Zwezdin, Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.9.15
-            - Fix Slow operations reported by Atlas #374
-            - Fix Dashboard does not show exception for retries #375
+        <PackageReleaseNotes>1.9.16
+            - Update to Hangfire 1.8.7
+            - Update to MongoDB 2.23.1
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -35,7 +35,7 @@
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.8.6" />
-        <PackageReference Include="MongoDB.Driver" Version="2.22.0" />
+        <PackageReference Include="Hangfire.Core" Version="1.8.7" />
+        <PackageReference Include="MongoDB.Driver" Version="2.23.1" />
     </ItemGroup>
 </Project>
