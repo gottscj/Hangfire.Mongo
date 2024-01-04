@@ -1,6 +1,10 @@
 
 ## Change log
 
+### v1.9.16
+- Update to Hangfire 1.8.7
+- Update to MongoDB 2.23.1
+
 ### v1.9.15
 - Fix Slow operations reported by Atlas #374
 - Fix Dashboard does not show exception for retries #375
