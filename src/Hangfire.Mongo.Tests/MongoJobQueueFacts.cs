@@ -163,7 +163,7 @@ namespace Hangfire.Mongo.Tests
 
             var options = new MongoStorageOptions
             {
-                InvisibilityTimeout = TimeSpan.FromMinutes(30)
+                SlidingInvisibilityTimeout = TimeSpan.FromMinutes(30)
             };
 
             _jobQueueSemaphoreMock.WaitNonBlock("default").Returns(true);

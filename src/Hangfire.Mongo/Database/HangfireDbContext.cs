@@ -21,7 +21,7 @@ namespace Hangfire.Mongo.Database
         /// Database instance used for this db context instance
         /// </summary>
         public IMongoDatabase Database { get; }
-
+        
         internal HangfireDbContext(string connectionString, string databaseName, string prefix = "hangfire")
             :this(new MongoClient(connectionString), databaseName, prefix)
         {
@@ -40,7 +40,6 @@ namespace Hangfire.Mongo.Database
             Database = mongoClient.GetDatabase(databaseName);
             ConnectionId = Guid.NewGuid().ToString();
         }
-
 
         /// <summary>
         /// Mongo database connection identifier

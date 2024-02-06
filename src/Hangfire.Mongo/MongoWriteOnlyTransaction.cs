@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Hangfire.Annotations;
@@ -164,6 +165,13 @@ namespace Hangfire.Mongo
 
             var updates = GetOrAddJobUpdates(jobId);
             updates.Set[nameof(JobDto.StateName)] = state.Name;
+            
+            // if job is enqueued, we need to reset the FetchedAt value so it will be picked up by the queue
+            if (state is EnqueuedState)
+            {
+                updates.Set[nameof(JobDto.FetchedAt)] = BsonNull.Value;
+            }
+            
             updates.Pushes.Add(new BsonDocument
             {
                 [nameof(JobDto.StateHistory)] = stateDto
@@ -444,8 +452,6 @@ namespace Hangfire.Mongo
                 return;
             }
 
-            Log(_writeModels);
-
             var jobGraph = DbContext
                 .Database
                 .GetCollection<BsonDocument>(DbContext.JobGraph.CollectionNamespace.CollectionName);
@@ -455,9 +461,20 @@ namespace Hangfire.Mongo
                 IsOrdered = true,
                 BypassDocumentValidation = false
             };
-
+            
+            Stopwatch sw = null;
+            if (Logger.IsTraceEnabled())
+            {
+                sw = Stopwatch.StartNew();
+            }
+            
             ExecuteCommit(jobGraph, _writeModels, bulkWriteOptions);
 
+            if (Logger.IsTraceEnabled() && sw != null)
+            {
+                Log(_writeModels, sw.ElapsedMilliseconds);
+            }
+            
             _removedJobs.ForEach(j => j.SetRemoved());
             _distributedLock?.Dispose();
 
@@ -475,21 +492,21 @@ namespace Hangfire.Mongo
             jobGraph.BulkWrite(writeModels, bulkWriteOptions);
         }
 
-        protected virtual void Log(IList<WriteModel<BsonDocument>> writeModels)
+        protected virtual void Log(IList<WriteModel<BsonDocument>> writeModels, long elapsedMilliseconds)
         {
-            if (!Logger.IsTraceEnabled())
-            {
-                return;
-            }
-
             var builder = new StringBuilder();
+            builder.AppendLine($"Commit (bulk write)");
+            
             foreach (var writeModel in writeModels)
             {
                 var serializedModel = SerializeWriteModel(writeModel);
-                builder.AppendLine($"{writeModel.ModelType}={serializedModel}");
+                
+                builder.AppendLine($"{writeModel.ModelType}:");
+                builder.AppendLine($"{serializedModel}");
             }
 
-            Logger.Trace($"BulkWrite:\r\n{builder}");
+            builder.AppendLine($"Executed in {elapsedMilliseconds} ms");
+            Logger.Trace($"{builder}");
         }
 
         public virtual void SignalJobsAddedToQueues(ICollection<string> queues)

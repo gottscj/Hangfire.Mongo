@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text;
 using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -112,11 +114,8 @@ namespace Hangfire.Mongo.DistributedLock
             {
                 AcquiredLocks.Value.Remove(_resource);
 
-                if (_heartbeatTimer != null)
-                {
-                    _heartbeatTimer.Dispose();
-                    _heartbeatTimer = null;
-                }
+                _heartbeatTimer?.Dispose();
+                _heartbeatTimer = null;
 
                 Release();
 
@@ -263,13 +262,15 @@ namespace Hangfire.Mongo.DistributedLock
         /// </summary>
         protected virtual void StartHeartBeat()
         {
-            TimeSpan timerInterval = TimeSpan.FromMilliseconds(_storageOptions.DistributedLockLifetime.TotalMilliseconds / 5);
-            _heartbeatTimer = new Timer(state =>
+            var timerInterval = TimeSpan.FromMilliseconds(_storageOptions.DistributedLockLifetime.TotalMilliseconds / 5);
+            _heartbeatTimer = new Timer(_ =>
             {
                 // Timer callback may be invoked after the Dispose method call,
                 // so we are using lock to avoid un synchronized calls.
                 lock (_lockObject)
                 {
+                    if (_completed) return;
+                    
                     try
                     {
                         var filter = new BsonDocument
@@ -283,7 +284,27 @@ namespace Hangfire.Mongo.DistributedLock
                                 [nameof(DistributedLockDto.ExpireAt)] = DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime)
                             }
                         };
+                        Stopwatch sw = null;
+                        if (Logger.IsTraceEnabled())
+                        {
+                            sw = Stopwatch.StartNew();
+                        }
+                        
                         _dbContext.DistributedLock.FindOneAndUpdate(filter, update);
+                        if (Logger.IsTraceEnabled() && sw != null)
+                        {
+                            var serializedModel = new Dictionary<string, BsonDocument>
+                            {
+                                ["Filter"] = filter,
+                                ["Update"] = update
+                            };
+                            sw.Stop();
+                            var builder = new StringBuilder();
+                            builder.AppendLine($"Lock heartbeat");
+                            builder.AppendLine($"{serializedModel.ToJson()}");
+                            builder.AppendLine($"Executed in {sw.ElapsedMilliseconds} ms");
+                            Logger.Trace($"{builder}");
+                        }
                     }
                     catch (Exception ex)
                     {

@@ -696,7 +696,7 @@ namespace Hangfire.Mongo
             
             if (Logger.IsTraceEnabled())
             {
-                Logger.Trace($"GetUtcDateTime() => {now}");
+                Logger.Trace($"GetUtcDateTime() => {now:O}");
             }
 
             return now;
