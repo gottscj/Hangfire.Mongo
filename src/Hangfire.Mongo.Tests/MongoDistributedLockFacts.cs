@@ -129,10 +129,10 @@ namespace Hangfire.Mongo.Tests
             });
             t.Start();
 
-            // Wait just a bit to make sure the above lock is acuired
+            // Wait just a bit to make sure the above lock is acquired
             Thread.Sleep(TimeSpan.FromSeconds(1));
 
-            // Record when we try to aquire the lock
+            // Record when we try to acquire the lock
             var startTime = DateTime.UtcNow;
             var lock2 = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(10), _database,
                 new MongoStorageOptions());
@@ -165,7 +165,7 @@ namespace Hangfire.Mongo.Tests
             };
             using (lock1.AcquireLock())
             {
-                DateTime initialExpireAt = DateTime.UtcNow;
+                var initialExpireAt = DateTime.UtcNow;
                 Thread.Sleep(TimeSpan.FromSeconds(5));
 
                 var lockEntry = _database.DistributedLock.Find(filter).FirstOrDefault();

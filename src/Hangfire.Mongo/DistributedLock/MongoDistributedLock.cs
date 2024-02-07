@@ -277,20 +277,31 @@ namespace Hangfire.Mongo.DistributedLock
                         {
                             [nameof(DistributedLockDto.Resource)] = _resource
                         };
-                        var update = new BsonDocument
+                        var update = new BsonDocument("$set", new BsonDocument
                         {
-                            ["$set"] = new BsonDocument
+                            [nameof(DistributedLockDto.ExpireAt)] = new BsonDocument
                             {
-                                [nameof(DistributedLockDto.ExpireAt)] = DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime)
+                                ["$add"] = new BsonArray
+                                {
+                                    "$$NOW",
+                                    (int) _storageOptions.DistributedLockLifetime.TotalMilliseconds,
+                                }
                             }
+                        });
+                        
+                        var pipeline = new BsonDocument[]
+                        {
+                            new BsonDocument("$match", filter),
+                            update
                         };
                         Stopwatch sw = null;
                         if (Logger.IsTraceEnabled())
                         {
                             sw = Stopwatch.StartNew();
                         }
-                        
-                        _dbContext.DistributedLock.FindOneAndUpdate(filter, update);
+
+                        _dbContext.DistributedLock.Aggregate<BsonDocument>(pipeline).FirstOrDefault();
+
                         if (Logger.IsTraceEnabled() && sw != null)
                         {
                             var serializedModel = new Dictionary<string, BsonDocument>
