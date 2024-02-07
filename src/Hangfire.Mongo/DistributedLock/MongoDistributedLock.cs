@@ -20,7 +20,7 @@ namespace Hangfire.Mongo.DistributedLock
         private static readonly ILog Logger = LogProvider.For<MongoDistributedLock>();
 
         private static readonly ThreadLocal<Dictionary<string, int>> AcquiredLocks
-                    = new ThreadLocal<Dictionary<string, int>>(() => new Dictionary<string, int>());
+            = new ThreadLocal<Dictionary<string, int>>(() => new Dictionary<string, int>());
 
 
         private readonly string _resource;
@@ -43,8 +43,8 @@ namespace Hangfire.Mongo.DistributedLock
         /// <param name="storageOptions">Database options</param>
         /// <exception cref="DistributedLockTimeoutException">Thrown if lock is not acquired within the timeout</exception>
         /// <exception cref="MongoDistributedLockException">Thrown if other mongo specific issue prevented the lock to be acquired</exception>
-        public MongoDistributedLock(string resource, 
-            TimeSpan timeout, 
+        public MongoDistributedLock(string resource,
+            TimeSpan timeout,
             HangfireDbContext dbContext,
             MongoStorageOptions storageOptions)
         {
@@ -57,9 +57,12 @@ namespace Hangfire.Mongo.DistributedLock
             {
                 throw new ArgumentException($@"The {nameof(resource)} cannot be empty", nameof(resource));
             }
+
             if (timeout.TotalSeconds > int.MaxValue)
             {
-                throw new ArgumentException($"The timeout specified is too large. Please supply a timeout equal to or less than {int.MaxValue} seconds", nameof(timeout));
+                throw new ArgumentException(
+                    $"The timeout specified is too large. Please supply a timeout equal to or less than {int.MaxValue} seconds",
+                    nameof(timeout));
             }
         }
 
@@ -94,6 +97,7 @@ namespace Hangfire.Mongo.DistributedLock
             {
                 return;
             }
+
             _completed = true;
 
             if (!AcquiredLocks.Value.ContainsKey(_resource))
@@ -156,20 +160,22 @@ namespace Hangfire.Mongo.DistributedLock
                     {
                         ["$setOnInsert"] = new BsonDocument
                         {
-                            [nameof(DistributedLockDto.ExpireAt)] = DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime)
+                            [nameof(DistributedLockDto.ExpireAt)] =
+                                DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime)
                         }
                     };
                     try
                     {
                         var result = _dbContext.DistributedLock.FindOneAndUpdate(filter, update, options);
-                        
+
                         // If result is null, it means we acquired the lock
                         if (result == null)
                         {
                             if (Logger.IsTraceEnabled())
                             {
-                                Logger.Trace($"{_resource} - Acquired");    
+                                Logger.Trace($"{_resource} - Acquired");
                             }
+
                             isLockAcquired = true;
                         }
                         else
@@ -189,7 +195,8 @@ namespace Hangfire.Mongo.DistributedLock
 
                 if (!isLockAcquired)
                 {
-                    throw new DistributedLockTimeoutException($"{_resource} - Could not place a lock: The lock request timed out.");
+                    throw new DistributedLockTimeoutException(
+                        $"{_resource} - Could not place a lock: The lock request timed out.");
                 }
             }
             catch (DistributedLockTimeoutException)
@@ -222,8 +229,9 @@ namespace Hangfire.Mongo.DistributedLock
             {
                 if (Logger.IsTraceEnabled())
                 {
-                    Logger.Trace($"{_resource} - Release");    
+                    Logger.Trace($"{_resource} - Release");
                 }
+
                 // Remove resource lock
                 _dbContext.DistributedLock.DeleteOne(new BsonDocument(nameof(DistributedLockDto.Resource), _resource));
             }
@@ -262,7 +270,8 @@ namespace Hangfire.Mongo.DistributedLock
         /// </summary>
         protected virtual void StartHeartBeat()
         {
-            var timerInterval = TimeSpan.FromMilliseconds(_storageOptions.DistributedLockLifetime.TotalMilliseconds / 5);
+            var timerInterval =
+                TimeSpan.FromMilliseconds(_storageOptions.DistributedLockLifetime.TotalMilliseconds / 5);
             _heartbeatTimer = new Timer(_ =>
             {
                 // Timer callback may be invoked after the Dispose method call,
@@ -270,29 +279,26 @@ namespace Hangfire.Mongo.DistributedLock
                 lock (_lockObject)
                 {
                     if (_completed) return;
-                    
+
                     try
                     {
-                        var filter = new BsonDocument
-                        {
-                            [nameof(DistributedLockDto.Resource)] = _resource
-                        };
-                        var update = new BsonDocument
-                        {
-                            [nameof(DistributedLockDto.ExpireAt)] = new BsonDocument
-                            {
-                                ["$add"] = new BsonArray
-                                {
-                                    "$$NOW",
-                                    (int) _storageOptions.DistributedLockLifetime.TotalMilliseconds,
-                                }
-                            }
-                        };
-                        
                         var pipeline = new BsonDocument[]
                         {
-                            new BsonDocument("$match", filter),
-                            new BsonDocument("$set", update)
+                            new BsonDocument("$match", new BsonDocument
+                            {
+                                [nameof(DistributedLockDto.Resource)] = _resource
+                            }),
+                            new BsonDocument("$addFields", new BsonDocument
+                            {
+                                [nameof(DistributedLockDto.ExpireAt)] = new BsonDocument
+                                {
+                                    ["$add"] = new BsonArray
+                                    {
+                                        "$$NOW",
+                                        (int) _storageOptions.DistributedLockLifetime.TotalMilliseconds,
+                                    }
+                                }
+                            })
                         };
                         Stopwatch sw = null;
                         if (Logger.IsTraceEnabled())
@@ -306,8 +312,8 @@ namespace Hangfire.Mongo.DistributedLock
                         {
                             var serializedModel = new Dictionary<string, BsonDocument>
                             {
-                                ["Filter"] = filter,
-                                ["Update"] = update
+                                ["Filter"] = pipeline[0],
+                                ["Update"] = pipeline[1]
                             };
                             sw.Stop();
                             var builder = new StringBuilder();
@@ -324,7 +330,7 @@ namespace Hangfire.Mongo.DistributedLock
                 }
             }, null, timerInterval, timerInterval);
         }
-        
+
         /// <summary>
         /// 
         /// </summary>
@@ -335,13 +341,14 @@ namespace Hangfire.Mongo.DistributedLock
         {
             if (Logger.IsTraceEnabled())
             {
-                Logger.Trace($"{resource} - Waiting {timeout.TotalMilliseconds}ms");    
+                Logger.Trace($"{resource} - Waiting {timeout.TotalMilliseconds}ms");
             }
+
             using (var resetEvent = new ManualResetEvent(false))
             {
                 resetEvent.WaitOne(timeout);
             }
-            
+
             return DateTime.UtcNow;
         }
     }
