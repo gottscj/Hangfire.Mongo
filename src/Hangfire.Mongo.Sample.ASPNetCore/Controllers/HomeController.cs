@@ -90,13 +90,19 @@ namespace Hangfire.Mongo.Sample.ASPNetCore.Controllers
         public ActionResult Recurring()
         {
             RecurringJob.AddOrUpdate("recurring-job",
-                () => PrintToDebug($@"Hangfire recurring task started - {Guid.NewGuid()}"), Cron.Minutely);
+                () => Recurring($@"Hangfire recurring task started - {Guid.NewGuid()}"), Cron.Minutely);
 
             return RedirectToAction("Index");
         }
 
         public static void PrintToDebug(string message)
         {
+            Debug.WriteLine(message);
+        }
+        
+        public static void Recurring(string message)
+        {
+            Thread.Sleep(15000);
             Debug.WriteLine(message);
         }
     }

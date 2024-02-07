@@ -1,7 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text;
+using System.Threading;
+using Hangfire.Logging;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.Dto;
 using Hangfire.Storage;
 using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo
 {
@@ -10,16 +17,19 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoFetchedJob : IFetchedJob
     {
+        private static readonly ILog Logger = LogProvider.For<MongoFetchedJob>();
+
         private readonly HangfireDbContext _db;
         private readonly MongoStorageOptions _storageOptions;
-        private readonly DateTime _fetchedAt;
+        private DateTime _fetchedAt;
         private readonly ObjectId _id;
+        private readonly object _syncRoot;
 
         private bool _disposed;
-
         private bool _removedFromQueue;
-
         private bool _requeued;
+        private Timer _heartbeatTimer;
+
 
         /// <summary>
         /// Constructs fetched job by database connection, identifier, job ID and queue
@@ -31,19 +41,24 @@ namespace Hangfire.Mongo
         /// <param name="jobId">Job ID</param>
         /// <param name="queue">Queue name</param>
         public MongoFetchedJob(
-            HangfireDbContext db, 
-            MongoStorageOptions storageOptions, 
+            HangfireDbContext db,
+            MongoStorageOptions storageOptions,
             DateTime fetchedAt,
-            ObjectId id, 
-            ObjectId jobId, 
+            ObjectId id,
+            ObjectId jobId,
             string queue)
         {
             _db = db ?? throw new ArgumentNullException(nameof(db));
+            _syncRoot = new object();
             _storageOptions = storageOptions;
             _fetchedAt = fetchedAt;
             _id = id;
             JobId = jobId.ToString();
             Queue = queue ?? throw new ArgumentNullException(nameof(queue));
+            if (storageOptions.SlidingInvisibilityTimeout.HasValue)
+            {
+                StartHeartbeat(storageOptions.SlidingInvisibilityTimeout.Value);
+            }
         }
 
         /// <summary>
@@ -71,11 +86,9 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void RemoveFromQueue()
         {
-            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_db, _storageOptions))
-            {
-                transaction.RemoveFromQueue(_id, _fetchedAt, Queue);
-                transaction.Commit();
-            }
+            using var t = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_db, _storageOptions);
+            t.RemoveFromQueue(_id, _fetchedAt, Queue);
+            t.Commit();
             SetRemoved();
         }
 
@@ -92,11 +105,9 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void Requeue()
         {
-            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_db, _storageOptions))
-            {
-                transaction.Requeue(_id, Queue);
-                transaction.Commit();
-            }
+            using var t = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_db, _storageOptions);
+            t.Requeue(_id, Queue);
+            t.Commit();
             _requeued = true;
         }
 
@@ -105,13 +116,90 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void Dispose()
         {
-            if (_disposed) return;
+            lock (_syncRoot)
+            {
+                if (_disposed) return;
+
+                _heartbeatTimer?.Dispose();
+                _heartbeatTimer = null;
+
+                _disposed = true;
+            }
+
             if (!_removedFromQueue && !_requeued)
             {
+                // will create a new instance of MongoFetchedJob
                 Requeue();
             }
-            
-            _disposed = true;
+        }
+
+        private void StartHeartbeat(TimeSpan slidingInvisibilityTimeout)
+        {
+            var timerInterval = TimeSpan.FromSeconds(slidingInvisibilityTimeout.TotalSeconds / 5);
+            var filter = new BsonDocument("_id", Id);
+            var update = new BsonDocument
+            {
+                ["$currentDate"] = new BsonDocument
+                {
+                    [nameof(JobDto.FetchedAt)] = true
+                }
+            };
+            var options = new FindOneAndUpdateOptions<BsonDocument>
+            {
+                IsUpsert = false,
+                ReturnDocument = ReturnDocument.After,
+                Projection = new BsonDocument
+                {
+                    [nameof(JobDto.FetchedAt)] = 1
+                }
+            };
+            _heartbeatTimer = new Timer(_ =>
+            {
+                // Timer callback may be invoked after the Dispose method call,
+                // so we are using lock to avoid un synchronized calls.
+                lock (_syncRoot)
+                {
+                    if (_disposed)
+                    {
+                        return;
+                    }
+
+                    if (_requeued || _removedFromQueue)
+                    {
+                        return;
+                    }
+
+                    Stopwatch sw = null;
+                    if (Logger.IsTraceEnabled())
+                    {
+                        sw = Stopwatch.StartNew();
+                    }
+
+                    try
+                    {
+                        var result = _db.JobGraph.FindOneAndUpdate(filter, update, options);
+                        _fetchedAt = result[nameof(JobDto.FetchedAt)].ToUniversalTime();
+                        if (Logger.IsTraceEnabled() && sw != null)
+                        {
+                            var serializedModel = new Dictionary<string, BsonDocument>
+                            {
+                                ["Filter"] = filter,
+                                ["Update"] = update
+                            };
+                            sw.Stop();
+                            var builder = new StringBuilder();
+                            builder.AppendLine($"Job heartbeat");
+                            builder.AppendLine($"{serializedModel.ToJson()}");
+                            builder.AppendLine($"Executed in {sw.ElapsedMilliseconds} ms");
+                            Logger.Trace($"{builder}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Job: {Id} - Unable to update heartbeat. Details:\r\n{ex}");
+                    }
+                }
+            }, null, timerInterval, timerInterval);
         }
     }
 }

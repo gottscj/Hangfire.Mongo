@@ -163,7 +163,7 @@ namespace Hangfire.Mongo.Tests
 
             var options = new MongoStorageOptions
             {
-                InvisibilityTimeout = TimeSpan.FromMinutes(30)
+                SlidingInvisibilityTimeout = TimeSpan.FromMinutes(30)
             };
 
             _jobQueueSemaphoreMock.WaitNonBlock("default").Returns(true);
@@ -191,7 +191,10 @@ namespace Hangfire.Mongo.Tests
             };
             _hangfireDbContext.JobGraph.InsertOne(job.Serialize());
 
-            var options = new MongoStorageOptions();
+            var options = new MongoStorageOptions
+            {
+                SlidingInvisibilityTimeout = null
+            };
 
             _jobQueueSemaphoreMock.WaitNonBlock("default").Returns(true);
             var queue =new MongoJobFetcher(_hangfireDbContext, options, _jobQueueSemaphoreMock);

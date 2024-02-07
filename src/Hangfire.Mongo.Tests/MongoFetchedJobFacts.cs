@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Tests.Utils;
@@ -131,6 +132,27 @@ namespace Hangfire.Mongo.Tests
             var record = new JobDto(
                 _dbContext.JobGraph.Find(new BsonDocument("_t", nameof(JobDto))).ToList().Single());
             Assert.Null(record.FetchedAt);
+        }
+        
+        [Fact]
+        public void Heartbeat_LonRunningJob_UpdatesFetchedAt()
+        {
+            // Arrange
+            // time out job after 1s
+            var options = new MongoStorageOptions() {SlidingInvisibilityTimeout = TimeSpan.FromSeconds(1)};
+            var queue = "default";
+            var jobId = ObjectId.GenerateNewId();
+            var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt);
+            var initialFetchedAt = DateTime.UtcNow;
+            
+            // Act
+            var job = new MongoFetchedJob(_dbContext, options, initialFetchedAt, id, jobId, queue);
+            // job runs for 2s, Heartbeat updates job
+            Thread.Sleep(TimeSpan.FromSeconds(2));
+            job.Dispose();
+            
+            // Assert
+            Assert.True(job.FetchedAt > initialFetchedAt, "Expected job FetchedAt field to be updated");
         }
 
         private ObjectId CreateJobQueueRecord(HangfireDbContext connection, ObjectId jobId, string queue, DateTime? fetchedAt)

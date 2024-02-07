@@ -1,4 +1,3 @@
-using System;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Microsoft.AspNetCore.Builder;
@@ -51,7 +50,6 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                         BackupStrategy = new CollectionMongoBackupStrategy()
                     },
                     CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Watch,
-                    InvisibilityTimeout = TimeSpan.FromMinutes(5)
                 };
 
                 //config.UseLogProvider(new FileLogProvider());

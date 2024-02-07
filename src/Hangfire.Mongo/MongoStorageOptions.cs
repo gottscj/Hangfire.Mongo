@@ -1,5 +1,4 @@
 ﻿using System;
-using MongoDB.Driver;
 
 namespace Hangfire.Mongo
 {
@@ -24,7 +23,7 @@ namespace Hangfire.Mongo
         {
             Prefix = "hangfire";
             QueuePollInterval = TimeSpan.FromSeconds(15);
-            InvisibilityTimeout = null;
+            SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5);
             DistributedLockLifetime = TimeSpan.FromSeconds(30);
             JobExpirationCheckInterval = TimeSpan.FromHours(1);
             CountersAggregateInterval = TimeSpan.FromMinutes(5);
@@ -108,9 +107,11 @@ namespace Hangfire.Mongo
         public bool SupportsCappedCollection { get; set; } = true;
         
         /// <summary>
-        /// Invisibility timeout
+        /// If 'SlidingInvisibilityTimeout' a has value, Hangfire.Mongo will periodically update a jobs timestamp.
+        /// 'SlidingInvisibilityTimeout' determines how long time before Hangfire.Mongo decides the job is abandoned
+        /// default = 5 min, if set to null, jobs will never be abandoned
         /// </summary>
-        public TimeSpan? InvisibilityTimeout { get; set; }
+        public TimeSpan? SlidingInvisibilityTimeout { get; set; }
 
         /// <summary>
         /// Lifetime of distributed lock

@@ -43,7 +43,7 @@ namespace Hangfire.Mongo
         }
 
         /// <summary>
-        /// Fetches net job, blocks until job is successfully fetched
+        /// Fetches next job, blocks until job is successfully fetched
         /// Queues are in prioritized order
         /// </summary>
         /// <param name="queues"></param>
@@ -127,10 +127,10 @@ namespace Hangfire.Mongo
         public virtual MongoFetchedJob TryGetEnqueuedJob(string queue, CancellationToken cancellationToken)
         {
             var fetchedAtQuery = new BsonDocument(nameof(JobDto.FetchedAt), BsonNull.Value);
-            if(_storageOptions.InvisibilityTimeout.HasValue)
+            if(_storageOptions.SlidingInvisibilityTimeout.HasValue)
             {
                 var date  =
-                    DateTime.UtcNow.AddSeconds(_storageOptions.InvisibilityTimeout.Value.Negate().TotalSeconds);
+                    DateTime.UtcNow.AddSeconds(_storageOptions.SlidingInvisibilityTimeout.Value.Negate().TotalSeconds);
                 fetchedAtQuery = new BsonDocument("$or", new BsonArray
                 {
                     new BsonDocument(nameof(JobDto.FetchedAt), BsonNull.Value),

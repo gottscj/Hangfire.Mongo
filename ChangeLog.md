@@ -1,6 +1,13 @@
 
 ## Change log
 
+### v1.10.0
+- Update to Hangfire 1.8.9
+- Use SlidingInvisibilityTimeout to determine whether a background job is still alive
+- BREAKING: Remove InvisibilityTimeout
+- Use server time for distributed lock instead of Datetime.UtcNow
+- Fixed Job not requeued when requeued while in processing state (#380)
+
 ### v1.9.16
 - Update to Hangfire 1.8.7
 - Update to MongoDB 2.23.1

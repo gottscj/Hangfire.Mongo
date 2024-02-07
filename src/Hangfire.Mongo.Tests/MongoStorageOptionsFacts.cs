@@ -15,7 +15,7 @@ namespace Hangfire.Mongo.Tests
             MongoStorageOptions storageOptions = new MongoStorageOptions();
 
             Assert.Equal("hangfire", storageOptions.Prefix);
-            Assert.Null(storageOptions.InvisibilityTimeout);
+            Assert.NotNull(storageOptions.SlidingInvisibilityTimeout);
         }
 
         [Fact]
