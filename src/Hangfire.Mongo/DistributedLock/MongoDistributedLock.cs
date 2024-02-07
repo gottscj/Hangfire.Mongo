@@ -277,7 +277,7 @@ namespace Hangfire.Mongo.DistributedLock
                         {
                             [nameof(DistributedLockDto.Resource)] = _resource
                         };
-                        var update = new BsonDocument("$set", new BsonDocument
+                        var update = new BsonDocument
                         {
                             [nameof(DistributedLockDto.ExpireAt)] = new BsonDocument
                             {
@@ -287,12 +287,12 @@ namespace Hangfire.Mongo.DistributedLock
                                     (int) _storageOptions.DistributedLockLifetime.TotalMilliseconds,
                                 }
                             }
-                        });
+                        };
                         
                         var pipeline = new BsonDocument[]
                         {
                             new BsonDocument("$match", filter),
-                            update
+                            new BsonDocument("$set", update)
                         };
                         Stopwatch sw = null;
                         if (Logger.IsTraceEnabled())
