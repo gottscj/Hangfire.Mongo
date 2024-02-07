@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <VersionPrefix>1.9.16</VersionPrefix>
+        <VersionPrefix>1.10.0</VersionPrefix>
         <TargetFramework>netstandard2.0</TargetFramework>
         <NoWarn>$(NoWarn);CS0618</NoWarn>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -21,9 +21,12 @@
         <owners>Sergey Zwezdin, Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.9.16
-            - Update to Hangfire 1.8.7
-            - Update to MongoDB 2.23.1
+        <PackageReleaseNotes>1.10.0
+            - Update to Hangfire 1.8.9
+            - Use SlidingInvisibilityTimeout to determine whether a background job is still alive
+            - BREAKING: Remove InvisibilityTimeout
+            - Use server time for distributed lock instead of Datetime.UtcNow
+            - Fixed Job not requeued when requeued while in processing state (#380)
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
