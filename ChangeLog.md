@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.10.1
+- Use $addFields operator instead of $set when setting DistributedLock heartbeat for support mongo versions < 4.2
+
 ### v1.10.0
 - Update to Hangfire 1.8.9
 - Use SlidingInvisibilityTimeout to determine whether a background job is still alive
