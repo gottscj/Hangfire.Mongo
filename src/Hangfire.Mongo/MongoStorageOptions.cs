@@ -107,7 +107,7 @@ namespace Hangfire.Mongo
         public bool SupportsCappedCollection { get; set; } = true;
         
         /// <summary>
-        /// Hangfire.Mongo will periodically update a jobs timestamp using 'SlidingInvisibilityTCheckInterval'.
+        /// Hangfire.Mongo will periodically update a jobs timestamp.
         /// SlidingInvisibilityTimeout determines how long time before Hangfire.Mongo decides the job is abandoned
         /// default = 5 min, if set to null, jobs will never be abandoned
         /// </summary>
