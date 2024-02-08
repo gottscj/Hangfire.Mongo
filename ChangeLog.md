@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.10.2
+- Dont use db server time for distributed lock timeout. Will addressed in a later release
+
 ### v1.10.1
 - Use $addFields operator instead of $set when setting DistributedLock heartbeat for support mongo versions < 4.2
 
