@@ -489,7 +489,16 @@ namespace Hangfire.Mongo
             List<WriteModel<BsonDocument>> writeModels,
             BulkWriteOptions bulkWriteOptions)
         {
-            jobGraph.BulkWrite(writeModels, bulkWriteOptions);
+            try
+            {
+                jobGraph.BulkWrite(writeModels, bulkWriteOptions);
+            }
+            catch (Exception e)
+            {
+                Logger.ErrorException("MongoWriteOnlyTransaction failed", e);
+                throw;
+            }
+            
         }
 
         protected virtual void Log(IList<WriteModel<BsonDocument>> writeModels, long elapsedMilliseconds)

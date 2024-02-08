@@ -282,38 +282,33 @@ namespace Hangfire.Mongo.DistributedLock
 
                     try
                     {
-                        var pipeline = new BsonDocument[]
+                        var filter = new BsonDocument
                         {
-                            new BsonDocument("$match", new BsonDocument
-                            {
-                                [nameof(DistributedLockDto.Resource)] = _resource
-                            }),
-                            new BsonDocument("$addFields", new BsonDocument
-                            {
-                                [nameof(DistributedLockDto.ExpireAt)] = new BsonDocument
-                                {
-                                    ["$add"] = new BsonArray
-                                    {
-                                        "$$NOW",
-                                        (int) _storageOptions.DistributedLockLifetime.TotalMilliseconds,
-                                    }
-                                }
-                            })
+                            [nameof(DistributedLockDto.Resource)] = _resource
                         };
+                        var update = new BsonDocument
+                        {
+                            ["$set"] = new BsonDocument
+                            {
+                                [nameof(DistributedLockDto.ExpireAt)] = DateTime
+                                    .UtcNow.Add(_storageOptions.DistributedLockLifetime)
+                            }
+                        };
+                        
                         Stopwatch sw = null;
                         if (Logger.IsTraceEnabled())
                         {
                             sw = Stopwatch.StartNew();
                         }
 
-                        _dbContext.DistributedLock.Aggregate<BsonDocument>(pipeline).FirstOrDefault();
+                        _dbContext.DistributedLock.UpdateOne(filter, update);
 
                         if (Logger.IsTraceEnabled() && sw != null)
                         {
                             var serializedModel = new Dictionary<string, BsonDocument>
                             {
-                                ["Filter"] = pipeline[0],
-                                ["Update"] = pipeline[1]
+                                ["Filter"] = filter,
+                                ["Update"] = update
                             };
                             sw.Stop();
                             var builder = new StringBuilder();
