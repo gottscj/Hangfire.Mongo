@@ -36,7 +36,7 @@ namespace Hangfire.Mongo
         {
             StorageOptions = storageOptions;
             DbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-            JobsAddedToQueue = new HashSet<string>();
+            JobsAddedToQueue = [];
         }
 
         private MongoJobUpdates GetOrAddJobUpdates(string jobId)
@@ -48,7 +48,7 @@ namespace Hangfire.Mongo
 
             return updates;
         }
-
+        
         public override void Dispose()
         {
             _distributedLock?.Dispose();
@@ -165,13 +165,6 @@ namespace Hangfire.Mongo
 
             var updates = GetOrAddJobUpdates(jobId);
             updates.Set[nameof(JobDto.StateName)] = state.Name;
-            
-            // if job is enqueued, we need to reset the FetchedAt value so it will be picked up by the queue
-            if (state is EnqueuedState)
-            {
-                updates.Set[nameof(JobDto.FetchedAt)] = BsonNull.Value;
-            }
-            
             updates.Pushes.Add(new BsonDocument
             {
                 [nameof(JobDto.StateHistory)] = stateDto
@@ -225,6 +218,7 @@ namespace Hangfire.Mongo
         {
             var updates = GetOrAddJobUpdates(jobId);
             updates.Set[nameof(JobDto.Queue)] = queue;
+            updates.Set[nameof(JobDto.FetchedAt)] = BsonNull.Value;
 
             JobsAddedToQueue.Add(queue);
         }
@@ -498,7 +492,6 @@ namespace Hangfire.Mongo
                 Logger.ErrorException("MongoWriteOnlyTransaction failed", e);
                 throw;
             }
-            
         }
 
         protected virtual void Log(IList<WriteModel<BsonDocument>> writeModels, long elapsedMilliseconds)

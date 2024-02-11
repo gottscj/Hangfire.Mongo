@@ -1,5 +1,4 @@
 ﻿using System;
-using Hangfire.Mongo.Dto;
 using MongoDB.Bson;
 using MongoDB.Driver;
 

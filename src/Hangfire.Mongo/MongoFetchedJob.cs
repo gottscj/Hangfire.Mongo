@@ -6,6 +6,7 @@ using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
+using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -136,7 +137,11 @@ namespace Hangfire.Mongo
         private void StartHeartbeat(TimeSpan slidingInvisibilityTimeout)
         {
             var timerInterval = TimeSpan.FromSeconds(slidingInvisibilityTimeout.TotalSeconds / 5);
-            var filter = new BsonDocument("_id", Id);
+            var filter = new BsonDocument
+            {
+                ["_id"] = _id,
+                [nameof(JobDto.StateName)] = ProcessingState.StateName
+            };
             var update = new BsonDocument
             {
                 ["$currentDate"] = new BsonDocument
@@ -178,7 +183,11 @@ namespace Hangfire.Mongo
                     try
                     {
                         var result = _db.JobGraph.FindOneAndUpdate(filter, update, options);
-                        _fetchedAt = result[nameof(JobDto.FetchedAt)].ToUniversalTime();
+                        if (result != null && result.TryGetValue(nameof(JobDto.FetchedAt), out var updatedFetchedAt))
+                        {
+                            _fetchedAt = updatedFetchedAt.ToUniversalTime();
+                        }
+                        
                         if (Logger.IsTraceEnabled() && sw != null)
                         {
                             var serializedModel = new Dictionary<string, BsonDocument>

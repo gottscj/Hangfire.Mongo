@@ -4,6 +4,7 @@ using System.Threading;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Tests.Utils;
+using Hangfire.States;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Xunit;
@@ -142,7 +143,7 @@ namespace Hangfire.Mongo.Tests
             var options = new MongoStorageOptions() {SlidingInvisibilityTimeout = TimeSpan.FromSeconds(1)};
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
-            var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt);
+            var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt, ProcessingState.StateName);
             var initialFetchedAt = DateTime.UtcNow;
             
             // Act
@@ -155,18 +156,24 @@ namespace Hangfire.Mongo.Tests
             Assert.True(job.FetchedAt > initialFetchedAt, "Expected job FetchedAt field to be updated");
         }
 
-        private ObjectId CreateJobQueueRecord(HangfireDbContext connection, ObjectId jobId, string queue, DateTime? fetchedAt)
+        private ObjectId CreateJobQueueRecord(
+            HangfireDbContext connection, 
+            ObjectId jobId, 
+            string queue, 
+            DateTime? fetchedAt,
+            string stateName = null)
         {
-            var jobQueue = new JobDto
+            var job = new JobDto
             {
                 Id = jobId,
                 Queue = queue,
-                FetchedAt = fetchedAt
+                FetchedAt = fetchedAt,
+                StateName = stateName
             };
 
-            connection.JobGraph.InsertOne(jobQueue.Serialize());
+            connection.JobGraph.InsertOne(job.Serialize());
 
-            return jobQueue.Id;
+            return job.Id;
         }
     }
 #pragma warning restore 1591
