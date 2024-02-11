@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.10.3
+- Fixes bug for SlidingInvisibilityTimeout, should only do heartbeats for processing jobs 
+
 ### v1.10.2
 - Dont use db server time for distributed lock timeout. Will addressed in a later release
 

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <Description />
-    <Version>1.10.2</Version>
+    <Version>1.10.3</Version>
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <Copyright>Copyright © 2014-2019 Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Copyright>
     <Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
