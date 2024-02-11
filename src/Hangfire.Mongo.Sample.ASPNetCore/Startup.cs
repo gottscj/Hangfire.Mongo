@@ -1,3 +1,4 @@
+using System;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Microsoft.AspNetCore.Builder;
@@ -49,17 +50,17 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                         MigrationStrategy = new MigrateMongoMigrationStrategy(),
                         BackupStrategy = new CollectionMongoBackupStrategy()
                     },
-                    CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Watch,
+                    SlidingInvisibilityTimeout = TimeSpan.FromSeconds(5)
                 };
 
                 //config.UseLogProvider(new FileLogProvider());
                 config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180);
                 config.UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, storageOptions)
-                      .UseColouredConsoleLogProvider(LogLevel.Info);
+                      .UseColouredConsoleLogProvider(LogLevel.Trace);
             });
             services.AddHangfireServer(options =>
             {
-                options.Queues = new[] { "default", "notDefault" };
+                options.Queues = new[] { "default", "not-default" };
             });
             services.AddMvc(c => c.EnableEndpointRouting = false);
 

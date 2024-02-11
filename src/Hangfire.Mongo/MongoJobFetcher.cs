@@ -100,11 +100,6 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual MongoFetchedJob TryAllQueues(string[] queues, CancellationToken cancellationToken)
         {
-            if (Logger.IsTraceEnabled())
-            {
-                Logger.Trace($"Try fetch from queues: {string.Join(",", queues)} Thread[{Thread.CurrentThread.ManagedThreadId}]");
-            }
-            
             foreach (var queue in queues)
             {
                 var fetchedJob = TryGetEnqueuedJob(queue, cancellationToken);
@@ -137,6 +132,7 @@ namespace Hangfire.Mongo
                     new BsonDocument(nameof(JobDto.FetchedAt), new BsonDocument("$lt", date))
                 });
             }
+            
             var filter = new BsonDocument("$and", new BsonArray
             {
                 new BsonDocument(nameof(JobDto.Queue), queue),

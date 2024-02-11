@@ -52,7 +52,8 @@ namespace Hangfire.Mongo
             TimeSpan expireIn)
         {
             string jobId;
-            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
+            using (var transaction =
+                   _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
             {
                 jobId = transaction.CreateExpiredJob(job, parameters, createdAt, expireIn);
                 transaction.Commit();
@@ -73,7 +74,8 @@ namespace Hangfire.Mongo
 
         public override void SetJobParameter(string id, string name, string value)
         {
-            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
+            using (var transaction =
+                   _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
             {
                 transaction.SetJobParameter(id, name, value);
                 transaction.Commit();
@@ -91,6 +93,7 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(name));
             }
+
             var objectId = ObjectId.Parse(id);
             var job = _dbContext
                 .JobGraph
@@ -235,17 +238,16 @@ namespace Hangfire.Mongo
                 throw new ArgumentNullException(nameof(serverId));
             }
 
-            var now = GetUtcDateTime();
-            var updateResult = _dbContext.Server.UpdateMany(new BsonDocument("_id", serverId),
-                new BsonDocument
+            var update = new BsonDocument
+            {
+                ["$currentDate"] = new BsonDocument
                 {
-                    ["$set"] = new BsonDocument
-                    {
-                        [nameof(ServerDto.LastHeartbeat)] = now
-                    }
-                });
+                    [nameof(ServerDto.LastHeartbeat)] = true
+                }
+            };
+            var updateResult = _dbContext.Server.UpdateOne(new BsonDocument("_id", serverId), update);
 
-            if (updateResult != null && updateResult.IsAcknowledged && updateResult.ModifiedCount == 0)
+            if (updateResult is {IsAcknowledged: true, ModifiedCount: 0})
             {
                 throw new BackgroundServerGoneException();
             }
@@ -258,14 +260,13 @@ namespace Hangfire.Mongo
                 throw new ArgumentException("The `timeOut` value must be positive.", nameof(timeOut));
             }
 
-            var now = GetUtcDateTime();
-            return (int)_dbContext
+            return (int) _dbContext
                 .Server
                 .DeleteMany(new BsonDocument
                 {
                     [nameof(ServerDto.LastHeartbeat)] = new BsonDocument
                     {
-                        ["$lt"] = now.Add(timeOut.Negate())
+                        ["$lt"] = DateTime.UtcNow.Add(timeOut.Negate())
                     }
                 })
                 .DeletedCount;
@@ -302,7 +303,8 @@ namespace Hangfire.Mongo
             return GetFirstByLowestScoreFromSet(key, fromScore, toScore, 1).FirstOrDefault();
         }
 
-        public override List<string> GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore, int count)
+        public override List<string> GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore,
+            int count)
         {
             if (Logger.IsTraceEnabled())
             {
@@ -346,7 +348,8 @@ namespace Hangfire.Mongo
                 Logger.Trace($"SetRangeInHash({key})");
             }
 
-            using (var transaction = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
+            using (var transaction =
+                   _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_dbContext, _storageOptions))
             {
                 transaction.SetRangeInHash(key, keyValuePairs);
                 transaction.Commit();
@@ -516,21 +519,23 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(key));
             }
-            var hash = _dbContext
-               .JobGraph
-               .Find(new BsonDocument
-               {
-                   [nameof(HashDto.Key)] = key,
-                   ["_t"] = nameof(HashDto)
-               })
-               .Sort(new BsonDocument(nameof(HashDto.ExpireAt), 1))
-               .Project(new BsonDocument(nameof(HashDto.ExpireAt), 1))
-               .FirstOrDefault();
 
-            if(hash == null)
+            var hash = _dbContext
+                .JobGraph
+                .Find(new BsonDocument
+                {
+                    [nameof(HashDto.Key)] = key,
+                    ["_t"] = nameof(HashDto)
+                })
+                .Sort(new BsonDocument(nameof(HashDto.ExpireAt), 1))
+                .Project(new BsonDocument(nameof(HashDto.ExpireAt), 1))
+                .FirstOrDefault();
+
+            if (hash == null)
             {
                 return TimeSpan.FromSeconds(-1);
             }
+
             var result = hash[nameof(HashDto.ExpireAt)].ToNullableUniversalTime();
 
             return result.HasValue ? result.Value - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
@@ -613,10 +618,11 @@ namespace Hangfire.Mongo
                 .Project(new BsonDocument(nameof(ListDto.ExpireAt), 1))
                 .FirstOrDefault();
 
-            if(listDto == null)
+            if (listDto == null)
             {
                 return TimeSpan.FromSeconds(-1);
             }
+
             var result = listDto[nameof(ListDto.ExpireAt)].ToNullableUniversalTime();
             return result.HasValue ? result.Value - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
@@ -658,6 +664,7 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(key));
             }
+
             return _dbContext
                 .JobGraph.Find(new BsonDocument
                 {
@@ -670,36 +677,55 @@ namespace Hangfire.Mongo
                 .Select(b => b[nameof(ListDto.Value)].AsString).ToList();
         }
 
+        private static bool _useServerStatus;
+
         public override DateTime GetUtcDateTime()
         {
+            if (_useServerStatus)
+            {
+                return GetUtcDateUsingServerStatus();
+            }
 
             DateTime now;
             try
             {
-                var pipeline = new[]
-                {
-                    new BsonDocument("$project", new BsonDocument("date", "$$NOW"))
-                };
-                // we should always have a schema document in the db, and this 
-                var time = _dbContext.Schema.Aggregate<BsonDocument>(pipeline).FirstOrDefault();
-                if (time is null)
-                {
-                    throw new InvalidOperationException("No documents in the schema collection");
-                }
-                now = time["date"].ToUniversalTime();
+                now = GetUtcDateUsingAggregation();
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Logger.WarnException("Failed to get UTC datetime from mongodb server, using local UTC", e);
-                now = DateTime.UtcNow;
+                Logger.Warn("Failed to get UTC datetime from mongodb server, using 'serverStatus' instead");
+                now = GetUtcDateUsingServerStatus();
+                _useServerStatus = true;
             }
-            
+
             if (Logger.IsTraceEnabled())
             {
                 Logger.Trace($"GetUtcDateTime() => {now:O}");
             }
 
             return now;
+        }
+
+        private DateTime GetUtcDateUsingAggregation()
+        {
+            var pipeline = new[]
+            {
+                new BsonDocument("$project", new BsonDocument("date", "$$NOW"))
+            };
+            // we should always have a schema document in the db, and this 
+            var time = _dbContext.Schema.Aggregate<BsonDocument>(pipeline).FirstOrDefault();
+            if (time is null)
+            {
+                throw new InvalidOperationException("No documents in the schema collection");
+            }
+
+            return time["date"].ToUniversalTime();
+        }
+
+        private DateTime GetUtcDateUsingServerStatus()
+        {
+            var serverStatus = _dbContext.Database.RunCommand<BsonDocument>(new BsonDocument("serverStatus", 1));
+            return serverStatus["localTime"].ToUniversalTime();
         }
 
         public override bool GetSetContains([NotNull] string key, [NotNull] string value)

@@ -89,8 +89,8 @@ namespace Hangfire.Mongo.Sample.ASPNetCore.Controllers
 
         public ActionResult Recurring()
         {
-            RecurringJob.AddOrUpdate("recurring-job",
-                () => Recurring($@"Hangfire recurring task started - {Guid.NewGuid()}"), Cron.Minutely);
+            RecurringJob.AddOrUpdate<MyRecurringjob>("my-recurring-job",
+                j => j.Recurring($@"Hangfire recurring task started - {Guid.NewGuid()}"), Cron.Minutely);
 
             return RedirectToAction("Index");
         }
@@ -100,10 +100,5 @@ namespace Hangfire.Mongo.Sample.ASPNetCore.Controllers
             Debug.WriteLine(message);
         }
         
-        public static void Recurring(string message)
-        {
-            Thread.Sleep(15000);
-            Debug.WriteLine(message);
-        }
     }
 }
