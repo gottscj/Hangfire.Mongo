@@ -1,6 +1,10 @@
 
 ## Change log
 
+### v1.10.4
+- Update to Hangfire 1.8.11
+- Update to MongoDB 2.24.0
+- 
 ### v1.10.3
 - Fixes bug for SlidingInvisibilityTimeout, should only do heartbeats for processing jobs 
 
