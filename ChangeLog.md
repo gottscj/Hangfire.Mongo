@@ -1,6 +1,10 @@
 
 ## Change log
 
+### v1.10.5
+- Update to Hangfire 1.8.12
+- Support for Stable API (strict) #387
+
 ### v1.10.4
 - Update to Hangfire 1.8.11
 - Update to MongoDB 2.24.0

@@ -75,11 +75,20 @@ namespace Hangfire.Mongo.Migration.Strategies.Backup
                 }
             });
 
-            var version = MongoVersionHelper.GetVersion(database);
-            if (version < new Version(2, 6))
+            try
             {
-                throw new InvalidOperationException("Hangfire.Mongo is not able to backup collections in MongoDB running a version prior to 2.6");
+                var version = MongoVersionHelper.GetVersion(database);
+                if (version < new Version(2, 6))
+                {
+                    throw new InvalidOperationException("Hangfire.Mongo is not able to backup collections in MongoDB running a version prior to 2.6");
+                }
             }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException(
+                    $"Hangfire.Mongo could not back up collection. Failed with message: " + e.Message);
+            }
+            
 
             var dbSource = database.GetCollection<BsonDocument>(collectionName);
             var indexes = dbSource.Indexes.List().ToList().Where(idx => idx["name"] != "_id_").ToList();
