@@ -371,14 +371,26 @@ namespace Hangfire.Mongo
 
         public virtual IReadOnlyList<string> GetQueues()
         {
-            return _dbContext.JobGraph
-                .Distinct(
-                    f => f[nameof(JobDto.Queue)],
-                    new BsonDocument("_t", nameof(JobDto)))
-                .ToList()
-                .Where(b => !b.IsBsonNull)
-                .Select(b => b.AsString)
+            var onlyQueuesWithValue = new BsonDocument
+            {
+                ["_t"] = nameof(JobDto),
+                [nameof(JobDto.Queue)] = new BsonDocument("$ne", BsonNull.Value)
+            };
+            var byQueue = new BsonDocument("_id", $"${nameof(JobDto.Queue)}");
+            
+            var result = _dbContext.JobGraph.Aggregate<BsonDocument>(
+                    new BsonDocument
+                        []
+                        {
+                            new("$match", onlyQueuesWithValue),
+                            new("$group", byQueue)
+                        })
                 .ToList();
+            var queues = result
+                .Select(b => b["_id"].AsString)
+                .OrderBy(s => s)
+                .ToArray();
+            return queues;
         }
 
         public virtual IReadOnlyList<string> GetEnqueuedJobIds(string queue, int from, int perPage)
