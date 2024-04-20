@@ -19,11 +19,26 @@ namespace Hangfire.Mongo.Dto
                 return;
             }
 
-            Queue = doc[nameof(Queue)].StringOrNull();
-            FetchedAt = doc[nameof(FetchedAt)].ToNullableLocalTime();
-            StateName = doc[nameof(StateName)].StringOrNull();
-            InvocationData = doc[nameof(InvocationData)].StringOrNull();
-            Arguments = doc[nameof(Arguments)].StringOrNull();
+            if (doc.TryGetValue(nameof(Queue), out var queue))
+            {
+                Queue = queue.StringOrNull();
+            }
+            if (doc.TryGetValue(nameof(FetchedAt), out var fetchedAt))
+            {
+                FetchedAt = fetchedAt.ToNullableLocalTime();
+            }
+            if (doc.TryGetValue(nameof(StateName), out var stateName))
+            {
+                StateName = stateName.StringOrNull();
+            }
+            if (doc.TryGetValue(nameof(InvocationData), out var invocationData))
+            {
+                InvocationData = invocationData.StringOrNull();
+            }
+            if (doc.TryGetValue(nameof(Arguments), out var arguments))
+            {
+                Arguments = arguments.StringOrNull();
+            }
             Parameters = new Dictionary<string, string>();
             if (doc.TryGetValue(nameof(Parameters), out var parameters))
             {

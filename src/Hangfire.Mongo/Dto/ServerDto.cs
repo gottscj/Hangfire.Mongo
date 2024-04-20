@@ -15,9 +15,18 @@ namespace Hangfire.Mongo.Dto
         {
             Id = doc["_id"].AsString;
             WorkerCount = doc[nameof(WorkerCount)].AsInt32;
-            Queues = doc[nameof(Queues)].AsBsonArray.Select(q => q.StringOrNull()).ToArray();
-            StartedAt = doc[nameof(StartedAt)].ToNullableUniversalTime();
-            LastHeartbeat = doc[nameof(LastHeartbeat)].ToNullableUniversalTime();
+            if (doc.TryGetValue(nameof(Queues), out var queues))
+            {
+                Queues = queues.AsBsonArray.Select(q => q.StringOrNull()).ToArray();
+            }
+            if (doc.TryGetValue(nameof(StartedAt), out var startedAt))
+            {
+                StartedAt = startedAt.ToNullableUniversalTime();
+            }
+            if (doc.TryGetValue(nameof(LastHeartbeat), out var lastHeartbeat))
+            {
+                LastHeartbeat = lastHeartbeat.ToNullableUniversalTime();
+            }
         }
         public string Id { get; set; }
 

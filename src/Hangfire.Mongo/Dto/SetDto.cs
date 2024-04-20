@@ -17,8 +17,14 @@ namespace Hangfire.Mongo.Dto
             }
 
             Score = doc[nameof(Score)].AsDouble;
-            Value = doc[nameof(Value)].StringOrNull();
-            SetType = doc[nameof(SetType)].StringOrNull();
+            if (doc.TryGetValue(nameof(Value), out var value))
+            {
+                Value = value.StringOrNull();
+            }
+            if (doc.TryGetValue(nameof(SetType), out var setType))
+            {
+                SetType = setType.StringOrNull();
+            }
         }
         public double Score { get; set; }
 

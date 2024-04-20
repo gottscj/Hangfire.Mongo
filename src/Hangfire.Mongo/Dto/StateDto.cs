@@ -13,8 +13,14 @@ namespace Hangfire.Mongo.Dto
         }
         public StateDto(BsonDocument doc)
         {
-            Name = doc[nameof(Name)].StringOrNull();
-            Reason = doc[nameof(Reason)].StringOrNull();
+            if (doc.TryGetValue(nameof(Name), out var name))
+            {
+                Name = name.StringOrNull();
+            }
+            if (doc.TryGetValue(nameof(Reason), out var reason))
+            {
+                Reason = reason.StringOrNull();
+            }
             CreatedAt = doc[nameof(CreatedAt)].ToUniversalTime();
             Data = new Dictionary<string, string>();
             if(doc.TryGetValue(nameof(Data), out var data))

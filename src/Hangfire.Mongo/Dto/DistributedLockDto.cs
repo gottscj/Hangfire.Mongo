@@ -22,7 +22,10 @@ namespace Hangfire.Mongo.Dto
         public DistributedLockDto(BsonDocument doc)
         {
             Id = doc["_id"].AsObjectId;
-            Resource = doc[nameof(Resource)].StringOrNull();
+            if (doc.TryGetValue(nameof(Resource), out var resource))
+            {
+                Resource = resource.StringOrNull();
+            }
             ExpireAt = doc[nameof(ExpireAt)].ToUniversalTime();
         }
         /// <summary>

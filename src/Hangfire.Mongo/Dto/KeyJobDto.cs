@@ -19,7 +19,10 @@ namespace Hangfire.Mongo.Dto
             {
                 return;
             }
-            Key = doc[nameof(Key)].StringOrNull();
+            if (doc.TryGetValue(nameof(Key), out var key))
+            {
+                Key = key.StringOrNull();
+            }
         }
 
         protected override void Serialize(BsonDocument document)
