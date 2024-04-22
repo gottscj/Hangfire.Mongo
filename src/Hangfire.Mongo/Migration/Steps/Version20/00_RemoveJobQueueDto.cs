@@ -44,7 +44,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version20
                                                 ["$set"] = new BsonDocument
                                                 {
                                                     ["Queue"] = jobQueue["Queue"],
-                                                    ["FetchedAt"] = jobQueue["FetchedAt"]
+                                                    ["FetchedAt"] = jobQueue.TryGetValue("FetchedAt", out var fetchedAt) ? fetchedAt : BsonNull.Value
                                                 }
                                             }
                                         ));

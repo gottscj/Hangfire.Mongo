@@ -11,8 +11,14 @@ namespace Hangfire.Mongo.Dto
         }
         public ListDto(BsonDocument doc) : base(doc)
         {
-            Item = doc[nameof(Item)].StringOrNull();
-            Value = doc[nameof(Value)].StringOrNull();
+            if (doc.TryGetValue(nameof(Item), out var item))
+            {
+                Item = item.StringOrNull();
+            }
+            if (doc.TryGetValue(nameof(Value), out var value))
+            {
+                Value = value.StringOrNull();
+            }
         }
         public string Item { get; set; }
 

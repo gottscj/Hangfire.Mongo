@@ -29,7 +29,10 @@ namespace Hangfire.Mongo.Dto
         {
             Id = doc["_id"].AsObjectId;
             Type = (NotificationType)doc[nameof(Type)].AsInt32;
-            Value = doc[nameof(Value)].StringOrNull();
+            if (doc.TryGetValue(nameof(Value), out var value))
+            {
+                Value = value.StringOrNull();
+            }
         }
 
         [BsonId]
