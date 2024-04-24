@@ -1,6 +1,7 @@
 ﻿using System;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.DistributedLock;
+using Hangfire.Mongo.Migration;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -16,6 +17,31 @@ namespace Hangfire.Mongo
         /// </summary>
         public IJobQueueSemaphore JobQueueSemaphore { get; set; } = new JobQueueSemaphore();
 
+        /// <summary>
+        /// Creates new Migration manager
+        /// </summary>
+        /// <param name="storageOptions"></param>
+        /// <param name="database"></param>
+        /// <returns></returns>
+        public virtual MongoMigrationManager CreateMongoMigrationManager(MongoStorageOptions storageOptions,
+            IMongoDatabase database)
+        {
+            return new MongoMigrationManager(storageOptions, database);
+        }
+
+        /// <summary>
+        /// Creates migration lock
+        /// </summary>
+        /// <param name="database"></param>
+        /// <param name="migrateLockCollectionPrefix"></param>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
+        public virtual MigrationLock CreateMigrationLock(IMongoDatabase database, string migrateLockCollectionPrefix,
+            TimeSpan timeout)
+        {
+            return new MigrationLock(database, migrateLockCollectionPrefix, timeout);
+        }
+        
         /// <summary>
         /// Factory method to create HangfireDbContext instance
         /// </summary>

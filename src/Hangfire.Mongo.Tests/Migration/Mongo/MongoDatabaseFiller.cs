@@ -48,8 +48,9 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             {
                 ShutdownTimeout = TimeSpan.FromSeconds(15)
             };
-
-            JobStorage.Current = _fixture.CreateStorage(databaseName);
+            var dbContext = _fixture.CreateDbContext();
+            var mongoStorage = new MongoStorage(dbContext.Client, databaseName, storageOptions);
+            JobStorage.Current = mongoStorage;
 
             using (new BackgroundJobServer(serverOptions))
             {
@@ -88,9 +89,9 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             });
 
             connection.AcquireDistributedLock("test-lock", TimeSpan.FromSeconds(30));
-
+            var migrationManager = new MongoMigrationManager(storageOptions, dbContext.Database);
             // Create database snapshot in zip file
-            var schemaVersion = (int)MongoMigrationManager.RequiredSchemaVersion;
+            var schemaVersion = (int)migrationManager.RequiredSchemaVersion;
             using (var stream = new FileStream($@"Hangfire-Mongo-Schema-{schemaVersion:000}.zip", FileMode.Create))
             {
                 var allowedEmptyCollections = new List<string>
@@ -99,8 +100,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                     "hangfire.notifications"
                 };
 
-                if (MongoMigrationManager.RequiredSchemaVersion >= MongoSchema.Version09 &&
-                    MongoMigrationManager.RequiredSchemaVersion <= MongoSchema.Version15)
+                if (migrationManager.RequiredSchemaVersion is >= MongoSchema.Version09 and <= MongoSchema.Version15)
                 {
                     // Signal collection work was initiated in schema version 9,
                     // and still not put to use in schema version 15.

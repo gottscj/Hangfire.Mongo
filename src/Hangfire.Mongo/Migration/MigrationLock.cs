@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Dto;
@@ -43,7 +42,7 @@ namespace Hangfire.Mongo.Migration
         /// <summary>
         /// Aquires lock or throws TimeoutException
         /// </summary>
-        public void AcquireMigrationAccess()
+        public void AcquireLock()
         {
             try
             {

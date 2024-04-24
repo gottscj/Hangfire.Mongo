@@ -48,7 +48,6 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
         //[InlineData("Hangfire-Mongo-Schema-019.zip", true)]
         public void Migrate_Full_Success(string seedFile, bool assertCollectionHasItems)
         {
-
             var dbContext = _fixture.CreateDbContext("Hangfire-Mongo-Migration-Tests");
 
             // ARRANGE
@@ -70,7 +69,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             var migrationManager = new MongoMigrationManager(storageOptions, dbContext.Database);
 
             // ACT
-            MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
+            migrationManager.MigrateUp();
 
             // ASSERT
             AssertDataIntegrity(dbContext, assertCollectionHasItems);
@@ -109,7 +108,12 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                     }
 
                     signal.WaitOne();
-                    return MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
+                    using var lockHandle = new MigrationLock(dbContext.Database, storageOptions.Prefix,
+                        storageOptions.MigrationLockTimeout);
+                    lockHandle.AcquireLock();
+                    
+                    var mgr = new MongoMigrationManager(storageOptions, dbContext.Database);
+                    return mgr.MigrateUp();
                 }, TaskCreationOptions.LongRunning);
             }
 
@@ -138,12 +142,84 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                     BackupStrategy = new NoneMongoBackupStrategy()
                 }
             };
+            var migrationManager = new MongoMigrationManager(storageOptions, dbContext.Database);
 
             // ACT
-            MongoMigrationManager.MigrateIfNeeded(storageOptions, dbContext.Database);
+            migrationManager.MigrateUp();
 
             // ASSERT
             AssertDataIntegrity(dbContext, assertCollectionHasItems: false);
+        }
+
+        [Fact]
+        public void Migrate_MigrateDownUsingDrop_Success()
+        {
+            // ARRANGE
+            var dbContext = _fixture.CreateDbContext("Hangfire-Mongo-Migration-Tests");
+
+            dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
+            SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", "Hangfire-Mongo-Schema-006.zip"));
+
+            var storageOptions = new MongoStorageOptions
+            {
+                MigrationOptions = new MongoMigrationOptions
+                {
+                    MigrationStrategy = new DropMongoMigrationStrategy(),
+                    BackupStrategy = new NoneMongoBackupStrategy()
+                }
+            };
+            var migrationManager = new MongoMigrationManager(storageOptions, dbContext.Database);
+            migrationManager.MigrateUp();
+
+            // ACT
+            var testMgr = new TestMongoMigrationManager(new MongoStorageOptions
+            {
+                MigrationOptions = new MongoMigrationOptions
+                {
+                    MigrationStrategy = new DropMongoMigrationStrategy(),
+                    BackupStrategy = new NoneMongoBackupStrategy()
+                }
+            }, dbContext.Database);
+            testMgr.MigrateUp();
+
+            // ASSERT
+            AssertDataIntegrity(dbContext, assertCollectionHasItems: false);
+        }
+
+        
+        [Fact]
+        public void Migrate_MigrateDown_Fails()
+        {
+            // ARRANGE
+            var dbContext = _fixture.CreateDbContext("Hangfire-Mongo-Migration-Tests");
+
+            dbContext.Client.DropDatabase(dbContext.Database.DatabaseNamespace.DatabaseName);
+            SeedCollectionFromZipArchive(dbContext, Path.Combine("Migration", "Hangfire-Mongo-Schema-006.zip"));
+
+            var storageOptions = new MongoStorageOptions
+            {
+                MigrationOptions = new MongoMigrationOptions
+                {
+                    MigrationStrategy = new DropMongoMigrationStrategy(),
+                    BackupStrategy = new NoneMongoBackupStrategy()
+                }
+            };
+            var migrationManager = new MongoMigrationManager(storageOptions, dbContext.Database);
+            migrationManager.MigrateUp();
+
+            // ACT
+            var testMgr = new TestMongoMigrationManager(new MongoStorageOptions
+            {
+                MigrationOptions = new MongoMigrationOptions
+                {
+                    MigrationStrategy = new MigrateMongoMigrationStrategy(),
+                    BackupStrategy = new NoneMongoBackupStrategy()
+                }
+            }, dbContext.Database);
+            var exception = Assert.Throws<InvalidOperationException>(() => testMgr.MigrateUp());
+
+            // ASSERT
+            Assert.NotNull(exception);
         }
 
         private static void AssertDataIntegrity(HangfireDbContext dbContext, bool assertCollectionHasItems)
@@ -163,7 +239,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             }
         }
 
-        private static void AssertCollectionNotEmpty(IEnumerable<object> collection, string collectionName)
+        private static void AssertCollectionNotEmpty(IEnumerable<BsonDocument> collection, string collectionName)
         {
             Assert.True(collection.Any(), $"Expected '{collectionName}' to have items");
         }
@@ -190,6 +266,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             {
                 return;
             }
+
             var documents = new List<BsonDocument>();
             using (var jsonReader = new MongoDB.Bson.IO.JsonReader(json))
             {
@@ -213,13 +290,13 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
 
                         throw;
                     }
-
                 }
             }
 
             if (!documents.Any())
             {
-                throw new InvalidOperationException($@"The JSON does not contain any documents to import into {collectionName}");
+                throw new InvalidOperationException(
+                    $@"The JSON does not contain any documents to import into {collectionName}");
             }
 
             connection.Database.GetCollection<BsonDocument>(collectionName).InsertMany(documents);
