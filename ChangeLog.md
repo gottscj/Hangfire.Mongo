@@ -1,6 +1,11 @@
 
 ## Change log
 
+### v1.10.6
+- Update to MongoDB 2.25.0
+- Support for migrating down when using 'drop' migration strategy (#393)
+- Fix deserialization of missing nullable fields (by jkla-dr) (#395)
+
 ### v1.10.5
 - Update to Hangfire 1.8.12
 - Support for Stable API (strict) #387
