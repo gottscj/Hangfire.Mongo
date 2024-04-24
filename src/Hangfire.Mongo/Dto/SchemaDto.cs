@@ -26,10 +26,6 @@ namespace Hangfire.Mongo.Dto
             {
                 return;
             }
-            if(doc.TryGetValue(nameof(Identifier), out var identifier))
-            {
-                Identifier = identifier.StringOrNull();
-            }
 
             var id = doc["_id"];
             if (id.IsString)
@@ -50,13 +46,6 @@ namespace Hangfire.Mongo.Dto
         public MongoSchema Version { get; set; }
 
         /// <summary>
-        /// The identifier of the database.
-        /// Will be initialized along with the database
-        /// and will nerver change.
-        /// </summary>
-        public string Identifier { get; set; }
-
-        /// <summary>
         /// Serializes to BsonDocument
         /// </summary>
         /// <returns></returns>
@@ -64,7 +53,6 @@ namespace Hangfire.Mongo.Dto
         {
             return new BsonDocument
             {
-                [nameof(Identifier)] = Identifier.ToBsonValue(),
                 ["_id"] = (int)Version
             };
         }

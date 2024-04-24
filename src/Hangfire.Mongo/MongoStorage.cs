@@ -6,7 +6,6 @@ using System.Threading;
 using Hangfire.Annotations;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
-using Hangfire.Mongo.Migration;
 using Hangfire.Server;
 using Hangfire.Storage;
 using MongoDB.Bson;
@@ -93,8 +92,9 @@ namespace Hangfire.Mongo
             {
                 throw new ArgumentNullException(nameof(databaseName));
             }
+
             StorageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
-            
+
             if (storageOptions.CheckQueuedJobsStrategy == CheckQueuedJobsStrategy.TailNotificationsCollection &&
                 storageOptions.SupportsCappedCollection == false)
             {
@@ -106,7 +106,7 @@ namespace Hangfire.Mongo
 
             DatabaseName = databaseName;
             MongoClient = mongoClient ?? throw new ArgumentNullException(nameof(mongoClient));
-            
+
             HangfireDbContext =
                 StorageOptions.Factory.CreateDbContext(mongoClient, databaseName, storageOptions.Prefix);
 
@@ -117,7 +117,16 @@ namespace Hangfire.Mongo
 
             if (!StorageOptions.ByPassMigration)
             {
-                MongoMigrationManager.MigrateIfNeeded(storageOptions, HangfireDbContext.Database);
+                using var lockHandle = storageOptions
+                    .Factory
+                    .CreateMigrationLock(HangfireDbContext.Database, storageOptions.Prefix,
+                        storageOptions.MigrationLockTimeout);
+                lockHandle.AcquireLock();
+
+                storageOptions
+                    .Factory
+                    .CreateMongoMigrationManager(storageOptions, HangfireDbContext.Database)
+                    .MigrateUp();
             }
         }
 
@@ -185,6 +194,7 @@ namespace Hangfire.Mongo
                         yield return StorageOptions.Factory.CreateMongoNotificationObserver(HangfireDbContext,
                             StorageOptions);
                     }
+
                     break;
             }
         }

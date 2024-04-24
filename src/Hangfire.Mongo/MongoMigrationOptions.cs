@@ -20,7 +20,6 @@ namespace Hangfire.Mongo
         /// Constructs migration options with default parameters.
         /// </summary>
         public MongoMigrationOptions()
-        
         {
             BackupStrategy = new NoneMongoBackupStrategy();
             MigrationStrategy = new ThrowMongoMigrationStrategy();

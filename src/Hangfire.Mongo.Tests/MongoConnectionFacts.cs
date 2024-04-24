@@ -1554,7 +1554,7 @@ namespace Hangfire.Mongo.Tests
         public void GetUtcDateTime_FromConnection_Success()
         {
             // Arrange
-            _dbContext.Schema.InsertOne(new SchemaDto{Identifier = "1", Version = MongoSchema.None}.Serialize());
+            _dbContext.Schema.InsertOne(new SchemaDto{Version = MongoSchema.None}.Serialize());
             
             // Act
             var serverTime = _connection.GetUtcDateTime();

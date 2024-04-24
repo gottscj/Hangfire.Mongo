@@ -17,7 +17,7 @@ namespace Hangfire.Mongo.Migration.Strategies
             : this(new MongoMigrationContext())
         {
         }
-        
+
         /// <summary>
         /// ctor
         /// </summary>
@@ -27,6 +27,16 @@ namespace Hangfire.Mongo.Migration.Strategies
         {
         }
 
+        /// <summary>
+        /// Drop strategy will not validate schemas as it drops all collections anyway and migrates from scratch
+        /// </summary>
+        /// <param name="requiredSchema"></param>
+        /// <param name="currentSchema"></param>
+        public override void ValidateSchema(MongoSchema requiredSchema, MongoSchema currentSchema)
+        {
+            // nop
+        }
+        
         /// <summary>
         /// Execute migration from "None"
         /// </summary>
@@ -46,7 +56,9 @@ namespace Hangfire.Mongo.Migration.Strategies
         /// <param name="toSchema"></param>
         protected override void ExecuteStrategy(IMongoDatabase database, MongoSchema fromSchema, MongoSchema toSchema)
         {
-            foreach (var collectionName in MongoMigrationUtils.ExistingHangfireCollectionNames(database, fromSchema, StorageOptions))
+            var existingCollectionNames =
+                MongoMigrationUtils.ExistingHangfireCollectionNames(database, fromSchema, StorageOptions);
+            foreach (var collectionName in existingCollectionNames)
             {
                 database.DropCollection(collectionName);
             }
