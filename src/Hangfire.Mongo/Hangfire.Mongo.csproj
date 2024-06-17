@@ -21,10 +21,9 @@
         <owners>Sergey Zwezdin, Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.10.6
-            - Update to MongoDB 2.25.0
-            - Support for migrating down when using 'drop' migration strategy (#393)
-            - Fix deserialization of missing nullable fields (by jkla-dr) (#395)
+        <PackageReleaseNotes>1.10.7
+            - Update to Hangfire 1.8.14
+            - Update to MongoDB 2.26.0
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -36,7 +35,7 @@
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.8.12" />
-        <PackageReference Include="MongoDB.Driver" Version="2.25.0" />
+        <PackageReference Include="Hangfire.Core" Version="1.8.14" />
+        <PackageReference Include="MongoDB.Driver" Version="2.26.0" />
     </ItemGroup>
 </Project>
