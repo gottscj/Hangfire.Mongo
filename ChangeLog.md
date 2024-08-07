@@ -2,7 +2,7 @@
 ## Change log
 
 ### v1.10.8
-- Update to MongoDB 2.28.0
+- Update to MongoDB 2.28.0 (by DavidLievrouw)
 
 ### v1.10.7
 - Update to Hangfire 1.8.14
