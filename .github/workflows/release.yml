@@ -1,6 +1,6 @@
 # This is a basic workflow that is manually triggered
 
-name: release ${{ github.event.inputs.version }}
+name: release
 
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or API.
@@ -11,7 +11,7 @@ on:
         description: "version"
         required: true
         default: "0"
-
+run-name: "Release: ${{ github.event.inputs.version }}"
 jobs:
   build_release:
     name: create release
