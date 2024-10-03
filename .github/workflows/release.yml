@@ -22,19 +22,17 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
 
     - name: Restore dependencies
       run: dotnet restore ./src
-
+      
     - name: Build
-      run: dotnet publish ./src -c Release --no-restore -o ./release
+      run: dotnet build ./src/Hangfire.Mongo/Hangfire.Mongo.csproj -c Release --no-restore /p:AssemblyVersion=${{ github.event.inputs.version }} /p:Version=${{ github.event.inputs.version }}
 
     - name: Test
       run: dotnet test ./src -c Release --no-build --verbosity normal
 
-    - name: Zip
-      run: zip -qr Hangfire.Mongo-${{ github.event.inputs.version }}.zip ./release
 
     - name: Create a Release
       uses: softprops/action-gh-release@v1
@@ -44,7 +42,6 @@ jobs:
           tag_name: ${{ github.event.inputs.version }}
           draft: false
           prerelease: false
-          files: Hangfire.Mongo-${{ github.event.inputs.version }}.zip
         
     - name: Publish to nuget.org
-      run: dotnet nuget push src/Hangfire.Mongo/bin/Release/Hangfire.Mongo.*.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json
+      run: dotnet nuget push src/Hangfire.Mongo/bin/Release/Hangfire.Mongo.${{ github.event.inputs.version }}.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json
