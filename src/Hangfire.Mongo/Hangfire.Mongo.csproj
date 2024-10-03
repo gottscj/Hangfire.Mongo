@@ -1,21 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <VersionPrefix>1.10.8</VersionPrefix>
         <TargetFramework>netstandard2.0</TargetFramework>
         <NoWarn>$(NoWarn);CS0618</NoWarn>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <AssemblyName>Hangfire.Mongo</AssemblyName>
         <PackageId>Hangfire.Mongo</PackageId>
-        <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-        <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-        <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-        <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-        <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-        <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-        <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-        <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-        <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
         <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
         <title>Hangfire MongoDB Storage</title>
         <owners>Sergey Zwezdin, Jonas Gottschau</owners>
@@ -28,7 +18,7 @@
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
         <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
         <Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
-        <LangVersion>latestmajor</LangVersion>
+        <LangVersion>default</LangVersion>
     </PropertyGroup>
     <ItemGroup>
         <None Include="../../README.md" pack="true" PackagePath="." />
@@ -36,5 +26,10 @@
     <ItemGroup>
         <PackageReference Include="Hangfire.Core" Version="1.8.14" />
         <PackageReference Include="MongoDB.Driver" Version="2.28.0" />
+    </ItemGroup>
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>Hangfire.Mongo.Tests</_Parameter1>
+        </AssemblyAttribute>
     </ItemGroup>
 </Project>
