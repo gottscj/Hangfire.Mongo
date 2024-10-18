@@ -18,7 +18,7 @@ namespace Hangfire.Mongo.Tests
     {
         private readonly HangfireDbContext _database;
 
-        public MongoWriteOnlyTransactionFacts(MongoDbFixture fixture)
+        public MongoWriteOnlyTransactionFacts(MongoIntegrationTestFixture fixture)
         {
             fixture.CleanDatabase();
             _database = fixture.CreateDbContext();

@@ -1,4 +1,3 @@
-using Hangfire.Mongo.CosmosDB;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration.Steps.Version17

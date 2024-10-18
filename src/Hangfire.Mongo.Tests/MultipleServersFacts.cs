@@ -12,7 +12,7 @@ namespace Hangfire.Mongo.Tests
     {
         private readonly MongoStorage _storage;
 
-        public MultipleServersFacts(MongoDbFixture fixture)
+        public MultipleServersFacts(MongoIntegrationTestFixture fixture)
         {
             fixture.CleanDatabase();
             _storage = fixture.CreateStorage(new MongoStorageOptions { QueuePollInterval = TimeSpan.FromSeconds(1) });

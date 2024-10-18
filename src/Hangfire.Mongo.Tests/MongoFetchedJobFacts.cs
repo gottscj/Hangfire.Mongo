@@ -21,7 +21,7 @@ namespace Hangfire.Mongo.Tests
         private readonly DateTime _fetchedAt = DateTime.UtcNow;
         private readonly HangfireDbContext _dbContext;
 
-        public MongoFetchedJobFacts(MongoDbFixture fixture)
+        public MongoFetchedJobFacts(MongoIntegrationTestFixture fixture)
         {
             fixture.CleanDatabase();
             _dbContext = fixture.CreateDbContext();

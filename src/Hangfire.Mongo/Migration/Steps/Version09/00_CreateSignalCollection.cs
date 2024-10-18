@@ -1,5 +1,4 @@
-﻿using Hangfire.Mongo.CosmosDB;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration.Steps.Version09
 {

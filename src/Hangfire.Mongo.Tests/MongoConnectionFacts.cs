@@ -24,7 +24,7 @@ namespace Hangfire.Mongo.Tests
         private readonly MongoConnection _connection;
 		private readonly IJobQueueSemaphore _jobQueueSemaphoreMock;
 
-        public MongoConnectionFacts(MongoDbFixture fixture)
+        public MongoConnectionFacts(MongoIntegrationTestFixture fixture)
         {
             _jobQueueSemaphoreMock = Substitute.For<IJobQueueSemaphore>();
             var storageOptions = new MongoStorageOptions

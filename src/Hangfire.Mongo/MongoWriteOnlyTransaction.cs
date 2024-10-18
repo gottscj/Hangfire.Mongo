@@ -543,34 +543,34 @@ namespace Hangfire.Mongo
                     serializedDoc = ((InsertOneModel<BsonDocument>) writeModel).Document.ToJson();
                     break;
                 case WriteModelType.DeleteOne:
-                    serializedDoc = ((DeleteOneModel<BsonDocument>) writeModel).Filter.Render(serializer, registry)
+                    serializedDoc = ((DeleteOneModel<BsonDocument>) writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry))
                         .ToJson();
                     break;
                 case WriteModelType.DeleteMany:
-                    serializedDoc = ((DeleteManyModel<BsonDocument>) writeModel).Filter.Render(serializer, registry)
+                    serializedDoc = ((DeleteManyModel<BsonDocument>) writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry))
                         .ToJson();
                     break;
                 case WriteModelType.ReplaceOne:
 
                     serializedDoc = new Dictionary<string, BsonDocument>
                     {
-                        ["Filter"] = ((ReplaceOneModel<BsonDocument>) writeModel).Filter.Render(serializer, registry),
+                        ["Filter"] = ((ReplaceOneModel<BsonDocument>) writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry)),
                         ["Replacement"] = ((ReplaceOneModel<BsonDocument>) writeModel).Replacement
                     }.ToJson();
                     break;
                 case WriteModelType.UpdateOne:
                     serializedDoc = new Dictionary<string, BsonDocument>
                     {
-                        ["Filter"] = ((UpdateOneModel<BsonDocument>) writeModel).Filter.Render(serializer, registry),
-                        ["Update"] = ((UpdateOneModel<BsonDocument>) writeModel).Update.Render(serializer, registry)
+                        ["Filter"] = ((UpdateOneModel<BsonDocument>) writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry)),
+                        ["Update"] = ((UpdateOneModel<BsonDocument>) writeModel).Update.Render(new RenderArgs<BsonDocument>(serializer, registry))
                             .AsBsonDocument
                     }.ToJson();
                     break;
                 case WriteModelType.UpdateMany:
                     serializedDoc = new Dictionary<string, BsonDocument>
                     {
-                        ["Filter"] = ((UpdateManyModel<BsonDocument>) writeModel).Filter.Render(serializer, registry),
-                        ["Update"] = ((UpdateManyModel<BsonDocument>) writeModel).Update.Render(serializer, registry)
+                        ["Filter"] = ((UpdateManyModel<BsonDocument>) writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry)),
+                        ["Update"] = ((UpdateManyModel<BsonDocument>) writeModel).Update.Render(new RenderArgs<BsonDocument>(serializer, registry))
                             .AsBsonDocument
                     }.ToJson();
                     break;

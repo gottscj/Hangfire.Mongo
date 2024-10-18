@@ -1,38 +1,37 @@
 using System;
-using EphemeralMongo;
+using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using MongoDB.Driver.Linq;
-using Xunit.Abstractions;
-using Xunit.Sdk;
+using Testcontainers.MongoDb;
+using Xunit;
 
 namespace Hangfire.Mongo.Tests.Utils;
 
-public sealed class MongoDbFixture : IDisposable
+public sealed class MongoIntegrationTestFixture : IAsyncLifetime
 {
     private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
 
-    private readonly IMongoRunner _runner;
+    public readonly MongoDbContainer MongoDbContainer =
+        new MongoDbBuilder()
+            .WithImage("mongo:7.0")
+            .Build();
 
-    public MongoDbFixture(IMessageSink sink)
+    public string MongoConnectionString { get; private set; }
+
+    public async Task InitializeAsync()
     {
-        var options = new MongoRunnerOptions
-        {
-            //StandardOuputLogger = text => sink.OnMessage(new DiagnosticMessage(text)),
-            StandardErrorLogger = text => sink.OnMessage(new DiagnosticMessage($"MongoDB ERROR: {text}")),
-            UseSingleNodeReplicaSet = true
-        };
-        _runner = MongoRunner.Run(options);
+        await MongoDbContainer.StartAsync();
+
+        MongoConnectionString = MongoDbContainer.GetConnectionString();
     }
 
-    public void Dispose()
+    public async Task DisposeAsync()
     {
-        _runner.Dispose();
+        await MongoDbContainer.DisposeAsync();
     }
-
     public MongoStorage CreateStorage(string databaseName = null)
     {
         var storageOptions = new MongoStorageOptions
@@ -76,7 +75,7 @@ public sealed class MongoDbFixture : IDisposable
 
     private MongoClient GetMongoClient()
     {
-        var settings = MongoClientSettings.FromConnectionString(_runner.ConnectionString);
+        var settings = MongoClientSettings.FromConnectionString(MongoConnectionString);
         return new MongoClient(settings);
     }
 }

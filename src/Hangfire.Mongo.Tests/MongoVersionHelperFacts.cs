@@ -12,9 +12,9 @@ namespace Hangfire.Mongo.Tests
     [Collection("Database")]
     public class MongoVersionHelperFacts
     {
-        private readonly MongoDbFixture _fixture;
+        private readonly MongoIntegrationTestFixture _fixture;
 
-        public MongoVersionHelperFacts(MongoDbFixture fixture) => _fixture = fixture;
+        public MongoVersionHelperFacts(MongoIntegrationTestFixture fixture) => _fixture = fixture;
 
         [Fact]
         public void GetVersion_HasAdditionalInfo_Success()

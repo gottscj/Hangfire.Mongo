@@ -1,46 +1,27 @@
 using System;
-using System.IO;
+using System.Threading.Tasks;
+using Testcontainers.MongoDb;
 
 namespace Hangfire.Mongo.Sample.NETCore
 {
-    public class MongoRunner : IDisposable
+    public class MongoTestRunner : IAsyncDisposable
     {
-        private Mongo2Go.MongoDbRunner _runner;
+        public readonly MongoDbContainer MongoDbContainer =
+            new MongoDbBuilder()
+                .WithImage("mongo:7.0")
+                .Build();
 
-        public string ConnectionString => _runner?.ConnectionString;
-        public MongoRunner Start()
+        public string MongoConnectionString { get; private set; }
+
+        public async Task Start()
         {
-            var homePath = Environment.OSVersion.Platform is PlatformID.Unix or PlatformID.MacOSX
-                ? Environment.GetEnvironmentVariable("HOME")
-                : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
-
-            if (string.IsNullOrEmpty(homePath))
-            {
-                throw new InvalidOperationException("Could not locate home path");
-            }
-            var dataDir = Path.Combine(homePath, "mongodb", "data");
-            // try 3 times
-            for (int i = 0; i < 3; i++)
-            {
-                try
-                {
-                    _runner = Mongo2Go.MongoDbRunner.StartForDebugging(
-                        singleNodeReplSet: true,
-                        dataDirectory: dataDir);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-            }
-            
-
-            return this;
+            await MongoDbContainer.StartAsync();
+            MongoConnectionString = MongoDbContainer.GetConnectionString();
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            _runner?.Dispose();
+            if (MongoDbContainer != null) await MongoDbContainer.DisposeAsync();
         }
     }
 }

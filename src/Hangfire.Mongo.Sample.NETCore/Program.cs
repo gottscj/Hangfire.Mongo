@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Hangfire.Logging.LogProviders;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
-using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Sample.NETCore
@@ -11,7 +11,7 @@ namespace Hangfire.Mongo.Sample.NETCore
     {
         private const int JobCount = 100;
 
-        public static void Main()
+        public static async Task Main()
         {
             var migrationOptions = new MongoStorageOptions
             {
@@ -24,10 +24,11 @@ namespace Hangfire.Mongo.Sample.NETCore
             };
 
             GlobalConfiguration.Configuration.UseLogProvider(new ColouredConsoleLogProvider());
-            using var runner = new MongoRunner().Start();
-            
+            await using var mongoTestRunner = new MongoTestRunner();
+            await mongoTestRunner.Start();
+
             JobStorage.Current = new MongoStorage(
-                MongoClientSettings.FromConnectionString(runner.ConnectionString), 
+                MongoClientSettings.FromConnectionString(mongoTestRunner.MongoConnectionString),
                 databaseName: "Mongo-Hangfire-Sample-NETCore",
                 migrationOptions);
 

@@ -1,6 +1,4 @@
-﻿using MongoDB.Driver;
-
-namespace Hangfire.Mongo.Migration.Strategies.Backup
+﻿namespace Hangfire.Mongo.Migration.Strategies.Backup
 {
     /// <summary>
     /// No backup strategy

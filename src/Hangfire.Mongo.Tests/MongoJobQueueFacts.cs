@@ -19,7 +19,7 @@ namespace Hangfire.Mongo.Tests
         private readonly IJobQueueSemaphore _jobQueueSemaphoreMock;
         private readonly HangfireDbContext _hangfireDbContext;
 
-        public MongoJobQueueFacts(MongoDbFixture fixture)
+        public MongoJobQueueFacts(MongoIntegrationTestFixture fixture)
         {
             _jobQueueSemaphoreMock = Substitute.For<IJobQueueSemaphore>();
             _jobQueueSemaphoreMock.WaitAny(DefaultQueues, default, default, out _, out _)

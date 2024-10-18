@@ -19,9 +19,9 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
     [Collection("Database")]
     public class MongoDatabaseFiller
     {
-        private readonly MongoDbFixture _fixture;
+        private readonly MongoIntegrationTestFixture _fixture;
 
-        public MongoDatabaseFiller(MongoDbFixture fixture)
+        public MongoDatabaseFiller(MongoIntegrationTestFixture fixture)
         {
             _fixture = fixture;
         }

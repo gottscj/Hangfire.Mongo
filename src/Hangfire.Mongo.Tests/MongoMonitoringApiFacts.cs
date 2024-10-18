@@ -23,7 +23,7 @@ namespace Hangfire.Mongo.Tests
         private readonly HangfireDbContext _database;
         private readonly MongoMonitoringApi _monitoringApi;
 
-        public MongoMonitoringApiFacts(MongoDbFixture fixture)
+        public MongoMonitoringApiFacts(MongoIntegrationTestFixture fixture)
         {
             fixture.CleanDatabase();
             _database = fixture.CreateDbContext();
