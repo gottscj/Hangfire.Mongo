@@ -20,9 +20,9 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
     [Collection("Database")]
     public class MigrationFacts
     {
-        private readonly MongoDbFixture _fixture;
+        private readonly MongoIntegrationTestFixture _fixture;
 
-        public MigrationFacts(MongoDbFixture fixture)
+        public MigrationFacts(MongoIntegrationTestFixture fixture)
         {
             fixture.CleanDatabase();
             _fixture = fixture;

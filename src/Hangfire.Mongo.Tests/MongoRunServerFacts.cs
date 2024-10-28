@@ -38,7 +38,7 @@ namespace Hangfire.Mongo.Tests
         private readonly BackgroundJobServer _server;
         public HangfireDbContext DbContext { get; }
 
-        public MongoRunFixture(MongoDbFixture fixture)
+        public MongoRunFixture(MongoIntegrationTestFixture fixture)
         {
             var databaseName = "Mongo-Hangfire-CamelCase";
             var context = fixture.CreateDbContext(databaseName);

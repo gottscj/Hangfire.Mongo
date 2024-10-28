@@ -17,7 +17,7 @@ namespace Hangfire.Mongo.Migration
         private readonly IMongoCollection<BsonDocument> _migrationLock;
 
         private readonly BsonDocument _migrationIdFilter =
-            new BsonDocument("_id", new BsonObjectId("5c351d07197a9bcdba4832fc"));
+            new BsonDocument("_id", new BsonObjectId(ObjectId.Parse("5c351d07197a9bcdba4832fc")));
         
         /// <summary>
         /// ctor

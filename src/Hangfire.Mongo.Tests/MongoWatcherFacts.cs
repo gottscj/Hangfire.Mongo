@@ -18,7 +18,7 @@ namespace Hangfire.Mongo.Tests
         private readonly IJobQueueSemaphore _jobQueueSemaphoreMock;
         private readonly CancellationTokenSource _cts;
 
-        public MongoWatcherFacts(MongoDbFixture fixture)
+        public MongoWatcherFacts(MongoIntegrationTestFixture fixture)
         {
             _dbContext = fixture.CreateDbContext();
             _jobQueueSemaphoreMock = Substitute.For<IJobQueueSemaphore>();
@@ -66,7 +66,7 @@ namespace Hangfire.Mongo.Tests
                     [nameof(JobDto.Queue)] = "test"
                 }
             });
-            signal.Wait(100000);
+            signal.Wait(20000);
 
             // ASSERT
             _jobQueueSemaphoreMock.Received(1).Release("test");

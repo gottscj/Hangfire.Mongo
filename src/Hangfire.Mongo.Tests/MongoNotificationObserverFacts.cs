@@ -18,7 +18,7 @@ namespace Hangfire.Mongo.Tests
         private readonly IJobQueueSemaphore _jobQueueSemaphoreMock;
         private readonly CancellationTokenSource _cts;
 
-        public MongoNotificationObserverFacts(MongoDbFixture fixture)
+        public MongoNotificationObserverFacts(MongoIntegrationTestFixture fixture)
         {
             _dbContext = fixture.CreateDbContext();
             _jobQueueSemaphoreMock = Substitute.For<IJobQueueSemaphore>();

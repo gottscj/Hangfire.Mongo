@@ -30,14 +30,13 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         public void ConfigureServices(IServiceCollection services)
         {
             // Add framework services.
-            services.AddHangfire(config =>
+            services.AddHangfire(async config =>
             {
-
-                var runner = new MongoRunner().Start();
-                services.AddSingleton(runner);
+                await using var mongoTestRunner = new MongoTestRunner();
+                await mongoTestRunner.Start();
 
                 // Read DefaultConnection string from appsettings.json
-                var mongoUrlBuilder = new MongoUrlBuilder(runner.ConnectionString)
+                var mongoUrlBuilder = new MongoUrlBuilder(mongoTestRunner.MongoConnectionString)
                 {
                     DatabaseName = "hangfire"
                 };

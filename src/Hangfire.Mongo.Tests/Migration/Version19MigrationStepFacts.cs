@@ -15,7 +15,7 @@ namespace Hangfire.Mongo.Tests.Migration
         private readonly IMongoDatabase _database;
         private readonly Random _random;
         private readonly AddTypeToSetDto _addTypeToSetDto;
-        public Version19MigrationStepFacts(MongoDbFixture fixture)
+        public Version19MigrationStepFacts(MongoIntegrationTestFixture fixture)
         {
             var dbContext = fixture.CreateDbContext();
             _database = dbContext.Database;

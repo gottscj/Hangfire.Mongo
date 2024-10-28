@@ -6,7 +6,6 @@ using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Migration;
 using Hangfire.Server;
 using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace Hangfire.Mongo
 {

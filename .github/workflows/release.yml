@@ -20,9 +20,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+    - name: Cache NuGet Packages
+      uses: actions/cache@v4
+      with:
+        key: nuget-cache
+        path: ~/.nuget/packages
 
     - name: Restore dependencies
       run: dotnet restore ./src
@@ -33,9 +38,8 @@ jobs:
     - name: Test
       run: dotnet test ./src -c Release --no-build --verbosity normal
 
-
     - name: Create a Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: Release ${{ github.event.inputs.version }}

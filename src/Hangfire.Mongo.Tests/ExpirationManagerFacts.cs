@@ -5,7 +5,6 @@ using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Tests.Utils;
 using MongoDB.Bson;
-using MongoDB.Driver;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests
@@ -17,7 +16,7 @@ namespace Hangfire.Mongo.Tests
         private readonly HangfireDbContext _dbContext;
         private readonly CancellationToken _token;
 
-        public ExpirationManagerFacts(MongoDbFixture fixture)
+        public ExpirationManagerFacts(MongoIntegrationTestFixture fixture)
         {
             fixture.CleanDatabase();
             _dbContext = fixture.CreateDbContext();

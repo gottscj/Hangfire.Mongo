@@ -13,7 +13,7 @@ namespace Hangfire.Mongo.Tests
     {
         private readonly MongoStorage _storage;
 
-        public MongoStorageFacts(MongoDbFixture fixture)
+        public MongoStorageFacts(MongoIntegrationTestFixture fixture)
         {
             fixture.CleanDatabase();
             _storage = fixture.CreateStorage();
