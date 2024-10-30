@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.11.0
+- Update to MongoDB 3.0 (by ChrisMcKee)
+  
 ### v1.10.8
 - Update to MongoDB 2.28.0 (by DavidLievrouw)
 
