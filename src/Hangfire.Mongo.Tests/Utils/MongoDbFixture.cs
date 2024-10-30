@@ -17,6 +17,7 @@ public sealed class MongoIntegrationTestFixture : IAsyncLifetime
     public readonly MongoDbContainer MongoDbContainer =
         new MongoDbBuilder()
             .WithImage("mongo:7.0")
+            .WithReplicaSet()
             .Build();
 
     public string MongoConnectionString { get; private set; }
@@ -24,8 +25,7 @@ public sealed class MongoIntegrationTestFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await MongoDbContainer.StartAsync();
-
-        MongoConnectionString = MongoDbContainer.GetConnectionString();
+        MongoConnectionString = MongoDbContainer.GetConnectionString() + "?directConnection=true";
     }
 
     public async Task DisposeAsync()
