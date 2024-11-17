@@ -1,7 +1,7 @@
 
 ## Change log
 
-### v.1.11.1
+### v1.11.1
 - Fix not creating package for net472
 
 ### v1.11.0
