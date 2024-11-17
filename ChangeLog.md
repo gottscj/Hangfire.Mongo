@@ -3,6 +3,7 @@
 
 ### v1.11.1
 - Fix not creating package for net472
+- Update to Hangfire.Core 1.8.15
 
 ### v1.11.0
 - Update to MongoDB 3.0 (by ChrisMcKee)

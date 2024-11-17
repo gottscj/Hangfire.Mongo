@@ -14,6 +14,7 @@
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
         <PackageReleaseNotes>1.11.1
             - Fix not creating package for net472
+            - Update to Hangfire.Core 1.8.15
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -25,8 +26,9 @@
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.8.14" />
+        <PackageReference Include="Hangfire.Core" Version="1.8.15" />
         <PackageReference Include="MongoDB.Driver" Version="3.0.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
