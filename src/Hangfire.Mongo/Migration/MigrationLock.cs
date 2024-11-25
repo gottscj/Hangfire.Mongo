@@ -10,7 +10,7 @@ namespace Hangfire.Mongo.Migration
     /// <summary>
     /// Migration lock handler
     /// </summary>
-    public sealed class MigrationLock : IDisposable
+    public sealed class MigrationLock
     {
         private static readonly ILog Logger = LogProvider.For<MigrationLock>();
         private readonly TimeSpan _timeout;
@@ -40,9 +40,9 @@ namespace Hangfire.Mongo.Migration
         }
 
         /// <summary>
-        /// Aquires lock or throws TimeoutException
+        /// Acquires lock or throws TimeoutException
         /// </summary>
-        public void AcquireLock()
+        public IDisposable AcquireLock()
         {
             try
             {
@@ -111,6 +111,8 @@ namespace Hangfire.Mongo.Migration
                 throw new TimeoutException(
                     "Could not complete migration: Check inner exception for details.", ex);
             }
+
+            return new MigrationDisposable(DeleteMigrationLock);
         }
 
         private static DateTime Wait()
@@ -119,13 +121,13 @@ namespace Hangfire.Mongo.Migration
             Thread.Sleep(milliSecondsTimeout);
             return DateTime.UtcNow;
         }
-        
-        /// <summary>
-        /// Deletes lock
-        /// </summary>
-        public void Dispose()
+
+        private class MigrationDisposable(Action disposeAction) : IDisposable
         {
-            DeleteMigrationLock();
+            public void Dispose()
+            {
+                disposeAction?.Invoke();
+            }
         }
     }
 }

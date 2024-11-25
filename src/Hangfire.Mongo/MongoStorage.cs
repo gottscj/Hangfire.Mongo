@@ -115,18 +115,23 @@ namespace Hangfire.Mongo
                 CheckConnection();
             }
 
-            if (!StorageOptions.ByPassMigration)
+            if (StorageOptions.ByPassMigration)
             {
-                using var lockHandle = storageOptions
-                    .Factory
-                    .CreateMigrationLock(HangfireDbContext.Database, storageOptions.Prefix,
-                        storageOptions.MigrationLockTimeout);
-                lockHandle.AcquireLock();
+                return;
+            }
 
-                storageOptions
-                    .Factory
-                    .CreateMongoMigrationManager(storageOptions, HangfireDbContext.Database)
-                    .MigrateUp();
+            var migrationLock = storageOptions
+                .Factory
+                .CreateMigrationLock(HangfireDbContext.Database, storageOptions.Prefix,
+                    storageOptions.MigrationLockTimeout);
+
+            var migrationManager = storageOptions
+                .Factory
+                .CreateMongoMigrationManager(storageOptions, HangfireDbContext.Database);
+            
+            using (migrationLock.AcquireLock())
+            {
+                migrationManager.MigrateUp();
             }
         }
 
