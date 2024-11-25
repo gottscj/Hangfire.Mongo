@@ -6,6 +6,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.DistributedLock;
+using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Migration;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
@@ -95,7 +97,7 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
             var taskCount = 10;
             var tasks = new Task<bool>[taskCount];
             var count = 0;
-
+            
             // ACT
             for (var i = 0; i < taskCount; i++)
             {
@@ -108,12 +110,19 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
                     }
 
                     signal.WaitOne();
-                    using var lockHandle = new MigrationLock(dbContext.Database, storageOptions.Prefix,
-                        storageOptions.MigrationLockTimeout);
-                    lockHandle.AcquireLock();
                     
-                    var mgr = new MongoMigrationManager(storageOptions, dbContext.Database);
-                    return mgr.MigrateUp();
+                    var lockHandle = new MigrationLock(dbContext.Database, storageOptions.Prefix,
+                        storageOptions.MigrationLockTimeout);
+                    bool migrated;
+                    
+                    using (lockHandle.AcquireLock())
+                    {
+                        var mgr = new MongoMigrationManager(storageOptions, dbContext.Database);
+                        migrated = mgr.MigrateUp();
+                    }
+
+                    return migrated;
+
                 }, TaskCreationOptions.LongRunning);
             }
 

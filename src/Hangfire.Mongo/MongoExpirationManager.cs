@@ -65,12 +65,6 @@ namespace Hangfire.Mongo
             }
             
             cancellationToken.WaitHandle.WaitOne(_checkInterval);
-            // if we are closing down, try to delete the migration lock for good measures.
-            if (cancellationToken.IsCancellationRequested)
-            {
-                new MigrationLock(_dbContext.Database, _options.Prefix, _options.MigrationLockTimeout)
-                    .DeleteMigrationLock();
-            }
         }
     }
 }
