@@ -1,6 +1,10 @@
 
 ## Change log
 
+### v1.11.2
+- Minor tweaks to migration
+- Dont delete migration lock on shutdown
+
 ### v1.11.1
 - Fix not creating package for net472
 - Update to Hangfire.Core 1.8.15
