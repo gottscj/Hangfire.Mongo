@@ -30,7 +30,7 @@ jobs:
         path: ~/.nuget/packages
 
     - name: Build
-      run: dotnet build ./src/Hangfire.Mongo/Hangfire.Mongo.csproj -c Release /p:AssemblyVersion=${{ github.event.inputs.version }} /p:Version=${{ github.event.inputs.version }}
+      run: dotnet build ./src/Hangfire.Mongo/Hangfire.Mongo.csproj -c Release -nowarn:CA2021 /p:AssemblyVersion=${{ github.event.inputs.version }} /p:Version=${{ github.event.inputs.version }}
 
     - name: Create a Release
       uses: softprops/action-gh-release@v2
