@@ -4,6 +4,8 @@
 ### v1.11.2
 - Minor tweaks to migration
 - Dont delete migration lock on shutdown
+- Update to Hangfire.Core 1.8.16
+- TargetFrameworks is set to net472 and netstandard2.1
 
 ### v1.11.1
 - Fix not creating package for net472

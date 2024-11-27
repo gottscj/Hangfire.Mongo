@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks Condition=" '$(OS)' != 'Windows_NT' ">netstandard2.1;net6.0;net8.0</TargetFrameworks>
-        <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">net472;netstandard2.1;net6.0;net8.0</TargetFrameworks>
-        <NoWarn>$(NoWarn);CS0618</NoWarn>
+        <TargetFramework Condition=" '$(OS)' != 'Windows_NT' ">netstandard2.1</TargetFramework>
+        <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">net472;netstandard2.1</TargetFrameworks>
+        <NoWarn>$(NoWarn);CS0618;</NoWarn>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <AssemblyName>Hangfire.Mongo</AssemblyName>
@@ -15,6 +15,8 @@
         <PackageReleaseNotes>1.11.2
             - Minor tweaks to migration
             - Dont delete migration lock on shutdown
+            - Update to Hangfire.Core 1.8.16
+            - TargetFrameworks is set to net472 and netstandard2.1
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -26,7 +28,7 @@
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.8.15" />
+        <PackageReference Include="Hangfire.Core" Version="1.8.16" />
         <PackageReference Include="MongoDB.Driver" Version="3.0.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
