@@ -1,6 +1,10 @@
 
 ## Change log
 
+### v1.11.3
+- Update to MongoDB.Driver v3.20
+- Remove Newtonsoft.Json as dependent package
+
 ### v1.11.2
 - Minor tweaks to migration
 - Dont delete migration lock on shutdown

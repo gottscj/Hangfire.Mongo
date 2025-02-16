@@ -9,28 +9,25 @@
         <PackageId>Hangfire.Mongo</PackageId>
         <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
         <title>Hangfire MongoDB Storage</title>
-        <owners>Sergey Zwezdin, Jonas Gottschau</owners>
+        <owners>Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.11.2
-            - Minor tweaks to migration
-            - Dont delete migration lock on shutdown
-            - Update to Hangfire.Core 1.8.16
-            - TargetFrameworks is set to net472 and netstandard2.1
+        <PackageReleaseNotes>1.11.3
+            - Update to MongoDB.Driver v3.20
+            - Remove Newtonsoft.Json as dependent package
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
         <PackageProjectUrl>https://github.com/sergeyzwezdin/Hangfire.Mongo</PackageProjectUrl>
-        <Authors>Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Authors>
+        <Authors>Jonas Gottschau</Authors>
         <LangVersion>default</LangVersion>
     </PropertyGroup>
     <ItemGroup>
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.8.16" />
-        <PackageReference Include="MongoDB.Driver" Version="3.0.0" />
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="Hangfire.Core" Version="1.8.17" />
+        <PackageReference Include="MongoDB.Driver" Version="3.2.0" />
     </ItemGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
