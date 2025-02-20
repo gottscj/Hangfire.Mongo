@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.11.4
+- Update to Hangfire.Core v1.8.18
+
 ### v1.11.3
 - Update to MongoDB.Driver v3.20
 - Remove Newtonsoft.Json as dependent package

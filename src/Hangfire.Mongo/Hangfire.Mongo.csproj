@@ -12,9 +12,8 @@
         <owners>Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.11.3
-            - Update to MongoDB.Driver v3.20
-            - Remove Newtonsoft.Json as dependent package
+        <PackageReleaseNotes>1.11.4
+            - Update to Hangfire.Core v1.8.18
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -26,7 +25,7 @@
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.8.17" />
+        <PackageReference Include="Hangfire.Core" Version="1.8.18" />
         <PackageReference Include="MongoDB.Driver" Version="3.2.0" />
     </ItemGroup>
     <ItemGroup>
