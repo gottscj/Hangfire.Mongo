@@ -70,7 +70,7 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void AcquireLock_IsLockedTimesOut_ThrowsAnException()
+        public void AcquireLock_TimesOut_ThrowsAnException()
         {
             var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(100)};
             var migrationLock = new MigrationLock(_database.Database, options);
