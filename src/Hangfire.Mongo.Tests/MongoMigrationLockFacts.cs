@@ -45,9 +45,9 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void AcquireLock_NoLock_LockAcquired()
         {
-            var migrationLock = new MigrationLock(_database.Database, _options);
-            using (migrationLock.AcquireLock())
+            using (var migrationLock = new MigrationLock(_database.Database, _options))
             {
+                migrationLock.AcquireLock();
                 var locksCount = _locks.CountDocuments(new BsonDocument());
                 Assert.Equal(1, locksCount);
             }
@@ -56,11 +56,10 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void AcquireLock_Released_NoLock()
         {
-            var migrationLock = new MigrationLock(_database.Database, _options);
             var filter = new BsonDocument();
-            using (migrationLock.AcquireLock())
+            using (var migrationLock = new MigrationLock(_database.Database, _options))
             {
-
+                migrationLock.AcquireLock();
                 var locksCount = _locks.CountDocuments(filter);
                 Assert.Equal(1, locksCount);
             }
@@ -73,10 +72,10 @@ namespace Hangfire.Mongo.Tests
         public void AcquireLock_TimesOut_ThrowsAnException()
         {
             var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(100)};
-            var migrationLock = new MigrationLock(_database.Database, options);
 
-            using (migrationLock.AcquireLock())
+            using (var migrationLock = new MigrationLock(_database.Database, options))
             {
+                migrationLock.AcquireLock();
                 var locksCount = _locks.CountDocuments(new BsonDocument());
                 Assert.Equal(1, locksCount);
 
@@ -102,9 +101,9 @@ namespace Hangfire.Mongo.Tests
             {
                 var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(10)};
                 
-                var migrationLock = new MigrationLock(_database.Database, options);
-                using (migrationLock.AcquireLock())
+                using (var migrationLock = new MigrationLock(_database.Database, options))
                 {
+                    migrationLock.AcquireLock();
                     Thread.Sleep(TimeSpan.FromSeconds(3));
                 }
             });
@@ -115,9 +114,9 @@ namespace Hangfire.Mongo.Tests
             
             // Record when we try to acquire the lock
             var startTime = DateTime.UtcNow;
-            var migrationLock2 = new MigrationLock(_database.Database, _options);
-            using (migrationLock2.AcquireLock())
+            using (var migrationLock2 = new MigrationLock(_database.Database, _options))
             {
+                migrationLock2.AcquireLock();
                 Assert.InRange(DateTime.UtcNow - startTime, TimeSpan.FromMilliseconds(1), TimeSpan.FromSeconds(1));
             }
         }
@@ -134,9 +133,9 @@ namespace Hangfire.Mongo.Tests
                     [nameof(MigrationLockDto.ExpireAt)] = initialExpireAt
                 });
 
-            var migrationLock = new MigrationLock(_database.Database, new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromSeconds(5)});
-            using (migrationLock.AcquireLock())
+            using (var migrationLock = new MigrationLock(_database.Database, new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromSeconds(5)}))
             {
+                migrationLock.AcquireLock();
                 var lockEntry = new MigrationLockDto(_locks.Find(new BsonDocument()).Single());
                 Assert.True(lockEntry.ExpireAt > initialExpireAt);
             }

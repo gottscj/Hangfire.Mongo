@@ -20,6 +20,6 @@
   <ItemGroup>
     <PackageReference Include="Hangfire.Core" Version="1.8.18" />
     <PackageReference Include="MongoDB.Driver" Version="3.2.1" />
-    <PackageReference Include="Testcontainers.MongoDb" Version="4.3.0" />
+    <PackageReference Include="Testcontainers.MongoDb" Version="4.2.0" />
   </ItemGroup>
 </Project>

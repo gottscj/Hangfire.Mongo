@@ -46,7 +46,7 @@ namespace Hangfire.Mongo.Migration
         /// <summary>
         /// Acquires lock or throws TimeoutException
         /// </summary>
-        public IDisposable AcquireLock()
+        public void AcquireLock()
         {
             if (_disposed)
             {
@@ -120,8 +120,6 @@ namespace Hangfire.Mongo.Migration
                 throw new TimeoutException(
                     "Could not complete migration: Check inner exception for details.", ex);
             }
-
-            return this;
         }
 
         private void Cleanup()

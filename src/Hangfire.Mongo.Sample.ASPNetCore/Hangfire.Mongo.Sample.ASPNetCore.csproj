@@ -26,6 +26,6 @@
     <PackageReference Include="MongoDB.Driver" Version="3.2.1" />
     <PackageReference Include="Microsoft.VisualStudio.Web.BrowserLink" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.2" />
-    <PackageReference Include="Testcontainers.MongoDb" Version="4.3.0" />
+    <PackageReference Include="Testcontainers.MongoDb" Version="4.2.0" />
   </ItemGroup>
 </Project>
