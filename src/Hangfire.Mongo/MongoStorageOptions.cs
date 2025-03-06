@@ -27,7 +27,7 @@ namespace Hangfire.Mongo
             DistributedLockLifetime = TimeSpan.FromSeconds(30);
             JobExpirationCheckInterval = TimeSpan.FromHours(1);
             CountersAggregateInterval = TimeSpan.FromMinutes(5);
-            MigrationLockTimeout = TimeSpan.FromMinutes(1);
+            MigrationLockTimeout = TimeSpan.FromSeconds(30);
             CheckConnection = true;
             ByPassMigration = false;
             ConnectionCheckTimeout = TimeSpan.FromSeconds(5);

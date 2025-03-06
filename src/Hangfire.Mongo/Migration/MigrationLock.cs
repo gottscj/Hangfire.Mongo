@@ -10,33 +10,37 @@ namespace Hangfire.Mongo.Migration
     /// <summary>
     /// Migration lock handler
     /// </summary>
-    public sealed class MigrationLock
+    public sealed class MigrationLock : IDisposable
     {
+        /// <summary>
+        /// ID used for migration locks
+        /// </summary>
+        public static readonly BsonObjectId LockId = new BsonObjectId(ObjectId.Parse("5c351d07197a9bcdba4832fc"));
+        
         private static readonly ILog Logger = LogProvider.For<MigrationLock>();
         private readonly TimeSpan _timeout;
         private readonly IMongoCollection<BsonDocument> _migrationLock;
-
-        private readonly BsonDocument _migrationIdFilter =
-            new BsonDocument("_id", new BsonObjectId(ObjectId.Parse("5c351d07197a9bcdba4832fc")));
+        private bool _disposed;
         
         /// <summary>
         /// ctor
         /// </summary>
         /// <param name="database"></param>
-        /// <param name="migrateLockCollectionPrefix"></param>
-        /// <param name="timeout"></param>
-        public MigrationLock(IMongoDatabase database, string migrateLockCollectionPrefix, TimeSpan timeout)
+        /// <param name="storageOptions"></param>
+        public MigrationLock(IMongoDatabase database, MongoStorageOptions storageOptions)
         {
-            _timeout = timeout;
-            _migrationLock = database.GetCollection<BsonDocument>(migrateLockCollectionPrefix + ".migrationLock");
-        }
+            if (database is null)
+            {
+                throw new ArgumentNullException(nameof(database));
+            }
+            
+            if (storageOptions is null)
+            {
+                throw new ArgumentNullException(nameof(storageOptions));
+            }
 
-        /// <summary>
-        /// Deletes migration lock, if any
-        /// </summary>
-        public void DeleteMigrationLock()
-        {
-            _migrationLock.DeleteOne(_migrationIdFilter);
+            _timeout = storageOptions.MigrationLockTimeout; 
+            _migrationLock = database.GetCollection<BsonDocument>(storageOptions.Prefix + ".migrationLock");
         }
 
         /// <summary>
@@ -44,6 +48,11 @@ namespace Hangfire.Mongo.Migration
         /// </summary>
         public IDisposable AcquireLock()
         {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException("Lock is disposed");
+            }
+            
             try
             {
                 // If result is null, then it means we acquired the lock
@@ -51,27 +60,27 @@ namespace Hangfire.Mongo.Migration
                 var now = DateTime.UtcNow;
                 // wait maximum double of configured seconds for migration to complete
                 var lockTimeoutTime = now.Add(_timeout);
-                // busy wait
-                while (!isLockAcquired && (lockTimeoutTime >= now))
+                var filter = new BsonDocument("_id", LockId);
+                // Acquire the lock if it does not exist - Notice: ReturnDocument.Before
+                var options = new FindOneAndUpdateOptions<BsonDocument>
                 {
-                    // Acquire the lock if it does not exist - Notice: ReturnDocument.Before
-                    var update = new BsonDocument
+                    IsUpsert = true,
+                    ReturnDocument = ReturnDocument.Before
+                };
+                var update = new BsonDocument
+                {
+                    ["$setOnInsert"] = new BsonDocument
                     {
-                        ["$setOnInsert"] = new BsonDocument
-                        {
-                            [nameof(MigrationLockDto.ExpireAt)] = lockTimeoutTime
-                        }
-                    };
-                    
-                    var options = new FindOneAndUpdateOptions<BsonDocument>
-                    {
-                        IsUpsert = true,
-                        ReturnDocument = ReturnDocument.Before
-                    };
-
+                        [nameof(MigrationLockDto.ExpireAt)] = lockTimeoutTime
+                    }
+                };
+                // busy wait
+                while (!isLockAcquired && lockTimeoutTime >= now)
+                {
+                    Cleanup();
                     try
                     {
-                        var result = _migrationLock.FindOneAndUpdate(_migrationIdFilter, update, options);
+                        var result = _migrationLock.FindOneAndUpdate(filter, update, options);
 
                         // If result is null, it means we acquired the lock
                         if (result == null)
@@ -112,22 +121,47 @@ namespace Hangfire.Mongo.Migration
                     "Could not complete migration: Check inner exception for details.", ex);
             }
 
-            return new MigrationDisposable(DeleteMigrationLock);
+            return this;
         }
 
-        private static DateTime Wait()
+        private void Cleanup()
         {
-            var milliSecondsTimeout = new Random().Next(10, 50);
-            Thread.Sleep(milliSecondsTimeout);
+            try
+            {
+                // Delete expired locks
+                _migrationLock.DeleteOne(new BsonDocument
+                {
+                    ["_id"] = LockId,
+                    [nameof(DistributedLockDto.ExpireAt)] = new BsonDocument
+                    {
+                        ["$lt"] = DateTime.UtcNow
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Unable to clean up locks on the migration lock. Details:\r\n{ex}");
+            }
+        }
+        
+        private DateTime Wait()
+        {
+            Thread.Sleep(TimeSpan.FromMilliseconds(100));
             return DateTime.UtcNow;
         }
 
-        private class MigrationDisposable(Action disposeAction) : IDisposable
+        /// <inheritdoc />
+        public void Dispose()
         {
-            public void Dispose()
+            if (_disposed)
             {
-                disposeAction?.Invoke();
+                return;
             }
+
+            _disposed = true;
+            
+            _migrationLock.DeleteOne(new BsonDocument("_id", LockId));
+            Cleanup();
         }
     }
 }

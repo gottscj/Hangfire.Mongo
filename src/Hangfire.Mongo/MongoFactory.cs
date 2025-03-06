@@ -33,13 +33,11 @@ namespace Hangfire.Mongo
         /// Creates migration lock
         /// </summary>
         /// <param name="database"></param>
-        /// <param name="migrateLockCollectionPrefix"></param>
-        /// <param name="timeout"></param>
+        /// <param name="storageOptions"></param>
         /// <returns></returns>
-        public virtual MigrationLock CreateMigrationLock(IMongoDatabase database, string migrateLockCollectionPrefix,
-            TimeSpan timeout)
+        public virtual MigrationLock CreateMigrationLock(IMongoDatabase database, MongoStorageOptions storageOptions)
         {
-            return new MigrationLock(database, migrateLockCollectionPrefix, timeout);
+            return new MigrationLock(database, storageOptions);
         }
         
         /// <summary>

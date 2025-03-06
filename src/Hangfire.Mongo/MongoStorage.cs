@@ -120,14 +120,18 @@ namespace Hangfire.Mongo
                 return;
             }
 
-            var migrationLock = storageOptions
-                .Factory
-                .CreateMigrationLock(HangfireDbContext.Database, storageOptions.Prefix,
-                    storageOptions.MigrationLockTimeout);
-
             var migrationManager = storageOptions
                 .Factory
                 .CreateMongoMigrationManager(storageOptions, HangfireDbContext.Database);
+
+            if (!migrationManager.NeedsMigration())
+            {
+                return;
+            }
+            
+            var migrationLock = storageOptions
+                .Factory
+                .CreateMigrationLock(HangfireDbContext.Database, storageOptions);
             
             using (migrationLock.AcquireLock())
             {
