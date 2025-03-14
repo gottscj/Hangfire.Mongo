@@ -21,6 +21,7 @@ namespace Hangfire.Mongo.Migration
         private readonly TimeSpan _timeout;
         private readonly IMongoCollection<BsonDocument> _migrationLock;
         private bool _disposed;
+        private bool _isLockAcquired;
         
         /// <summary>
         /// ctor
@@ -56,7 +57,7 @@ namespace Hangfire.Mongo.Migration
             try
             {
                 // If result is null, then it means we acquired the lock
-                var isLockAcquired = false;
+                _isLockAcquired = false;
                 var now = DateTime.UtcNow;
                 // wait maximum double of configured seconds for migration to complete
                 var lockTimeoutTime = now.Add(_timeout);
@@ -75,7 +76,7 @@ namespace Hangfire.Mongo.Migration
                     }
                 };
                 // busy wait
-                while (!isLockAcquired && lockTimeoutTime >= now)
+                while (!_isLockAcquired && lockTimeoutTime >= now)
                 {
                     Cleanup();
                     try
@@ -89,7 +90,7 @@ namespace Hangfire.Mongo.Migration
                             {
                                 Logger.Debug("Acquired lock for migration");
                             }
-                            isLockAcquired = true;
+                            _isLockAcquired = true;
                         }
                         else
                         {
@@ -104,7 +105,7 @@ namespace Hangfire.Mongo.Migration
                     }
                 }
 
-                if (!isLockAcquired)
+                if (!_isLockAcquired)
                 {
                     throw new TimeoutException($"Could not complete migration. Never acquired lock within allowed time: {_timeout}\r\n" +
                                                         "Either another server did not complete the migration or migration was abruptly interrupted\r\n" +
@@ -157,8 +158,12 @@ namespace Hangfire.Mongo.Migration
             }
 
             _disposed = true;
+
+            if (_isLockAcquired)
+            {
+                _migrationLock.DeleteOne(new BsonDocument("_id", LockId));
+            }
             
-            _migrationLock.DeleteOne(new BsonDocument("_id", LockId));
             Cleanup();
         }
     }

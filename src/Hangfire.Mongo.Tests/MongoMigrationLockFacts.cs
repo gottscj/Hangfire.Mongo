@@ -45,12 +45,10 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void AcquireLock_NoLock_LockAcquired()
         {
-            using (var migrationLock = new MigrationLock(_database.Database, _options))
-            {
-                migrationLock.AcquireLock();
-                var locksCount = _locks.CountDocuments(new BsonDocument());
-                Assert.Equal(1, locksCount);
-            }
+            using var migrationLock = new MigrationLock(_database.Database, _options);
+            migrationLock.AcquireLock();
+            var locksCount = _locks.CountDocuments(new BsonDocument());
+            Assert.Equal(1, locksCount);
         }
 
         [Fact]
@@ -73,25 +71,51 @@ namespace Hangfire.Mongo.Tests
         {
             var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(100)};
 
-            using (var migrationLock = new MigrationLock(_database.Database, options))
-            {
-                migrationLock.AcquireLock();
-                var locksCount = _locks.CountDocuments(new BsonDocument());
-                Assert.Equal(1, locksCount);
+            using var migrationLock = new MigrationLock(_database.Database, options);
+            migrationLock.AcquireLock();
+            var locksCount = _locks.CountDocuments(new BsonDocument());
+            Assert.Equal(1, locksCount);
 
-                var t = new Thread(() =>
-                {
-                    Assert.Throws<TimeoutException>(() =>
-                        {
-                            var options2 = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(10)};
-                            var migrationLock2 = new MigrationLock(_database.Database, options2);
-                            migrationLock2.AcquireLock();
-                        }
-                    );
-                });
-                t.Start();
-                Assert.True(t.Join(5000), "Thread is hanging unexpected");
-            }
+            var t = new Thread(() =>
+            {
+                Assert.Throws<TimeoutException>(() =>
+                    {
+                        var options2 = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(10)};
+                        using var migrationLock2 = new MigrationLock(_database.Database, options2);
+                        migrationLock2.AcquireLock();
+                    }
+                );
+            });
+            t.Start();
+            Assert.True(t.Join(5000), "Thread is hanging unexpected");
+        }
+        
+        [Fact]
+        public void AcquireLock_DoesNotAcquire_DoesNotDeleteLockInDb()
+        {
+            var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(1000)};
+
+            var migrationLock = new MigrationLock(_database.Database, options);
+            migrationLock.AcquireLock();
+            var locksCount = _locks.CountDocuments(new BsonDocument());
+            Assert.Equal(1, locksCount);
+
+            var t = new Thread(() =>
+            {
+                Assert.Throws<TimeoutException>(() =>
+                    {
+                        var options2 = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(10)};
+                        using var migrationLock2 = new MigrationLock(_database.Database, options2);
+                        migrationLock2.AcquireLock();
+                    }
+                );
+                locksCount = _locks.CountDocuments(new BsonDocument());
+                Assert.Equal(1, locksCount);
+            });
+            t.Start();
+            Assert.True(t.Join(5000), "Thread is hanging unexpected");
+            
+            migrationLock.Dispose();
         }
 
         [Fact]
@@ -100,12 +124,10 @@ namespace Hangfire.Mongo.Tests
             var t = new Thread(() =>
             {
                 var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(10)};
-                
-                using (var migrationLock = new MigrationLock(_database.Database, options))
-                {
-                    migrationLock.AcquireLock();
-                    Thread.Sleep(TimeSpan.FromSeconds(3));
-                }
+
+                using var migrationLock = new MigrationLock(_database.Database, options);
+                migrationLock.AcquireLock();
+                Thread.Sleep(TimeSpan.FromSeconds(3));
             });
             t.Start();
 
@@ -114,11 +136,9 @@ namespace Hangfire.Mongo.Tests
             
             // Record when we try to acquire the lock
             var startTime = DateTime.UtcNow;
-            using (var migrationLock2 = new MigrationLock(_database.Database, _options))
-            {
-                migrationLock2.AcquireLock();
-                Assert.InRange(DateTime.UtcNow - startTime, TimeSpan.FromMilliseconds(1), TimeSpan.FromSeconds(1));
-            }
+            using var migrationLock2 = new MigrationLock(_database.Database, _options);
+            migrationLock2.AcquireLock();
+            Assert.InRange(DateTime.UtcNow - startTime, TimeSpan.FromMilliseconds(1), TimeSpan.FromSeconds(1));
         }
         
         [Fact]
@@ -133,12 +153,10 @@ namespace Hangfire.Mongo.Tests
                     [nameof(MigrationLockDto.ExpireAt)] = initialExpireAt
                 });
 
-            using (var migrationLock = new MigrationLock(_database.Database, new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromSeconds(5)}))
-            {
-                migrationLock.AcquireLock();
-                var lockEntry = new MigrationLockDto(_locks.Find(new BsonDocument()).Single());
-                Assert.True(lockEntry.ExpireAt > initialExpireAt);
-            }
+            using var migrationLock = new MigrationLock(_database.Database, new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromSeconds(5)});
+            migrationLock.AcquireLock();
+            var lockEntry = new MigrationLockDto(_locks.Find(new BsonDocument()).Single());
+            Assert.True(lockEntry.ExpireAt > initialExpireAt);
         }
     }
 #pragma warning restore 1591
