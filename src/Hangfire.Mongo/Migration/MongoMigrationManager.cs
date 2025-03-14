@@ -33,6 +33,22 @@ namespace Hangfire.Mongo.Migration
         }
 
         /// <summary>
+        /// Checks if migration is needed
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool NeedsMigration()
+        {
+            var currentSchema = GetCurrentSchema(_database);
+
+            if (currentSchema.Version == RequiredSchemaVersion)
+            {
+                return false;
+            }
+
+            return true;
+        }
+        
+        /// <summary>
         /// Runs migrations with given strategies
         /// </summary>
         /// <returns></returns>

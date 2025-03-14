@@ -1,6 +1,11 @@
 
 ## Change log
 
+### v1.11.5
+1.11.5
+- Fix migration lock not timing out
+- Update to MongoDB.Driver v3.2.1
+
 ### v1.11.4
 - Update to Hangfire.Core v1.8.18
 

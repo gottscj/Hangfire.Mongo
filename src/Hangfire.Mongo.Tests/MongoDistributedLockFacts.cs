@@ -50,7 +50,7 @@ namespace Hangfire.Mongo.Tests
             using (lock1.AcquireLock())
             {
                 var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "resource1");
-                var locksCount = _database.DistributedLock.Count(filter);
+                var locksCount = _database.DistributedLock.CountDocuments(filter);
                 Assert.Equal(1, locksCount);
             }
         }
@@ -63,11 +63,11 @@ namespace Hangfire.Mongo.Tests
             using (lock1.AcquireLock())
             {
 
-                var locksCount = _database.DistributedLock.Count(filter);
+                var locksCount = _database.DistributedLock.CountDocuments(filter);
                 Assert.Equal(1, locksCount);
             }
 
-            var locksCountAfter = _database.DistributedLock.Count(filter);
+            var locksCountAfter = _database.DistributedLock.CountDocuments(filter);
             Assert.Equal(0, locksCountAfter);
         }
 
@@ -79,13 +79,13 @@ namespace Hangfire.Mongo.Tests
             using (lock1.AcquireLock())
             {
 
-                var locksCount = _database.DistributedLock.Count(filter);
+                var locksCount = _database.DistributedLock.CountDocuments(filter);
                 Assert.Equal(1, locksCount);
 
                 var lock2 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
                 using (lock2.AcquireLock())
                 {
-                    locksCount = _database.DistributedLock.Count(filter);
+                    locksCount = _database.DistributedLock.CountDocuments(filter);
                     Assert.Equal(1, locksCount);
                 }
             }
@@ -98,7 +98,7 @@ namespace Hangfire.Mongo.Tests
             var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "resource1");
             using (lock1.AcquireLock())
             {
-                var locksCount = _database.DistributedLock.Count(filter);
+                var locksCount = _database.DistributedLock.CountDocuments(filter);
                 Assert.Equal(1, locksCount);
 
                 var t = new Thread(() =>

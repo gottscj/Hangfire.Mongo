@@ -111,12 +111,11 @@ namespace Hangfire.Mongo.Tests.Migration.Mongo
 
                     signal.WaitOne();
                     
-                    var lockHandle = new MigrationLock(dbContext.Database, storageOptions.Prefix,
-                        storageOptions.MigrationLockTimeout);
                     bool migrated;
                     
-                    using (lockHandle.AcquireLock())
+                    using (var lockHandle = new MigrationLock(dbContext.Database, storageOptions))
                     {
+                        lockHandle.AcquireLock();
                         var mgr = new MongoMigrationManager(storageOptions, dbContext.Database);
                         migrated = mgr.MigrateUp();
                     }
