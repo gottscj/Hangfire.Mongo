@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Microsoft.AspNetCore.Builder;
@@ -29,18 +30,15 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            // Add framework services.
-            services.AddHangfire(async config =>
-            {
-                await using var mongoTestRunner = new MongoTestRunner();
-                await mongoTestRunner.Start();
+            var mongoTestRunner = new MongoTestRunner();
+            mongoTestRunner.Start().Wait();
 
+            // Add framework services.
+            services.AddHangfire(config =>
+            {
                 // Read DefaultConnection string from appsettings.json
-                var mongoUrlBuilder = new MongoUrlBuilder(mongoTestRunner.MongoConnectionString)
-                {
-                    DatabaseName = "hangfire"
-                };
-                var mongoClient = new MongoClient(mongoUrlBuilder.ToMongoUrl());
+                var settings = MongoClientSettings.FromConnectionString(mongoTestRunner.MongoConnectionString);
+                var mongoClient = new MongoClient(settings);
 
                 var storageOptions = new MongoStorageOptions
                 {
@@ -49,12 +47,12 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                         MigrationStrategy = new MigrateMongoMigrationStrategy(),
                         BackupStrategy = new CollectionMongoBackupStrategy()
                     },
-                    SlidingInvisibilityTimeout = TimeSpan.FromSeconds(5)
+                    SlidingInvisibilityTimeout = TimeSpan.FromSeconds(5),
                 };
 
                 //config.UseLogProvider(new FileLogProvider());
                 config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180);
-                config.UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, storageOptions)
+                config.UseMongoStorage(mongoClient, "hangfire", storageOptions)
                       .UseColouredConsoleLogProvider(LogLevel.Trace);
             });
             services.AddHangfireServer(options =>
@@ -62,7 +60,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                 options.Queues = new[] { "default", "not-default" };
             });
             services.AddMvc(c => c.EnableEndpointRouting = false);
-
+            services.AddSingleton(mongoTestRunner);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

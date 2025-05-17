@@ -41,11 +41,12 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Enabled Hangfire features. To change enabled features, inherit this class and override 'HasFeature' method
         /// </summary>
-        public ReadOnlyDictionary<string, bool> Features { get; protected set; } = new ReadOnlyDictionary<string, bool>(
+        public ReadOnlyDictionary<string, bool> Features { get; protected set; } = new(
             new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase)
             {
                 {JobStorageFeatures.ExtendedApi, true},
                 {JobStorageFeatures.JobQueueProperty, true},
+                {JobStorageFeatures.ProcessesInsteadOfComponents, true},
                 {JobStorageFeatures.Connection.BatchedGetFirstByLowest, true},
                 {JobStorageFeatures.Connection.GetUtcDateTime, true},
                 {JobStorageFeatures.Connection.GetSetContains, true},
@@ -182,10 +183,41 @@ namespace Hangfire.Mongo
             return StorageOptions.Factory.CreateMongoConnection(HangfireDbContext, StorageOptions);
         }
 
+        /// <inheritdoc />
+        public override IEnumerable<IBackgroundProcess> GetServerRequiredProcesses()
+        {
+            yield return StorageOptions.Factory.CreateMongoExpirationManager(HangfireDbContext, StorageOptions);
+            switch (StorageOptions.CheckQueuedJobsStrategy)
+            {
+                case CheckQueuedJobsStrategy.Watch:
+                    yield return StorageOptions.Factory.CreateMongoJobQueueWatcher(HangfireDbContext, StorageOptions);
+                    break;
+                case CheckQueuedJobsStrategy.TailNotificationsCollection:
+                    if (StorageOptions.SupportsCappedCollection)
+                    {
+                        yield return StorageOptions.Factory.CreateMongoNotificationObserver(HangfireDbContext,
+                            StorageOptions);
+                    }
+
+                    break;
+                case CheckQueuedJobsStrategy.Poll:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        /// <inheritdoc />
+        public override IEnumerable<IBackgroundProcess> GetStorageWideProcesses()
+        {
+            return [];
+        }
+
         /// <summary>
         /// Returns collection of server components
         /// </summary>
         /// <returns>Collection of server components</returns>
+        [Obsolete("Please use the `GetStorageWideProcesses` and/or `GetServerRequiredProcesses` methods instead, and enable `JobStorageFeatures.ProcessesInsteadOfComponents`. Will be removed in 2.0.0.")]
         public override IEnumerable<IServerComponent> GetComponents()
         {
             yield return StorageOptions.Factory.CreateMongoExpirationManager(HangfireDbContext, StorageOptions);

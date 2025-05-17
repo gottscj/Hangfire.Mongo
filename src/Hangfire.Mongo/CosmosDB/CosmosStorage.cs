@@ -30,6 +30,7 @@ namespace Hangfire.Mongo.CosmosDB
                 {
                     {JobStorageFeatures.ExtendedApi, true},
                     {JobStorageFeatures.JobQueueProperty, true},
+                    {JobStorageFeatures.ProcessesInsteadOfComponents, true},
                     {JobStorageFeatures.Connection.BatchedGetFirstByLowest, true},
                     {JobStorageFeatures.Connection.GetUtcDateTime, false},
                     {JobStorageFeatures.Connection.GetSetContains, true},
@@ -41,11 +42,37 @@ namespace Hangfire.Mongo.CosmosDB
                     {JobStorageFeatures.Monitoring.AwaitingJobs, true}
                 });
         }
+
+        /// <inheritdoc />
+        public override IEnumerable<IBackgroundProcess> GetServerRequiredProcesses()
+        {
+            yield return StorageOptions.Factory.CreateMongoExpirationManager(HangfireDbContext, StorageOptions);
+            switch (StorageOptions.CheckQueuedJobsStrategy)
+            {
+                case CheckQueuedJobsStrategy.Watch:
+                    
+                    yield return StorageOptions.Factory.CreateMongoJobQueueWatcher(HangfireDbContext, StorageOptions);
+                    break;
+                case CheckQueuedJobsStrategy.Poll:
+                    break;
+                case CheckQueuedJobsStrategy.TailNotificationsCollection:
+                    throw new NotSupportedException("CosmosDB does not support capped collections");
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
         
+        /// <inheritdoc />
+        public override IEnumerable<IBackgroundProcess> GetStorageWideProcesses()
+        {
+            return [];
+        }
+
         /// <summary>
         /// Returns collection of server components
         /// </summary>
         /// <returns>Collection of server components</returns>
+        [Obsolete("Please use the `GetStorageWideProcesses` and/or `GetServerRequiredProcesses` methods instead, and enable `JobStorageFeatures.ProcessesInsteadOfComponents`. Will be removed in 2.0.0.")]
         public override IEnumerable<IServerComponent> GetComponents()
         {
             yield return StorageOptions.Factory.CreateMongoExpirationManager(HangfireDbContext, StorageOptions);
