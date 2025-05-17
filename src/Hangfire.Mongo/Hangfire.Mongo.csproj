@@ -12,9 +12,9 @@
         <owners>Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.11.5
-            - Fix migration lock not timing out
-            - Update to MongoDB.Driver v3.2.1
+        <PackageReleaseNotes>1.11.6
+            - Update to Hangfire.Core 1.8.20
+            - Update to MongoDB.Driver v3.4.0
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -26,8 +26,8 @@
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.8.18" />
-        <PackageReference Include="MongoDB.Driver" Version="3.2.1" />
+        <PackageReference Include="Hangfire.Core" Version="1.8.20" />
+        <PackageReference Include="MongoDB.Driver" Version="3.4.0" />
     </ItemGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">

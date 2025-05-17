@@ -26,7 +26,7 @@ namespace Hangfire.Mongo.Sample.NETCore
             GlobalConfiguration.Configuration.UseLogProvider(new ColouredConsoleLogProvider());
             await using var mongoTestRunner = new MongoTestRunner();
             await mongoTestRunner.Start();
-
+            
             JobStorage.Current = new MongoStorage(
                 MongoClientSettings.FromConnectionString(mongoTestRunner.MongoConnectionString),
                 databaseName: "Mongo-Hangfire-Sample-NETCore",

@@ -25,7 +25,7 @@ public sealed class MongoIntegrationTestFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await MongoDbContainer.StartAsync();
-        MongoConnectionString = MongoDbContainer.GetConnectionString() + "?directConnection=true";
+        MongoConnectionString = MongoDbContainer.GetConnectionString();
     }
 
     public async Task DisposeAsync()

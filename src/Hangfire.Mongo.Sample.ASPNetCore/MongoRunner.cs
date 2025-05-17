@@ -9,6 +9,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         public readonly MongoDbContainer MongoDbContainer =
             new MongoDbBuilder()
                 .WithImage("mongo:7.0")
+                .WithReplicaSet()
                 .Build();
 
         public string MongoConnectionString { get; private set; }
