@@ -1,8 +1,10 @@
 
 ## Change log
 
+### v1.11.7
+- Update to MongoDB.Driver v3.4.2
+
 ### v1.11.5
-1.11.5
 - Fix migration lock not timing out
 - Update to MongoDB.Driver v3.2.1
 
