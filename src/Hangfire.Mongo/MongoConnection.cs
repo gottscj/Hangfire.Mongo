@@ -678,12 +678,18 @@ namespace Hangfire.Mongo
         }
 
         private static bool _useServerStatus;
+        private static bool _useIsMaster;
 
         public override DateTime GetUtcDateTime()
         {
             if (_useServerStatus)
             {
                 return GetUtcDateUsingServerStatus();
+            }
+
+            if (_useIsMaster)
+            {
+                return GetUtcDateUsingIsMaster();
             }
 
             DateTime now;
@@ -695,7 +701,6 @@ namespace Hangfire.Mongo
             {
                 Logger.Warn("Failed to get UTC datetime from mongodb server, using 'serverStatus' instead");
                 now = GetUtcDateUsingServerStatus();
-                _useServerStatus = true;
             }
 
             if (Logger.IsTraceEnabled())
@@ -724,8 +729,28 @@ namespace Hangfire.Mongo
 
         private DateTime GetUtcDateUsingServerStatus()
         {
-            var serverStatus = _dbContext.Database.RunCommand<BsonDocument>(new BsonDocument("serverStatus", 1));
-            return serverStatus["localTime"].ToUniversalTime();
+            DateTime now;
+
+            try
+            {
+                var serverStatus = _dbContext.Database.RunCommand<BsonDocument>(new BsonDocument("serverStatus", 1));
+                now = serverStatus["localTime"].ToUniversalTime();
+                _useServerStatus = true;
+            }
+            catch (Exception)
+            {
+                Logger.Warn("Failed to get UTC datetime from mongodb server, using 'ismaster' instead");
+                now = GetUtcDateUsingIsMaster();
+            }
+
+            return now;
+        }
+
+        private DateTime GetUtcDateUsingIsMaster()
+        {
+            var isMaster = _dbContext.Database.RunCommand<BsonDocument>(new BsonDocument("isMaster", 1));
+            _useIsMaster = true;
+            return isMaster["localTime"].ToUniversalTime();
         }
 
         public override bool GetSetContains([NotNull] string key, [NotNull] string value)
