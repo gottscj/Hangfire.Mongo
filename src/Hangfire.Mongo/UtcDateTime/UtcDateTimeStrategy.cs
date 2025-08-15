@@ -1,5 +1,4 @@
 using System;
-using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 
 namespace Hangfire.Mongo.UtcDateTime
@@ -13,8 +12,7 @@ namespace Hangfire.Mongo.UtcDateTime
         /// Obtain current UTC time using the provided MongoDB context.
         /// </summary>
         /// <param name="dbContext">MongoDB context.</param>
-        /// <param name="logger">Logger instance.</param>
         /// <returns>UTC DateTime.</returns>
-        public abstract DateTime GetUtcDateTime(HangfireDbContext dbContext, ILog logger);
+        public abstract DateTime GetUtcDateTime(HangfireDbContext dbContext);
     }
 }

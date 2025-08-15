@@ -1,5 +1,4 @@
 using System;
-using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using MongoDB.Bson;
 
@@ -14,9 +13,8 @@ namespace Hangfire.Mongo.UtcDateTime
         /// Obtain current UTC time using the isMaster command.
         /// </summary>
         /// <param name="dbContext">MongoDB context.</param>
-        /// <param name="logger">Logger instance.</param>
         /// <returns>The UTC time reported by MongoDB.</returns>
-        public override DateTime GetUtcDateTime(HangfireDbContext dbContext, ILog logger)
+        public override DateTime GetUtcDateTime(HangfireDbContext dbContext)
         {
             var isMaster = dbContext.Database.RunCommand<BsonDocument>(new BsonDocument("isMaster", 1));
             return isMaster["localTime"].ToUniversalTime();
