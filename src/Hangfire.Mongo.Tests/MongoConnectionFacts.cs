@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using Hangfire.Common;
 using Hangfire.Mongo.Database;
@@ -1627,45 +1626,6 @@ namespace Hangfire.Mongo.Tests
 
             // Assert
             Assert.Equal(2, result);
-        }
-
-        [Fact]
-        public void GetUtcDateTime_FallbacksToServerStatus_WhenAggregationReturnsNoDocuments()
-        {
-            // Arrange: empty schema collection causes aggregation path to throw and fallback to serverStatus
-            ResetStaticFlags();
-
-            // Act
-            var result = _connection.GetUtcDateTime();
-
-            // Assert – result should be close to now and flag remains true
-            Assert.True((DateTime.UtcNow - result) < TimeSpan.FromMinutes(1));
-            Assert.True((bool)typeof(MongoConnection).GetField("_useServerStatus", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null));
-        }
-
-        [Fact]
-        public void GetUtcDateTime_FallbacksToIsMaster_WhenServerStatusThrows()
-        {
-            // Arrange: ensure flag forces direct isMaster usage
-            ResetStaticFlags();
-            var useIsMasterField = typeof(MongoConnection).GetField("_useIsMaster", BindingFlags.NonPublic | BindingFlags.Static)!;
-            useIsMasterField.SetValue(null, true);
-
-            // Act
-            var result = _connection.GetUtcDateTime();
-
-            // Assert – result should be close to now and flag remains true
-            Assert.True((DateTime.UtcNow - result) < TimeSpan.FromMinutes(1));
-            Assert.True((bool)useIsMasterField.GetValue(null)!);
-        }
-
-        private static void ResetStaticFlags()
-        {
-            var type = typeof(MongoConnection);
-            var useServerStatus = type.GetField("_useServerStatus", BindingFlags.NonPublic | BindingFlags.Static);
-            var useIsMaster = type.GetField("_useIsMaster", BindingFlags.NonPublic | BindingFlags.Static);
-            useServerStatus?.SetValue(null, false);
-            useIsMaster?.SetValue(null, false);
         }
     }
 }

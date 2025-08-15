@@ -7,6 +7,7 @@ using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
+using Hangfire.Mongo.UtcDateTime;
 using Hangfire.Server;
 using Hangfire.Storage;
 using MongoDB.Bson;
@@ -677,80 +678,58 @@ namespace Hangfire.Mongo
                 .Select(b => b[nameof(ListDto.Value)].AsString).ToList();
         }
 
-        private static bool _useServerStatus;
-        private static bool _useIsMaster;
-
         public override DateTime GetUtcDateTime()
         {
-            if (_useServerStatus)
-            {
-                return GetUtcDateUsingServerStatus();
-            }
-
-            if (_useIsMaster)
-            {
-                return GetUtcDateUsingIsMaster();
-            }
-
-            DateTime now;
-            try
-            {
-                now = GetUtcDateUsingAggregation();
-            }
-            catch (Exception)
-            {
-                Logger.Warn("Failed to get UTC datetime from mongodb server, using 'serverStatus' instead");
-                now = GetUtcDateUsingServerStatus();
-            }
-
-            if (Logger.IsTraceEnabled())
-            {
-                Logger.Trace($"GetUtcDateTime() => {now:O}");
-            }
-
-            return now;
-        }
-
-        private DateTime GetUtcDateUsingAggregation()
-        {
-            var pipeline = new[]
-            {
-                new BsonDocument("$project", new BsonDocument("date", "$$NOW"))
-            };
-            // we should always have a schema document in the db, and this 
-            var time = _dbContext.Schema.Aggregate<BsonDocument>(pipeline).FirstOrDefault();
-            if (time is null)
-            {
-                throw new InvalidOperationException("No documents in the schema collection");
-            }
-
-            return time["date"].ToUniversalTime();
-        }
-
-        private DateTime GetUtcDateUsingServerStatus()
-        {
-            DateTime now;
+            UtcDateTimeStrategy currentStrategy = _storageOptions.UtcDateTimeStrategy;
 
             try
             {
-                var serverStatus = _dbContext.Database.RunCommand<BsonDocument>(new BsonDocument("serverStatus", 1));
-                now = serverStatus["localTime"].ToUniversalTime();
-                _useServerStatus = true;
+                if (currentStrategy != null)
+                {
+                    return currentStrategy.GetUtcDateTime(_dbContext, Logger);
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                Logger.Warn("Failed to get UTC datetime from mongodb server, using 'ismaster' instead");
-                now = GetUtcDateUsingIsMaster();
+                if (Logger.IsWarnEnabled())
+                {
+                    Logger.Warn($"Failed to get UTC datetime using the configured strategy, falling back to other available strategies: {ex.Message}");
+                }
             }
 
-            return now;
-        }
+            var availableStrategies = _storageOptions.EnabledUtcDateTimeStrategies;
 
-        private DateTime GetUtcDateUsingIsMaster()
-        {
-            var isMaster = _dbContext.Database.RunCommand<BsonDocument>(new BsonDocument("isMaster", 1));
-            _useIsMaster = true;
-            return isMaster["localTime"].ToUniversalTime();
+            if (currentStrategy != null)
+            {
+                availableStrategies = [.. availableStrategies.Except([currentStrategy])];
+            }
+
+            Exception lastError = null;
+
+            foreach (var strategy in availableStrategies)
+            {
+                try
+                {
+                    DateTime now = strategy.GetUtcDateTime(_dbContext, Logger);
+
+                    if (Logger.IsTraceEnabled())
+                    {
+                        Logger.Trace($"GetUtcDateTime() => {now:O} using {strategy.GetType().Name}");
+                    }
+
+                    return now;
+                }
+                catch (Exception ex)
+                {
+                    if (Logger.IsWarnEnabled())
+                    {
+                        Logger.Warn($"Failed to get UTC datetime using {strategy.GetType().Name}: {ex.Message}");
+                    }
+                }
+            }
+
+            throw new InvalidOperationException(
+                "Failed to get UTC datetime using all available strategies.", lastError);
         }
 
         public override bool GetSetContains([NotNull] string key, [NotNull] string value)
