@@ -75,7 +75,7 @@ namespace Hangfire.Mongo.Tests
                 _value = value;
             }
 
-            public override DateTime GetUtcDateTime(HangfireDbContext dbContext, ILog logger)
+            public override DateTime GetUtcDateTime(HangfireDbContext dbContext)
             {
                 return _value;
             }
@@ -83,7 +83,7 @@ namespace Hangfire.Mongo.Tests
 
         private sealed class ThrowingUtcDateTimeStrategy : UtcDateTimeStrategy
         {
-            public override DateTime GetUtcDateTime(HangfireDbContext dbContext, ILog logger)
+            public override DateTime GetUtcDateTime(HangfireDbContext dbContext)
             {
                 throw new InvalidOperationException("strategy failed");
             }

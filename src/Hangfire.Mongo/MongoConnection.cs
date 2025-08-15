@@ -686,7 +686,7 @@ namespace Hangfire.Mongo
             {
                 if (currentStrategy != null)
                 {
-                    return currentStrategy.GetUtcDateTime(_dbContext, Logger);
+                    return currentStrategy.GetUtcDateTime(_dbContext);
                 }
             }
             catch (Exception ex)
@@ -710,7 +710,7 @@ namespace Hangfire.Mongo
             {
                 try
                 {
-                    DateTime now = strategy.GetUtcDateTime(_dbContext, Logger);
+                    DateTime now = strategy.GetUtcDateTime(_dbContext);
 
                     if (Logger.IsTraceEnabled())
                     {
@@ -725,6 +725,8 @@ namespace Hangfire.Mongo
                     {
                         Logger.Warn($"Failed to get UTC datetime using {strategy.GetType().Name}: {ex.Message}");
                     }
+
+                    lastError = ex;
                 }
             }
 
