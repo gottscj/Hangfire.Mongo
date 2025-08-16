@@ -7,6 +7,7 @@ using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
+using Hangfire.Mongo.UtcDateTime;
 using Hangfire.Server;
 using Hangfire.Storage;
 using MongoDB.Bson;
@@ -677,55 +678,38 @@ namespace Hangfire.Mongo
                 .Select(b => b[nameof(ListDto.Value)].AsString).ToList();
         }
 
-        private static bool _useServerStatus;
-
         public override DateTime GetUtcDateTime()
         {
-            if (_useServerStatus)
+            var availableStrategies = _storageOptions.UtcDateTimeStrategies;
+
+            Exception lastError = null;
+
+            foreach (var strategy in availableStrategies)
             {
-                return GetUtcDateUsingServerStatus();
+                try
+                {
+                    var now = strategy.GetUtcDateTime(_dbContext);
+
+                    if (Logger.IsTraceEnabled())
+                    {
+                        Logger.Trace($"GetUtcDateTime() => {now:O} using {strategy.GetType().Name}");
+                    }
+
+                    return now;
+                }
+                catch (Exception ex)
+                {
+                    if (Logger.IsWarnEnabled())
+                    {
+                        Logger.Warn($"Failed to get UTC datetime using {strategy.GetType().Name}: {ex.Message}");
+                    }
+
+                    lastError = ex;
+                }
             }
 
-            DateTime now;
-            try
-            {
-                now = GetUtcDateUsingAggregation();
-            }
-            catch (Exception)
-            {
-                Logger.Warn("Failed to get UTC datetime from mongodb server, using 'serverStatus' instead");
-                now = GetUtcDateUsingServerStatus();
-                _useServerStatus = true;
-            }
-
-            if (Logger.IsTraceEnabled())
-            {
-                Logger.Trace($"GetUtcDateTime() => {now:O}");
-            }
-
-            return now;
-        }
-
-        private DateTime GetUtcDateUsingAggregation()
-        {
-            var pipeline = new[]
-            {
-                new BsonDocument("$project", new BsonDocument("date", "$$NOW"))
-            };
-            // we should always have a schema document in the db, and this 
-            var time = _dbContext.Schema.Aggregate<BsonDocument>(pipeline).FirstOrDefault();
-            if (time is null)
-            {
-                throw new InvalidOperationException("No documents in the schema collection");
-            }
-
-            return time["date"].ToUniversalTime();
-        }
-
-        private DateTime GetUtcDateUsingServerStatus()
-        {
-            var serverStatus = _dbContext.Database.RunCommand<BsonDocument>(new BsonDocument("serverStatus", 1));
-            return serverStatus["localTime"].ToUniversalTime();
+            throw new InvalidOperationException(
+                "Failed to get UTC datetime using all available strategies.", lastError);
         }
 
         public override bool GetSetContains([NotNull] string key, [NotNull] string value)

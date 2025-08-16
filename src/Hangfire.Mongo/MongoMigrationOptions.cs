@@ -96,5 +96,5 @@ namespace Hangfire.Mongo
                 _backupPostfix = value;
             }
         }
-    }         
+    }
 }

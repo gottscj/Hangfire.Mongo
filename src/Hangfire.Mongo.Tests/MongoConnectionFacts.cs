@@ -22,7 +22,7 @@ namespace Hangfire.Mongo.Tests
     {
         private readonly HangfireDbContext _dbContext;
         private readonly MongoConnection _connection;
-		private readonly IJobQueueSemaphore _jobQueueSemaphoreMock;
+        private readonly IJobQueueSemaphore _jobQueueSemaphoreMock;
 
         public MongoConnectionFacts(MongoIntegrationTestFixture fixture)
         {
@@ -569,7 +569,7 @@ namespace Hangfire.Mongo.Tests
                 WorkerCount = 1000
             };
             _connection.AnnounceServer("server", context2);
-            var sameServer =  new ServerDto(_dbContext.Server.AsQueryable().Single());
+            var sameServer = new ServerDto(_dbContext.Server.AsQueryable().Single());
             Assert.Equal("server", sameServer.Id);
             Assert.Equal(context2.WorkerCount, sameServer.WorkerCount);
         }
@@ -1554,8 +1554,8 @@ namespace Hangfire.Mongo.Tests
         public void GetUtcDateTime_FromConnection_Success()
         {
             // Arrange
-            _dbContext.Schema.InsertOne(new SchemaDto{Version = MongoSchema.None}.Serialize());
-            
+            _dbContext.Schema.InsertOne(new SchemaDto { Version = MongoSchema.None }.Serialize());
+
             // Act
             var serverTime = _connection.GetUtcDateTime();
 
@@ -1602,7 +1602,6 @@ namespace Hangfire.Mongo.Tests
 
             // Act
             var result = _connection.GetSetCount(new[] { "set-1", "set-2" }, 10);
-            
 
             // Assert
             Assert.Equal(4, result);
@@ -1628,7 +1627,6 @@ namespace Hangfire.Mongo.Tests
             // Assert
             Assert.Equal(2, result);
         }
-
     }
 
 #pragma warning restore 1591
