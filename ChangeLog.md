@@ -1,6 +1,13 @@
 
 ## Change log
 
+### v1.12.0
+- Update to Hangfire.Core v1.8.21
+- Add UTC time support for AWS DocumentDB compatibility #431 (thiago-boche)
+- Add UtcDateTimeStrategy to MongoStorage so users can write their own if needed #431 (thiago-boche)
+- Use IsMasterUtcDateTimeStrategy for CosmosStorageOptions. (can be overriden)
+- Added bootstrapper extensions and convenience classes for configuring documentdb
+
 ### v1.11.7
 - Update to MongoDB.Driver v3.4.2
 

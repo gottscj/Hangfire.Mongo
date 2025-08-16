@@ -1,4 +1,5 @@
 ﻿using System;
+using Hangfire.Mongo.UtcDateTime;
 
 namespace Hangfire.Mongo.CosmosDB
 {
@@ -17,6 +18,10 @@ namespace Hangfire.Mongo.CosmosDB
             MigrationLockTimeout = TimeSpan.FromMinutes(2);
             Factory = new CosmosFactory();
             SupportsCappedCollection = false;
+            UtcDateTimeStrategies =
+            [
+                new IsMasterUtcDateTimeStrategy()
+            ];
         }
     }
 }
