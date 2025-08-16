@@ -680,29 +680,7 @@ namespace Hangfire.Mongo
 
         public override DateTime GetUtcDateTime()
         {
-            UtcDateTimeStrategy currentStrategy = _storageOptions.UtcDateTimeStrategy;
-
-            try
-            {
-                if (currentStrategy != null)
-                {
-                    return currentStrategy.GetUtcDateTime(_dbContext);
-                }
-            }
-            catch (Exception ex)
-            {
-                if (Logger.IsWarnEnabled())
-                {
-                    Logger.Warn($"Failed to get UTC datetime using the configured strategy, falling back to other available strategies: {ex.Message}");
-                }
-            }
-
-            var availableStrategies = _storageOptions.EnabledUtcDateTimeStrategies;
-
-            if (currentStrategy != null)
-            {
-                availableStrategies = [.. availableStrategies.Except([currentStrategy])];
-            }
+            var availableStrategies = _storageOptions.UtcDateTimeStrategies;
 
             Exception lastError = null;
 
@@ -710,7 +688,7 @@ namespace Hangfire.Mongo
             {
                 try
                 {
-                    DateTime now = strategy.GetUtcDateTime(_dbContext);
+                    var now = strategy.GetUtcDateTime(_dbContext);
 
                     if (Logger.IsTraceEnabled())
                     {

@@ -1,5 +1,4 @@
 using System;
-using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.Mongo.UtcDateTime;
@@ -25,7 +24,10 @@ namespace Hangfire.Mongo.Tests
 
             var storageOptions = new MongoStorageOptions
             {
-                UtcDateTimeStrategy = new FixedUtcDateTimeStrategy(expected)
+                UtcDateTimeStrategies =
+                [
+                    new FixedUtcDateTimeStrategy(expected)
+                ]
             };
 
             var connection = new MongoConnection(_dbContext, storageOptions);
@@ -36,29 +38,11 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void GetUtcDateTime_FallsBackToAvailableStrategies_WhenConfiguredStrategyFails()
-        {
-            var fallback = new DateTime(2021, 6, 7, 8, 9, 10, DateTimeKind.Utc);
-
-            var storageOptions = new MongoStorageOptions
-            {
-                UtcDateTimeStrategy = new ThrowingUtcDateTimeStrategy(),
-                EnabledUtcDateTimeStrategies = [new FixedUtcDateTimeStrategy(fallback)]
-            };
-
-            var connection = new MongoConnection(_dbContext, storageOptions);
-
-            var now = connection.GetUtcDateTime();
-
-            Assert.Equal(fallback, now);
-        }
-
-        [Fact]
         public void GetUtcDateTime_ThrowsInvalidOperation_WhenAllStrategiesFail()
         {
             var storageOptions = new MongoStorageOptions
             {
-                EnabledUtcDateTimeStrategies = [new ThrowingUtcDateTimeStrategy(), new ThrowingUtcDateTimeStrategy()]
+                UtcDateTimeStrategies = [new ThrowingUtcDateTimeStrategy(), new ThrowingUtcDateTimeStrategy()]
             };
 
             var connection = new MongoConnection(_dbContext, storageOptions);

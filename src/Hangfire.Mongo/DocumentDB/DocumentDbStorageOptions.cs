@@ -14,7 +14,7 @@ namespace Hangfire.Mongo.DocumentDB
             : base()
         {
             // Restrict UTC date/time strategy to the isMaster command, which is supported by DocumentDB unprivileged users.
-            EnabledUtcDateTimeStrategies =
+            UtcDateTimeStrategies =
             [
                 new IsMasterUtcDateTimeStrategy()
             ];

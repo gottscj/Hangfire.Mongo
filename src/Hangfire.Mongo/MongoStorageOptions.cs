@@ -15,7 +15,7 @@ namespace Hangfire.Mongo
         private TimeSpan _migrationLockTimeout;
         private MongoMigrationOptions _migrationOptions;
         private MongoFactory _factory;
-        private UtcDateTimeStrategy[] _enabledUtcDateTimeStrategies;
+        private UtcDateTimeStrategy[] _utcDateTimeStrategies;
         private string _prefix;
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace Hangfire.Mongo
             Factory = new MongoFactory();
             CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Watch;
 
-            _enabledUtcDateTimeStrategies =
+            _utcDateTimeStrategies =
             [
                 new AggregationUtcDateTimeStrategy(),
                 new ServerStatusUtcDateTimeStrategy(),
@@ -220,22 +220,17 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Array of enabled strategies for obtaining UTC date and time.
         /// </summary>
-        public UtcDateTimeStrategy[] EnabledUtcDateTimeStrategies
+        public UtcDateTimeStrategy[] UtcDateTimeStrategies
         {
-            get => _enabledUtcDateTimeStrategies;
+            get => _utcDateTimeStrategies;
             set
             {
                 if (value == null)
                 {
-                    throw new ArgumentException($"'{EnabledUtcDateTimeStrategies}' cannot be null");
+                    throw new ArgumentException($"'{UtcDateTimeStrategies}' cannot be null");
                 }
-                _enabledUtcDateTimeStrategies = value;
+                _utcDateTimeStrategies = value;
             }
         }
-
-        /// <summary>
-        /// Custom strategy for resolving UTC time from MongoDB
-        /// </summary>
-        public UtcDateTimeStrategy UtcDateTimeStrategy { get; set; }
     }
 }
