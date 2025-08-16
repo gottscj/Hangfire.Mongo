@@ -20,12 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="bootstrap" Version="5.3.7" />
-    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.20" />
-    <PackageReference Include="Hangfire.Core" Version="1.8.20" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.21" />
+    <PackageReference Include="Hangfire.Core" Version="1.8.21" />
     <PackageReference Include="jquery" Version="3.7.1" />
     <PackageReference Include="MongoDB.Driver" Version="3.4.2" />
     <PackageReference Include="Microsoft.VisualStudio.Web.BrowserLink" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.8" />
     <PackageReference Include="Testcontainers.MongoDb" Version="4.6.0" />
   </ItemGroup>
 </Project>

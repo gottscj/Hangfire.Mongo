@@ -25,22 +25,6 @@ namespace Hangfire.Mongo.CosmosDB
             {
                 throw new ArgumentException("CosmosDB does not support capped collections");
             }
-            Features = new ReadOnlyDictionary<string, bool>(
-                new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase)
-                {
-                    {JobStorageFeatures.ExtendedApi, true},
-                    {JobStorageFeatures.JobQueueProperty, true},
-                    {JobStorageFeatures.ProcessesInsteadOfComponents, true},
-                    {JobStorageFeatures.Connection.BatchedGetFirstByLowest, true},
-                    {JobStorageFeatures.Connection.GetUtcDateTime, false},
-                    {JobStorageFeatures.Connection.GetSetContains, true},
-                    {JobStorageFeatures.Connection.LimitedGetSetCount, true},
-                    {JobStorageFeatures.Transaction.AcquireDistributedLock, true},
-                    {JobStorageFeatures.Transaction.CreateJob, true},
-                    {JobStorageFeatures.Transaction.SetJobParameter, true},
-                    {JobStorageFeatures.Monitoring.DeletedStateGraphs, true},
-                    {JobStorageFeatures.Monitoring.AwaitingJobs, true}
-                });
         }
 
         /// <inheritdoc />

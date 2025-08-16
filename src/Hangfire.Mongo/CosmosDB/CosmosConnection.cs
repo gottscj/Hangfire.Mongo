@@ -11,10 +11,4 @@ public class CosmosConnection : MongoConnection
         : base(database, storageOptions)
     {
     }
-
-    /// <inheritdoc />
-    public override DateTime GetUtcDateTime()
-    {
-        return DateTime.UtcNow;
-    }
 }
