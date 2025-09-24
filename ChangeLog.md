@@ -1,6 +1,9 @@
 
 ## Change log
 
+### v1.12.1
+- Update to MongoDB.Driver 3.5.0
+
 ### v1.12.0
 - Update to Hangfire.Core v1.8.21
 - Add UTC time support for AWS DocumentDB compatibility #431 (thiago-boche)
