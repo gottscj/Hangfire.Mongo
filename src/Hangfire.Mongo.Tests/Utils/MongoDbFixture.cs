@@ -1,37 +1,24 @@
 using System;
-using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Testcontainers.MongoDb;
-using Xunit;
+using Testcontainers.Xunit;
+using Xunit.Abstractions;
 
 namespace Hangfire.Mongo.Tests.Utils;
 
-public sealed class MongoIntegrationTestFixture : IAsyncLifetime
+public sealed class MongoIntegrationTestFixture(IMessageSink messageSink) : ContainerFixture<MongoDbBuilder, MongoDbContainer>(messageSink)
 {
     private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
 
-    public readonly MongoDbContainer MongoDbContainer =
-        new MongoDbBuilder()
-            .WithImage("mongo:7.0")
-            .WithReplicaSet()
-            .Build();
-
-    public string MongoConnectionString { get; private set; }
-
-    public async Task InitializeAsync()
+    protected override MongoDbBuilder Configure(MongoDbBuilder builder)
     {
-        await MongoDbContainer.StartAsync();
-        MongoConnectionString = MongoDbContainer.GetConnectionString();
+        return builder.WithImage("mongo:7.0").WithReplicaSet();
     }
 
-    public async Task DisposeAsync()
-    {
-        await MongoDbContainer.DisposeAsync();
-    }
     public MongoStorage CreateStorage(string databaseName = null)
     {
         var storageOptions = new MongoStorageOptions
@@ -75,7 +62,8 @@ public sealed class MongoIntegrationTestFixture : IAsyncLifetime
 
     private MongoClient GetMongoClient()
     {
-        var settings = MongoClientSettings.FromConnectionString(MongoConnectionString);
+        var connectionString = Container.GetConnectionString();
+        var settings = MongoClientSettings.FromConnectionString(connectionString);
         return new MongoClient(settings);
     }
 }
