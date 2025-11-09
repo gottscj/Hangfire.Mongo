@@ -12,8 +12,10 @@
         <owners>Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB DocumentDb Azure AWS Atlas Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.12.1
-            - Update to MongoDB.Driver 3.5.0
+        <PackageReleaseNotes>1.12.2
+            - Update to Hangfire.Core 1.8.22
+            - Fixes IsMasterUtcDateTimeStrategy for cosmosdb is unix timestamp. (#436)
+            - Simplify tests (by @0xced)
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -25,7 +27,7 @@
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.8.21" />
+        <PackageReference Include="Hangfire.Core" Version="1.8.22" />
         <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
     </ItemGroup>
     <ItemGroup>
