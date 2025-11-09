@@ -1,6 +1,11 @@
 
 ## Change log
 
+### 1.12.2
+- Update to Hangfire.Core 1.8.22
+- Fixes IsMasterUtcDateTimeStrategy for cosmosdb is unix timestamp. (#436)
+- Simplify tests. #435 (0xced)
+
 ### v1.12.1
 - Update to MongoDB.Driver 3.5.0
 
