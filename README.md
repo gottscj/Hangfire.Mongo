@@ -111,10 +111,6 @@ Key overrides in `CosmosStorageOptions`
 >
 > **Because access to Azure Cosmos DB (MongoDB API) is limited in the project's test environment, the Cosmos-specific configuration and code paths are not as exhaustively tested as the standard MongoDB implementation. If you use Cosmos DB and encounter issues, please open an issue or submit a PR — community feedback and contributions are appreciated and will help improve compatibility. I will rely on community help to identify and fix provider-specific bugs that cannot be validated in the project's CI/test environment.**
 
-_Note on testing and support_
-
-_Because access to Azure Cosmos DB (MongoDB API) is limited in the project's test environment, the Cosmos-specific configuration and code paths are not as exhaustively tested as the standard MongoDB implementation. If you use Cosmos DB and encounter issues, please open an issue or submit a PR — community feedback and contributions are appreciated and will help improve compatibility. I will rely on community help to identify and fix provider-specific bugs that cannot be validated in the project's CI/test environment._
-
 Example — recommended Cosmos setup
 
 ```csharp
@@ -168,10 +164,6 @@ Implications and guidance
 ### DocumentDB (AWS DocumentDB / Mongo-compatible)
 
 This repository provides a `DocumentDbStorage` path for Mongo-compatible DocumentDB servers (for example AWS DocumentDB). This is intended for MongoDB-compatible services that restrict certain admin commands or have slightly different server responses compared to a full MongoDB server.
-
-_Note on testing and support_
-
-_DocumentDB-compatible providers (such as AWS DocumentDB) are similarly less well-tested in this project due to limited access to those managed services during development. The `DocumentDbStorageOptions` and DocumentDB-specific code paths have been designed to be conservative, but if you find bugs or provider-specific issues please report them or contribute fixes — community help is essential for robust support. I will rely on community contributions and reports to discover and resolve provider-specific issues that cannot be exercised in the project's automated tests._
 
 > ⚠️ **Note on testing and support**
 >
