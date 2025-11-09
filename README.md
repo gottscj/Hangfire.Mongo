@@ -61,7 +61,7 @@ services.AddHangfire(configuration => configuration
 services.AddHangfireServer();
 ```
 
-Quick start — Console
+### Quick start — Console
 
 ```csharp
 var options = new MongoStorageOptions
@@ -107,9 +107,9 @@ Key overrides in `CosmosStorageOptions`
 - UtcDateTimeStrategies = [ new IsMasterUtcDateTimeStrategy() ]
   - The UTC date/time strategy is tuned for Cosmos' server responses; this replaces the default set of strategies.
 
-Note on testing and support
+_Note on testing and support
 
-Because access to Azure Cosmos DB (MongoDB API) is limited in the project's test environment, the Cosmos-specific configuration and code paths are not as exhaustively tested as the standard MongoDB implementation. If you use Cosmos DB and encounter issues, please open an issue or submit a PR — community feedback and contributions are appreciated and will help improve compatibility. I will rely on community help to identify and fix provider-specific bugs that cannot be validated in the project's CI/test environment.
+Because access to Azure Cosmos DB (MongoDB API) is limited in the project's test environment, the Cosmos-specific configuration and code paths are not as exhaustively tested as the standard MongoDB implementation. If you use Cosmos DB and encounter issues, please open an issue or submit a PR — community feedback and contributions are appreciated and will help improve compatibility. I will rely on community help to identify and fix provider-specific bugs that cannot be validated in the project's CI/test environment._
 
 Example — recommended Cosmos setup
 
@@ -165,9 +165,9 @@ Implications and guidance
 
 This repository provides a `DocumentDbStorage` path for Mongo-compatible DocumentDB servers (for example AWS DocumentDB). This is intended for MongoDB-compatible services that restrict certain admin commands or have slightly different server responses compared to a full MongoDB server.
 
-Note on testing and support
+_Note on testing and support
 
-DocumentDB-compatible providers (such as AWS DocumentDB) are similarly less well-tested in this project due to limited access to those managed services during development. The `DocumentDbStorageOptions` and DocumentDB-specific code paths have been designed to be conservative, but if you find bugs or provider-specific issues please report them or contribute fixes — community help is essential for robust support. I will rely on community contributions and reports to discover and resolve provider-specific issues that cannot be exercised in the project's automated tests.
+DocumentDB-compatible providers (such as AWS DocumentDB) are similarly less well-tested in this project due to limited access to those managed services during development. The `DocumentDbStorageOptions` and DocumentDB-specific code paths have been designed to be conservative, but if you find bugs or provider-specific issues please report them or contribute fixes — community help is essential for robust support. I will rely on community contributions and reports to discover and resolve provider-specific issues that cannot be exercised in the project's automated tests._
 
 Use `DocumentDbStorageOptions` (in `Hangfire.Mongo.DocumentDB`) when targeting DocumentDB-compatible services. The `DocumentDbStorageOptions` constructor narrows the UTC date/time strategies to use `IsMasterUtcDateTimeStrategy`, because unprivileged users on these services may not be able to run higher-privileged commands used by other strategies.
 
@@ -214,9 +214,9 @@ Notes and guidance
 
 The project provides well-known extension points for advanced customization. Two common extension points are `MongoFactory` and the UTC date/time strategies.
 
-Note: most classes and methods in this library are public and many are virtual (for example `MongoFactory`, `MongoWriteOnlyTransaction`, `MongoConnection` and related components). This design allows you to subclass and override behaviour at many points — you can swap internal components, change commit behavior, alter notification logic, or plug-in custom serialization by overriding the appropriate virtual methods.
+_Note: most classes and methods in this library are public and many are virtual (for example `MongoFactory`, `MongoWriteOnlyTransaction`, `MongoConnection` and related components). This design allows you to subclass and override behaviour at many points — you can swap internal components, change commit behavior, alter notification logic, or plug-in custom serialization by overriding the appropriate virtual methods.
 
-In short: almost all methods are public and many are virtual, so you can change almost any behaviour by subclassing and overriding the provided components.
+In short: almost all methods are public and many are virtual, so you can change almost any behaviour by subclassing and overriding the provided components._
 
 1) Overriding `MongoFactory`
 
