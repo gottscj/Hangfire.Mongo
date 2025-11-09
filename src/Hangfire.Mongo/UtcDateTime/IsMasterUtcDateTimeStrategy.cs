@@ -17,6 +17,14 @@ namespace Hangfire.Mongo.UtcDateTime
         public override DateTime GetUtcDateTime(HangfireDbContext dbContext)
         {
             var isMaster = dbContext.Database.RunCommand<BsonDocument>(new BsonDocument("isMaster", 1));
+            var localTime = isMaster["localTime"];
+            if (localTime.IsInt64)
+            {
+                var unixDate = localTime.AsInt64;
+                var start = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                var time = start.AddMilliseconds(unixDate).ToUniversalTime();
+                return time;
+            }
             return isMaster["localTime"].ToUniversalTime();
         }
     }
