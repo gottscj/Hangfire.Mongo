@@ -107,6 +107,10 @@ Key overrides in `CosmosStorageOptions`
 - UtcDateTimeStrategies = [ new IsMasterUtcDateTimeStrategy() ]
   - The UTC date/time strategy is tuned for Cosmos' server responses; this replaces the default set of strategies.
 
+> ⚠️ **Note on testing and support**
+>
+> **Because access to Azure Cosmos DB (MongoDB API) is limited in the project's test environment, the Cosmos-specific configuration and code paths are not as exhaustively tested as the standard MongoDB implementation. If you use Cosmos DB and encounter issues, please open an issue or submit a PR — community feedback and contributions are appreciated and will help improve compatibility. I will rely on community help to identify and fix provider-specific bugs that cannot be validated in the project's CI/test environment.**
+
 _Note on testing and support_
 
 _Because access to Azure Cosmos DB (MongoDB API) is limited in the project's test environment, the Cosmos-specific configuration and code paths are not as exhaustively tested as the standard MongoDB implementation. If you use Cosmos DB and encounter issues, please open an issue or submit a PR — community feedback and contributions are appreciated and will help improve compatibility. I will rely on community help to identify and fix provider-specific bugs that cannot be validated in the project's CI/test environment._
@@ -168,6 +172,10 @@ This repository provides a `DocumentDbStorage` path for Mongo-compatible Documen
 _Note on testing and support_
 
 _DocumentDB-compatible providers (such as AWS DocumentDB) are similarly less well-tested in this project due to limited access to those managed services during development. The `DocumentDbStorageOptions` and DocumentDB-specific code paths have been designed to be conservative, but if you find bugs or provider-specific issues please report them or contribute fixes — community help is essential for robust support. I will rely on community contributions and reports to discover and resolve provider-specific issues that cannot be exercised in the project's automated tests._
+
+> ⚠️ **Note on testing and support**
+>
+> **DocumentDB-compatible providers (such as AWS DocumentDB) are similarly less well-tested in this project due to limited access to those managed services during development. The `DocumentDbStorageOptions` and DocumentDB-specific code paths have been designed to be conservative, but if you find bugs or provider-specific issues please report them or contribute fixes — community help is essential for robust support. I will rely on community contributions and reports to discover and resolve provider-specific issues that cannot be exercised in the project's automated tests.**
 
 Use `DocumentDbStorageOptions` (in `Hangfire.Mongo.DocumentDB`) when targeting DocumentDB-compatible services. The `DocumentDbStorageOptions` constructor narrows the UTC date/time strategies to use `IsMasterUtcDateTimeStrategy`, because unprivileged users on these services may not be able to run higher-privileged commands used by other strategies.
 
