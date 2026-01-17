@@ -198,16 +198,16 @@ namespace Hangfire.Mongo.Tests
             Commit(x => x.SetJobState(jobId, state));
 
             var testJob = GetTestJob(_database, jobId);
+            var stateHistory = GetTestJobState(_database, jobId);
             Assert.Equal("State", testJob.StateName);
-            Assert.Single(testJob.StateHistory);
+            Assert.Single(stateHistory);
 
             var anotherTestJob = GetTestJob(_database, anotherJobId);
+            var anotherStateHistory = GetTestJobState(_database, anotherJobId);
             Assert.Null(anotherTestJob.StateName);
-            Assert.Empty(anotherTestJob.StateHistory);
-
-            var jobWithStates = new JobDto(_database.JobGraph.Find(new BsonDocument("_t", nameof(JobDto))).First());
-
-            var jobState = jobWithStates.StateHistory.Single();
+            Assert.Empty(anotherStateHistory);
+            
+            var jobState = stateHistory.Single().State;
             Assert.Equal("State", jobState.Name);
             Assert.Equal("Reason", jobState.Reason);
             Assert.Equal(serializedData, jobState.Data);
@@ -237,10 +237,9 @@ namespace Hangfire.Mongo.Tests
 
             var testJob = GetTestJob(_database, jobId);
             Assert.Null(testJob.StateName);
+            var stateHistory = GetTestJobState(_database, jobId);
 
-            var jobWithStates = new JobDto(_database.JobGraph.Find(new BsonDocument("_t", nameof(JobDto))).Single());
-
-            var jobState = jobWithStates.StateHistory.Last();
+            var jobState = stateHistory.Last().State;
             Assert.Equal("State", jobState.Name);
             Assert.Equal("Reason", jobState.Reason);
             Assert.Equal(serializedData, jobState.Data);
@@ -1038,6 +1037,16 @@ namespace Hangfire.Mongo.Tests
             };
             var document = database.JobGraph.Find(filter).FirstOrDefault();
             return document == null ? null : new JobDto(document);
+        }
+        
+        private static JobStateHistoryDto[] GetTestJobState(HangfireDbContext database, string jobId)
+        {
+            var filter = new BsonDocument
+            {
+                ["JobId"] = ObjectId.Parse(jobId)
+            };
+            var documents = database.StateHistory.Find(filter).ToList();
+            return documents.Select(doc => new JobStateHistoryDto(doc)).ToArray();
         }
 
         private static IList<SetDto> GetTestSet(HangfireDbContext database, string key)

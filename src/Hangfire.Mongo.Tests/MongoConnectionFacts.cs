@@ -229,49 +229,35 @@ namespace Hangfire.Mongo.Tests
                 Name = "old-state",
                 CreatedAt = DateTime.UtcNow
             };
-            var jobDto = new JobDto
+            var jobId = ObjectId.GenerateNewId();
+
+            // Insert old state history entry
+            var oldStateHistory = new JobStateHistoryDto
             {
                 Id = ObjectId.GenerateNewId(),
-                InvocationData = "",
-                Arguments = "",
-                StateName = "",
-                CreatedAt = DateTime.UtcNow,
-                StateHistory = new[] { state }
+                JobId = jobId,
+                State = state
             };
+            _dbContext.StateHistory.InsertOne(oldStateHistory.Serialize());
 
-            _dbContext.JobGraph.InsertOne(jobDto.Serialize());
-            var jobId = jobDto.Id;
-
-            var update = new BsonDocument
+            // Insert new state history entry
+            var newStateHistory = new JobStateHistoryDto
             {
-                ["$set"] = new BsonDocument
+                Id = ObjectId.GenerateNewId(),
+                JobId = jobId,
+                State = new StateDto
                 {
-                    [nameof(JobDto.StateName)] = state.Name
-                },
-                ["$push"] = new BsonDocument
-                {
-                    [nameof(JobDto.StateHistory)] = new StateDto
-                    {
-                        Name = "Name",
-                        Reason = "Reason",
-                        Data = data,
-                        CreatedAt = DateTime.UtcNow
-                    }.Serialize()
+                    Name = "new-state",
+                    Reason = "Reason",
+                    Data = data,
+                    CreatedAt = DateTime.UtcNow
                 }
             };
-
-            var filter = new BsonDocument
-            {
-                ["_id"] = jobId,
-                ["_t"] = nameof(JobDto),
-            };
-
-            _dbContext.JobGraph.UpdateOne(filter, update);
-
+            _dbContext.StateHistory.InsertOne(newStateHistory.Serialize());
             var result = _connection.GetStateData(jobId.ToString());
             Assert.NotNull(result);
 
-            Assert.Equal("Name", result.Name);
+            Assert.Equal("new-state", result.Name);
             Assert.Equal("Reason", result.Reason);
             Assert.Equal("Value", result.Data["Key"]);
         }

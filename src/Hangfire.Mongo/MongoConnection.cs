@@ -7,7 +7,6 @@ using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.UtcDateTime;
 using Hangfire.Server;
 using Hangfire.Storage;
 using MongoDB.Bson;
@@ -168,22 +167,20 @@ namespace Hangfire.Mongo
             }
 
             var objectId = ObjectId.Parse(jobId);
-            var document = _dbContext
-                .JobGraph
-                .Find(new BsonDocument
-                {
-                    ["_id"] = objectId,
-                    ["_t"] = nameof(JobDto)
-                })
+            // Fetch the newest state from the StateHistory collection
+            var stateHistoryDoc = _dbContext
+                .StateHistory
+                .Find(new BsonDocument("JobId", objectId))
+                .Sort(new BsonDocument("_id", -1)) // Sort by _id descending to get the newest entry
                 .FirstOrDefault();
 
-            if (document == null)
+            if (stateHistoryDoc == null)
             {
                 return null;
             }
 
-            var jobDto = new JobDto(document);
-            var state = jobDto.StateHistory.LastOrDefault();
+            var jobHistoryDto = new JobStateHistoryDto(stateHistoryDoc);
+            var state = jobHistoryDto.State;
 
             if (state == null)
             {

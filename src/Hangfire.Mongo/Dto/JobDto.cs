@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using MongoDB.Bson;
 
 namespace Hangfire.Mongo.Dto
@@ -50,11 +49,6 @@ namespace Hangfire.Mongo.Dto
             }
 
             CreatedAt = doc[nameof(CreatedAt)].ToUniversalTime();
-            StateHistory = doc[nameof(StateHistory)]
-                .AsBsonArray
-                .Select(b => b.AsBsonDocument)
-                .Select(b => new StateDto(b))
-                .ToArray();
         }
 
         public string StateName { get; set; }
@@ -64,9 +58,7 @@ namespace Hangfire.Mongo.Dto
         public string Arguments { get; set; }
 
         public Dictionary<string, string> Parameters { get; set; } = new Dictionary<string, string>();
-
-        public StateDto[] StateHistory { get; set; } = new StateDto[0];
-
+        
         public DateTime CreatedAt { get; set; }
 
         public DateTime? FetchedAt { get; set; }
@@ -87,12 +79,6 @@ namespace Hangfire.Mongo.Dto
                 parameters[p.Key] = p.Value.ToBsonValue();
             }
             doc[nameof(Parameters)] = parameters;
-            var history = new BsonArray();
-            foreach (var h in StateHistory)
-            {
-                history.Add(h.Serialize());
-            }
-            doc[nameof(StateHistory)] = history;
             doc[nameof(CreatedAt)] = CreatedAt.ToUniversalTime();
             doc["_t"].AsBsonArray.Add(nameof(JobDto));
         }

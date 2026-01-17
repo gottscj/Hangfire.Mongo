@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
-using Hangfire.Mongo.Migration;
 using Hangfire.Server;
 using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace Hangfire.Mongo
 {
@@ -14,7 +15,6 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoExpirationManager : IBackgroundProcess, IServerComponent
     {
-        private readonly MongoStorageOptions _options;
         private static readonly ILog Logger = LogProvider.For<MongoExpirationManager>();
 
         private readonly HangfireDbContext _dbContext;
@@ -28,7 +28,6 @@ namespace Hangfire.Mongo
         public MongoExpirationManager(HangfireDbContext dbContext, MongoStorageOptions options)
         {
             _dbContext = dbContext;
-            _options = options;
             _checkInterval = options.JobExpirationCheckInterval;
         }
 
@@ -47,23 +46,36 @@ namespace Hangfire.Mongo
         /// <param name="cancellationToken">Cancellation token</param>
         public void Execute(CancellationToken cancellationToken)
         {
-            var result = _dbContext
-                .JobGraph
-                .DeleteMany(new BsonDocument
-                {
-                    ["_t"] = nameof(ExpiringJobDto),
-                    [nameof(ExpiringJobDto.ExpireAt)] = new BsonDocument
-                    {
-                        ["$lt"] = DateTime.UtcNow
-                    }
-                });
-
-            if(Logger.IsDebugEnabled())
+            var filter = new BsonDocument
             {
-                Logger.DebugFormat($"Removed {result.DeletedCount} outdated " +
-                               $"documents from '{_dbContext.JobGraph.CollectionNamespace.CollectionName}'.");                
+                ["_t"] = nameof(ExpiringJobDto),
+                [nameof(ExpiringJobDto.ExpireAt)] = new BsonDocument
+                {
+                    ["$lt"] = DateTime.UtcNow
+                }
+            };
+            var expiredJobIds = _dbContext.JobGraph
+                .Find(filter)
+                .Project(j => j["_id"])
+                .ToList();
+            var deleteFilter = new BsonDocument
+            {
+                [nameof(JobStateHistoryDto.JobId)] = new BsonDocument("$in", new BsonArray(expiredJobIds))
+            };
+            
+            if (expiredJobIds.Any())
+            {
+                _dbContext.StateHistory.DeleteMany(deleteFilter);
             }
             
+            var result = _dbContext.JobGraph.DeleteMany(filter);
+
+            if (Logger.IsDebugEnabled())
+            {
+                Logger.DebugFormat($"Removed {result.DeletedCount} outdated " +
+                                   $"documents from '{_dbContext.JobGraph.CollectionNamespace.CollectionName}'.");
+            }
+
             cancellationToken.WaitHandle.WaitOne(_checkInterval);
         }
     }

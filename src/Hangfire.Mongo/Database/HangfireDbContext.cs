@@ -57,6 +57,11 @@ namespace Hangfire.Mongo.Database
         public IMongoCollection<BsonDocument> JobGraph => Database.GetCollection<BsonDocument>(_prefix + ".jobGraph");
 
         /// <summary>
+        /// Reference to job history collection
+        /// </summary>
+        public IMongoCollection<BsonDocument> StateHistory => Database.GetCollection<BsonDocument>(_prefix + ".stateHistory");
+        
+        /// <summary>
         /// Reference to collection which contains distributed locks
         /// </summary>
         public IMongoCollection<BsonDocument> DistributedLock => Database
