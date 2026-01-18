@@ -74,7 +74,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version20
                     ["FetchedAt"] = BsonNull.Value,
                     ["StateName"] = new BsonDocument("$ne", BsonNull.Value)
                 })
-                .Project(new BsonDocument(nameof(JobDto.StateHistory), 1))
+                .Project(new BsonDocument("StateHistory", 1))
                 .ToCursor();
 
             

@@ -30,7 +30,6 @@ namespace Hangfire.Mongo.Dto
                     Data[b.Name] = b.Value.StringOrNull();
                 }
             }
-            
         }
         public string Name { get; set; }
 

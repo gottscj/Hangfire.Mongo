@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework Condition=" '$(OS)' != 'Windows_NT' ">netstandard2.1</TargetFramework>
-        <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">net472;netstandard2.1</TargetFrameworks>
+        <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">net48;netstandard2.1</TargetFrameworks>
         <NoWarn>$(NoWarn);CS0618;</NoWarn>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -12,10 +12,11 @@
         <owners>Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB DocumentDb Azure AWS Atlas Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.12.2
-            - Update to Hangfire.Core 1.8.22
-            - Fixes IsMasterUtcDateTimeStrategy for cosmosdb is unix timestamp. (#436)
-            - Simplify tests (by @0xced)
+        <PackageReleaseNotes>1.13.0
+            - BREAKING: Remove StateHistory from JobDto and move to separate collection for improved performance and scalability
+            - BREAKING: Drop net472 target framework, now targeting netstandard2.1 and net48
+            - Add migration lock heartbeat timer to prevent timeout during long-running migrations
+            - Update to MongoDB.Driver 3.6.0
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -28,7 +29,7 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Hangfire.Core" Version="1.8.22" />
-        <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
+        <PackageReference Include="MongoDB.Driver" Version="3.6.0" />
     </ItemGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">

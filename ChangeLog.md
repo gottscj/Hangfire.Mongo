@@ -1,6 +1,12 @@
 
 ## Change log
 
+### 1.13.0
+- BREAKING: Remove StateHistory from JobDto and move to separate collection for improved performance and scalability
+- BREAKING: Drop net472 target framework, now targeting netstandard2.1 and net48
+- Add migration lock heartbeat timer to prevent timeout during long-running migrations
+- Update to MongoDB.Driver 3.6.0
+
 ### 1.12.2
 - Update to Hangfire.Core 1.8.22
 - Fixes IsMasterUtcDateTimeStrategy for cosmosdb is unix timestamp. (#436)

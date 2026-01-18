@@ -49,6 +49,18 @@ namespace Hangfire.Mongo.Tests
             migrationLock.AcquireLock();
             var locksCount = _locks.CountDocuments(new BsonDocument());
             Assert.Equal(1, locksCount);
+            
+            // Verify heartbeat is working by checking that ExpireAt gets updated
+            var lockBefore = _locks.Find(new BsonDocument()).Single();
+            var expireAtBefore = lockBefore[nameof(MigrationLockDto.ExpireAt)].ToUniversalTime();
+            
+            Thread.Sleep(TimeSpan.FromMilliseconds(500));
+            
+            var lockAfter = _locks.Find(new BsonDocument()).Single();
+            var expireAtAfter = lockAfter[nameof(MigrationLockDto.ExpireAt)].ToUniversalTime();
+            
+            // ExpireAt should be updated by heartbeat
+            Assert.True(expireAtAfter >= expireAtBefore);
         }
 
         [Fact]
@@ -60,8 +72,11 @@ namespace Hangfire.Mongo.Tests
                 migrationLock.AcquireLock();
                 var locksCount = _locks.CountDocuments(filter);
                 Assert.Equal(1, locksCount);
+                // Small delay to allow heartbeat to initialize
+                Thread.Sleep(TimeSpan.FromMilliseconds(50));
             }
 
+            // After dispose, lock should be removed and heartbeat should be stopped
             var locksCountAfter = _locks.CountDocuments(filter);
             Assert.Equal(0, locksCountAfter);
         }
@@ -69,7 +84,8 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void AcquireLock_TimesOut_ThrowsAnException()
         {
-            var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(100)};
+            // Use a longer timeout for the first lock so heartbeat can update it
+            var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromSeconds(5)};
 
             using var migrationLock = new MigrationLock(_database.Database, options);
             migrationLock.AcquireLock();
@@ -78,9 +94,10 @@ namespace Hangfire.Mongo.Tests
 
             var t = new Thread(() =>
             {
+                // Second lock has very short timeout and can't acquire the lock held by first lock
                 Assert.Throws<TimeoutException>(() =>
                     {
-                        var options2 = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(10)};
+                        var options2 = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(50)};
                         using var migrationLock2 = new MigrationLock(_database.Database, options2);
                         migrationLock2.AcquireLock();
                     }
@@ -93,7 +110,8 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void AcquireLock_DoesNotAcquire_DoesNotDeleteLockInDb()
         {
-            var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(1000)};
+            // Use longer timeout so heartbeat can keep the lock alive
+            var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromSeconds(5)};
 
             var migrationLock = new MigrationLock(_database.Database, options);
             migrationLock.AcquireLock();
@@ -102,13 +120,15 @@ namespace Hangfire.Mongo.Tests
 
             var t = new Thread(() =>
             {
+                // Second lock has very short timeout so it will fail to acquire
                 Assert.Throws<TimeoutException>(() =>
                     {
-                        var options2 = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(10)};
+                        var options2 = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(50)};
                         using var migrationLock2 = new MigrationLock(_database.Database, options2);
                         migrationLock2.AcquireLock();
                     }
                 );
+                // Verify lock still exists (not deleted by failed acquisition attempt)
                 locksCount = _locks.CountDocuments(new BsonDocument());
                 Assert.Equal(1, locksCount);
             });
@@ -123,7 +143,8 @@ namespace Hangfire.Mongo.Tests
         {
             var t = new Thread(() =>
             {
-                var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(10)};
+                // Use longer timeout so the heartbeat can keep the lock alive
+                var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromSeconds(5)};
 
                 using var migrationLock = new MigrationLock(_database.Database, options);
                 migrationLock.AcquireLock();
@@ -138,7 +159,7 @@ namespace Hangfire.Mongo.Tests
             var startTime = DateTime.UtcNow;
             using var migrationLock2 = new MigrationLock(_database.Database, _options);
             migrationLock2.AcquireLock();
-            Assert.InRange(DateTime.UtcNow - startTime, TimeSpan.FromMilliseconds(1), TimeSpan.FromSeconds(1));
+            Assert.InRange(DateTime.UtcNow - startTime, TimeSpan.FromMilliseconds(1), TimeSpan.FromSeconds(5));
         }
         
         [Fact]

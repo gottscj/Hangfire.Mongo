@@ -29,6 +29,7 @@ namespace Hangfire.Mongo
         private readonly Dictionary<string, MongoJobUpdates> _jobUpdates = new();
         private MongoDistributedLock _distributedLock;
         private readonly List<MongoFetchedJob> _removedJobs = new();
+        private readonly List<JobStateHistoryDto> _jobStateHistory = new();
 
         protected HashSet<string> JobsAddedToQueue { get; }
 
@@ -161,13 +162,14 @@ namespace Hangfire.Mongo
                 Reason = state.Reason,
                 CreatedAt = DateTime.UtcNow,
                 Data = state.SerializeData()
-            }.Serialize();
+            };
 
             var updates = GetOrAddJobUpdates(jobId);
             updates.Set[nameof(JobDto.StateName)] = state.Name;
-            updates.Pushes.Add(new BsonDocument
+            _jobStateHistory.Add(new JobStateHistoryDto
             {
-                [nameof(JobDto.StateHistory)] = stateDto
+                JobId = ObjectId.Parse(jobId),
+                State = stateDto
             });
         }
 
@@ -179,12 +181,12 @@ namespace Hangfire.Mongo
                 Reason = state.Reason,
                 CreatedAt = DateTime.UtcNow,
                 Data = state.SerializeData()
-            }.Serialize();
+            };
 
-            var updates = GetOrAddJobUpdates(jobId);
-            updates.Pushes.Add(new BsonDocument
+            _jobStateHistory.Add(new JobStateHistoryDto
             {
-                [nameof(JobDto.StateHistory)] = stateDto
+                JobId = ObjectId.Parse(jobId),
+                State = stateDto
             });
         }
 
@@ -441,32 +443,36 @@ namespace Hangfire.Mongo
                 _writeModels.Add(updateModel);
             }
 
-            if (!_writeModels.Any())
+            if (_writeModels.Any())
             {
-                return;
+                var jobs = DbContext
+                    .Database
+                    .GetCollection<BsonDocument>(DbContext.JobGraph.CollectionNamespace.CollectionName);
+
+                var bulkWriteOptions = new BulkWriteOptions
+                {
+                    IsOrdered = true,
+                    BypassDocumentValidation = false
+                };
+            
+                Stopwatch sw = null;
+                if (Logger.IsTraceEnabled())
+                {
+                    sw = Stopwatch.StartNew();
+                }
+            
+                ExecuteCommit(jobs, _writeModels, bulkWriteOptions);
+                if (Logger.IsTraceEnabled() && sw != null)
+                {
+                    Log(_writeModels, sw.ElapsedMilliseconds);
+                }
             }
 
-            var jobGraph = DbContext
-                .Database
-                .GetCollection<BsonDocument>(DbContext.JobGraph.CollectionNamespace.CollectionName);
-
-            var bulkWriteOptions = new BulkWriteOptions
+            if (_jobStateHistory.Any())
             {
-                IsOrdered = true,
-                BypassDocumentValidation = false
-            };
-            
-            Stopwatch sw = null;
-            if (Logger.IsTraceEnabled())
-            {
-                sw = Stopwatch.StartNew();
-            }
-            
-            ExecuteCommit(jobGraph, _writeModels, bulkWriteOptions);
-
-            if (Logger.IsTraceEnabled() && sw != null)
-            {
-                Log(_writeModels, sw.ElapsedMilliseconds);
+                DbContext
+                    .StateHistory
+                    .InsertMany(_jobStateHistory.Select(h => h.Serialize()));
             }
             
             _removedJobs.ForEach(j => j.SetRemoved());

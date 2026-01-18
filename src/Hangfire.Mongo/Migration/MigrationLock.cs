@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Logging;
 using Hangfire.Mongo.Dto;
 using MongoDB.Bson;
@@ -22,6 +23,8 @@ namespace Hangfire.Mongo.Migration
         private readonly IMongoCollection<BsonDocument> _migrationLock;
         private bool _disposed;
         private bool _isLockAcquired;
+        private CancellationTokenSource _heartbeatCancellation;
+        private Task _heartbeatTask;
         
         /// <summary>
         /// ctor
@@ -59,7 +62,6 @@ namespace Hangfire.Mongo.Migration
                 // If result is null, then it means we acquired the lock
                 _isLockAcquired = false;
                 var now = DateTime.UtcNow;
-                // wait maximum double of configured seconds for migration to complete
                 var lockTimeoutTime = now.Add(_timeout);
                 var filter = new BsonDocument("_id", LockId);
                 // Acquire the lock if it does not exist - Notice: ReturnDocument.Before
@@ -111,6 +113,9 @@ namespace Hangfire.Mongo.Migration
                                                         "Either another server did not complete the migration or migration was abruptly interrupted\r\n" +
                                                         $"If migration has been interrupted you need to manually delete '{_migrationLock.CollectionNamespace.CollectionName}' and start again.");
                 }
+                
+                // Start heartbeat timer to keep lock alive during long-running migrations
+                StartHeartbeat();
             }
             catch (TimeoutException)
             {
@@ -149,6 +154,76 @@ namespace Hangfire.Mongo.Migration
             return DateTime.UtcNow;
         }
 
+        /// <summary>
+        /// Starts the heartbeat timer to keep the lock alive during long-running migrations
+        /// </summary>
+        private void StartHeartbeat()
+        {
+            _heartbeatCancellation = new CancellationTokenSource();
+            var interval = TimeSpan.FromSeconds(Math.Max(1, _timeout.TotalSeconds / 3));
+            
+            _heartbeatTask = Task.Run(async () =>
+            {
+                while (!_heartbeatCancellation.Token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await Task.Delay(interval, _heartbeatCancellation.Token);
+                        
+                        if (_heartbeatCancellation.Token.IsCancellationRequested)
+                        {
+                            break;
+                        }
+                        
+                        UpdateHeartbeat();
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Expected when cancellation is requested
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Error updating migration lock heartbeat: {ex}");
+                    }
+                }
+            });
+        }
+
+        /// <summary>
+        /// Updates the ExpireAt field to extend the lock timeout
+        /// </summary>
+        private void UpdateHeartbeat()
+        {
+            try
+            {
+                var newExpireAt = DateTime.UtcNow.Add(_timeout);
+                var filter = new BsonDocument("_id", LockId);
+                var update = new BsonDocument
+                {
+                    ["$set"] = new BsonDocument
+                    {
+                        [nameof(MigrationLockDto.ExpireAt)] = newExpireAt
+                    }
+                };
+                
+                var result = _migrationLock.UpdateOne(filter, update);
+                
+                if (result.MatchedCount == 0)
+                {
+                    Logger.Warn("Migration lock was not found during heartbeat update. Lock may have been lost.");
+                }
+                else if (Logger.IsDebugEnabled())
+                {
+                    Logger.Debug("Updated migration lock heartbeat");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to update migration lock heartbeat: {ex}");
+            }
+        }
+
         /// <inheritdoc />
         public void Dispose()
         {
@@ -158,6 +233,24 @@ namespace Hangfire.Mongo.Migration
             }
 
             _disposed = true;
+
+            // Stop the heartbeat timer before releasing the lock
+            if (_heartbeatCancellation != null)
+            {
+                _heartbeatCancellation.Cancel();
+                try
+                {
+                    _heartbeatTask?.Wait(TimeSpan.FromSeconds(5));
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Error waiting for heartbeat task to complete: {ex}");
+                }
+                finally
+                {
+                    _heartbeatCancellation?.Dispose();
+                }
+            }
 
             if (_isLockAcquired)
             {

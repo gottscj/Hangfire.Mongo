@@ -19,8 +19,8 @@ namespace Hangfire.Mongo.Migration
             switch (schema)
             {
                 case MongoSchema.None:
-                    return new[]
-                    {
+                    return
+                    [
                         "_identifiers", // A bug prevented the use of prefix
                         prefix + ".aggregatedcounter",
                         prefix + ".counter",
@@ -32,12 +32,12 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".locks",
                         prefix + ".server",
                         prefix + ".set",
-                        prefix + ".state",
-                    };
+                        prefix + ".state"
+                    ];
 
                 case MongoSchema.Version04:
-                    return new[]
-                    {
+                    return
+                    [
                         "_identifiers", // A bug prevented the use of prefix
                         prefix + ".aggregatedcounter",
                         prefix + ".counter",
@@ -50,12 +50,12 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".schema",
                         prefix + ".server",
                         prefix + ".set",
-                        prefix + ".state",
-                    };
+                        prefix + ".state"
+                    ];
 
                 case MongoSchema.Version05:
-                    return new[]
-                    {
+                    return
+                    [
                         "_identifiers", // A bug prevented the use of prefix
                         prefix + ".aggregatedcounter",
                         prefix + ".counter",
@@ -68,38 +68,38 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".schema",
                         prefix + ".server",
                         prefix + ".set",
-                        prefix + ".state",
-                    };
+                        prefix + ".state"
+                    ];
 
                 case MongoSchema.Version06:
-                    return new[]
-                    {
+                    return
+                    [
                         prefix + ".job",
                         prefix + ".jobQueue",
                         prefix + ".locks",
                         prefix + ".schema",
                         prefix + ".server",
                         prefix + ".statedata"
-                    };
+                    ];
 
                 case MongoSchema.Version07:
                 case MongoSchema.Version08:
-                    return new[]
-                    {
+                    return
+                    [
                         prefix + ".job",
                         prefix + ".jobQueue",
                         prefix + ".locks",
                         prefix + ".schema",
                         prefix + ".server",
                         prefix + ".stateData"
-                    };
+                    ];
 
                 case MongoSchema.Version09:
                 case MongoSchema.Version10:
                 case MongoSchema.Version11:
                 case MongoSchema.Version12:
-                    return new[]
-                    {
+                    return
+                    [
                         prefix + ".job",
                         prefix + ".jobQueue",
                         prefix + ".locks",
@@ -107,41 +107,51 @@ namespace Hangfire.Mongo.Migration
                         prefix + ".server",
                         prefix + ".signal",
                         prefix + ".stateData"
-                    };
+                    ];
 
                 case MongoSchema.Version13:
                 case MongoSchema.Version14:
-                    return new[]
-                    {
+                    return
+                    [
                         prefix + ".jobGraph",
                         prefix + ".locks",
                         prefix + ".schema",
                         prefix + ".server",
                         prefix + ".signal"
-                    };
+                    ];
                 case MongoSchema.Version15:
                 case MongoSchema.Version16:
-                    return new[]
-                    {
+                    return
+                    [
                         prefix + ".jobGraph",
                         prefix + ".locks",
                         prefix + ".schema",
                         prefix + ".server"
-                    };
+                    ];
                 case MongoSchema.Version17:
                 case MongoSchema.Version18:
                 case MongoSchema.Version19:
                 case MongoSchema.Version20:
                 case MongoSchema.Version21:
                 case MongoSchema.Version22:
-                    return new[]
-                    {
+                    return
+                    [
                         prefix + ".jobGraph",
                         prefix + ".locks",
                         prefix + ".schema",
                         prefix + ".server",
                         prefix + ".notifications"
-                    };
+                    ];
+                case MongoSchema.Version23:
+                    return
+                    [
+                        prefix + ".jobGraph",
+                        prefix + ".locks",
+                        prefix + ".schema",
+                        prefix + ".server",
+                        prefix + ".notifications",
+                        prefix + ".stateHistory"
+                    ];
                 default:
                     throw new ArgumentException($@"Unknown schema: '{schema}'", nameof(schema));
             }

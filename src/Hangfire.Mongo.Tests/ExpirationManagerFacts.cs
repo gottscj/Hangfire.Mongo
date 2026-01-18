@@ -198,6 +198,136 @@ namespace Hangfire.Mongo.Tests
                 .Count(new BsonDocument("_t", nameof(CounterDto))));
         }
 
+        [Fact]
+        public void Execute_Processes_StateHistoryTable_RemovesExpiredEntries()
+        {
+            // Arrange
+            var jobId = ObjectId.GenerateNewId();
+            var expiredJobDto = new JobDto
+            {
+                Id = jobId,
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow,
+                ExpireAt = DateTime.UtcNow.AddMonths(-1)
+            };
+            _dbContext.JobGraph.InsertOne(expiredJobDto.Serialize());
+
+            // Add StateHistory entries for the expired job
+            _dbContext.StateHistory.InsertOne(new JobStateHistoryDto
+            {
+                JobId = jobId,
+                State = new StateDto { Name = "Succeeded" }
+            }.Serialize());
+
+            _dbContext.StateHistory.InsertOne(new JobStateHistoryDto
+            {
+                JobId = jobId,
+                State = new StateDto { Name = "Processing" }
+            }.Serialize());
+
+            var manager = CreateManager();
+
+            // Act
+            manager.Execute(_token);
+
+            // Assert
+            var stateHistoryCount = _dbContext.StateHistory.Count(new BsonDocument(nameof(JobStateHistoryDto.JobId), jobId));
+            Assert.Equal(0, stateHistoryCount);
+        }
+
+        [Fact]
+        public void Execute_Processes_StateHistoryTable_KeepsNonExpiredEntries()
+        {
+            // Arrange
+            var jobId = ObjectId.GenerateNewId();
+            var nonExpiredJobDto = new JobDto
+            {
+                Id = jobId,
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow,
+                ExpireAt = DateTime.UtcNow.AddMonths(1)
+            };
+            _dbContext.JobGraph.InsertOne(nonExpiredJobDto.Serialize());
+
+            // Add StateHistory entries for the non-expired job
+            _dbContext.StateHistory.InsertOne(new JobStateHistoryDto
+            {
+                JobId = jobId,
+                State = new StateDto { Name = "Succeeded" }
+            }.Serialize());
+
+            var manager = CreateManager();
+
+            // Act
+            manager.Execute(_token);
+
+            // Assert
+            var stateHistoryCount = _dbContext.StateHistory.Count(new BsonDocument(nameof(JobStateHistoryDto.JobId), jobId));
+            Assert.Equal(1, stateHistoryCount);
+        }
+
+        [Fact]
+        public void Execute_Removes_StateHistoryAndJobEntries_Together()
+        {
+            // Arrange
+            var expiredJobId = ObjectId.GenerateNewId();
+            var nonExpiredJobId = ObjectId.GenerateNewId();
+
+            // Insert expired job
+            _dbContext.JobGraph.InsertOne(new JobDto
+            {
+                Id = expiredJobId,
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow,
+                ExpireAt = DateTime.UtcNow.AddMonths(-1)
+            }.Serialize());
+
+            // Insert non-expired job
+            _dbContext.JobGraph.InsertOne(new JobDto
+            {
+                Id = nonExpiredJobId,
+                InvocationData = "",
+                Arguments = "",
+                CreatedAt = DateTime.UtcNow,
+                ExpireAt = DateTime.UtcNow.AddMonths(1)
+            }.Serialize());
+
+            // Add StateHistory entries for both jobs
+            _dbContext.StateHistory.InsertOne(new JobStateHistoryDto
+            {
+                JobId = expiredJobId,
+                State = new StateDto { Name = "Succeeded" }
+            }.Serialize());
+
+            _dbContext.StateHistory.InsertOne(new JobStateHistoryDto
+            {
+                JobId = nonExpiredJobId,
+                State = new StateDto { Name = "Succeeded" }
+            }.Serialize());
+
+            var manager = CreateManager();
+
+            // Act
+            manager.Execute(_token);
+
+            // Assert - expired job and its history should be deleted
+            var expiredJobCount = _dbContext.JobGraph.Count(new BsonDocument("_id", expiredJobId));
+            Assert.Equal(0, expiredJobCount);
+
+            var expiredHistoryCount = _dbContext.StateHistory.Count(new BsonDocument(nameof(JobStateHistoryDto.JobId), expiredJobId));
+            Assert.Equal(0, expiredHistoryCount);
+
+            // Non-expired job and its history should remain
+            var nonExpiredJobCount = _dbContext.JobGraph.Count(new BsonDocument("_id", nonExpiredJobId));
+            Assert.Equal(1, nonExpiredJobCount);
+
+            var nonExpiredHistoryCount = _dbContext.StateHistory.Count(new BsonDocument(nameof(JobStateHistoryDto.JobId), nonExpiredJobId));
+            Assert.Equal(1, nonExpiredHistoryCount);
+        }
+
 
 
         private static void CreateExpirationEntries(HangfireDbContext connection, DateTime? expireAt)

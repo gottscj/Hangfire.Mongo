@@ -13,10 +13,12 @@ namespace Hangfire.Mongo.Tests.Utils;
 public sealed class MongoIntegrationTestFixture(IMessageSink messageSink) : ContainerFixture<MongoDbBuilder, MongoDbContainer>(messageSink)
 {
     private const string DefaultDatabaseName = @"Hangfire-Mongo-Tests";
-
-    protected override MongoDbBuilder Configure(MongoDbBuilder builder)
+    
+    protected override MongoDbBuilder Configure()
     {
-        return builder.WithImage("mongo:7.0").WithReplicaSet();
+        return new MongoDbBuilder()
+            .WithImage("mongo:7.0")
+            .WithReplicaSet();
     }
 
     public MongoStorage CreateStorage(string databaseName = null)

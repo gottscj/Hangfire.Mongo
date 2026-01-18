@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Description />
     <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
     <Copyright>Copyright © 2014-2019 Sergey Zwezdin, Martin Lobger, Jonas Gottschau</Copyright>
@@ -23,9 +23,9 @@
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.22" />
     <PackageReference Include="Hangfire.Core" Version="1.8.22" />
     <PackageReference Include="jquery" Version="3.7.1" />
-    <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
+    <PackageReference Include="MongoDB.Driver" Version="3.6.0" />
     <PackageReference Include="Microsoft.VisualStudio.Web.BrowserLink" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.10" />
-    <PackageReference Include="Testcontainers.MongoDb" Version="4.8.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.2" />
+    <PackageReference Include="Testcontainers.MongoDb" Version="4.10.0" />
   </ItemGroup>
 </Project>
