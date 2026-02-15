@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/Hangfire.Mongo.Sample.ASPNetCore/bin/Debug/net6.0/Hangfire.Mongo.Sample.ASPNetCore.dll",
+            "program": "${workspaceFolder}/src/Hangfire.Mongo.Sample.ASPNetCore/bin/Debug/net10.0/Hangfire.Mongo.Sample.ASPNetCore.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/Hangfire.Mongo.Sample.ASPNetCore",
             "stopAtEntry": false,
