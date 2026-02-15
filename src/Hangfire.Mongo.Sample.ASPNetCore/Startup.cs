@@ -68,7 +68,6 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         {
             app.UseHangfireDashboard();
             app.UseDeveloperExceptionPage();
-            app.UseBrowserLink();
 
             app.UseStaticFiles();
 

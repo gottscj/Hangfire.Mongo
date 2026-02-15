@@ -61,7 +61,6 @@ namespace Hangfire.Mongo.Sample.CosmosDB
         {
             app.UseHangfireDashboard();
             app.UseDeveloperExceptionPage();
-            app.UseBrowserLink();
 
             app.UseStaticFiles();
 

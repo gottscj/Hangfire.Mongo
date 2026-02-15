@@ -12,11 +12,9 @@
         <owners>Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB DocumentDb Azure AWS Atlas Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.13.0
-            - BREAKING: Remove StateHistory from JobDto and move to separate collection for improved performance and scalability
-            - BREAKING: Drop net472 target framework, now targeting netstandard2.1 and net48
-            - Add migration lock heartbeat timer to prevent timeout during long-running migrations
-            - Update to MongoDB.Driver 3.6.0
+        <PackageReleaseNotes>1.13.1
+            - Fix MonitoringAPI crashes when stateHistory is empty (DegJ) (#442)
+            - Update to Hangfire.Core 1.8.23
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -28,7 +26,7 @@
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.8.22" />
+        <PackageReference Include="Hangfire.Core" Version="1.8.23" />
         <PackageReference Include="MongoDB.Driver" Version="3.6.0" />
     </ItemGroup>
     <ItemGroup>

@@ -1,6 +1,10 @@
 
 ## Change log
 
+### 1.13.1
+- Fix MonitoringAPI crashes when stateHistory is empty (DegJ) (#442)
+- Update to Hangfire.Core 1.8.23
+
 ### 1.13.0
 - BREAKING: Remove StateHistory from JobDto and move to separate collection for improved performance and scalability
 - BREAKING: Drop net472 target framework, now targeting netstandard2.1 and net48
