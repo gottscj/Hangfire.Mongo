@@ -218,7 +218,7 @@ namespace Hangfire.Mongo
                     InvocationData = invocationData,
                     InProcessingState =
                         ProcessingState.StateName.Equals(jobSummary.StateName, StringComparison.OrdinalIgnoreCase),
-                    ServerId = stateData?.TryGetValue("ServerId", out var value) ?? false ? value : stateData["ServerName"],
+                    ServerId = stateData?.TryGetValue("ServerId", out var value) ?? false ? value : stateData?["ServerName"],
                     StartedAt = jobSummary.StateChanged,
                     StateData = stateData
                 });
