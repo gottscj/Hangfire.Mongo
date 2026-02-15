@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Hangfire.Common;
@@ -218,7 +218,7 @@ namespace Hangfire.Mongo
                     InvocationData = invocationData,
                     InProcessingState =
                         ProcessingState.StateName.Equals(jobSummary.StateName, StringComparison.OrdinalIgnoreCase),
-                    ServerId = stateData.TryGetValue("ServerId", out var value) ? value : stateData["ServerName"],
+                    ServerId = stateData?.TryGetValue("ServerId", out var value) ?? false ? value : stateData?["ServerName"],
                     StartedAt = jobSummary.StateChanged,
                     StateData = stateData
                 });
@@ -234,7 +234,7 @@ namespace Hangfire.Mongo
                     InvocationData = invocationData,
                     InScheduledState =
                         ScheduledState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
-                    EnqueueAt = JobHelper.DeserializeNullableDateTime(stateData["EnqueueAt"]) ?? DateTime.MinValue,
+                    EnqueueAt = JobHelper.DeserializeNullableDateTime(stateData?["EnqueueAt"]) ?? DateTime.MinValue,
                     ScheduledAt = sqlJob.StateChanged,
                     StateData = stateData
                 });
@@ -250,8 +250,8 @@ namespace Hangfire.Mongo
                     InvocationData = invocationData,
                     InSucceededState =
                         SucceededState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
-                    Result = stateData["Result"],
-                    TotalDuration = stateData.ContainsKey("PerformanceDuration") &&
+                    Result = stateData?["Result"],
+                    TotalDuration = (stateData?.ContainsKey("PerformanceDuration") ?? false) &&
                                     stateData.TryGetValue("Latency", out var value)
                         ? (long?) long.Parse(stateData["PerformanceDuration"]) + (long?) long.Parse(value)
                         : null,
@@ -270,9 +270,9 @@ namespace Hangfire.Mongo
                     InvocationData = invocationData,
                     InFailedState = FailedState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
                     Reason = sqlJob.StateReason,
-                    ExceptionDetails = stateData["ExceptionDetails"],
-                    ExceptionMessage = stateData["ExceptionMessage"],
-                    ExceptionType = stateData["ExceptionType"],
+                    ExceptionDetails = stateData?["ExceptionDetails"],
+                    ExceptionMessage = stateData?["ExceptionMessage"],
+                    ExceptionType = stateData?["ExceptionType"],
                     FailedAt = sqlJob.StateChanged,
                     StateData = stateData
                 });
@@ -390,7 +390,7 @@ namespace Hangfire.Mongo
                 [nameof(JobDto.Queue)] = new BsonDocument("$ne", BsonNull.Value)
             };
             var byQueue = new BsonDocument("_id", $"${nameof(JobDto.Queue)}");
-            
+
             var result = _dbContext.JobGraph.Aggregate<BsonDocument>(
                     new BsonDocument
                         []
