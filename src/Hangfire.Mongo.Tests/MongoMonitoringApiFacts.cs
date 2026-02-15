@@ -207,6 +207,16 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
+        public void MissingStateHistory_ReturnsFailedJobs_WhenJobHasNoStateHistory()
+        {
+            CreateJobInStateWithoutStateHistory(_database, ObjectId.GenerateNewId(1), FailedState.StateName);
+
+            var resultList = _monitoringApi.FailedJobs(From, PerPage);
+
+            Assert.Single(resultList);
+        }
+
+        [Fact]
         public void ProcessingJobs_ReturnsProcessingJobsOnly_WhenMultipleJobsExistsInProcessingSucceededAndEnqueuedState()
         {
             CreateJobInState(_database, ObjectId.GenerateNewId(1), ProcessingState.StateName);
@@ -456,7 +466,17 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(2, statistics.Queues);
         }
 
+        private JobDto CreateJobInStateWithoutStateHistory(HangfireDbContext dbContext, ObjectId jobId, string stateName, Func<JobDto, List<StateDto>, (JobDto, List<StateDto>)> visitor = null)
+        {
+           return InternalCreateJobInState(dbContext, jobId, stateName, false, visitor);
+        }
+
         private JobDto CreateJobInState(HangfireDbContext dbContext, ObjectId jobId, string stateName, Func<JobDto, List<StateDto>, (JobDto, List<StateDto>)> visitor = null)
+        {
+            return InternalCreateJobInState(dbContext, jobId, stateName, true, visitor);
+        }
+            
+        private JobDto InternalCreateJobInState(HangfireDbContext dbContext, ObjectId jobId, string stateName, bool withStateHistory, Func<JobDto, List<StateDto>, (JobDto, List<StateDto>)> visitor = null)
         {
             var job = Job.FromExpression(() => HangfireTestJobs.SampleMethod("wrong"));
 
@@ -523,20 +543,25 @@ namespace Hangfire.Mongo.Tests
 
             dbContext.JobGraph.InsertOne(jobDto.Serialize());
 
-            // Insert state history into the separate StateHistory collection
-            foreach (var state in stateHistory)
+            if (withStateHistory)
             {
-                var stateHistoryDto = new JobStateHistoryDto
+                // Insert state history into the separate StateHistory collection
+                foreach (var state in stateHistory)
                 {
-                    Id = ObjectId.GenerateNewId(),
-                    JobId = jobId,
-                    State = state
-                };
-                dbContext.StateHistory.InsertOne(stateHistoryDto.Serialize());
+                    var stateHistoryDto = new JobStateHistoryDto
+                    {
+                        Id = ObjectId.GenerateNewId(),
+                        JobId = jobId,
+                        State = state
+                    };
+                    dbContext.StateHistory.InsertOne(stateHistoryDto.Serialize());
+                }
             }
+            
 
             return jobDto;
         }
+
     }
 #pragma warning restore 1591
 }
