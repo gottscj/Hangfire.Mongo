@@ -5,6 +5,10 @@ namespace Hangfire.Mongo.Dto
 #pragma warning disable 1591
     public class JobStateHistoryDto : BaseJobDto
     {
+        public static JobStateHistoryDto Empty(ObjectId jobId) => new JobStateHistoryDto
+        {
+            Id = ObjectId.Empty, JobId = jobId, State = null
+        };
         public JobStateHistoryDto()
         {
         }
