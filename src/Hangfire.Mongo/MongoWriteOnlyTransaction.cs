@@ -435,6 +435,16 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
+            // Insert state history BEFORE updating jobs to prevent race conditions.
+            // This ensures that when GetStateData() reads the StateHistory collection,
+            // it always sees a consistent state with the job record about to be updated.
+            if (_jobStateHistory.Any())
+            {
+                DbContext
+                    .StateHistory
+                    .InsertMany(_jobStateHistory.Select(h => h.Serialize()));
+            }
+
             foreach (var kvp in _jobUpdates)
             {
                 var jobId = kvp.Key;
@@ -443,6 +453,8 @@ namespace Hangfire.Mongo
                 _writeModels.Add(updateModel);
             }
 
+            
+            
             if (_writeModels.Any())
             {
                 var jobs = DbContext
@@ -468,13 +480,7 @@ namespace Hangfire.Mongo
                 }
             }
 
-            if (_jobStateHistory.Any())
-            {
-                DbContext
-                    .StateHistory
-                    .InsertMany(_jobStateHistory.Select(h => h.Serialize()));
-            }
-            
+
             _removedJobs.ForEach(j => j.SetRemoved());
             _distributedLock?.Dispose();
 

@@ -1,6 +1,10 @@
 
 ## Change log
 
+### 1.13.2
+- Fix race condition in job state updates: State history is now inserted before job updates to ensure consistent state reads during job abortion checks (#445)
+- Update to MongoDB.Driver 3.7.1
+
 ### 1.13.1
 - Fix MonitoringAPI crashes when stateHistory is empty (DegJ) (#442)
 - Update to Hangfire.Core 1.8.23
