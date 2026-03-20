@@ -12,9 +12,9 @@
         <owners>Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB DocumentDb Azure AWS Atlas Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.13.1
-            - Fix MonitoringAPI crashes when stateHistory is empty (DegJ) (#442)
-            - Update to Hangfire.Core 1.8.23
+        <PackageReleaseNotes>1.13.2
+            - Fix race condition in job state updates: State history is now inserted before job updates to ensure consistent state reads during job abortion checks (#445)
+            - Update to MongoDB.Driver 3.7.1
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -27,7 +27,7 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Hangfire.Core" Version="1.8.23" />
-        <PackageReference Include="MongoDB.Driver" Version="3.6.0" />
+        <PackageReference Include="MongoDB.Driver" Version="3.7.1" />
     </ItemGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
