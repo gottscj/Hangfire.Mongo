@@ -124,6 +124,19 @@ namespace Hangfire.Mongo.Tests
 
             Assert.Contains("<username>:<password>", result);
         }
+
+        [Fact]
+        public void ToString_WithUnknownMechanism_ShowsMechanism()
+        {
+            var settings = MongoClientSettings.FromConnectionString(
+                "mongodb://localhost:27017/?authMechanism=PLAIN&authSource=%24external");
+            var storage = new MongoStorage(settings, "testdb", new MongoStorageOptions { CheckConnection = false, ByPassMigration = true });
+
+            var result = storage.ToString();
+
+            Assert.Contains("<PLAIN>", result);
+            Assert.DoesNotContain("<username>:<password>", result);
+        }
     }
 #pragma warning restore 1591
 }

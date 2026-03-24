@@ -256,6 +256,8 @@ namespace Hangfire.Mongo
                 $"Connection string: {CreateObscuredConnectionString()}, database name: {DatabaseName}, prefix: {StorageOptions.Prefix}";
         }
 
+        private const string PasswordAuthPlaceholder = "<username>:<password>";
+
         private string CreateObscuredConnectionString()
         {
             if (MongoClient.Settings?.Servers == null)
@@ -268,10 +270,11 @@ namespace Hangfire.Mongo
 
             var authDisplay = mechanism switch
             {
-                "MONGODB-AWS" => "<MONGODB-AWS>",
-                "MONGODB-X509" => "<MONGODB-X509>",
-                "GSSAPI" => "<GSSAPI>",
-                _ => "<username>:<password>"
+                null => PasswordAuthPlaceholder,
+                "SCRAM-SHA-1" => PasswordAuthPlaceholder,
+                "SCRAM-SHA-256" => PasswordAuthPlaceholder,
+                "DEFAULT" => PasswordAuthPlaceholder,
+                _ => $"<{mechanism}>"
             };
 
             return $"mongodb://{authDisplay}@{servers}";
