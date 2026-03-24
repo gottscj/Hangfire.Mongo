@@ -91,13 +91,14 @@ namespace Hangfire.Mongo.Tests
         public void ToString_WithPasswordAuth_ObscuresCredentials()
         {
             var settings = MongoClientSettings.FromConnectionString("mongodb://localhost:27017");
-            settings.Credential = new MongoCredential("SCRAM-SHA-256", new MongoInternalIdentity("admin", "user"), new PasswordEvidence("pass"));
+            settings.Credential = MongoCredential.CreateCredential("admin", "user", "pass");
             var storage = new MongoStorage(settings, "testdb", new MongoStorageOptions { CheckConnection = false, ByPassMigration = true });
 
             var result = storage.ToString();
 
             Assert.Contains("<username>:<password>", result);
-            Assert.DoesNotContain("user:pass", result);
+            Assert.DoesNotContain("mongodb://user", result);
+            Assert.DoesNotContain(":pass@", result);
         }
 
         [Fact]
@@ -114,7 +115,7 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void ToString_WithNoCredential_UsesPasswordPlaceholder()
+        public void ToString_WithNoCredential_UsesDefaultPlaceholder()
         {
             var settings = MongoClientSettings.FromConnectionString("mongodb://localhost:27017");
             var storage = new MongoStorage(settings, "testdb", new MongoStorageOptions { CheckConnection = false, ByPassMigration = true });
