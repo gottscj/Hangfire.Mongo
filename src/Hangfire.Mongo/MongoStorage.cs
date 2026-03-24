@@ -258,15 +258,23 @@ namespace Hangfire.Mongo
 
         private string CreateObscuredConnectionString()
         {
-            // Obscure the username and password for display purposes
-            string obscuredConnectionString = "mongodb://";
-            if (MongoClient.Settings != null && MongoClient.Settings.Servers != null)
+            if (MongoClient.Settings?.Servers == null)
             {
-                var servers = string.Join(",", MongoClient.Settings.Servers.Select(s => $"{s.Host}:{s.Port}"));
-                obscuredConnectionString = $"mongodb://<username>:<password>@{servers}";
+                return "mongodb://";
             }
 
-            return obscuredConnectionString;
+            var servers = string.Join(",", MongoClient.Settings.Servers.Select(s => $"{s.Host}:{s.Port}"));
+            var mechanism = MongoClient.Settings.Credential?.Mechanism;
+
+            var authDisplay = mechanism switch
+            {
+                "MONGODB-AWS" => "<MONGODB-AWS>",
+                "MONGODB-X509" => "<MONGODB-X509>",
+                "GSSAPI" => "<GSSAPI>",
+                _ => "<username>:<password>"
+            };
+
+            return $"mongodb://{authDisplay}@{servers}";
         }
     }
 }

@@ -84,5 +84,45 @@ namespace Hangfire.Mongo.Tests
         }
 
     }
+
+    public class MongoStorageToStringFacts
+    {
+        [Fact]
+        public void ToString_WithPasswordAuth_ObscuresCredentials()
+        {
+            var settings = MongoClientSettings.FromConnectionString("mongodb://localhost:27017");
+            settings.Credential = new MongoCredential("SCRAM-SHA-256", new MongoInternalIdentity("admin", "user"), new PasswordEvidence("pass"));
+            var storage = new MongoStorage(settings, "testdb", new MongoStorageOptions { CheckConnection = false, ByPassMigration = true });
+
+            var result = storage.ToString();
+
+            Assert.Contains("<username>:<password>", result);
+            Assert.DoesNotContain("user:pass", result);
+        }
+
+        [Fact]
+        public void ToString_WithMongoDbAwsAuth_ShowsMechanism()
+        {
+            var settings = MongoClientSettings.FromConnectionString(
+                "mongodb://localhost:27017/?authMechanism=MONGODB-AWS&authSource=%24external");
+            var storage = new MongoStorage(settings, "testdb", new MongoStorageOptions { CheckConnection = false, ByPassMigration = true });
+
+            var result = storage.ToString();
+
+            Assert.Contains("<MONGODB-AWS>", result);
+            Assert.DoesNotContain("<username>:<password>", result);
+        }
+
+        [Fact]
+        public void ToString_WithNoCredential_UsesPasswordPlaceholder()
+        {
+            var settings = MongoClientSettings.FromConnectionString("mongodb://localhost:27017");
+            var storage = new MongoStorage(settings, "testdb", new MongoStorageOptions { CheckConnection = false, ByPassMigration = true });
+
+            var result = storage.ToString();
+
+            Assert.Contains("<username>:<password>", result);
+        }
+    }
 #pragma warning restore 1591
 }
