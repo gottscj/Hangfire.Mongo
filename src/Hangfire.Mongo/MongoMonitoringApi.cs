@@ -83,28 +83,14 @@ namespace Hangfire.Mongo
             }
 
             var job = new JobDto(jobDoc);
-
-            // Fetch state history from StateHistory collection
-            var stateHistoryFilter = new BsonDocument
-            {
-                [nameof(JobStateHistoryDto.JobId)] = id,
-                ["_t"] = nameof(JobStateHistoryDto)
-            };
-            var stateHistoryDocs = _dbContext.StateHistory
-                .Find(stateHistoryFilter)
-                .Sort(new BsonDocument("_id", -1))
-                .ToList();
-
-            var history = stateHistoryDocs
-                .Select(doc => new JobStateHistoryDto(doc))
-                .Where(x => x.State != null)
-                .Select(x => new StateHistoryDto
+            var history = job.StateHistory.Select(x => new StateHistoryDto
                 {
-                    StateName = x.State.Name,
-                    CreatedAt = x.State.CreatedAt,
-                    Reason = x.State.Reason,
-                    Data = x.State.Data
+                    StateName = x.Name,
+                    CreatedAt = x.CreatedAt,
+                    Reason = x.Reason,
+                    Data = x.Data
                 })
+                .Reverse()
                 .ToList();
 
             return new JobDetailsDto
@@ -136,7 +122,7 @@ namespace Hangfire.Mongo
                     ["$in"] = StatisticsStateNames
                 }
             };
-            var pipeline = new[]
+            var pipeline = new BsonDocument[]
             {
                 new BsonDocument("$match", filter),
                 new BsonDocument("$group",
@@ -219,7 +205,7 @@ namespace Hangfire.Mongo
                     InvocationData = invocationData,
                     InProcessingState =
                         ProcessingState.StateName.Equals(jobSummary.StateName, StringComparison.OrdinalIgnoreCase),
-                    ServerId = stateData["ServerId"] ?? stateData["ServerName"],
+                    ServerId = stateData.TryGetValue("ServerId", out var value) ? value : stateData["ServerName"],
                     StartedAt = jobSummary.StateChanged,
                     StateData = stateData
                 });
@@ -252,9 +238,9 @@ namespace Hangfire.Mongo
                     InSucceededState =
                         SucceededState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
                     Result = stateData["Result"],
-                    TotalDuration = !string.IsNullOrEmpty(stateData["PerformanceDuration"]) &&
-                                    !string.IsNullOrEmpty(stateData["Latency"])
-                        ? (long?) long.Parse(stateData["PerformanceDuration"]) + long.Parse(stateData["Latency"])
+                    TotalDuration = stateData.ContainsKey("PerformanceDuration") &&
+                                    stateData.TryGetValue("Latency", out var value)
+                        ? (long?) long.Parse(stateData["PerformanceDuration"]) + (long?) long.Parse(value)
                         : null,
                     SucceededAt = sqlJob.StateChanged,
                     StateData = stateData
@@ -391,7 +377,7 @@ namespace Hangfire.Mongo
                 [nameof(JobDto.Queue)] = new BsonDocument("$ne", BsonNull.Value)
             };
             var byQueue = new BsonDocument("_id", $"${nameof(JobDto.Queue)}");
-
+            
             var result = _dbContext.JobGraph.Aggregate<BsonDocument>(
                     new BsonDocument
                         []
@@ -493,16 +479,12 @@ namespace Hangfire.Mongo
                 .JobGraph
                 .Find(jobsByIdsFilter)
                 .ToList()
-                .Select(b => new JobDto(b))
-                .ToList();
-
-            var stateHistoryDocs = GetNewestStateHistoryForJobs(jobs.Select(j => j.Id));
+                .Select(b => new JobDto(b));
 
             var enqueuedJobs = jobs
                 .Select(job =>
                 {
-                    var stateHistory = stateHistoryDocs[job.Id];
-                    var state = stateHistory.State;
+                    var state = job.StateHistory.LastOrDefault();
                     return new JobSummary
                     {
                         Id = job.Id.ToString(),
@@ -547,9 +529,10 @@ namespace Hangfire.Mongo
 
                 if (job.InvocationData != null)
                 {
-                    var stateData = new SafeDictionary<string, string>(
-                        job.StateData ?? new Dictionary<string, string>(),
-                        StringComparer.OrdinalIgnoreCase);
+                    var deserializedData = job.StateData;
+                    var stateData = deserializedData != null
+                        ? new SafeDictionary<string, string>(deserializedData, StringComparer.OrdinalIgnoreCase)
+                        : null;
 
                     dto = selector(job, DeserializeJob(
                             job.InvocationData,
@@ -562,7 +545,7 @@ namespace Hangfire.Mongo
                 }
 
                 result.Add(new KeyValuePair<string, TDto>(
-                    job.Id, dto));
+                    job.Id.ToString(), dto));
             }
 
             return new JobList<TDto>(result);
@@ -608,13 +591,12 @@ namespace Hangfire.Mongo
 
         public virtual JobList<FetchedJobDto> FetchedJobs(HangfireDbContext connection, IEnumerable<string> jobIds)
         {
-            var jobIdList = jobIds.ToList();
-            if (!jobIdList.Any())
+            if (!jobIds.Any())
             {
                 return new JobList<FetchedJobDto>(new List<KeyValuePair<string, FetchedJobDto>>());
             }
 
-            var jobObjectIds = new BsonArray(jobIdList.Select(ObjectId.Parse));
+            var jobObjectIds = new BsonArray(jobIds.Select(ObjectId.Parse));
             var filter = new BsonDocument
             {
                 ["_t"] = nameof(JobDto),
@@ -629,16 +611,12 @@ namespace Hangfire.Mongo
                 .JobGraph
                 .Find(filter)
                 .ToList()
-                .Select(b => new JobDto(b))
-                .ToList();
-
-            var stateHistoryDocs = GetNewestStateHistoryForJobs(jobs.Select(j => j.Id));
+                .Select(b => new JobDto(b));
 
             var fetcedJobs = jobs
                 .Select(job =>
                 {
-                    var stateHistory = stateHistoryDocs[job.Id];
-                    var state = stateHistory.State;
+                    var state = job.StateHistory.LastOrDefault(s => s.Name == job.StateName);
                     return new JobSummary
                     {
                         Id = job.Id.ToString(),
@@ -687,16 +665,12 @@ namespace Hangfire.Mongo
                 .Skip(from)
                 .Limit(count)
                 .ToList()
-                .Select(b => new JobDto(b))
-                .ToList();
-
-            var stateHistoryDocs = GetNewestStateHistoryForJobs(jobs.Select(j => j.Id), stateName);
+                .Select(b => new JobDto(b));
 
             var joinedJobs = jobs
                 .Select(job =>
                 {
-                    var stateHistory = stateHistoryDocs[job.Id];
-                    var state = stateHistory.State;
+                    var state = job.StateHistory.LastOrDefault(s => s.Name == stateName);
                     return new JobSummary
                     {
                         Id = job.Id.ToString(),
@@ -797,52 +771,6 @@ namespace Hangfire.Mongo
         /// Overloaded dictionary that doesn't throw if given an invalid key
         /// Fixes issues such as https://github.com/HangfireIO/Hangfire/issues/871
         /// </summary>
-        private Dictionary<ObjectId, JobStateHistoryDto> GetNewestStateHistoryForJobs(IEnumerable<ObjectId> jobIds, string stateName = null)
-        {
-            var jobIdsList = jobIds.ToList();
-            var jobObjectIds = new BsonArray(jobIdsList);
-
-            var matchFilter = new BsonDocument
-            {
-                ["_t"] = nameof(JobStateHistoryDto),
-                [nameof(JobStateHistoryDto.JobId)] = new BsonDocument("$in", jobObjectIds)
-            };
-
-            if (!string.IsNullOrEmpty(stateName))
-            {
-                matchFilter[$"{nameof(JobStateHistoryDto.State)}.{nameof(StateDto.Name)}"] = stateName;
-            }
-
-            var stateHistoryPipeline = new BsonDocument[]
-            {
-                new BsonDocument("$match", matchFilter),
-                new BsonDocument("$sort", new BsonDocument("_id", -1)),
-                new BsonDocument("$group", new BsonDocument
-                {
-                    ["_id"] = $"${nameof(JobStateHistoryDto.JobId)}",
-                    ["doc"] = new BsonDocument("$first", "$$ROOT")
-                })
-            };
-
-            var result = _dbContext.StateHistory
-                .Aggregate<BsonDocument>(stateHistoryPipeline)
-                .ToList()
-                .ToDictionary(
-                    doc => doc["_id"].AsObjectId,
-                    doc => new JobStateHistoryDto(doc["doc"].AsBsonDocument));
-
-            // Ensure all jobIds have an entry in the dictionary
-            foreach (var jobId in jobIdsList)
-            {
-                if (!result.ContainsKey(jobId))
-                {
-                    result[jobId] = JobStateHistoryDto.Empty(jobId);
-                }
-            }
-
-            return result;
-        }
-
         private class SafeDictionary<TKey, TValue> : Dictionary<TKey, TValue>
         {
             public SafeDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer)
@@ -855,6 +783,12 @@ namespace Hangfire.Mongo
                 get { return ContainsKey(i) ? base[i] : default(TValue); }
                 set { base[i] = value; }
             }
+        }
+
+        private class ParentStateDto
+        {
+            public long Id { get; set; }
+            public string StateName { get; set; }
         }
     }
 #pragma warning restore 1591
