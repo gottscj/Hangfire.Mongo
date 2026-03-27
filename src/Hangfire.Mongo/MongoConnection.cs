@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -167,31 +167,49 @@ namespace Hangfire.Mongo
             }
 
             var objectId = ObjectId.Parse(jobId);
-            // Fetch the newest state from the StateHistory collection
+
+            // Read the job document from jobGraph to get the authoritative StateName.
+            // StateName is updated atomically in the same bulk write as other job fields,
+            // so it is always consistent. We do NOT rely on the stateHistory collection
+            // for the state name, because stateHistory is written in a separate operation
+            // and may be temporarily out of sync with the job document.
+            var jobDoc = _dbContext
+                .JobGraph
+                .Find(new BsonDocument
+                {
+                    ["_id"] = objectId,
+                    ["_t"] = nameof(JobDto)
+                })
+                .FirstOrDefault();
+
+            if (jobDoc == null)
+            {
+                return null;
+            }
+
+            var jobDto = new JobDto(jobDoc);
+
+            if (string.IsNullOrEmpty(jobDto.StateName))
+            {
+                return null;
+            }
+
+            // Fetch the newest state history entry for supplementary data (Reason, Data).
             var stateHistoryDoc = _dbContext
                 .StateHistory
                 .Find(new BsonDocument("JobId", objectId))
-                .Sort(new BsonDocument("_id", -1)) // Sort by _id descending to get the newest entry
+                .Sort(new BsonDocument("_id", -1))
                 .FirstOrDefault();
 
-            if (stateHistoryDoc == null)
-            {
-                return null;
-            }
-
-            var jobHistoryDto = new JobStateHistoryDto(stateHistoryDoc);
-            var state = jobHistoryDto.State;
-
-            if (state == null)
-            {
-                return null;
-            }
+            var state = stateHistoryDoc != null
+                ? new JobStateHistoryDto(stateHistoryDoc).State
+                : null;
 
             return new StateData
             {
-                Name = state.Name,
-                Reason = state.Reason,
-                Data = state.Data
+                Name = jobDto.StateName,
+                Reason = state?.Reason,
+                Data = state?.Data ?? new Dictionary<string, string>()
             };
         }
 
