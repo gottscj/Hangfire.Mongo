@@ -784,12 +784,6 @@ namespace Hangfire.Mongo
                 set { base[i] = value; }
             }
         }
-
-        private class ParentStateDto
-        {
-            public long Id { get; set; }
-            public string StateName { get; set; }
-        }
     }
 #pragma warning restore 1591
 }
