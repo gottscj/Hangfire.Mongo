@@ -167,20 +167,22 @@ namespace Hangfire.Mongo
             }
 
             var objectId = ObjectId.Parse(jobId);
-            // Fetch the newest state from the StateHistory collection
-            var stateHistoryDoc = _dbContext
-                .StateHistory
-                .Find(new BsonDocument("JobId", objectId))
-                .Sort(new BsonDocument("_id", -1)) // Sort by _id descending to get the newest entry
+            var document = _dbContext
+                .JobGraph
+                .Find(new BsonDocument
+                {
+                    ["_id"] = objectId,
+                    ["_t"] = nameof(JobDto)
+                })
                 .FirstOrDefault();
 
-            if (stateHistoryDoc == null)
+            if (document == null)
             {
                 return null;
             }
-
-            var jobHistoryDto = new JobStateHistoryDto(stateHistoryDoc);
-            var state = jobHistoryDto.State;
+            
+            var jobDto = new JobDto(document);
+            var state = jobDto.StateHistory.LastOrDefault();
 
             if (state == null)
             {

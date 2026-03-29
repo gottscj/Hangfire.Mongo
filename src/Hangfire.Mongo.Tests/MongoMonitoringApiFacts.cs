@@ -207,84 +207,11 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void MissingStateHistory_ReturnsFailedJobs_WhenJobHasNoStateHistory()
-        {
-            CreateJobInStateWithoutStateHistory(_database, ObjectId.GenerateNewId(1), FailedState.StateName);
-
-            var resultList = _monitoringApi.FailedJobs(From, PerPage);
-
-            Assert.Single(resultList);
-        }
-        
-        [Fact]
-        public void MissingStateHistory_ReturnsSucceededJobs_WhenJobHasNoStateHistory()
-        {
-            CreateJobInStateWithoutStateHistory(_database, ObjectId.GenerateNewId(1), SucceededState.StateName);
-
-            var resultList = _monitoringApi.SucceededJobs(From, PerPage);
-
-            Assert.Single(resultList);
-        }
-        
-        [Fact]
-        public void MissingStateHistory_ReturnsAwaitingJobs_WhenJobHasNoStateHistory()
-        {
-            CreateJobInStateWithoutStateHistory(_database, ObjectId.GenerateNewId(1), AwaitingState.StateName);
-
-            var resultList = _monitoringApi.AwaitingJobs(From, PerPage);
-
-            Assert.Single(resultList);
-        }
-
-        [Fact]
-        public void MissingStateHistory_ReturnsProcessingJobs_WhenJobHasNoStateHistory()
-        {
-            CreateJobInStateWithoutStateHistory(_database, ObjectId.GenerateNewId(1), ProcessingState.StateName);
-
-            var resultList = _monitoringApi.ProcessingJobs(From, PerPage);
-
-            Assert.Single(resultList);
-        }
-
-        [Fact]
-        public void MissingStateHistory_ReturnsScheduledJobs_WhenJobHasNoStateHistory()
-        {
-            CreateJobInStateWithoutStateHistory(_database, ObjectId.GenerateNewId(1), ScheduledState.StateName);
-
-            var resultList = _monitoringApi.ScheduledJobs(From, PerPage);
-
-            Assert.Single(resultList);
-        }
-
-        [Fact]
-        public void MissingStateHistory_ReturnsDeletedJobs_WhenJobHasNoStateHistory()
-        {
-            CreateJobInStateWithoutStateHistory(_database, ObjectId.GenerateNewId(1), DeletedState.StateName);
-
-            var resultList = _monitoringApi.DeletedJobs(From, PerPage);
-
-            Assert.Single(resultList);
-        }
-
-        [Fact]
-        public void MissingStateHistory_JobDetails_ReturnsJobDetailsWithEmptyHistory()
-        {
-            var jobId = ObjectId.GenerateNewId(1);
-            CreateJobInStateWithoutStateHistory(_database, jobId, SucceededState.StateName);
-
-            var result = _monitoringApi.JobDetails(jobId.ToString());
-
-            Assert.NotNull(result);
-            Assert.NotNull(result.History);
-            Assert.Empty(result.History);
-        }
-
-        [Fact]
         public void ProcessingJobs_ReturnsProcessingJobsOnly_WhenMultipleJobsExistsInProcessingSucceededAndEnqueuedState()
         {
             CreateJobInState(_database, ObjectId.GenerateNewId(1), ProcessingState.StateName);
 
-            CreateJobInState(_database, ObjectId.GenerateNewId(2), SucceededState.StateName, (jobDto, stateHistory) =>
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), SucceededState.StateName, jobDto =>
             {
                 var processingState = new StateDto()
                 {
@@ -298,9 +225,9 @@ namespace Hangfire.Mongo.Tests
                             JobHelper.SerializeDateTime(DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(500)))
                     }
                 };
-                var succeededState = stateHistory[0];
-                var newStateHistory = new List<StateDto> { processingState, succeededState };
-                return (jobDto, newStateHistory);
+                var succeededState = jobDto.StateHistory[0];
+                jobDto.StateHistory = new[] { processingState, succeededState };
+                return jobDto;
             });
 
             CreateJobInState(_database, ObjectId.GenerateNewId(3), EnqueuedState.StateName);
@@ -320,7 +247,7 @@ namespace Hangfire.Mongo.Tests
             var oldStartTime = DateTime.UtcNow.AddMinutes(-30);
             var newStartTime = DateTime.UtcNow;
 
-            CreateJobInState(_database, ObjectId.GenerateNewId(2), ProcessingState.StateName, (jobDto, stateHistory) =>
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), ProcessingState.StateName, jobDto =>
             {
                 var firstProcessingState = new StateDto()
                 {
@@ -333,12 +260,12 @@ namespace Hangfire.Mongo.Tests
                         ["StartedAt"] = JobHelper.SerializeDateTime(oldStartTime)
                     }
                 };
-                var latestProcessingState = stateHistory[0];
+                var latestProcessingState = jobDto.StateHistory[0];
                 latestProcessingState.CreatedAt = newStartTime;
                 latestProcessingState.Data["ServerId"] = newServerId;
                 latestProcessingState.Data["StartedAt"] = JobHelper.SerializeDateTime(newStartTime);
-                var newStateHistory = new List<StateDto> { firstProcessingState, latestProcessingState };
-                return (jobDto, newStateHistory);
+                jobDto.StateHistory = new[] { firstProcessingState, latestProcessingState };
+                return jobDto;
             });
 
             var resultList = _monitoringApi.ProcessingJobs(From, PerPage);
@@ -449,22 +376,22 @@ namespace Hangfire.Mongo.Tests
         public void GetQueues_Queues_ReturnedDistinct()
         {
             // ARRANGE
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName, (job, stateHistory) =>
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName, job =>
             {
                 job.Queue = "queue_1";
-                return (job, stateHistory);
+                return job;
             });
 
-            CreateJobInState(_database, ObjectId.GenerateNewId(2), EnqueuedState.StateName, (job, stateHistory) =>
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), EnqueuedState.StateName, job =>
             {
                 job.Queue = "queue_2";
-                return (job, stateHistory);
+                return job;
             });
 
-            CreateJobInState(_database, ObjectId.GenerateNewId(3), EnqueuedState.StateName, (job, stateHistory) =>
+            CreateJobInState(_database, ObjectId.GenerateNewId(3), EnqueuedState.StateName, job =>
             {
                 job.Queue = "queue_2";
-                return (job, stateHistory);
+                return job;
             });
             
             // ACT
@@ -478,22 +405,22 @@ namespace Hangfire.Mongo.Tests
         public void GetQueues_NullQueue_Excluded()
         {
             // ARRANGE
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName, (job, stateHistory) =>
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName, job =>
             {
                 job.Queue = "queue_1";
-                return (job, stateHistory);
+                return job;
             });
 
-            CreateJobInState(_database, ObjectId.GenerateNewId(2), EnqueuedState.StateName, (job, stateHistory) =>
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), EnqueuedState.StateName, job =>
             {
                 job.Queue = "queue_2";
-                return (job, stateHistory);
+                return job;
             });
 
-            CreateJobInState(_database, ObjectId.GenerateNewId(3), EnqueuedState.StateName, (job, stateHistory) =>
+            CreateJobInState(_database, ObjectId.GenerateNewId(3), EnqueuedState.StateName, job =>
             {
                 job.Queue = null;
-                return (job, stateHistory);
+                return job;
             });
             
             // ACT
@@ -506,22 +433,22 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void GetStatistics_ReturnsQueueCount()
         {
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName, (job, stateHistory) =>
+            CreateJobInState(_database, ObjectId.GenerateNewId(1), EnqueuedState.StateName, job =>
             {
                 job.Queue = "queue_1";
-                return (job, stateHistory);
+                return job;
             });
 
-            CreateJobInState(_database, ObjectId.GenerateNewId(2), EnqueuedState.StateName, (job, stateHistory) =>
+            CreateJobInState(_database, ObjectId.GenerateNewId(2), EnqueuedState.StateName, job =>
             {
                 job.Queue = "queue_2";
-                return (job, stateHistory);
+                return job;
             });
 
-            CreateJobInState(_database, ObjectId.GenerateNewId(3), EnqueuedState.StateName, (job, stateHistory) =>
+            CreateJobInState(_database, ObjectId.GenerateNewId(3), EnqueuedState.StateName, job =>
             {
                 job.Queue = "queue_2";
-                return (job, stateHistory);
+                return job;
             });
 
             var statistics = _monitoringApi.GetStatistics();
@@ -529,199 +456,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(2, statistics.Queues);
         }
 
-        [Fact]
-        public void SucceededJobs_TotalDuration_WhenBothPerformanceDurationAndLatencyExist()
-        {
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), SucceededState.StateName, (job, stateHistory) =>
-            {
-                stateHistory[0].Data["PerformanceDuration"] = "100";
-                stateHistory[0].Data["Latency"] = "50";
-                return (job, stateHistory);
-            });
-
-            var resultList = _monitoringApi.SucceededJobs(From, PerPage);
-
-            Assert.Single(resultList);
-            Assert.NotNull(resultList[0].Value.TotalDuration);
-            Assert.Equal(150, resultList[0].Value.TotalDuration);
-        }
-
-        [Fact]
-        public void SucceededJobs_TotalDuration_WhenOnlyPerformanceDurationExists()
-        {
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), SucceededState.StateName, (job, stateHistory) =>
-            {
-                stateHistory[0].Data["PerformanceDuration"] = "100";
-                stateHistory[0].Data.Remove("Latency");
-                return (job, stateHistory);
-            });
-
-            var resultList = _monitoringApi.SucceededJobs(From, PerPage);
-
-            Assert.Single(resultList);
-            Assert.Null(resultList[0].Value.TotalDuration);
-        }
-
-        [Fact]
-        public void SucceededJobs_TotalDuration_WhenOnlyLatencyExists()
-        {
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), SucceededState.StateName, (job, stateHistory) =>
-            {
-                stateHistory[0].Data.Remove("PerformanceDuration");
-                stateHistory[0].Data["Latency"] = "50";
-                return (job, stateHistory);
-            });
-
-            var resultList = _monitoringApi.SucceededJobs(From, PerPage);
-
-            Assert.Single(resultList);
-            Assert.Null(resultList[0].Value.TotalDuration);
-        }
-
-        [Fact]
-        public void SucceededJobs_TotalDuration_WhenPerformanceDurationIsEmptyString()
-        {
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), SucceededState.StateName, (job, stateHistory) =>
-            {
-                stateHistory[0].Data["PerformanceDuration"] = "";
-                stateHistory[0].Data["Latency"] = "50";
-                return (job, stateHistory);
-            });
-
-            var resultList = _monitoringApi.SucceededJobs(From, PerPage);
-
-            Assert.Single(resultList);
-            Assert.Null(resultList[0].Value.TotalDuration);
-        }
-
-        [Fact]
-        public void SucceededJobs_TotalDuration_WhenLatencyIsEmptyString()
-        {
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), SucceededState.StateName, (job, stateHistory) =>
-            {
-                stateHistory[0].Data["PerformanceDuration"] = "100";
-                stateHistory[0].Data["Latency"] = "";
-                return (job, stateHistory);
-            });
-
-            var resultList = _monitoringApi.SucceededJobs(From, PerPage);
-
-            Assert.Single(resultList);
-            Assert.Null(resultList[0].Value.TotalDuration);
-        }
-
-        [Fact]
-        public void SucceededJobs_TotalDuration_WhenBothAreMissing()
-        {
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), SucceededState.StateName, (job, stateHistory) =>
-            {
-                stateHistory[0].Data.Remove("PerformanceDuration");
-                stateHistory[0].Data.Remove("Latency");
-                return (job, stateHistory);
-            });
-
-            var resultList = _monitoringApi.SucceededJobs(From, PerPage);
-
-            Assert.Single(resultList);
-            Assert.Null(resultList[0].Value.TotalDuration);
-        }
-
-        [Fact]
-        public void ProcessingJobs_ServerId_WhenServerIdExists()
-        {
-            var serverId = Guid.NewGuid().ToString();
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), ProcessingState.StateName, (job, stateHistory) =>
-            {
-                stateHistory[0].Data["ServerId"] = serverId;
-                return (job, stateHistory);
-            });
-
-            var resultList = _monitoringApi.ProcessingJobs(From, PerPage);
-
-            Assert.Single(resultList);
-            Assert.Equal(serverId, resultList[0].Value.ServerId);
-        }
-
-        [Fact]
-        public void ProcessingJobs_ServerId_WhenServerNameExistsButServerIdMissing()
-        {
-            var serverName = "server-name-123";
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), ProcessingState.StateName, (job, stateHistory) =>
-            {
-                stateHistory[0].Data.Remove("ServerId");
-                stateHistory[0].Data["ServerName"] = serverName;
-                return (job, stateHistory);
-            });
-
-            var resultList = _monitoringApi.ProcessingJobs(From, PerPage);
-
-            Assert.Single(resultList);
-            Assert.Equal(serverName, resultList[0].Value.ServerId);
-        }
-
-        [Fact]
-        public void ProcessingJobs_ServerId_WhenBothServerIdAndServerNameExist_PrefersServerId()
-        {
-            var serverId = Guid.NewGuid().ToString();
-            var serverName = "server-name-123";
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), ProcessingState.StateName, (job, stateHistory) =>
-            {
-                stateHistory[0].Data["ServerId"] = serverId;
-                stateHistory[0].Data["ServerName"] = serverName;
-                return (job, stateHistory);
-            });
-
-            var resultList = _monitoringApi.ProcessingJobs(From, PerPage);
-
-            Assert.Single(resultList);
-            Assert.Equal(serverId, resultList[0].Value.ServerId);
-        }
-
-        [Fact]
-        public void ProcessingJobs_ServerId_WhenNeitherServerIdNorServerNameExist()
-        {
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), ProcessingState.StateName, (job, stateHistory) =>
-            {
-                stateHistory[0].Data.Remove("ServerId");
-                stateHistory[0].Data.Remove("ServerName");
-                return (job, stateHistory);
-            });
-
-            var resultList = _monitoringApi.ProcessingJobs(From, PerPage);
-
-            Assert.Single(resultList);
-            Assert.Null(resultList[0].Value.ServerId);
-        }
-
-        [Fact]
-        public void ProcessingJobs_ServerId_WhenServerIdIsEmptyString()
-        {
-            var serverName = "server-name-123";
-            CreateJobInState(_database, ObjectId.GenerateNewId(1), ProcessingState.StateName, (job, stateHistory) =>
-            {
-                stateHistory[0].Data["ServerId"] = "";
-                stateHistory[0].Data["ServerName"] = serverName;
-                return (job, stateHistory);
-            });
-
-            var resultList = _monitoringApi.ProcessingJobs(From, PerPage);
-
-            Assert.Single(resultList);
-            // ?? operator checks for null, not empty string, so empty string is returned
-            Assert.Equal("", resultList[0].Value.ServerId);
-        }
-
-        private JobDto CreateJobInStateWithoutStateHistory(HangfireDbContext dbContext, ObjectId jobId, string stateName, Func<JobDto, List<StateDto>, (JobDto, List<StateDto>)> visitor = null)
-        {
-           return InternalCreateJobInState(dbContext, jobId, stateName, false, visitor);
-        }
-
-        private JobDto CreateJobInState(HangfireDbContext dbContext, ObjectId jobId, string stateName, Func<JobDto, List<StateDto>, (JobDto, List<StateDto>)> visitor = null)
-        {
-            return InternalCreateJobInState(dbContext, jobId, stateName, true, visitor);
-        }
-            
-        private JobDto InternalCreateJobInState(HangfireDbContext dbContext, ObjectId jobId, string stateName, bool withStateHistory, Func<JobDto, List<StateDto>, (JobDto, List<StateDto>)> visitor = null)
+        private JobDto CreateJobInState(HangfireDbContext dbContext, ObjectId jobId, string stateName, Func<JobDto, JobDto> visitor = null)
         {
             var job = Job.FromExpression(() => HangfireTestJobs.SampleMethod("wrong"));
 
@@ -748,29 +483,6 @@ namespace Hangfire.Mongo.Tests
                     ["FailedAt"] = JobHelper.SerializeDateTime(DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(10)))
                 };
             }
-            else if (stateName == SucceededState.StateName)
-            {
-                stateData = new Dictionary<string, string>
-                {
-                    ["Result"] = "Test_Result",
-                    ["PerformanceDuration"] = "100",
-                    ["Latency"] = "50"
-                };
-            }
-            else if (stateName == ScheduledState.StateName)
-            {
-                stateData = new Dictionary<string, string>
-                {
-                    ["EnqueueAt"] = JobHelper.SerializeDateTime(DateTime.UtcNow.Add(TimeSpan.FromMinutes(5)))
-                };
-            }
-            else if (stateName == AwaitingState.StateName)
-            {
-                stateData = new Dictionary<string, string>
-                {
-                    ["ParentId"] = ObjectId.GenerateNewId().ToString()
-                };
-            }
             else
             {
                 stateData = new Dictionary<string, string>();
@@ -791,19 +503,14 @@ namespace Hangfire.Mongo.Tests
                 Arguments = "[\"\\\"Arguments\\\"\"]",
                 StateName = stateName,
                 CreatedAt = DateTime.UtcNow,
+                StateHistory = new[] { jobState },
                 Queue = DefaultQueue,
                 FetchedAt = null
             };
-
-            var stateHistory = new List<StateDto> { jobState };
-
             if (visitor != null)
             {
-                var result = visitor(jobDto, stateHistory);
-                jobDto = result.Item1;
-                stateHistory = result.Item2;
+                jobDto = visitor(jobDto);
             }
-
             if (stateName == FetchedStateName)
             {
                 jobDto.FetchedAt = DateTime.UtcNow;
@@ -811,25 +518,8 @@ namespace Hangfire.Mongo.Tests
 
             dbContext.JobGraph.InsertOne(jobDto.Serialize());
 
-            if (withStateHistory)
-            {
-                // Insert state history into the separate StateHistory collection
-                foreach (var state in stateHistory)
-                {
-                    var stateHistoryDto = new JobStateHistoryDto
-                    {
-                        Id = ObjectId.GenerateNewId(),
-                        JobId = jobId,
-                        State = state
-                    };
-                    dbContext.StateHistory.InsertOne(stateHistoryDto.Serialize());
-                }
-            }
-            
-
             return jobDto;
         }
-
     }
 #pragma warning restore 1591
 }

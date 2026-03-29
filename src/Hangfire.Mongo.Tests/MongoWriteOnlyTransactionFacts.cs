@@ -1041,12 +1041,20 @@ namespace Hangfire.Mongo.Tests
         
         private static JobStateHistoryDto[] GetTestJobState(HangfireDbContext database, string jobId)
         {
-            var filter = new BsonDocument
+            var jobDoc = database.JobGraph.Find(new BsonDocument("_id", ObjectId.Parse(jobId))).FirstOrDefault();
+            if (jobDoc == null)
             {
-                ["JobId"] = ObjectId.Parse(jobId)
-            };
-            var documents = database.StateHistory.Find(filter).ToList();
-            return documents.Select(doc => new JobStateHistoryDto(doc)).ToArray();
+                return Array.Empty<JobStateHistoryDto>();
+            }
+
+            var job = new JobDto(jobDoc);
+            return job.StateHistory
+                .Select(state => new JobStateHistoryDto
+                {
+                    JobId = ObjectId.Parse(jobId),
+                    State = state
+                })
+                .ToArray();
         }
 
         private static IList<SetDto> GetTestSet(HangfireDbContext database, string key)

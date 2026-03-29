@@ -109,7 +109,12 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Schema Version 23
         /// </summary>
-        Version23 = 23
+        Version23 = 23,
+
+        /// <summary>
+        /// Schema Version 24 - Moves StateHistory back to embedded field in JobDto
+        /// </summary>
+        Version24 = 24
     }
 
 }
