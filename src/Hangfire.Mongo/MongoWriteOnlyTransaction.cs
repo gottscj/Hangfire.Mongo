@@ -29,7 +29,6 @@ namespace Hangfire.Mongo
         private readonly Dictionary<string, MongoJobUpdates> _jobUpdates = new();
         private MongoDistributedLock _distributedLock;
         private readonly List<MongoFetchedJob> _removedJobs = new();
-        private readonly List<JobStateHistoryDto> _jobStateHistory = new();
 
         protected HashSet<string> JobsAddedToQueue { get; }
 
@@ -162,14 +161,13 @@ namespace Hangfire.Mongo
                 Reason = state.Reason,
                 CreatedAt = DateTime.UtcNow,
                 Data = state.SerializeData()
-            };
+            }.Serialize();
 
             var updates = GetOrAddJobUpdates(jobId);
             updates.Set[nameof(JobDto.StateName)] = state.Name;
-            _jobStateHistory.Add(new JobStateHistoryDto
+            updates.Pushes.Add(new BsonDocument
             {
-                JobId = ObjectId.Parse(jobId),
-                State = stateDto
+                [nameof(JobDto.StateHistory)] = stateDto
             });
         }
 
@@ -181,12 +179,12 @@ namespace Hangfire.Mongo
                 Reason = state.Reason,
                 CreatedAt = DateTime.UtcNow,
                 Data = state.SerializeData()
-            };
+            }.Serialize();
 
-            _jobStateHistory.Add(new JobStateHistoryDto
+            var updates = GetOrAddJobUpdates(jobId);
+            updates.Pushes.Add(new BsonDocument
             {
-                JobId = ObjectId.Parse(jobId),
-                State = stateDto
+                [nameof(JobDto.StateHistory)] = stateDto
             });
         }
 
@@ -435,16 +433,6 @@ namespace Hangfire.Mongo
 
         public override void Commit()
         {
-            // Insert state history BEFORE updating jobs to prevent race conditions.
-            // This ensures that when GetStateData() reads the StateHistory collection,
-            // it always sees a consistent state with the job record about to be updated.
-            if (_jobStateHistory.Any())
-            {
-                DbContext
-                    .StateHistory
-                    .InsertMany(_jobStateHistory.Select(h => h.Serialize()));
-            }
-
             foreach (var kvp in _jobUpdates)
             {
                 var jobId = kvp.Key;
@@ -453,34 +441,34 @@ namespace Hangfire.Mongo
                 _writeModels.Add(updateModel);
             }
 
-            
-            
-            if (_writeModels.Any())
+            if (!_writeModels.Any())
             {
-                var jobs = DbContext
-                    .Database
-                    .GetCollection<BsonDocument>(DbContext.JobGraph.CollectionNamespace.CollectionName);
-
-                var bulkWriteOptions = new BulkWriteOptions
-                {
-                    IsOrdered = true,
-                    BypassDocumentValidation = false
-                };
-            
-                Stopwatch sw = null;
-                if (Logger.IsTraceEnabled())
-                {
-                    sw = Stopwatch.StartNew();
-                }
-            
-                ExecuteCommit(jobs, _writeModels, bulkWriteOptions);
-                if (Logger.IsTraceEnabled() && sw != null)
-                {
-                    Log(_writeModels, sw.ElapsedMilliseconds);
-                }
+                return;
             }
 
+            var jobGraph = DbContext
+                .Database
+                .GetCollection<BsonDocument>(DbContext.JobGraph.CollectionNamespace.CollectionName);
 
+            var bulkWriteOptions = new BulkWriteOptions
+            {
+                IsOrdered = true,
+                BypassDocumentValidation = false
+            };
+            
+            Stopwatch sw = null;
+            if (Logger.IsTraceEnabled())
+            {
+                sw = Stopwatch.StartNew();
+            }
+            
+            ExecuteCommit(jobGraph, _writeModels, bulkWriteOptions);
+
+            if (Logger.IsTraceEnabled() && sw != null)
+            {
+                Log(_writeModels, sw.ElapsedMilliseconds);
+            }
+            
             _removedJobs.ForEach(j => j.SetRemoved());
             _distributedLock?.Dispose();
 

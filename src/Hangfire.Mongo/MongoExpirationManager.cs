@@ -54,19 +54,6 @@ namespace Hangfire.Mongo
                     ["$lt"] = DateTime.UtcNow
                 }
             };
-            var expiredJobIds = _dbContext.JobGraph
-                .Find(filter)
-                .Project(j => j["_id"])
-                .ToList();
-            var deleteFilter = new BsonDocument
-            {
-                [nameof(JobStateHistoryDto.JobId)] = new BsonDocument("$in", new BsonArray(expiredJobIds))
-            };
-            
-            if (expiredJobIds.Any())
-            {
-                _dbContext.StateHistory.DeleteMany(deleteFilter);
-            }
             
             var result = _dbContext.JobGraph.DeleteMany(filter);
 
