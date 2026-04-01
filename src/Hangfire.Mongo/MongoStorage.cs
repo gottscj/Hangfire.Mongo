@@ -270,11 +270,11 @@ namespace Hangfire.Mongo
 
             var authDisplay = mechanism switch
             {
-                null => PasswordAuthPlaceholder,
-                "SCRAM-SHA-1" => PasswordAuthPlaceholder,
-                "SCRAM-SHA-256" => PasswordAuthPlaceholder,
-                "DEFAULT" => PasswordAuthPlaceholder,
-                _ => $"<{mechanism}>"
+                "MONGODB-AWS" => $"<{mechanism}>",
+                "MONGODB-X509" => $"<{mechanism}>",
+                "GSSAPI" => $"<{mechanism}>",
+                "PLAIN" => $"<{mechanism}>",
+                _ => PasswordAuthPlaceholder
             };
 
             return $"mongodb://{authDisplay}@{servers}";

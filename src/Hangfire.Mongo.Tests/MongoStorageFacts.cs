@@ -126,7 +126,7 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void ToString_WithUnknownMechanism_ShowsMechanism()
+        public void ToString_WithPlainAuth_ShowsMechanism()
         {
             var settings = MongoClientSettings.FromConnectionString(
                 "mongodb://localhost:27017/?authMechanism=PLAIN&authSource=%24external");
