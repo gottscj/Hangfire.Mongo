@@ -128,8 +128,8 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void ToString_WithPlainAuth_ShowsMechanism()
         {
-            var settings = MongoClientSettings.FromConnectionString(
-                "mongodb://localhost:27017/?authMechanism=PLAIN&authSource=%24external");
+            var settings = MongoClientSettings.FromConnectionString("mongodb://localhost:27017");
+            settings.Credential = MongoCredential.CreatePlainCredential("$external", "user", "pass");
             var storage = new MongoStorage(settings, "testdb", new MongoStorageOptions { CheckConnection = false, ByPassMigration = true });
 
             var result = storage.ToString();
