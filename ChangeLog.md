@@ -1,8 +1,11 @@
 
 ## Change log
 
+### 1.14.1
+- Show auth mechanism to make IAM auth verifiable from logs, by @lillapetri (#447)
+
 ### 1.14.0
-- BREAKING: re-add StateHistory to JobDto and remove separate collection to preserve update isolation  (#445)
+- BREAKING: re-add StateHistory to JobDto and remove a separate collection to preserve update isolation  (#445)
 
 ### 1.13.2
 - Fix race condition in job state updates: State history is now inserted before job updates to ensure consistent state reads during job abortion checks (#445)

@@ -12,8 +12,8 @@
         <owners>Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB DocumentDb Azure AWS Atlas Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.14.0
-            - BREAKING: re-add StateHistory to JobDto and remove separate collection to preserve update isolation (#445)
+        <PackageReleaseNotes>1.14.1
+            - Show auth mechanism to make IAM auth verifiable from logs, by @lillapetri (#447)
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
