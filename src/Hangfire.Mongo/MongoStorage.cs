@@ -256,17 +256,28 @@ namespace Hangfire.Mongo
                 $"Connection string: {CreateObscuredConnectionString()}, database name: {DatabaseName}, prefix: {StorageOptions.Prefix}";
         }
 
+        private const string PasswordAuthPlaceholder = "<username>:<password>";
+
         private string CreateObscuredConnectionString()
         {
-            // Obscure the username and password for display purposes
-            string obscuredConnectionString = "mongodb://";
-            if (MongoClient.Settings != null && MongoClient.Settings.Servers != null)
+            if (MongoClient.Settings?.Servers == null)
             {
-                var servers = string.Join(",", MongoClient.Settings.Servers.Select(s => $"{s.Host}:{s.Port}"));
-                obscuredConnectionString = $"mongodb://<username>:<password>@{servers}";
+                return "mongodb://";
             }
 
-            return obscuredConnectionString;
+            var servers = string.Join(",", MongoClient.Settings.Servers.Select(s => $"{s.Host}:{s.Port}"));
+            var mechanism = MongoClient.Settings.Credential?.Mechanism;
+
+            var authDisplay = mechanism switch
+            {
+                "MONGODB-AWS" => $"<{mechanism}>",
+                "MONGODB-X509" => $"<{mechanism}>",
+                "GSSAPI" => $"<{mechanism}>",
+                "PLAIN" => $"<{mechanism}>",
+                _ => PasswordAuthPlaceholder
+            };
+
+            return $"mongodb://{authDisplay}@{servers}";
         }
     }
 }
