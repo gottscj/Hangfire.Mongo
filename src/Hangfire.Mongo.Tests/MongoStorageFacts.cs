@@ -83,6 +83,14 @@ namespace Hangfire.Mongo.Tests
             Assert.Contains(typeof(MongoExpirationManager), componentTypes);
         }
 
+        [Fact]
+        public void HasFeature_TransactionalAcknowledge_ReturnsTrueForMongoFetchedJob()
+        {
+            var key = JobStorageFeatures.Transaction.RemoveFromQueue(typeof(MongoFetchedJob));
+
+            Assert.True(_storage.HasFeature(key));
+        }
+
     }
 
     public class MongoStorageToStringFacts

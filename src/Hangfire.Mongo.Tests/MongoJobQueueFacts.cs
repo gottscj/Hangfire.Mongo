@@ -148,6 +148,29 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
+        public void Dequeue_PopulatesFetchToken_ForLegacyDocumentsWithoutIt()
+        {
+            // Arrange — mimic a document written before the FetchToken fix was deployed.
+            var doc = new JobDto { Queue = "default" }.Serialize();
+            doc.Remove(nameof(JobDto.FetchToken));
+            _hangfireDbContext.JobGraph.InsertOne(doc);
+
+            var fetcher = new MongoJobFetcher(_hangfireDbContext, new MongoStorageOptions(), _jobQueueSemaphoreMock);
+            _jobQueueSemaphoreMock.WaitNonBlock("default").Returns(true);
+
+            // Act
+            var payload = (MongoFetchedJob)fetcher.FetchNextJob(DefaultQueues, CreateTimingOutCancellationToken());
+
+            // Assert — token generated at fetch and persisted on the document.
+            Assert.NotNull(payload);
+            Assert.False(string.IsNullOrEmpty(payload.FetchToken));
+            var persisted = _hangfireDbContext.JobGraph
+                .Find(new BsonDocument("_id", ObjectId.Parse(payload.JobId)))
+                .Single();
+            Assert.Equal(payload.FetchToken, persisted[nameof(JobDto.FetchToken)].AsString);
+        }
+
+        [Fact]
         public void Dequeue_ShouldFetchATimedOutJobs_FromTheSpecifiedQueue()
         {
             // Arrange

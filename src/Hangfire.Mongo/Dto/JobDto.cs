@@ -27,6 +27,10 @@ namespace Hangfire.Mongo.Dto
             {
                 FetchedAt = fetchedAt.ToNullableLocalTime();
             }
+            if (doc.TryGetValue(nameof(FetchToken), out var fetchToken))
+            {
+                FetchToken = fetchToken.StringOrNull();
+            }
             if (doc.TryGetValue(nameof(StateName), out var stateName))
             {
                 StateName = stateName.StringOrNull();
@@ -73,11 +77,14 @@ namespace Hangfire.Mongo.Dto
 
         public string Queue { get; set; }
 
+        public string FetchToken { get; set; }
+
         protected override void Serialize(BsonDocument doc)
         {
             base.Serialize(doc);
             doc[nameof(Queue)] = Queue.ToBsonValue();
             doc[nameof(FetchedAt)] = FetchedAt;
+            doc[nameof(FetchToken)] = FetchToken.ToBsonValue();
             doc[nameof(StateName)] = StateName.ToBsonValue();
             doc[nameof(InvocationData)] = InvocationData.ToBsonValue();
             doc[nameof(Arguments)] = Arguments.ToBsonValue();

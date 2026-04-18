@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using Hangfire.Mongo.Database;
+using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Hangfire.Mongo.Tests.Utils;
@@ -124,6 +125,40 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(parentId1, parentId1Expected);
             Assert.Equal(parentId2, parentId2Expected);
 
+        }
+
+        [Fact]
+        public void Enqueue_SuccessfulJob_ClearsQueueAndFetchTokenViaTransactionalAck()
+        {
+            // ARRANGE
+            var jobGraphCollectionName = _fixture.DbContext.JobGraph.CollectionNamespace.CollectionName;
+            var jobGraph = _fixture.DbContext.Database.GetCollection<BsonDocument>(jobGraphCollectionName);
+
+            // ACT
+            var jobId = BackgroundJob.Enqueue<TestJob>(j => j.SetSignal());
+            var signalled = TestJob.Signal.WaitOne(TimeSpan.FromSeconds(20));
+
+            // The worker commits the terminal state transition and the queue ack in one bulk
+            // (enabled by JobStorageFeatures.Transaction.RemoveFromQueue). Poll briefly to let
+            // the commit land after the job callback returned.
+            BsonDocument persisted = null;
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (DateTime.UtcNow < deadline)
+            {
+                persisted = jobGraph.Find(new BsonDocument("_id", ObjectId.Parse(jobId))).FirstOrDefault();
+                if (persisted != null && persisted[nameof(JobDto.Queue)] == BsonNull.Value)
+                {
+                    break;
+                }
+                Thread.Sleep(50);
+            }
+
+            // ASSERT
+            Assert.True(signalled, "job did not run");
+            Assert.NotNull(persisted);
+            Assert.Equal(BsonNull.Value, persisted[nameof(JobDto.Queue)]);
+            Assert.Equal(BsonNull.Value, persisted[nameof(JobDto.FetchToken)]);
+            Assert.Equal(BsonNull.Value, persisted[nameof(JobDto.FetchedAt)]);
         }
     }
 

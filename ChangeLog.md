@@ -1,6 +1,20 @@
 
 ## Change log
 
+### Unreleased
+- Fix #452: queue acknowledgement was silently lost when the heartbeat had advanced `FetchedAt`
+  on the server while the client missed the response (network blip, primary stepdown,
+  socket timeout). `RemoveFromQueue` now CAS'es on an immutable `FetchToken` issued at fetch
+  time, so heartbeat mutations cannot invalidate the ack. A stolen-lease ack is logged and
+  ignored rather than silently dropping. Adds `JobStorageFeatures.Transaction.RemoveFromQueue`
+  so Hangfire.Core can bundle state transition and queue ack into one transaction.
+- Adds schema `Version25` with a migration that back-fills `FetchToken = null` on existing
+  JobDto documents.
+- BREAKING: `MongoFactory.CreateFetchedJob`, the `MongoFetchedJob` constructor, and
+  `MongoWriteOnlyTransaction.RemoveFromQueue(ObjectId, DateTime, string)` now require a
+  `fetchToken` (string) instead of / in place of `fetchedAt`. Subclasses overriding these
+  members must update their signatures.
+
 ### 1.14.1
 - Show auth mechanism to make IAM auth verifiable from logs, by @lillapetri (#447)
 
