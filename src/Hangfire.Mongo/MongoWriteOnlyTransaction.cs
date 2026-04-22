@@ -499,11 +499,11 @@ namespace Hangfire.Mongo
                 {
                     if (wm is UpdateOneModel<BsonDocument>) updateOneCount++;
                 }
-                if (updateOneCount > 0 && result.MatchedCount < updateOneCount)
+                if (updateOneCount > 0 && result.ModifiedCount < updateOneCount)
                 {
                     Logger.Warn(
-                        $"Bulk matched {result.MatchedCount} of {updateOneCount} UpdateOne models — " +
-                        "a conditional update (likely a RemoveFromQueue ack) did not match. " +
+                        $"Bulk modified {result.ModifiedCount} of {updateOneCount} UpdateOne models — " +
+                        "a conditional update (likely a RemoveFromQueue ack) did not apply. " +
                         "Another worker may have reclaimed the job, or the document is gone.");
                 }
             }
