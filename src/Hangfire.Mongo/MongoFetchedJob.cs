@@ -120,14 +120,14 @@ namespace Hangfire.Mongo
                 };
                 var result = _db.JobGraph.UpdateOne(filter, update);
                 _removedFromQueue = true;
-                if (result.MatchedCount == 0)
+                if (result.ModifiedCount == 0)
                 {
                     // Ack lost: either this lease was stolen by another worker after our
                     // invisibility timeout, or the document is already gone. Log and return —
                     // surfacing this as an exception would push Hangfire.Core's Worker into a
                     // retry path and, ironically, risk double-delivery.
                     Logger.Warn(
-                        $"Lease lost for job {_id} (queue='{Queue}'): queue acknowledgement matched 0 documents. " +
+                        $"Lease lost for job {_id} (queue='{Queue}'): queue acknowledgement modified 0 documents. " +
                         "Another worker may have reclaimed this job.");
                 }
             }
