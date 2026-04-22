@@ -31,13 +31,15 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
         public void ConfigureServices(IServiceCollection services)
         {
             var mongoTestRunner = new MongoTestRunner();
+            services.AddSingleton(mongoTestRunner);
             mongoTestRunner.Start().Wait();
-
+            var connectionString = mongoTestRunner.MongoConnectionString;
+            //var connectionString = "mongodb://localhost:27017/";
             // Add framework services.
             services.AddHangfire(config =>
             {
                 // Read DefaultConnection string from appsettings.json
-                var settings = MongoClientSettings.FromConnectionString(mongoTestRunner.MongoConnectionString);
+                var settings = MongoClientSettings.FromConnectionString(connectionString);
                 var mongoClient = new MongoClient(settings);
 
                 var storageOptions = new MongoStorageOptions
@@ -47,6 +49,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                         MigrationStrategy = new MigrateMongoMigrationStrategy(),
                         BackupStrategy = new CollectionMongoBackupStrategy()
                     },
+                    CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.Poll,
                     SlidingInvisibilityTimeout = TimeSpan.FromSeconds(5),
                 };
 
@@ -60,7 +63,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
                 options.Queues = new[] { "default", "not-default" };
             });
             services.AddMvc(c => c.EnableEndpointRouting = false);
-            services.AddSingleton(mongoTestRunner);
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
