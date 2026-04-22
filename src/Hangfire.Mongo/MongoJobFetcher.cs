@@ -140,12 +140,17 @@ namespace Hangfire.Mongo
                 fetchedAtQuery
             });
             var fetchedAt = DateTime.UtcNow;
-            var update = new BsonDocument("$set", new BsonDocument(nameof(JobDto.FetchedAt), fetchedAt));
-            
+            var fetchToken = Guid.NewGuid().ToString("N");
+            var update = new BsonDocument("$set", new BsonDocument
+            {
+                [nameof(JobDto.FetchedAt)] = fetchedAt,
+                [nameof(JobDto.FetchToken)] = fetchToken
+            });
+
             var fetchedJobDoc = _dbContext
                 .JobGraph
                 .FindOneAndUpdate(filter, update, Options, cancellationToken);
-            
+
             if (fetchedJobDoc == null)
             {
                 return null;
@@ -156,7 +161,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"Fetched job {fetchedJob.Id} from '{queue}' Thread[{Thread.CurrentThread.ManagedThreadId}]");
             }
-            return _storageOptions.Factory.CreateFetchedJob(_dbContext, _storageOptions, fetchedAt, fetchedJob.Id, fetchedJob.Id, fetchedJob.Queue);
+            return _storageOptions.Factory.CreateFetchedJob(_dbContext, _storageOptions, fetchedAt, fetchToken, fetchedJob.Id, fetchedJob.Id, fetchedJob.Queue);
         }
     }
 }

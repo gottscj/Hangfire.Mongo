@@ -114,7 +114,12 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Schema Version 24 - Moves StateHistory back to embedded field in JobDto
         /// </summary>
-        Version24 = 24
+        Version24 = 24,
+
+        /// <summary>
+        /// Schema Version 25 - Adds FetchToken field to JobDto for lease CAS ack (fixes #452)
+        /// </summary>
+        Version25 = 25
     }
 
 }

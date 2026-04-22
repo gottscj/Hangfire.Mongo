@@ -270,6 +270,29 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
+        public void AddToQueue_ClearsStaleFetchedAtAndFetchToken()
+        {
+            // Arrange — simulate a document that still carries ownership fields from a previous lease.
+            var jobId = ObjectId.GenerateNewId();
+            _database.JobGraph.InsertOne(new JobDto
+            {
+                Id = jobId,
+                Queue = "default",
+                FetchedAt = DateTime.UtcNow,
+                FetchToken = Guid.NewGuid().ToString("N")
+            }.Serialize());
+
+            // Act — re-enqueue the job.
+            Commit(x => x.AddToQueue("default", jobId.ToString()));
+
+            // Assert — ownership fields wiped so a stale worker cannot later ack the freshly enqueued doc.
+            var job = new JobDto(_database.JobGraph.Find(new BsonDocument("_id", jobId)).Single());
+            Assert.Equal("default", job.Queue);
+            Assert.Null(job.FetchedAt);
+            Assert.Null(job.FetchToken);
+        }
+
+        [Fact]
         public void IncrementCounter_AddsRecordToCounterTable_WithPositiveValue()
         {
             Commit(x => x.IncrementCounter("my-key"));

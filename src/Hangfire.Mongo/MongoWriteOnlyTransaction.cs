@@ -71,7 +71,7 @@ namespace Hangfire.Mongo
         {
             if (fetchedJob is MongoFetchedJob mongoFetchedJob)
             {
-                RemoveFromQueue(mongoFetchedJob.Id, mongoFetchedJob.FetchedAt, mongoFetchedJob.Queue);
+                RemoveFromQueue(mongoFetchedJob.Id, mongoFetchedJob.FetchToken, mongoFetchedJob.Queue);
                 _removedJobs.Add(mongoFetchedJob);
             }
             else
@@ -86,12 +86,17 @@ namespace Hangfire.Mongo
             updates.Set[nameof(KeyJobDto.ExpireAt)] = DateTime.UtcNow.Add(expireIn);
         }
 
-        public virtual void RemoveFromQueue(ObjectId id, DateTime fetchedAt, string queue)
+        public virtual void RemoveFromQueue(ObjectId id, string fetchToken, string queue)
         {
+            if (fetchToken == null)
+            {
+                throw new ArgumentNullException(nameof(fetchToken));
+            }
+
             var filter = new BsonDocument
             {
                 ["_id"] = id,
-                [nameof(JobDto.FetchedAt)] = fetchedAt,
+                [nameof(JobDto.FetchToken)] = fetchToken,
                 [nameof(JobDto.Queue)] = queue
             };
             var update = new BsonDocument
@@ -99,6 +104,7 @@ namespace Hangfire.Mongo
                 ["$set"] = new BsonDocument
                 {
                     [nameof(JobDto.FetchedAt)] = BsonNull.Value,
+                    [nameof(JobDto.FetchToken)] = BsonNull.Value,
                     [nameof(JobDto.Queue)] = BsonNull.Value
                 }
             };
@@ -110,6 +116,7 @@ namespace Hangfire.Mongo
         {
             var updates = GetOrAddJobUpdates(id.ToString());
             updates.Set[nameof(JobDto.FetchedAt)] = BsonNull.Value;
+            updates.Set[nameof(JobDto.FetchToken)] = BsonNull.Value;
             updates.Set[nameof(JobDto.Queue)] = queue.ToBsonValue();
             JobsAddedToQueue.Add(queue);
         }
@@ -219,6 +226,7 @@ namespace Hangfire.Mongo
             var updates = GetOrAddJobUpdates(jobId);
             updates.Set[nameof(JobDto.Queue)] = queue;
             updates.Set[nameof(JobDto.FetchedAt)] = BsonNull.Value;
+            updates.Set[nameof(JobDto.FetchToken)] = BsonNull.Value;
 
             JobsAddedToQueue.Add(queue);
         }
@@ -485,7 +493,19 @@ namespace Hangfire.Mongo
         {
             try
             {
-                jobGraph.BulkWrite(writeModels, bulkWriteOptions);
+                var result = jobGraph.BulkWrite(writeModels, bulkWriteOptions);
+                var updateOneCount = 0;
+                foreach (var wm in writeModels)
+                {
+                    if (wm is UpdateOneModel<BsonDocument>) updateOneCount++;
+                }
+                if (updateOneCount > 0 && result.MatchedCount < updateOneCount)
+                {
+                    Logger.Warn(
+                        $"Bulk matched {result.MatchedCount} of {updateOneCount} UpdateOne models — " +
+                        "a conditional update (likely a RemoveFromQueue ack) did not match. " +
+                        "Another worker may have reclaimed the job, or the document is gone.");
+                }
             }
             catch (Exception e)
             {

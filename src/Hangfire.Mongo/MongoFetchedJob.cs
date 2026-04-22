@@ -23,6 +23,7 @@ namespace Hangfire.Mongo
         private readonly HangfireDbContext _db;
         private readonly MongoStorageOptions _storageOptions;
         private DateTime _fetchedAt;
+        private readonly string _fetchToken;
         private readonly ObjectId _id;
         private readonly object _syncRoot;
 
@@ -38,6 +39,7 @@ namespace Hangfire.Mongo
         /// <param name="db">Database connection</param>
         /// <param name="storageOptions">storage options</param>
         /// <param name="fetchedAt"></param>
+        /// <param name="fetchToken"></param>
         /// <param name="id">Identifier</param>
         /// <param name="jobId">Job ID</param>
         /// <param name="queue">Queue name</param>
@@ -45,6 +47,7 @@ namespace Hangfire.Mongo
             HangfireDbContext db,
             MongoStorageOptions storageOptions,
             DateTime fetchedAt,
+            string fetchToken,
             ObjectId id,
             ObjectId jobId,
             string queue)
@@ -53,6 +56,7 @@ namespace Hangfire.Mongo
             _syncRoot = new object();
             _storageOptions = storageOptions;
             _fetchedAt = fetchedAt;
+            _fetchToken = fetchToken ?? throw new ArgumentNullException(nameof(fetchToken));
             _id = id;
             JobId = jobId.ToString();
             Queue = queue ?? throw new ArgumentNullException(nameof(queue));
@@ -61,6 +65,11 @@ namespace Hangfire.Mongo
                 StartHeartbeat(storageOptions.SlidingInvisibilityTimeout.Value);
             }
         }
+
+        /// <summary>
+        /// Immutable ownership token issued at fetch
+        /// </summary>
+        public string FetchToken => _fetchToken;
 
         /// <summary>
         /// Timestamp job is fetched
@@ -87,10 +96,41 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void RemoveFromQueue()
         {
-            using var t = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_db, _storageOptions);
-            t.RemoveFromQueue(_id, _fetchedAt, Queue);
-            t.Commit();
-            SetRemoved();
+            lock (_syncRoot)
+            {
+                if (_removedFromQueue || _requeued)
+                {
+                    return;
+                }
+
+                var filter = new BsonDocument
+                {
+                    ["_id"] = _id,
+                    [nameof(JobDto.FetchToken)] = _fetchToken,
+                    [nameof(JobDto.Queue)] = Queue
+                };
+                var update = new BsonDocument
+                {
+                    ["$set"] = new BsonDocument
+                    {
+                        [nameof(JobDto.FetchedAt)] = BsonNull.Value,
+                        [nameof(JobDto.FetchToken)] = BsonNull.Value,
+                        [nameof(JobDto.Queue)] = BsonNull.Value
+                    }
+                };
+                var result = _db.JobGraph.UpdateOne(filter, update);
+                _removedFromQueue = true;
+                if (result.MatchedCount == 0)
+                {
+                    // Ack lost: either this lease was stolen by another worker after our
+                    // invisibility timeout, or the document is already gone. Log and return —
+                    // surfacing this as an exception would push Hangfire.Core's Worker into a
+                    // retry path and, ironically, risk double-delivery.
+                    Logger.Warn(
+                        $"Lease lost for job {_id} (queue='{Queue}'): queue acknowledgement matched 0 documents. " +
+                        "Another worker may have reclaimed this job.");
+                }
+            }
         }
 
         /// <summary>
@@ -106,10 +146,18 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void Requeue()
         {
-            using var t = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_db, _storageOptions);
-            t.Requeue(_id, Queue);
-            t.Commit();
-            _requeued = true;
+            lock (_syncRoot)
+            {
+                if (_removedFromQueue || _requeued)
+                {
+                    return;
+                }
+
+                using var t = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_db, _storageOptions);
+                t.Requeue(_id, Queue);
+                t.Commit();
+                _requeued = true;
+            }
         }
 
         /// <summary>

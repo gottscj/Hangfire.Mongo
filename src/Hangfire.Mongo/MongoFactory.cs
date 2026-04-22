@@ -104,19 +104,21 @@ namespace Hangfire.Mongo
         /// <param name="dbContext"></param>
         /// <param name="storageOptions"></param>
         /// <param name="fetchedAt"></param>
+        /// <param name="fetchToken"></param>
         /// <param name="id"></param>
         /// <param name="jobId"></param>
         /// <param name="queue"></param>
         /// <returns></returns>
         public virtual MongoFetchedJob CreateFetchedJob(
-            HangfireDbContext dbContext, 
+            HangfireDbContext dbContext,
             MongoStorageOptions storageOptions,
             DateTime fetchedAt,
-            ObjectId id, 
+            string fetchToken,
+            ObjectId id,
             ObjectId jobId,
             string queue)
         {
-            return new MongoFetchedJob(dbContext, storageOptions, fetchedAt, id, jobId, queue);
+            return new MongoFetchedJob(dbContext, storageOptions, fetchedAt, fetchToken, id, jobId, queue);
         }
 
         /// <summary>
