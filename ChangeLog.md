@@ -1,7 +1,7 @@
 
 ## Change log
 
-### Unreleased
+### 1.15.0
 - Fix #452: queue acknowledgement was silently lost when the heartbeat had advanced `FetchedAt`
   on the server while the client missed the response (network blip, primary stepdown,
   socket timeout). `RemoveFromQueue` now CAS'es on an immutable `FetchToken` issued at fetch

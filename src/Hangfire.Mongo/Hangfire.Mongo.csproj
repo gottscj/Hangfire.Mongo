@@ -12,8 +12,19 @@
         <owners>Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB DocumentDb Azure AWS Atlas Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.14.1
-            - Show auth mechanism to make IAM auth verifiable from logs, by @lillapetri (#447)
+        <PackageReleaseNotes>1.15.0
+            - Fix #452: queue acknowledgement was silently lost when the heartbeat had advanced `FetchedAt`
+            on the server while the client missed the response (network blip, primary stepdown,
+            socket timeout). `RemoveFromQueue` now CAS'es on an immutable `FetchToken` issued at fetch
+            time, so heartbeat mutations cannot invalidate the ack. A stolen-lease ack is logged and
+            ignored rather than silently dropping. Adds `JobStorageFeatures.Transaction.RemoveFromQueue`
+            so Hangfire.Core can bundle state transition and queue ack into one transaction.
+            - Adds schema `Version25` with a migration that back-fills `FetchToken = null` on existing
+            JobDto documents.
+            - BREAKING: `MongoFactory.CreateFetchedJob`, the `MongoFetchedJob` constructor, and
+            `MongoWriteOnlyTransaction.RemoveFromQueue(ObjectId, DateTime, string)` now require a
+            `fetchToken` (string) instead of / in place of `fetchedAt`. Subclasses overriding these
+            members must update their signatures.
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->

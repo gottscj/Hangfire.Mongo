@@ -185,26 +185,11 @@ namespace Hangfire.Mongo
         private void StartHeartbeat(TimeSpan slidingInvisibilityTimeout)
         {
             var timerInterval = TimeSpan.FromSeconds(slidingInvisibilityTimeout.TotalSeconds / 5);
+            
             var filter = new BsonDocument
             {
                 ["_id"] = _id,
                 [nameof(JobDto.StateName)] = ProcessingState.StateName
-            };
-            var update = new BsonDocument
-            {
-                ["$currentDate"] = new BsonDocument
-                {
-                    [nameof(JobDto.FetchedAt)] = true
-                }
-            };
-            var options = new FindOneAndUpdateOptions<BsonDocument>
-            {
-                IsUpsert = false,
-                ReturnDocument = ReturnDocument.After,
-                Projection = new BsonDocument
-                {
-                    [nameof(JobDto.FetchedAt)] = 1
-                }
             };
             _heartbeatTimer = new Timer(_ =>
             {
@@ -230,11 +215,16 @@ namespace Hangfire.Mongo
 
                     try
                     {
-                        var result = _db.JobGraph.FindOneAndUpdate(filter, update, options);
-                        if (result != null && result.TryGetValue(nameof(JobDto.FetchedAt), out var updatedFetchedAt))
+                        var now = DateTime.UtcNow;
+                        var update = new BsonDocument
                         {
-                            _fetchedAt = updatedFetchedAt.ToUniversalTime();
-                        }
+                            ["$set"] = new BsonDocument
+                            {
+                                [nameof(JobDto.FetchedAt)] = now
+                            }
+                        };
+                        _db.JobGraph.UpdateOne(filter, update);
+                        _fetchedAt = now;
                         
                         if (Logger.IsTraceEnabled() && sw != null)
                         {

@@ -67,9 +67,9 @@ namespace Hangfire.Mongo.Dto
 
         public string Arguments { get; set; }
 
-        public Dictionary<string, string> Parameters { get; set; } = new Dictionary<string, string>();
+        public Dictionary<string, string> Parameters { get; set; } = new();
 
-        public StateDto[] StateHistory { get; set; } = new StateDto[0];
+        public StateDto[] StateHistory { get; set; } = [];
 
         public DateTime CreatedAt { get; set; }
 
