@@ -120,6 +120,30 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
+        public void Requeue_LeavesDocumentIntact_WhenLeaseWasStolen()
+        {
+            // Arrange
+            var queue = "default";
+            var jobId = ObjectId.GenerateNewId();
+            var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt);
+            var workerA = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _fetchToken, id, jobId, queue);
+
+            var thiefToken = Guid.NewGuid().ToString("N");
+            _dbContext.JobGraph.UpdateOne(
+                new BsonDocument("_id", id),
+                new BsonDocument("$set", new BsonDocument(nameof(JobDto.FetchToken), thiefToken)));
+
+            // Act
+            workerA.Requeue();
+
+            // Assert
+            var doc = _dbContext.JobGraph.Find(new BsonDocument("_id", id)).Single();
+            Assert.Equal(queue, doc[nameof(JobDto.Queue)].AsString);
+            Assert.Equal(thiefToken, doc[nameof(JobDto.FetchToken)].AsString);
+            Assert.Equal(_fetchedAt, doc[nameof(JobDto.FetchedAt)].ToUniversalTime(), TimeSpan.FromSeconds(1));
+        }
+
+        [Fact]
         public void Dispose_SetsFetchedAtValueToNull_IfThereWereNoCallsToComplete()
         {
             // Arrange
@@ -136,13 +160,37 @@ namespace Hangfire.Mongo.Tests
                 _dbContext.JobGraph.Find(new BsonDocument("_t", nameof(JobDto))).ToList().Single());
             Assert.Null(record.FetchedAt);
         }
-        
+
+        [Fact]
+        public void Dispose_LeavesDocumentIntact_WhenLeaseWasStolenBeforeHeartbeatDetectedIt()
+        {
+            // Arrange
+            var queue = "default";
+            var jobId = ObjectId.GenerateNewId();
+            var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt);
+            var workerA = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _fetchToken, id, jobId, queue);
+
+            var thiefToken = Guid.NewGuid().ToString("N");
+            _dbContext.JobGraph.UpdateOne(
+                new BsonDocument("_id", id),
+                new BsonDocument("$set", new BsonDocument(nameof(JobDto.FetchToken), thiefToken)));
+
+            // Act
+            workerA.Dispose();
+
+            // Assert
+            var doc = _dbContext.JobGraph.Find(new BsonDocument("_id", id)).Single();
+            Assert.Equal(queue, doc[nameof(JobDto.Queue)].AsString);
+            Assert.Equal(thiefToken, doc[nameof(JobDto.FetchToken)].AsString);
+            Assert.Equal(_fetchedAt, doc[nameof(JobDto.FetchedAt)].ToUniversalTime(), TimeSpan.FromSeconds(1));
+        }
+
         [Fact]
         public void Heartbeat_LonRunningJob_UpdatesFetchedAt()
         {
             // Arrange
             // time out job after 1s
-            var options = new MongoStorageOptions() {SlidingInvisibilityTimeout = TimeSpan.FromSeconds(1)};
+            var options = new MongoStorageOptions() { SlidingInvisibilityTimeout = TimeSpan.FromSeconds(1) };
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
             var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt, ProcessingState.StateName);
@@ -156,6 +204,35 @@ namespace Hangfire.Mongo.Tests
 
             // Assert
             Assert.True(job.FetchedAt > initialFetchedAt, "Expected job FetchedAt field to be updated");
+        }
+
+        [Fact]
+        public void Heartbeat_LeavesDocumentIntact_WhenLeaseWasStolen()
+        {
+            // Arrange
+            var options = new MongoStorageOptions() { SlidingInvisibilityTimeout = TimeSpan.FromSeconds(1) };
+            var queue = "default";
+            var jobId = ObjectId.GenerateNewId();
+            var initialFetchedAt = DateTime.UtcNow.AddMinutes(-10);
+            var id = CreateJobQueueRecord(_dbContext, jobId, queue, initialFetchedAt, ProcessingState.StateName);
+            var workerA = new MongoFetchedJob(_dbContext, options, initialFetchedAt, _fetchToken, id, jobId, queue);
+
+            var thiefToken = Guid.NewGuid().ToString("N");
+            _dbContext.JobGraph.UpdateOne(
+                new BsonDocument("_id", id),
+                new BsonDocument("$set", new BsonDocument(nameof(JobDto.FetchToken), thiefToken)));
+
+            // Act
+            Thread.Sleep(TimeSpan.FromSeconds(2));
+            workerA.Dispose();
+
+            // Assert
+            var doc = _dbContext.JobGraph.Find(new BsonDocument("_id", id)).Single();
+            Assert.Equal(queue, doc[nameof(JobDto.Queue)].AsString);
+            Assert.Equal(thiefToken, doc[nameof(JobDto.FetchToken)].AsString);
+            Assert.True(
+                doc[nameof(JobDto.FetchedAt)].ToUniversalTime() < DateTime.UtcNow.AddMinutes(-5),
+                "Expected stale worker heartbeat not to extend another worker's lease");
         }
 
         [Fact]

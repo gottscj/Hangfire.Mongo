@@ -14,10 +14,16 @@ namespace Hangfire.Mongo.Dto
         {
             Id = doc["_id"].AsObjectId;
             ExpireAt = doc[nameof(ExpireAt)].ToUniversalTime();
+            if (doc.TryGetValue(nameof(OwnerToken), out var ownerToken))
+            {
+                OwnerToken = ownerToken.StringOrNull();
+            }
         }
         public ObjectId Id { get; set; }
-        
+
         public DateTime ExpireAt { get; set; }
+
+        public string OwnerToken { get; set; }
 
         public BsonDocument Serialize()
         {
@@ -25,6 +31,7 @@ namespace Hangfire.Mongo.Dto
             {
                 ["_id"] = Id,
                 [nameof(ExpireAt)] = ExpireAt.ToUniversalTime(),
+                [nameof(OwnerToken)] = OwnerToken.ToBsonValue(),
             };
         }
     }

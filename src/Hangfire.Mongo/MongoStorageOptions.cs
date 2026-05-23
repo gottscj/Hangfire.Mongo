@@ -12,6 +12,8 @@ namespace Hangfire.Mongo
 
         private TimeSpan _distributedLockLifetime;
 
+        private TimeSpan? _slidingInvisibilityTimeout;
+
         private TimeSpan _migrationLockTimeout;
         private MongoMigrationOptions _migrationOptions;
         private MongoFactory _factory;
@@ -113,13 +115,34 @@ namespace Hangfire.Mongo
         /// and 'CheckQueuedJobsStrategy' is TailNotificationsCollection
         /// </summary>
         public bool SupportsCappedCollection { get; set; } = true;
-        
+
         /// <summary>
         /// If 'SlidingInvisibilityTimeout' a has value, Hangfire.Mongo will periodically update a jobs timestamp.
         /// 'SlidingInvisibilityTimeout' determines how long time before Hangfire.Mongo decides the job is abandoned
         /// default = 5 min, if set to null, jobs will never be abandoned
         /// </summary>
-        public TimeSpan? SlidingInvisibilityTimeout { get; set; }
+        public TimeSpan? SlidingInvisibilityTimeout
+        {
+            get { return _slidingInvisibilityTimeout; }
+            set
+            {
+                if (value.HasValue)
+                {
+                    var message = $"The SlidingInvisibilityTimeout property value should be positive. Given: {value}.";
+
+                    if (value.Value == TimeSpan.Zero)
+                    {
+                        throw new ArgumentException(message, nameof(value));
+                    }
+                    if (value.Value != value.Value.Duration())
+                    {
+                        throw new ArgumentException(message, nameof(value));
+                    }
+                }
+
+                _slidingInvisibilityTimeout = value;
+            }
+        }
 
         /// <summary>
         /// Lifetime of distributed lock
@@ -179,12 +202,12 @@ namespace Hangfire.Mongo
         /// the db and try to connect to the db using the given MongoClientSettings
         /// </summary>
         public bool CheckConnection { get; set; }
-        
+
         /// <summary>
         /// Bypass migrations, use at your own risk :)
         /// </summary>
         public bool ByPassMigration { get; set; }
-        
+
         /// <summary>
         /// Time before cancelling ping to mongo server, if 'CheckConnection' is false, this value will be ignored
         /// </summary>

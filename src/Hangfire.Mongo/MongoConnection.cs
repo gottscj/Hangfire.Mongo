@@ -17,6 +17,10 @@ namespace Hangfire.Mongo
     /// <summary>
     /// MongoDB database connection for Hangfire
     /// </summary>
+    // Hangfire.Core still exposes only synchronous storage APIs as of 2026
+    // (see HangfireIO/Hangfire#401 and #1658). Keep this boundary explicit:
+    // replacing native sync MongoDB calls with sync-over-async would still
+    // block worker threads and can be worse than real synchronous I/O.
     public class MongoConnection : JobStorageConnection
     {
         private static readonly ILog Logger = LogProvider.For<MongoConnection>();
@@ -180,7 +184,7 @@ namespace Hangfire.Mongo
             {
                 return null;
             }
-            
+
             var jobDto = new JobDto(document);
             var state = jobDto.StateHistory.LastOrDefault();
 
@@ -218,7 +222,7 @@ namespace Hangfire.Mongo
             });
 
             var filter = new BsonDocument("_id", serverId);
-            _dbContext.Server.UpdateOne(filter, set, new UpdateOptions {IsUpsert = true});
+            _dbContext.Server.UpdateOne(filter, set, new UpdateOptions { IsUpsert = true });
         }
 
         public override void RemoveServer(string serverId)
@@ -247,7 +251,7 @@ namespace Hangfire.Mongo
             };
             var updateResult = _dbContext.Server.UpdateOne(new BsonDocument("_id", serverId), update);
 
-            if (updateResult is {IsAcknowledged: true, ModifiedCount: 0})
+            if (updateResult is { IsAcknowledged: true, ModifiedCount: 0 })
             {
                 throw new BackgroundServerGoneException();
             }
@@ -260,7 +264,7 @@ namespace Hangfire.Mongo
                 throw new ArgumentException("The `timeOut` value must be positive.", nameof(timeOut));
             }
 
-            return (int) _dbContext
+            return (int)_dbContext
                 .Server
                 .DeleteMany(new BsonDocument
                 {

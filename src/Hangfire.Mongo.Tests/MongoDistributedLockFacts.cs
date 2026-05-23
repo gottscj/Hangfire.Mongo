@@ -72,6 +72,22 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
+        public void Dispose_LeavesLock_WhenOwnershipChanged()
+        {
+            var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
+            var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "resource1");
+            using (lock1.AcquireLock())
+            {
+                _database.DistributedLock.UpdateOne(
+                    filter,
+                    new BsonDocument("$set", new BsonDocument(nameof(DistributedLockDto.OwnerToken), "another-owner")));
+            }
+
+            var lockEntry = _database.DistributedLock.Find(filter).Single();
+            Assert.Equal("another-owner", lockEntry[nameof(DistributedLockDto.OwnerToken)].AsString);
+        }
+
+        [Fact]
         public void Ctor_AcquireLockWithinSameThread_WhenResourceIsLocked()
         {
             var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
@@ -158,7 +174,7 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_SetLockExpireAtWorks_WhenResourceIsNotLocked()
         {
             var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database,
-                new MongoStorageOptions() {DistributedLockLifetime = TimeSpan.FromSeconds(3)});
+                new MongoStorageOptions() { DistributedLockLifetime = TimeSpan.FromSeconds(3) });
             var filter = new BsonDocument
             {
                 [nameof(DistributedLockDto.Resource)] = "resource1"
@@ -180,7 +196,7 @@ namespace Hangfire.Mongo.Tests
             // simulate situation when lock was not disposed correctly (app crash) and there is no heartbeats to prolong ExpireAt value
             var initialExpireAt = DateTime.UtcNow.AddSeconds(3);
             _database.DistributedLock
-                .InsertOne(new DistributedLockDto {ExpireAt = initialExpireAt, Resource = "resource1" }.Serialize());
+                .InsertOne(new DistributedLockDto { ExpireAt = initialExpireAt, Resource = "resource1" }.Serialize());
 
             var lock1 = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(5), _database,
                 new MongoStorageOptions());

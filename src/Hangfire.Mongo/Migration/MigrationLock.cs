@@ -17,15 +17,16 @@ namespace Hangfire.Mongo.Migration
         /// ID used for migration locks
         /// </summary>
         public static readonly BsonObjectId LockId = new BsonObjectId(ObjectId.Parse("5c351d07197a9bcdba4832fc"));
-        
+
         private static readonly ILog Logger = LogProvider.For<MigrationLock>();
         private readonly TimeSpan _timeout;
         private readonly IMongoCollection<BsonDocument> _migrationLock;
+        private readonly string _ownerToken = Guid.NewGuid().ToString("N");
         private bool _disposed;
         private bool _isLockAcquired;
         private CancellationTokenSource _heartbeatCancellation;
         private Task _heartbeatTask;
-        
+
         /// <summary>
         /// ctor
         /// </summary>
@@ -37,13 +38,13 @@ namespace Hangfire.Mongo.Migration
             {
                 throw new ArgumentNullException(nameof(database));
             }
-            
+
             if (storageOptions is null)
             {
                 throw new ArgumentNullException(nameof(storageOptions));
             }
 
-            _timeout = storageOptions.MigrationLockTimeout; 
+            _timeout = storageOptions.MigrationLockTimeout;
             _migrationLock = database.GetCollection<BsonDocument>(storageOptions.Prefix + ".migrationLock");
         }
 
@@ -56,7 +57,7 @@ namespace Hangfire.Mongo.Migration
             {
                 throw new ObjectDisposedException("Lock is disposed");
             }
-            
+
             try
             {
                 // If result is null, then it means we acquired the lock
@@ -74,7 +75,8 @@ namespace Hangfire.Mongo.Migration
                 {
                     ["$setOnInsert"] = new BsonDocument
                     {
-                        [nameof(MigrationLockDto.ExpireAt)] = lockTimeoutTime
+                        [nameof(MigrationLockDto.ExpireAt)] = lockTimeoutTime,
+                        [nameof(MigrationLockDto.OwnerToken)] = _ownerToken
                     }
                 };
                 // busy wait
@@ -113,7 +115,7 @@ namespace Hangfire.Mongo.Migration
                                                         "Either another server did not complete the migration or migration was abruptly interrupted\r\n" +
                                                         $"If migration has been interrupted you need to manually delete '{_migrationLock.CollectionNamespace.CollectionName}' and start again.");
                 }
-                
+
                 // Start heartbeat timer to keep lock alive during long-running migrations
                 StartHeartbeat();
             }
@@ -136,7 +138,7 @@ namespace Hangfire.Mongo.Migration
                 _migrationLock.DeleteOne(new BsonDocument
                 {
                     ["_id"] = LockId,
-                    [nameof(DistributedLockDto.ExpireAt)] = new BsonDocument
+                    [nameof(MigrationLockDto.ExpireAt)] = new BsonDocument
                     {
                         ["$lt"] = DateTime.UtcNow
                     }
@@ -147,7 +149,7 @@ namespace Hangfire.Mongo.Migration
                 Logger.Error($"Unable to clean up locks on the migration lock. Details:\r\n{ex}");
             }
         }
-        
+
         private DateTime Wait()
         {
             Thread.Sleep(TimeSpan.FromMilliseconds(100));
@@ -160,24 +162,35 @@ namespace Hangfire.Mongo.Migration
         private void StartHeartbeat()
         {
             _heartbeatCancellation = new CancellationTokenSource();
+            var cancellationToken = _heartbeatCancellation.Token;
             var interval = TimeSpan.FromSeconds(Math.Max(1, _timeout.TotalSeconds / 3));
-            
+
             _heartbeatTask = Task.Run(async () =>
             {
-                while (!_heartbeatCancellation.Token.IsCancellationRequested)
+                var next = DateTime.UtcNow.Add(interval);
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     try
                     {
-                        await Task.Delay(interval, _heartbeatCancellation.Token);
-                        
-                        if (_heartbeatCancellation.Token.IsCancellationRequested)
+                        var delay = next.Subtract(DateTime.UtcNow);
+                        if (delay > TimeSpan.Zero)
+                        {
+                            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                        }
+
+                        if (cancellationToken.IsCancellationRequested)
                         {
                             break;
                         }
-                        
-                        UpdateHeartbeat();
+
+                        await UpdateHeartbeat(cancellationToken).ConfigureAwait(false);
+                        next = next.Add(interval);
+                        if (next <= DateTime.UtcNow)
+                        {
+                            next = DateTime.UtcNow.Add(interval);
+                        }
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
                         // Expected when cancellation is requested
                         break;
@@ -193,12 +206,12 @@ namespace Hangfire.Mongo.Migration
         /// <summary>
         /// Updates the ExpireAt field to extend the lock timeout
         /// </summary>
-        private void UpdateHeartbeat()
+        private async Task UpdateHeartbeat(CancellationToken cancellationToken)
         {
             try
             {
                 var newExpireAt = DateTime.UtcNow.Add(_timeout);
-                var filter = new BsonDocument("_id", LockId);
+                var filter = CreateOwnerFilter();
                 var update = new BsonDocument
                 {
                     ["$set"] = new BsonDocument
@@ -206,17 +219,22 @@ namespace Hangfire.Mongo.Migration
                         [nameof(MigrationLockDto.ExpireAt)] = newExpireAt
                     }
                 };
-                
-                var result = _migrationLock.UpdateOne(filter, update);
-                
+
+                var result = await _migrationLock.UpdateOneAsync(filter, update, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+
                 if (result.MatchedCount == 0)
                 {
+                    _heartbeatCancellation?.Cancel();
                     Logger.Warn("Migration lock was not found during heartbeat update. Lock may have been lost.");
                 }
                 else if (Logger.IsDebugEnabled())
                 {
                     Logger.Debug("Updated migration lock heartbeat");
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
             }
             catch (Exception ex)
             {
@@ -237,27 +255,57 @@ namespace Hangfire.Mongo.Migration
             // Stop the heartbeat timer before releasing the lock
             if (_heartbeatCancellation != null)
             {
-                _heartbeatCancellation.Cancel();
-                try
-                {
-                    _heartbeatTask?.Wait(TimeSpan.FromSeconds(5));
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"Error waiting for heartbeat task to complete: {ex}");
-                }
-                finally
-                {
-                    _heartbeatCancellation?.Dispose();
-                }
+                var heartbeatTask = _heartbeatTask;
+                var heartbeatCancellation = _heartbeatCancellation;
+                heartbeatCancellation.Cancel();
+                WaitForHeartbeatToStop(heartbeatTask, heartbeatCancellation);
             }
 
             if (_isLockAcquired)
             {
-                _migrationLock.DeleteOne(new BsonDocument("_id", LockId));
+                _migrationLock.DeleteOne(CreateOwnerFilter());
             }
-            
+
             Cleanup();
+        }
+
+        private static void WaitForHeartbeatToStop(Task heartbeatTask, CancellationTokenSource heartbeatCancellation)
+        {
+            if (heartbeatTask == null)
+            {
+                heartbeatCancellation.Dispose();
+                return;
+            }
+
+            try
+            {
+                if (heartbeatTask.Wait(TimeSpan.FromSeconds(5)))
+                {
+                    heartbeatCancellation.Dispose();
+                    return;
+                }
+
+                Logger.Warn("Migration lock heartbeat did not stop within 5 seconds.");
+                heartbeatTask.ContinueWith(
+                    _ => heartbeatCancellation.Dispose(),
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default);
+            }
+            catch (AggregateException ex)
+            {
+                Logger.Error($"Error waiting for heartbeat task to complete: {ex.Flatten()}");
+                heartbeatCancellation.Dispose();
+            }
+        }
+
+        private BsonDocument CreateOwnerFilter()
+        {
+            return new BsonDocument
+            {
+                ["_id"] = LockId,
+                [nameof(MigrationLockDto.OwnerToken)] = _ownerToken
+            };
         }
     }
 }
