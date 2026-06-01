@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 
 namespace Hangfire.Mongo.Sample.CosmosDB
@@ -7,7 +8,11 @@ namespace Hangfire.Mongo.Sample.CosmosDB
     {
         public static void Main()
         {
-            var host = new WebHostBuilder()
+            var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+            {
+                ContentRootPath = Directory.GetCurrentDirectory()
+            });
+            builder.WebHost
                 .UseKestrel()
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .ConfigureLogging(l =>
@@ -16,10 +21,10 @@ namespace Hangfire.Mongo.Sample.CosmosDB
 //                    l.AddDebug();
                 })
                 .UseIISIntegration()
-                .UseStartup<Startup>()
-                .Build();
+                .UseStartup<Startup>();
+            var app = builder.Build();
 
-            host.Run();
+            app.Run();
         }
     }
 }

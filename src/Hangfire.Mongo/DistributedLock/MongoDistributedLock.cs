@@ -70,7 +70,7 @@ namespace Hangfire.Mongo.DistributedLock
         /// 
         /// </summary>
         /// <returns></returns>
-        public IDisposable AcquireLock()
+        public virtual IDisposable AcquireLock()
         {
             if (!AcquiredLocks.Value.ContainsKey(_resource) || AcquiredLocks.Value[_resource] == 0)
             {

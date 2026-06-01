@@ -1,6 +1,10 @@
 
 ## Change log
 
+### 1.16.0
+- Update to MongoDB.Driver 3.9.0
+- Made AcquireLock() in MongoDistributedLock virtual, allowing users to override it for custom locking behavior
+
 ### 1.15.0
 - Fix #452: queue acknowledgement was silently lost when the heartbeat had advanced `FetchedAt`
   on the server while the client missed the response (network blip, primary stepdown,
