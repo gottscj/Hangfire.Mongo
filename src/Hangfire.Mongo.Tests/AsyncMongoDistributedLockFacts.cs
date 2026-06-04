@@ -14,11 +14,11 @@ namespace Hangfire.Mongo.Tests
 #pragma warning disable 1591
 
     [Collection("Database")]
-    public class MongoDistributedLockFacts
+    public class AsyncMongoDistributedLockFacts
     {
         private readonly HangfireDbContext _database;
 
-        public MongoDistributedLockFacts(MongoIntegrationTestFixture fixture)
+        public AsyncMongoDistributedLockFacts(MongoIntegrationTestFixture fixture)
         {
             fixture.CleanDatabase();
             _database = fixture.CreateDbContext();
@@ -28,7 +28,7 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_ThrowsAnException_WhenResourceIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoDistributedLock(null, TimeSpan.Zero, _database, new MongoStorageOptions()));
+                () => new AsyncMongoDistributedLock(null, TimeSpan.Zero, _database, new MongoStorageOptions()));
 
             Assert.Equal("resource", exception.ParamName);
         }
@@ -37,7 +37,7 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoDistributedLock("resource1", TimeSpan.Zero, null,
+                () => new AsyncMongoDistributedLock("resource1", TimeSpan.Zero, null,
                     new MongoStorageOptions()));
 
             Assert.Equal("dbContext", exception.ParamName);
@@ -46,7 +46,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_SetLock_WhenResourceIsNotLocked()
         {
-            var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
+            var lock1 = new AsyncMongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
             using (lock1.AcquireLock())
             {
                 var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "resource1");
@@ -58,7 +58,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_SetReleaseLock_WhenResourceIsNotLocked()
         {
-            var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
+            var lock1 = new AsyncMongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
             var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "resource1");
             using (lock1.AcquireLock())
             {
@@ -72,9 +72,25 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
+        public void Dispose_LeavesLock_WhenOwnershipChanged()
+        {
+            var lock1 = new AsyncMongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
+            var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "resource1");
+            using (lock1.AcquireLock())
+            {
+                _database.DistributedLock.UpdateOne(
+                    filter,
+                    new BsonDocument("$set", new BsonDocument(nameof(DistributedLockDto.OwnerToken), "another-owner")));
+            }
+
+            var lockEntry = _database.DistributedLock.Find(filter).Single();
+            Assert.Equal("another-owner", lockEntry[nameof(DistributedLockDto.OwnerToken)].AsString);
+        }
+
+        [Fact]
         public void Ctor_AcquireLockWithinSameThread_WhenResourceIsLocked()
         {
-            var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
+            var lock1 = new AsyncMongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
             var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "resource1");
             using (lock1.AcquireLock())
             {
@@ -82,7 +98,7 @@ namespace Hangfire.Mongo.Tests
                 var locksCount = _database.DistributedLock.CountDocuments(filter);
                 Assert.Equal(1, locksCount);
 
-                var lock2 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
+                var lock2 = new AsyncMongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
                 using (lock2.AcquireLock())
                 {
                     locksCount = _database.DistributedLock.CountDocuments(filter);
@@ -94,7 +110,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_ThrowsAnException_WhenResourceIsLocked()
         {
-            var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
+            var lock1 = new AsyncMongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
             var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "resource1");
             using (lock1.AcquireLock())
             {
@@ -105,7 +121,7 @@ namespace Hangfire.Mongo.Tests
                 {
                     Assert.Throws<DistributedLockTimeoutException>(() =>
                         {
-                            var lock2 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database,
+                            var lock2 = new AsyncMongoDistributedLock("resource1", TimeSpan.Zero, _database,
                                 new MongoStorageOptions());
                             lock2.AcquireLock();
                         }
@@ -121,7 +137,7 @@ namespace Hangfire.Mongo.Tests
         {
             var t = new Thread(() =>
             {
-                var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
+                var lock1 = new AsyncMongoDistributedLock("resource1", TimeSpan.Zero, _database, new MongoStorageOptions());
                 using (lock1.AcquireLock())
                 {
                     Thread.Sleep(TimeSpan.FromSeconds(3));
@@ -134,7 +150,7 @@ namespace Hangfire.Mongo.Tests
 
             // Record when we try to acquire the lock
             var startTime = DateTime.UtcNow;
-            var lock2 = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(10), _database,
+            var lock2 = new AsyncMongoDistributedLock("resource1", TimeSpan.FromSeconds(10), _database,
                 new MongoStorageOptions());
             using (lock2.AcquireLock())
             {
@@ -147,7 +163,7 @@ namespace Hangfire.Mongo.Tests
         {
             var exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database, null);
+                var lock1 = new AsyncMongoDistributedLock("resource1", TimeSpan.Zero, _database, null);
                 lock1.AcquireLock();
             });
 
@@ -157,8 +173,8 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_SetLockExpireAtWorks_WhenResourceIsNotLocked()
         {
-            var lock1 = new MongoDistributedLock("resource1", TimeSpan.Zero, _database,
-                new MongoStorageOptions() {DistributedLockLifetime = TimeSpan.FromSeconds(3)});
+            var lock1 = new AsyncMongoDistributedLock("resource1", TimeSpan.Zero, _database,
+                new MongoStorageOptions() { DistributedLockLifetime = TimeSpan.FromSeconds(3) });
             var filter = new BsonDocument
             {
                 [nameof(DistributedLockDto.Resource)] = "resource1"
@@ -180,9 +196,9 @@ namespace Hangfire.Mongo.Tests
             // simulate situation when lock was not disposed correctly (app crash) and there is no heartbeats to prolong ExpireAt value
             var initialExpireAt = DateTime.UtcNow.AddSeconds(3);
             _database.DistributedLock
-                .InsertOne(new DistributedLockDto {ExpireAt = initialExpireAt, Resource = "resource1" }.Serialize());
+                .InsertOne(new DistributedLockDto { ExpireAt = initialExpireAt, Resource = "resource1" }.Serialize());
 
-            var lock1 = new MongoDistributedLock("resource1", TimeSpan.FromSeconds(5), _database,
+            var lock1 = new AsyncMongoDistributedLock("resource1", TimeSpan.FromSeconds(5), _database,
                 new MongoStorageOptions());
             var filter = new BsonDocument
             {

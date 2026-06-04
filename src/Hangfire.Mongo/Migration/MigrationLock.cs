@@ -220,8 +220,7 @@ namespace Hangfire.Mongo.Migration
                     }
                 };
 
-                var result = await _migrationLock.UpdateOneAsync(filter, update, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
+                var result = await _migrationLock.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
 
                 if (result.MatchedCount == 0)
                 {

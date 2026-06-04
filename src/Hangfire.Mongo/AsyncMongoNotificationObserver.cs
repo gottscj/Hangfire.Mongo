@@ -1,5 +1,7 @@
 using System;
+using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
@@ -12,15 +14,11 @@ namespace Hangfire.Mongo
     /// <summary>
     /// Observes if jobs are enqueued and signals 
     /// </summary>
-    public class 
-        MongoNotificationObserver : IBackgroundProcess, IServerComponent
+    public class AsyncMongoNotificationObserver : MongoNotificationObserver, IBackgroundProcessAsync
     {
         private static readonly ILog Logger = LogProvider.For<MongoNotificationObserver>();
         private readonly HangfireDbContext _dbContext;
-        private readonly MongoStorageOptions _storageOptions;
         private readonly IJobQueueSemaphore _jobQueueSemaphore;
-        private int _failureTimeout = 5000;
-        internal const int MaxTimeout = 60000;
 
         /// <summary>
         /// ctor
@@ -28,23 +26,23 @@ namespace Hangfire.Mongo
         /// <param name="dbContext"></param>
         /// <param name="storageOptions"></param>
         /// <param name="jobQueueSemaphore"></param>
-        public MongoNotificationObserver(
+        public AsyncMongoNotificationObserver(
             HangfireDbContext dbContext,
             MongoStorageOptions storageOptions,
-            IJobQueueSemaphore jobQueueSemaphore)
+            IJobQueueSemaphore jobQueueSemaphore) : base(dbContext, storageOptions, jobQueueSemaphore)
         {
             _dbContext = dbContext;
-            _storageOptions = storageOptions;
             _jobQueueSemaphore = jobQueueSemaphore;
         }
+
 
         /// <summary>
         /// Invoked by Hangfire.Core
         /// </summary>
         /// <param name="cancellationToken"></param>
-        public virtual void Execute(CancellationToken cancellationToken)
+        public virtual async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            var options = new FindOptions<BsonDocument> {CursorType = CursorType.TailableAwait};
+            var options = new FindOptions<BsonDocument> { CursorType = CursorType.TailableAwait };
 
             var lastId = ObjectId.GenerateNewId(new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc));
             var filter = new BsonDocument("_id", new BsonDocument("$gt", lastId));
@@ -53,13 +51,14 @@ namespace Hangfire.Mongo
             {
                 ["$setOnInsert"] = new BsonDocument(nameof(NotificationDto.Value), BsonNull.Value)
             };
-            var lastEnqueued = _dbContext.Notifications.FindOneAndUpdate(filter, update,
-                new FindOneAndUpdateOptions<BsonDocument>
-                {
-                    IsUpsert = true,
-                    Sort = new BsonDocument("_id", -1),
-                    ReturnDocument = ReturnDocument.After
-                });
+            var lastEnqueued = await _dbContext.Notifications.FindOneAndUpdateAsync(filter, update,
+                    new FindOneAndUpdateOptions<BsonDocument>
+                    {
+                        IsUpsert = true,
+                        Sort = new BsonDocument("_id", -1),
+                        ReturnDocument = ReturnDocument.After
+                    }, cancellationToken)
+                .ConfigureAwait(false);
 
             lastId = lastEnqueued["_id"].AsObjectId;
             filter = new BsonDocument("_id", new BsonDocument("$gt", lastId));
@@ -73,43 +72,38 @@ namespace Hangfire.Mongo
                 try
                 {
                     // Start the cursor and wait for the initial response
-                    using (var cursor = _dbContext.Notifications.FindSync(filter, options, cancellationToken))
+                    using (var cursor = await _dbContext.Notifications.FindAsync(filter, options, cancellationToken)
+                               .ConfigureAwait(false))
                     {
-                        foreach (var doc in cursor.ToEnumerable(cancellationToken))
+                        while (await cursor.MoveNextAsync(cancellationToken).ConfigureAwait(false))
                         {
-                            // Set the last value we saw 
-                            var notification = new NotificationDto(doc);
-                            lastId = notification.Id;
-                            if (string.IsNullOrEmpty(notification.Value))
+                            foreach (var doc in cursor.Current)
                             {
-                                continue;
-                            }
-
-                            if (Logger.IsTraceEnabled())
-                            {
-                                Logger.Trace($"Notification '{notification.Type}': {notification.Value}");
-                            }
-
-                            switch (notification.Type)
-                            {
-                                case NotificationType.JobEnqueued:
-                                    _jobQueueSemaphore.Release(notification.Value);
-                                    break;
+                                lastId = ProcessNotification(doc);
                             }
                         }
                     }
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                 }
                 catch (MongoCommandException commandException)
                 {
-                    HandleMongoCommandException(commandException, cancellationToken);
+                    if (HasOverriddenSyncCommandExceptionHandler())
+                    {
+                        HandleMongoCommandException(commandException, cancellationToken);
+                    }
+                    else
+                    {
+                        await HandleMongoCommandExceptionAsync(commandException, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
                 }
                 catch (Exception e)
                 {
                     Logger.Error(
                         $"Error observing '{_dbContext.Notifications.CollectionNamespace.CollectionName}'\r\n{e}");
+                    await Delay(GetFailureTimeoutMs(), cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -124,9 +118,21 @@ namespace Hangfire.Mongo
         /// Invoked by Hangfire.Core
         /// </summary>
         /// <param name="context"></param>
-        public virtual void Execute(BackgroundProcessContext context)
+        public virtual Task ExecuteAsync(BackgroundProcessContext context)
         {
-            Execute(context.StoppingToken);
+            return ExecuteAsync(context.StoppingToken);
+        }
+
+        private bool HasOverriddenSyncCommandExceptionHandler()
+        {
+            var method = GetType().GetMethod(
+                nameof(HandleMongoCommandException),
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null,
+                types: new[] { typeof(MongoCommandException), typeof(CancellationToken) },
+                modifiers: null);
+
+            return method != null && method.DeclaringType != typeof(MongoNotificationObserver);
         }
 
         /// <summary>
@@ -134,7 +140,7 @@ namespace Hangfire.Mongo
         ///     If error contains "tailable cursor requested on non capped collection."
         ///    then try to convert
         /// </summary>
-        protected virtual void HandleMongoCommandException(MongoCommandException commandException,
+        protected virtual async Task HandleMongoCommandExceptionAsync(MongoCommandException commandException,
             CancellationToken cancellationToken)
         {
             var successfullyRecreatedCollection = false;
@@ -145,12 +151,13 @@ namespace Hangfire.Mongo
                     "Trying to convert to capped");
                 try
                 {
-                    _dbContext.Database.RunCommand<BsonDocument>(new BsonDocument
+                    await _dbContext.Database.RunCommandAsync<BsonDocument>(new BsonDocument
                     {
                         ["convertToCapped"] = _dbContext.Notifications.CollectionNamespace.CollectionName,
                         ["size"] = 1048576 * 16, // 16 MB,
                         ["max"] = 100000
-                    });
+                    }, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
                     // _storageOptions.CreateNotificationsCollection(_dbContext.Database);
                     successfullyRecreatedCollection = true;
                 }
@@ -178,24 +185,44 @@ namespace Hangfire.Mongo
             if (!successfullyRecreatedCollection)
             {
                 // fatal error observing notifications. try again backing off 5s.
-                cancellationToken.WaitHandle.WaitOne(GetFailureTimeoutMs());
+                await Delay(GetFailureTimeoutMs(), cancellationToken).ConfigureAwait(false);
             }
         }
 
-        /// <summary>
-        /// Gets timeout. adds 5 seconds for each call, maximizing at 60s
-        /// </summary>
-        /// <returns></returns>
-        protected virtual int GetFailureTimeoutMs()
+        private ObjectId ProcessNotification(BsonDocument doc)
         {
-            var timeout = _failureTimeout;
-            _failureTimeout += 5000;
-            if (_failureTimeout >= MaxTimeout)
+            // Set the last value we saw
+            var notification = new NotificationDto(doc);
+            var lastId = notification.Id;
+            if (string.IsNullOrEmpty(notification.Value))
             {
-                _failureTimeout = MaxTimeout;
+                return lastId;
             }
 
-            return timeout;
+            if (Logger.IsTraceEnabled())
+            {
+                Logger.Trace($"Notification '{notification.Type}': {notification.Value}");
+            }
+
+            switch (notification.Type)
+            {
+                case NotificationType.JobEnqueued:
+                    _jobQueueSemaphore.Release(notification.Value);
+                    break;
+            }
+
+            return lastId;
+        }
+
+        private static async Task Delay(int millisecondsDelay, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Task.Delay(millisecondsDelay, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
         }
     }
 }

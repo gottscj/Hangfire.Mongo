@@ -8,17 +8,7 @@ namespace Hangfire.Mongo
     /// </summary>
     public class MongoStorageOptions
     {
-        private TimeSpan _queuePollInterval;
-
-        private TimeSpan _distributedLockLifetime;
-
-        private TimeSpan? _slidingInvisibilityTimeout;
-
-        private TimeSpan _migrationLockTimeout;
-        private MongoMigrationOptions _migrationOptions;
-        private MongoFactory _factory;
         private UtcDateTimeStrategy[] _utcDateTimeStrategies;
-        private string _prefix;
 
         /// <summary>
         /// Constructs storage options with default parameters
@@ -53,19 +43,21 @@ namespace Hangfire.Mongo
         /// Strategy for checking for enqueued jobs
         /// </summary>
         public CheckQueuedJobsStrategy CheckQueuedJobsStrategy { get; set; }
+
         /// <summary>
         /// Factory instance
         /// </summary>
         public MongoFactory Factory
         {
-            get => _factory;
+            get;
             set
             {
                 if (value == null)
                 {
                     throw new ArgumentException($"'{nameof(Factory)}' cannot be null");
                 }
-                _factory = value;
+
+                field = value;
             }
         }
 
@@ -74,14 +66,15 @@ namespace Hangfire.Mongo
         /// </summary>
         public string Prefix
         {
-            get => _prefix;
+            get;
             set
             {
                 if (value == null)
                 {
                     throw new ArgumentException($"'{nameof(Prefix)}' cannot be null");
                 }
-                _prefix = value;
+
+                field = value;
             }
         }
 
@@ -90,7 +83,7 @@ namespace Hangfire.Mongo
         /// </summary>
         public TimeSpan QueuePollInterval
         {
-            get { return _queuePollInterval; }
+            get { return field; }
             set
             {
                 var message = $"The QueuePollInterval property value should be positive. Given: {value}.";
@@ -104,7 +97,7 @@ namespace Hangfire.Mongo
                     throw new ArgumentException(message, nameof(value));
                 }
 
-                _queuePollInterval = value;
+                field = value;
             }
         }
 
@@ -123,7 +116,7 @@ namespace Hangfire.Mongo
         /// </summary>
         public TimeSpan? SlidingInvisibilityTimeout
         {
-            get { return _slidingInvisibilityTimeout; }
+            get { return field; }
             set
             {
                 if (value.HasValue)
@@ -140,7 +133,7 @@ namespace Hangfire.Mongo
                     }
                 }
 
-                _slidingInvisibilityTimeout = value;
+                field = value;
             }
         }
 
@@ -149,7 +142,7 @@ namespace Hangfire.Mongo
         /// </summary>
         public TimeSpan DistributedLockLifetime
         {
-            get { return _distributedLockLifetime; }
+            get { return field; }
             set
             {
                 var message = $"The DistributedLockLifetime property value should be positive. Given: {value}.";
@@ -163,7 +156,7 @@ namespace Hangfire.Mongo
                     throw new ArgumentException(message, nameof(value));
                 }
 
-                _distributedLockLifetime = value;
+                field = value;
             }
         }
 
@@ -174,7 +167,7 @@ namespace Hangfire.Mongo
         /// <exception cref="ArgumentException"></exception>
         public TimeSpan MigrationLockTimeout
         {
-            get { return _migrationLockTimeout; }
+            get { return field; }
             set
             {
                 var message = $"The MigrationLockTimeout property value should be positive. Given: {value}.";
@@ -188,7 +181,7 @@ namespace Hangfire.Mongo
                     throw new ArgumentException(message, nameof(value));
                 }
 
-                _migrationLockTimeout = value;
+                field = value;
             }
         }
 
@@ -229,14 +222,15 @@ namespace Hangfire.Mongo
         /// </summary>
         public MongoMigrationOptions MigrationOptions
         {
-            get => _migrationOptions;
+            get;
             set
             {
                 if (value == null)
                 {
                     throw new ArgumentException($"'{nameof(MigrationOptions)}' cannot be null");
                 }
-                _migrationOptions = value;
+
+                field = value;
             }
         }
 
