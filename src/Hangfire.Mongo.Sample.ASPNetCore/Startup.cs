@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Microsoft.AspNetCore.Builder;

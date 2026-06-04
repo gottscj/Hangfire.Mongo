@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 
 namespace Hangfire.Mongo.Sample.ASPNetCore
@@ -7,19 +8,24 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
     {
         public static void Main()
         {
-            var host = new WebHostBuilder()
+            var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+            {
+                ContentRootPath = Directory.GetCurrentDirectory()
+            });
+            builder.WebHost
                 .UseKestrel()
                 .UseContentRoot(Directory.GetCurrentDirectory())
-                .ConfigureLogging(l =>
+                .ConfigureLogging(_ =>
                 {
-//                    l.AddConsole();
-//                    l.AddDebug();
+//                    _.AddConsole();
+//                    _.AddDebug();
                 })
                 .UseIISIntegration()
-                .UseStartup<Startup>()
-                .Build();
+                .UseStartup<Startup>();
 
-            host.Run();
+            var app = builder.Build();
+
+            app.Run();
         }
     }
 }

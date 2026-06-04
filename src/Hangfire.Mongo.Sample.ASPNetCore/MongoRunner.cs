@@ -7,8 +7,7 @@ namespace Hangfire.Mongo.Sample.ASPNetCore
     public class MongoTestRunner : IAsyncDisposable
     {
         public readonly MongoDbContainer MongoDbContainer =
-            new MongoDbBuilder()
-                .WithImage("mongo:7.0")
+            new MongoDbBuilder("mongo:7.0")
                 .WithReplicaSet()
                 .Build();
 
