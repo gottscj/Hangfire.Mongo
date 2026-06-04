@@ -179,6 +179,68 @@ namespace Hangfire.Mongo.Tests
             var lockEntry = new MigrationLockDto(_locks.Find(new BsonDocument()).Single());
             Assert.True(lockEntry.ExpireAt > initialExpireAt);
         }
+
+        [Fact]
+        public void Dispose_LeavesLock_WhenOwnershipChanged()
+        {
+            var migrationLock = new MigrationLock(_database.Database, _options);
+            try
+            {
+                migrationLock.AcquireLock();
+
+                var ownerToken = Guid.NewGuid().ToString("N");
+                var ownerExpireAt = DateTime.UtcNow.AddMinutes(5);
+                _locks.UpdateOne(
+                    new BsonDocument("_id", MigrationLock.LockId),
+                    new BsonDocument("$set", new BsonDocument
+                    {
+                        [nameof(MigrationLockDto.OwnerToken)] = ownerToken,
+                        [nameof(MigrationLockDto.ExpireAt)] = ownerExpireAt
+                    }));
+
+                migrationLock.Dispose();
+
+                var lockEntry = new MigrationLockDto(_locks.Find(new BsonDocument("_id", MigrationLock.LockId)).Single());
+                Assert.Equal(ownerToken, lockEntry.OwnerToken);
+                Assert.True(lockEntry.ExpireAt > DateTime.UtcNow.AddMinutes(4));
+            }
+            finally
+            {
+                migrationLock.Dispose();
+                _locks.DeleteMany(new BsonDocument());
+            }
+        }
+
+        [Fact]
+        public void Heartbeat_LeavesLock_WhenOwnershipChanged()
+        {
+            var options = new MongoStorageOptions { MigrationLockTimeout = TimeSpan.FromSeconds(3) };
+            using var migrationLock = new MigrationLock(_database.Database, options);
+            try
+            {
+                migrationLock.AcquireLock();
+
+                var ownerToken = Guid.NewGuid().ToString("N");
+                var ownerExpireAt = DateTime.UtcNow.AddMinutes(5);
+                _locks.UpdateOne(
+                    new BsonDocument("_id", MigrationLock.LockId),
+                    new BsonDocument("$set", new BsonDocument
+                    {
+                        [nameof(MigrationLockDto.OwnerToken)] = ownerToken,
+                        [nameof(MigrationLockDto.ExpireAt)] = ownerExpireAt
+                    }));
+
+                Thread.Sleep(TimeSpan.FromMilliseconds(1500));
+
+                var lockEntry = new MigrationLockDto(_locks.Find(new BsonDocument("_id", MigrationLock.LockId)).Single());
+                Assert.Equal(ownerToken, lockEntry.OwnerToken);
+                Assert.True(lockEntry.ExpireAt > DateTime.UtcNow.AddMinutes(4));
+            }
+            finally
+            {
+                _locks.DeleteMany(new BsonDocument());
+            }
+        }
     }
 #pragma warning restore 1591
 }

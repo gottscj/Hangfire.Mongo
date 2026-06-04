@@ -62,6 +62,32 @@ namespace Hangfire.Mongo.Tests
             };
             Assert.Equal(TimeSpan.FromSeconds(1), storageOptions.QueuePollInterval);
         }
+
+        [Fact]
+        public void Set_SlidingInvisibilityTimeout_ShouldThrowAnException_WhenGivenIntervalIsEqualToZero()
+        {
+            var storageOptions = new MongoStorageOptions();
+            Assert.Throws<ArgumentException>(
+                () => storageOptions.SlidingInvisibilityTimeout = TimeSpan.Zero);
+        }
+
+        [Fact]
+        public void Set_SlidingInvisibilityTimeout_ShouldThrowAnException_WhenGivenIntervalIsNegative()
+        {
+            var storageOptions = new MongoStorageOptions();
+            Assert.Throws<ArgumentException>(
+                () => storageOptions.SlidingInvisibilityTimeout = TimeSpan.FromSeconds(-1));
+        }
+
+        [Fact]
+        public void Set_SlidingInvisibilityTimeout_AllowsNull()
+        {
+            var storageOptions = new MongoStorageOptions
+            {
+                SlidingInvisibilityTimeout = null
+            };
+            Assert.Null(storageOptions.SlidingInvisibilityTimeout);
+        }
     }
 #pragma warning restore 1591
 }

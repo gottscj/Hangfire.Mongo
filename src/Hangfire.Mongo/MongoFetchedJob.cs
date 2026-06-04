@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
@@ -25,12 +26,14 @@ namespace Hangfire.Mongo
         private DateTime _fetchedAt;
         private readonly string _fetchToken;
         private readonly ObjectId _id;
-        private readonly object _syncRoot;
+        private readonly SemaphoreSlim _syncRoot;
 
         private bool _disposed;
         private bool _removedFromQueue;
         private bool _requeued;
-        private Timer _heartbeatTimer;
+        private bool _leaseLost;
+        private CancellationTokenSource _heartbeatCancellation;
+        private Task _heartbeatTask;
 
 
         /// <summary>
@@ -53,7 +56,7 @@ namespace Hangfire.Mongo
             string queue)
         {
             _db = db ?? throw new ArgumentNullException(nameof(db));
-            _syncRoot = new object();
+            _syncRoot = new SemaphoreSlim(1, 1);
             _storageOptions = storageOptions;
             _fetchedAt = fetchedAt;
             _fetchToken = fetchToken ?? throw new ArgumentNullException(nameof(fetchToken));
@@ -96,7 +99,8 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void RemoveFromQueue()
         {
-            lock (_syncRoot)
+            _syncRoot.Wait();
+            try
             {
                 if (_removedFromQueue || _requeued)
                 {
@@ -120,16 +124,22 @@ namespace Hangfire.Mongo
                 };
                 var result = _db.JobGraph.UpdateOne(filter, update);
                 _removedFromQueue = true;
-                if (result.ModifiedCount == 0)
+                CancelHeartbeat();
+                if (result.MatchedCount == 0)
                 {
+                    _leaseLost = true;
                     // Ack lost: either this lease was stolen by another worker after our
                     // invisibility timeout, or the document is already gone. Log and return —
                     // surfacing this as an exception would push Hangfire.Core's Worker into a
                     // retry path and, ironically, risk double-delivery.
                     Logger.Warn(
-                        $"Lease lost for job {_id} (queue='{Queue}'): queue acknowledgement modified 0 documents. " +
+                        $"Lease lost for job {_id} (queue='{Queue}'): queue acknowledgement matched 0 documents. " +
                         "Another worker may have reclaimed this job.");
                 }
+            }
+            finally
+            {
+                _syncRoot.Release();
             }
         }
 
@@ -138,7 +148,16 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void SetRemoved()
         {
-            _removedFromQueue = true;
+            _syncRoot.Wait();
+            try
+            {
+                _removedFromQueue = true;
+                CancelHeartbeat();
+            }
+            finally
+            {
+                _syncRoot.Release();
+            }
         }
 
         /// <summary>
@@ -146,17 +165,48 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void Requeue()
         {
-            lock (_syncRoot)
+            _syncRoot.Wait();
+            try
             {
                 if (_removedFromQueue || _requeued)
                 {
                     return;
                 }
 
-                using var t = _storageOptions.Factory.CreateMongoWriteOnlyTransaction(_db, _storageOptions);
-                t.Requeue(_id, Queue);
-                t.Commit();
+                var filter = new BsonDocument
+                {
+                    ["_id"] = _id,
+                    [nameof(JobDto.FetchToken)] = _fetchToken,
+                    [nameof(JobDto.Queue)] = Queue
+                };
+                var update = new BsonDocument
+                {
+                    ["$set"] = new BsonDocument
+                    {
+                        [nameof(JobDto.FetchedAt)] = BsonNull.Value,
+                        [nameof(JobDto.FetchToken)] = BsonNull.Value,
+                        [nameof(JobDto.Queue)] = Queue.ToBsonValue()
+                    }
+                };
+
+                var result = _db.JobGraph.UpdateOne(filter, update);
+                if (result.MatchedCount == 0)
+                {
+                    _leaseLost = true;
+                    CancelHeartbeat();
+                    Logger.Warn(
+                        $"Lease lost for job {_id} (queue='{Queue}'): requeue matched 0 documents. " +
+                        "Another worker may have reclaimed this job.");
+                    return;
+                }
+
                 _requeued = true;
+                CancelHeartbeat();
+                SignalRequeuedJob();
+            }
+            finally
+            {
+                _syncRoot.Release();
             }
         }
 
@@ -165,88 +215,224 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void Dispose()
         {
-            lock (_syncRoot)
+            CancelHeartbeat();
+
+            Task heartbeatTask;
+            CancellationTokenSource heartbeatCancellation;
+            bool shouldRequeue;
+
+            _syncRoot.Wait();
+            try
             {
                 if (_disposed) return;
 
-                _heartbeatTimer?.Dispose();
-                _heartbeatTimer = null;
-
                 _disposed = true;
+                shouldRequeue = !_removedFromQueue && !_requeued;
+                heartbeatTask = _heartbeatTask;
+                heartbeatCancellation = _heartbeatCancellation;
+                _heartbeatTask = null;
+                _heartbeatCancellation = null;
+            }
+            finally
+            {
+                _syncRoot.Release();
             }
 
-            if (!_removedFromQueue && !_requeued)
+            var heartbeatStopped = WaitForHeartbeatToStop(heartbeatTask, heartbeatCancellation);
+
+            try
             {
-                // will create a new instance of MongoFetchedJob
-                Requeue();
+                if (shouldRequeue)
+                {
+                    // will create a new instance of MongoFetchedJob
+                    Requeue();
+                }
+            }
+            finally
+            {
+                if (heartbeatStopped)
+                {
+                    _syncRoot.Dispose();
+                }
             }
         }
 
         private void StartHeartbeat(TimeSpan slidingInvisibilityTimeout)
         {
             var timerInterval = TimeSpan.FromSeconds(slidingInvisibilityTimeout.TotalSeconds / 5);
-            
+
             var filter = new BsonDocument
             {
                 ["_id"] = _id,
+                [nameof(JobDto.FetchToken)] = _fetchToken,
+                [nameof(JobDto.Queue)] = Queue,
                 [nameof(JobDto.StateName)] = ProcessingState.StateName
             };
-            _heartbeatTimer = new Timer(_ =>
+            _heartbeatCancellation = new CancellationTokenSource();
+            _heartbeatTask = Task.Run(() => HeartbeatLoop(timerInterval, filter, _heartbeatCancellation.Token));
+        }
+
+        private async Task HeartbeatLoop(TimeSpan timerInterval, BsonDocument filter, CancellationToken cancellationToken)
+        {
+            var next = DateTime.UtcNow.Add(timerInterval);
+            while (!cancellationToken.IsCancellationRequested)
             {
-                // Timer callback may be invoked after the Dispose method call,
-                // so we are using lock to avoid un synchronized calls.
-                lock (_syncRoot)
+                try
                 {
-                    if (_disposed)
+                    var delay = next.Subtract(DateTime.UtcNow);
+                    if (delay > TimeSpan.Zero)
                     {
-                        return;
+                        await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                     }
 
-                    if (_requeued || _removedFromQueue)
+                    await UpdateHeartbeat(filter, cancellationToken).ConfigureAwait(false);
+                    next = next.Add(timerInterval);
+                    if (next <= DateTime.UtcNow)
                     {
-                        return;
-                    }
-
-                    Stopwatch sw = null;
-                    if (Logger.IsTraceEnabled())
-                    {
-                        sw = Stopwatch.StartNew();
-                    }
-
-                    try
-                    {
-                        var now = DateTime.UtcNow;
-                        var update = new BsonDocument
-                        {
-                            ["$set"] = new BsonDocument
-                            {
-                                [nameof(JobDto.FetchedAt)] = now
-                            }
-                        };
-                        _db.JobGraph.UpdateOne(filter, update);
-                        _fetchedAt = now;
-                        
-                        if (Logger.IsTraceEnabled() && sw != null)
-                        {
-                            var serializedModel = new Dictionary<string, BsonDocument>
-                            {
-                                ["Filter"] = filter,
-                                ["Update"] = update
-                            };
-                            sw.Stop();
-                            var builder = new StringBuilder();
-                            builder.AppendLine($"Job heartbeat");
-                            builder.AppendLine($"{serializedModel.ToJson()}");
-                            builder.AppendLine($"Executed in {sw.ElapsedMilliseconds} ms");
-                            Logger.Trace($"{builder}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error($"Job: {Id} - Unable to update heartbeat. Details:\r\n{ex}");
+                        next = DateTime.UtcNow.Add(timerInterval);
                     }
                 }
-            }, null, timerInterval, timerInterval);
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Job: {Id} - Unable to update heartbeat. Details:\r\n{ex}");
+                }
+            }
+        }
+
+        private void CancelHeartbeat()
+        {
+            try
+            {
+                _heartbeatCancellation?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
+        private async Task UpdateHeartbeat(BsonDocument filter, CancellationToken cancellationToken)
+        {
+            await _syncRoot.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                if (_disposed || _requeued || _removedFromQueue || _leaseLost)
+                {
+                    return;
+                }
+            }
+            finally
+            {
+                _syncRoot.Release();
+            }
+
+            Stopwatch sw = null;
+            if (Logger.IsTraceEnabled())
+            {
+                sw = Stopwatch.StartNew();
+            }
+
+            var now = DateTime.UtcNow;
+            var update = new BsonDocument
+            {
+                ["$set"] = new BsonDocument
+                {
+                    [nameof(JobDto.FetchedAt)] = now
+                }
+            };
+            var result = await _db.JobGraph.UpdateOneAsync(filter, update, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            await _syncRoot.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                if (_disposed || _requeued || _removedFromQueue || _leaseLost)
+                {
+                    return;
+                }
+
+                if (result.MatchedCount == 0)
+                {
+                    _leaseLost = true;
+                    CancelHeartbeat();
+                    Logger.Warn(
+                        $"Job: {Id} - heartbeat matched 0 documents for queue='{Queue}'. " +
+                        "The fetched job lease may have been reclaimed by another worker.");
+                    return;
+                }
+
+                _fetchedAt = now;
+            }
+            finally
+            {
+                _syncRoot.Release();
+            }
+
+            if (Logger.IsTraceEnabled() && sw != null)
+            {
+                var serializedModel = new Dictionary<string, BsonDocument>
+                {
+                    ["Filter"] = filter,
+                    ["Update"] = update
+                };
+                sw.Stop();
+                var builder = new StringBuilder();
+                builder.AppendLine($"Job heartbeat");
+                builder.AppendLine($"{serializedModel.ToJson()}");
+                builder.AppendLine($"Executed in {sw.ElapsedMilliseconds} ms");
+                Logger.Trace($"{builder}");
+            }
+        }
+
+        private bool WaitForHeartbeatToStop(Task heartbeatTask, CancellationTokenSource heartbeatCancellation)
+        {
+            if (heartbeatTask == null)
+            {
+                heartbeatCancellation?.Dispose();
+                return true;
+            }
+
+            try
+            {
+                if (heartbeatTask.Wait(TimeSpan.FromSeconds(5)))
+                {
+                    heartbeatCancellation?.Dispose();
+                    return true;
+                }
+
+                Logger.Warn($"Job: {Id} - heartbeat did not stop within 5 seconds.");
+                heartbeatTask.ContinueWith(
+                    _ => heartbeatCancellation?.Dispose(),
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default);
+            }
+            catch (AggregateException ex)
+            {
+                Logger.Error($"Job: {Id} - error waiting for heartbeat to stop. Details:\r\n{ex.Flatten()}");
+                heartbeatCancellation?.Dispose();
+                return true;
+            }
+
+            return false;
+        }
+
+        private void SignalRequeuedJob()
+        {
+            if (_storageOptions.CheckQueuedJobsStrategy != CheckQueuedJobsStrategy.TailNotificationsCollection)
+            {
+                return;
+            }
+
+            _db.Notifications.InsertOne(
+                NotificationDto.JobEnqueued(Queue).Serialize(),
+                new InsertOneOptions
+                {
+                    BypassDocumentValidation = false
+                });
         }
     }
 }

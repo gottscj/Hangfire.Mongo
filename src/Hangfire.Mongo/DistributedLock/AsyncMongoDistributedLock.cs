@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
@@ -15,9 +16,9 @@ namespace Hangfire.Mongo.DistributedLock
     /// <summary>
     /// Represents distributed lock implementation for MongoDB
     /// </summary>
-    public class MongoDistributedLock : IDisposable
+    public class AsyncMongoDistributedLock : MongoDistributedLock
     {
-        private static readonly ILog Logger = LogProvider.For<MongoDistributedLock>();
+        private static readonly ILog Logger = LogProvider.For<AsyncMongoDistributedLock>();
 
         private static readonly ThreadLocal<Dictionary<string, int>> AcquiredLocks
             = new ThreadLocal<Dictionary<string, int>>(() => new Dictionary<string, int>());
@@ -27,12 +28,14 @@ namespace Hangfire.Mongo.DistributedLock
         private readonly TimeSpan _timeout;
         private readonly HangfireDbContext _dbContext;
         private readonly MongoStorageOptions _storageOptions;
+        private readonly string _ownerToken = Guid.NewGuid().ToString("N");
 
-        private Timer _heartbeatTimer;
+        private CancellationTokenSource _heartbeatCancellation;
+        private Task _heartbeatTask;
 
-        private bool _completed;
+        private int _completed;
 
-        private readonly object _lockObject = new object();
+        private readonly SemaphoreSlim _heartbeatMutex = new SemaphoreSlim(1, 1);
 
         /// <summary>
         /// Creates MongoDB distributed lock
@@ -43,10 +46,10 @@ namespace Hangfire.Mongo.DistributedLock
         /// <param name="storageOptions">Database options</param>
         /// <exception cref="DistributedLockTimeoutException">Thrown if lock is not acquired within the timeout</exception>
         /// <exception cref="MongoDistributedLockException">Thrown if other mongo specific issue prevented the lock to be acquired</exception>
-        public MongoDistributedLock(string resource,
+        public AsyncMongoDistributedLock(string resource,
             TimeSpan timeout,
             HangfireDbContext dbContext,
-            MongoStorageOptions storageOptions)
+            MongoStorageOptions storageOptions) : base(resource, timeout, dbContext, storageOptions)
         {
             _resource = resource ?? throw new ArgumentNullException(nameof(resource));
             _timeout = timeout;
@@ -70,7 +73,7 @@ namespace Hangfire.Mongo.DistributedLock
         /// 
         /// </summary>
         /// <returns></returns>
-        public virtual IDisposable AcquireLock()
+        public override IDisposable AcquireLock()
         {
             if (!AcquiredLocks.Value.ContainsKey(_resource) || AcquiredLocks.Value[_resource] == 0)
             {
@@ -91,17 +94,16 @@ namespace Hangfire.Mongo.DistributedLock
         /// Disposes the object
         /// </summary>
         /// <exception cref="MongoDistributedLockException"></exception>
-        public virtual void Dispose()
+        public override void Dispose()
         {
-            if (_completed)
+            if (Interlocked.Exchange(ref _completed, 1) == 1)
             {
                 return;
             }
 
-            _completed = true;
-
             if (!AcquiredLocks.Value.ContainsKey(_resource))
             {
+                _heartbeatMutex.Dispose();
                 return;
             }
 
@@ -112,18 +114,35 @@ namespace Hangfire.Mongo.DistributedLock
                 return;
             }
 
-            // Timer callback may be invoked after the Dispose method call,
-            // so we are using lock to avoid un synchronized calls.
-            lock (_lockObject)
+            AcquiredLocks.Value.Remove(_resource);
+
+            var heartbeatTask = _heartbeatTask;
+            var heartbeatCancellation = _heartbeatCancellation;
+            heartbeatCancellation?.Cancel();
+            var heartbeatStopped = WaitForHeartbeatToStop(heartbeatTask, heartbeatCancellation);
+
+            var lockTaken = _heartbeatMutex.Wait(TimeSpan.FromSeconds(5));
+            if (!lockTaken)
             {
-                AcquiredLocks.Value.Remove(_resource);
+                Logger.Warn($"{_resource} - heartbeat mutex did not release within 5 seconds; releasing lock without waiting for heartbeat serialization.");
+            }
 
-                _heartbeatTimer?.Dispose();
-                _heartbeatTimer = null;
-
+            try
+            {
                 Release();
-
                 Cleanup();
+            }
+            finally
+            {
+                if (lockTaken)
+                {
+                    _heartbeatMutex.Release();
+                }
+
+                if (heartbeatStopped)
+                {
+                    _heartbeatMutex.Dispose();
+                }
             }
         }
 
@@ -134,7 +153,7 @@ namespace Hangfire.Mongo.DistributedLock
         /// <param name="timeout"></param>
         /// <exception cref="DistributedLockTimeoutException"></exception>
         /// <exception cref="MongoDistributedLockException"></exception>
-        protected virtual void Acquire(TimeSpan timeout)
+        protected override void Acquire(TimeSpan timeout)
         {
             try
             {
@@ -161,7 +180,8 @@ namespace Hangfire.Mongo.DistributedLock
                         ["$setOnInsert"] = new BsonDocument
                         {
                             [nameof(DistributedLockDto.ExpireAt)] =
-                                DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime)
+                                DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime),
+                            [nameof(DistributedLockDto.OwnerToken)] = _ownerToken
                         }
                     };
                     try
@@ -214,7 +234,7 @@ namespace Hangfire.Mongo.DistributedLock
         /// </summary>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        protected virtual TimeSpan CalculateTimeout(TimeSpan timeout)
+        protected override TimeSpan CalculateTimeout(TimeSpan timeout)
         {
             return TimeSpan.FromMilliseconds((timeout.TotalMilliseconds / 1000) + 5);
         }
@@ -223,7 +243,7 @@ namespace Hangfire.Mongo.DistributedLock
         /// Release the lock
         /// </summary>
         /// <exception cref="MongoDistributedLockException"></exception>
-        protected virtual void Release()
+        protected override void Release()
         {
             try
             {
@@ -233,7 +253,11 @@ namespace Hangfire.Mongo.DistributedLock
                 }
 
                 // Remove resource lock
-                _dbContext.DistributedLock.DeleteOne(new BsonDocument(nameof(DistributedLockDto.Resource), _resource));
+                _dbContext.DistributedLock.DeleteOne(new BsonDocument
+                {
+                    [nameof(DistributedLockDto.Resource)] = _resource,
+                    [nameof(DistributedLockDto.OwnerToken)] = _ownerToken
+                });
             }
             catch (Exception ex)
             {
@@ -245,7 +269,7 @@ namespace Hangfire.Mongo.DistributedLock
         /// <summary>
         /// Delete expired locks
         /// </summary>
-        protected virtual void Cleanup()
+        protected override void Cleanup()
         {
             try
             {
@@ -268,62 +292,133 @@ namespace Hangfire.Mongo.DistributedLock
         /// <summary>
         /// Starts database heartbeat
         /// </summary>
-        protected virtual void StartHeartBeat()
+        protected override void StartHeartBeat()
         {
             var timerInterval =
                 TimeSpan.FromMilliseconds(_storageOptions.DistributedLockLifetime.TotalMilliseconds / 5);
-            _heartbeatTimer = new Timer(_ =>
+            _heartbeatCancellation = new CancellationTokenSource();
+            _heartbeatTask = Task.Run(() => HeartbeatLoop(timerInterval, _heartbeatCancellation.Token));
+        }
+
+        private async Task HeartbeatLoop(TimeSpan timerInterval, CancellationToken cancellationToken)
+        {
+            var next = DateTime.UtcNow.Add(timerInterval);
+            while (!cancellationToken.IsCancellationRequested)
             {
-                // Timer callback may be invoked after the Dispose method call,
-                // so we are using lock to avoid un synchronized calls.
-                lock (_lockObject)
+                try
                 {
-                    if (_completed) return;
-
-                    try
+                    var delay = next.Subtract(DateTime.UtcNow);
+                    if (delay > TimeSpan.Zero)
                     {
-                        var filter = new BsonDocument
-                        {
-                            [nameof(DistributedLockDto.Resource)] = _resource
-                        };
-                        var update = new BsonDocument
-                        {
-                            ["$set"] = new BsonDocument
-                            {
-                                [nameof(DistributedLockDto.ExpireAt)] = DateTime
-                                    .UtcNow.Add(_storageOptions.DistributedLockLifetime)
-                            }
-                        };
-                        
-                        Stopwatch sw = null;
-                        if (Logger.IsTraceEnabled())
-                        {
-                            sw = Stopwatch.StartNew();
-                        }
-
-                        _dbContext.DistributedLock.UpdateOne(filter, update);
-
-                        if (Logger.IsTraceEnabled() && sw != null)
-                        {
-                            var serializedModel = new Dictionary<string, BsonDocument>
-                            {
-                                ["Filter"] = filter,
-                                ["Update"] = update
-                            };
-                            sw.Stop();
-                            var builder = new StringBuilder();
-                            builder.AppendLine($"Lock heartbeat");
-                            builder.AppendLine($"{serializedModel.ToJson()}");
-                            builder.AppendLine($"Executed in {sw.ElapsedMilliseconds} ms");
-                            Logger.Trace($"{builder}");
-                        }
+                        await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                     }
-                    catch (Exception ex)
+
+                    await UpdateHeartbeat(cancellationToken).ConfigureAwait(false);
+                    next = next.Add(timerInterval);
+                    if (next <= DateTime.UtcNow)
                     {
-                        Logger.Error($"{_resource} - Unable to update heartbeat on the resource. Details:\r\n{ex}");
+                        next = DateTime.UtcNow.Add(timerInterval);
                     }
                 }
-            }, null, timerInterval, timerInterval);
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"{_resource} - Unable to update heartbeat on the resource. Details:\r\n{ex}");
+                }
+            }
+        }
+
+        private async Task UpdateHeartbeat(CancellationToken cancellationToken)
+        {
+            await _heartbeatMutex.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                if (_completed != 0) return;
+
+                var filter = new BsonDocument
+                {
+                    [nameof(DistributedLockDto.Resource)] = _resource,
+                    [nameof(DistributedLockDto.OwnerToken)] = _ownerToken
+                };
+                var update = new BsonDocument
+                {
+                    ["$set"] = new BsonDocument
+                    {
+                        [nameof(DistributedLockDto.ExpireAt)] = DateTime
+                            .UtcNow.Add(_storageOptions.DistributedLockLifetime)
+                    }
+                };
+
+                Stopwatch sw = null;
+                if (Logger.IsTraceEnabled())
+                {
+                    sw = Stopwatch.StartNew();
+                }
+
+                var result = await _dbContext.DistributedLock.UpdateOneAsync(filter, update, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+                if (result.MatchedCount == 0)
+                {
+                    _heartbeatCancellation?.Cancel();
+                    Logger.Warn($"{_resource} - heartbeat matched 0 documents. The distributed lock may have been acquired by another owner.");
+                    return;
+                }
+
+                if (Logger.IsTraceEnabled() && sw != null)
+                {
+                    var serializedModel = new Dictionary<string, BsonDocument>
+                    {
+                        ["Filter"] = filter,
+                        ["Update"] = update
+                    };
+                    sw.Stop();
+                    var builder = new StringBuilder();
+                    builder.AppendLine($"Lock heartbeat");
+                    builder.AppendLine($"{serializedModel.ToJson()}");
+                    builder.AppendLine($"Executed in {sw.ElapsedMilliseconds} ms");
+                    Logger.Trace($"{builder}");
+                }
+            }
+            finally
+            {
+                _heartbeatMutex.Release();
+            }
+        }
+
+        private bool WaitForHeartbeatToStop(Task heartbeatTask, CancellationTokenSource heartbeatCancellation)
+        {
+            if (heartbeatTask == null)
+            {
+                heartbeatCancellation?.Dispose();
+                return true;
+            }
+
+            try
+            {
+                if (heartbeatTask.Wait(TimeSpan.FromSeconds(5)))
+                {
+                    heartbeatCancellation?.Dispose();
+                    return true;
+                }
+
+                Logger.Warn($"{_resource} - heartbeat did not stop within 5 seconds.");
+                heartbeatTask.ContinueWith(
+                    _ => heartbeatCancellation?.Dispose(),
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default);
+            }
+            catch (AggregateException ex)
+            {
+                Logger.Error($"{_resource} - error waiting for heartbeat to stop. Details:\r\n{ex.Flatten()}");
+                heartbeatCancellation?.Dispose();
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -332,7 +427,7 @@ namespace Hangfire.Mongo.DistributedLock
         /// <param name="resource"></param>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        protected virtual DateTime Wait(string resource, TimeSpan timeout)
+        protected override DateTime Wait(string resource, TimeSpan timeout)
         {
             if (Logger.IsTraceEnabled())
             {
