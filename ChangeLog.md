@@ -1,6 +1,9 @@
 
 ## Change log
 
+### 1.16.1
+- Update to MongoDB.Driver 3.10.0
+
 ### 1.16.0
 - Update to MongoDB.Driver 3.9.0
 - Made AcquireLock() in MongoDistributedLock virtual, allowing users to override it for custom locking behavior
