@@ -12,9 +12,8 @@
         <owners>Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB DocumentDb Azure AWS Atlas Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.16.0
-            - Update to MongoDB.Driver 3.9.0
-            - Made AcquireLock() in MongoDistributedLock virtual, allowing users to override it for custom locking behavior
+        <PackageReleaseNotes>1.16.1
+            - Minor dependency update to MongoDB.Driver 3.10.0
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -27,7 +26,7 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Hangfire.Core" Version="1.8.23" />
-        <PackageReference Include="MongoDB.Driver" Version="3.9.0" />
+        <PackageReference Include="MongoDB.Driver" Version="3.10.0" />
     </ItemGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
