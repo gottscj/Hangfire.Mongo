@@ -1,6 +1,11 @@
 
 ## Change log
 
+### 1.16.2
+- Remove misleading bulk write modified-count warning from transaction commits
+- Update to Hangfire.Core 1.8.24
+- Update to MongoDB.Driver 3.11.0
+
 ### 1.16.1
 - Update to MongoDB.Driver 3.10.0
 
