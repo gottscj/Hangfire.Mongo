@@ -493,19 +493,7 @@ namespace Hangfire.Mongo
         {
             try
             {
-                var result = jobGraph.BulkWrite(writeModels, bulkWriteOptions);
-                var updateOneCount = 0;
-                foreach (var wm in writeModels)
-                {
-                    if (wm is UpdateOneModel<BsonDocument>) updateOneCount++;
-                }
-                if (updateOneCount > 0 && result.ModifiedCount < updateOneCount)
-                {
-                    Logger.Warn(
-                        $"Bulk modified {result.ModifiedCount} of {updateOneCount} UpdateOne models — " +
-                        "a conditional update (likely a RemoveFromQueue ack) did not apply. " +
-                        "Another worker may have reclaimed the job, or the document is gone.");
-                }
+                _ = jobGraph.BulkWrite(writeModels, bulkWriteOptions);
             }
             catch (Exception e)
             {
