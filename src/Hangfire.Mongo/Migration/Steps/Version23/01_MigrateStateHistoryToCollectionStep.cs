@@ -25,41 +25,40 @@ namespace Hangfire.Mongo.Migration.Steps.Version23
                 Builders<BsonDocument>.Filter.Ne("StateHistory", new BsonArray())
             );
 
-            var jobs = jobGraphCollection.Find(filter).ToList();
-
-            if (!jobs.Any())
+            using var cursor = jobGraphCollection.Find(
+                filter,
+                new FindOptions { BatchSize = 1000 }).ToCursor();
+            while (cursor.MoveNext())
             {
-                return true;
-            }
-
-            foreach (var job in jobs)
-            {
-                var historyDocuments = new List<BsonDocument>();
-                var jobId = job["_id"].AsObjectId;
-
-                if (!job.TryGetValue("StateHistory", out var stateHistoryValue) || 
-                    stateHistoryValue.IsBsonNull || 
-                    !stateHistoryValue.IsBsonArray)
+                foreach (var job in cursor.Current)
                 {
-                    continue;
-                }
+                    var historyDocuments = new List<BsonDocument>();
+                    var jobId = job["_id"].AsObjectId;
 
-                var stateHistory = stateHistoryValue.AsBsonArray;
-
-                foreach (var stateDoc in stateHistory.OfType<BsonDocument>())
-                {
-                    var historyDocument = new BsonDocument
+                    if (!job.TryGetValue("StateHistory", out var stateHistoryValue) ||
+                        stateHistoryValue.IsBsonNull ||
+                        !stateHistoryValue.IsBsonArray)
                     {
-                        ["_id"] = ObjectId.GenerateNewId(),
-                        ["JobId"] = jobId,
-                        ["State"] = stateDoc
-                    };
+                        continue;
+                    }
 
-                    historyDocuments.Add(historyDocument);
-                }
-                if (historyDocuments.Any())
-                {
-                    stateHistoryCollection.InsertMany(historyDocuments);
+                    var stateHistory = stateHistoryValue.AsBsonArray;
+
+                    foreach (var stateDoc in stateHistory.OfType<BsonDocument>())
+                    {
+                        var historyDocument = new BsonDocument
+                        {
+                            ["_id"] = ObjectId.GenerateNewId(),
+                            ["JobId"] = jobId,
+                            ["State"] = stateDoc
+                        };
+
+                        historyDocuments.Add(historyDocument);
+                    }
+                    if (historyDocuments.Any())
+                    {
+                        stateHistoryCollection.InsertMany(historyDocuments);
+                    }
                 }
             }
 
