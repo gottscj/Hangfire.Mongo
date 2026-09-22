@@ -12,10 +12,10 @@
         <owners>Jonas Gottschau</owners>
         <Description>MongoDB storage implementation for Hangfire (background job system for ASP.NET applications).</Description>
         <PackageTags>Hangfire AspNet OWIN MongoDB CosmosDB DocumentDb Azure AWS Atlas Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</PackageTags>
-        <PackageReleaseNotes>1.16.2
-            - Remove misleading bulk write modified-count warning from transaction commits
-            - Update to Hangfire.Core 1.8.24
-            - Update to MongoDB.Driver 3.11.0
+        <PackageReleaseNotes>1.16.3
+            - Process StateHistory migration documents in batches to avoid loading all matching jobs into memory
+            - Update to Hangfire.Core 1.8.25
+            - Update to MongoDB.Driver 3.12.0
         </PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <!--<PackageLicenseUrl>https://raw.githubusercontent.com/sergun/Hangfire.Mongo/master/LICENSE</PackageLicenseUrl>-->
@@ -27,8 +27,8 @@
         <None Include="../../README.md" pack="true" PackagePath="." />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hangfire.Core" Version="1.8.24" />
-        <PackageReference Include="MongoDB.Driver" Version="3.11.0" />
+        <PackageReference Include="Hangfire.Core" Version="1.8.25" />
+        <PackageReference Include="MongoDB.Driver" Version="3.12.0" />
     </ItemGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">

@@ -1,6 +1,11 @@
 
 ## Change log
 
+### 1.16.3
+- Process StateHistory migration documents in batches to avoid loading all matching jobs into memory
+- Update to Hangfire.Core 1.8.25
+- Update to MongoDB.Driver 3.12.0
+
 ### 1.16.2
 - Remove misleading bulk write modified-count warning from transaction commits
 - Update to Hangfire.Core 1.8.24
