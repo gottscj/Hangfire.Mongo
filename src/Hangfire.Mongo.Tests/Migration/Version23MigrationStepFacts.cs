@@ -135,6 +135,28 @@ namespace Hangfire.Mongo.Tests.Migration
         }
 
         [Fact]
+        public void ExecuteStep01_MigrateStateHistory_ProcessesMultipleBatches()
+        {
+            // ARRANGE
+            var migration = new MigrateStateHistoryToCollectionStep();
+            var jobGraphCollection = _database.GetCollection<BsonDocument>(_storageOptions.Prefix + ".jobGraph");
+            var stateHistoryCollection = _database.GetCollection<BsonDocument>(_storageOptions.Prefix + ".stateHistory");
+
+            jobGraphCollection.DeleteMany("{}");
+            stateHistoryCollection.DeleteMany("{}");
+
+            var jobs = CreateJobDtosWithStateHistory(jobCount: 1001, stateHistoryPerJob: 1);
+            jobGraphCollection.InsertMany(jobs);
+
+            // ACT
+            var result = migration.Execute(_database, _storageOptions, new MongoMigrationContext());
+
+            // ASSERT
+            Assert.True(result, "Expected migration to be successful, reported 'false'");
+            Assert.Equal(1001, stateHistoryCollection.CountDocuments(new BsonDocument()));
+        }
+
+        [Fact]
         public void ExecuteStep01_MigrateStateHistory_PreservesJobIdReference()
         {
             // ARRANGE
