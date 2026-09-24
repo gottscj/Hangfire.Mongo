@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Hangfire.Mongo.Tests.Utils;
 using Xunit;
 
 namespace Hangfire.Mongo.Tests
@@ -11,10 +12,23 @@ namespace Hangfire.Mongo.Tests
         private static readonly TimeSpan Interval = TimeSpan.FromMilliseconds(50);
 
         [Fact]
-        public void Start_ThrowsAnException_WhenIntervalIsNotPositive()
+        public void Start_ClampsInterval_WhenItIsNotPositive()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(
-                () => AsyncHeartbeat.Start(TimeSpan.Zero, () => Task.CompletedTask, _ => { }));
+            var beats = 0;
+            var heartbeat = AsyncHeartbeat.Start(TimeSpan.Zero, () =>
+            {
+                Interlocked.Increment(ref beats);
+                return Task.CompletedTask;
+            }, _ => { });
+
+            try
+            {
+                Assert.True(Wait.Until(() => Volatile.Read(ref beats) >= 3), "Expected at least 3 beats");
+            }
+            finally
+            {
+                heartbeat.Stop();
+            }
         }
 
         [Fact]
@@ -27,7 +41,7 @@ namespace Hangfire.Mongo.Tests
                 return Task.CompletedTask;
             }, _ => { });
 
-            Assert.True(await WaitUntil(() => Volatile.Read(ref beats) >= 3), "Expected at least 3 beats");
+            Assert.True(Wait.Until(() => Volatile.Read(ref beats) >= 3), "Expected at least 3 beats");
 
             heartbeat.Stop();
             // a beat racing with Stop may still complete
@@ -89,10 +103,11 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void Start_ThrowsAnException_WhenIntervalIsTooLarge()
+        public void Start_ClampsInterval_WhenItExceedsTaskDelayRange()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(
-                () => AsyncHeartbeat.Start(TimeSpan.FromMilliseconds(int.MaxValue + 1L), () => Task.CompletedTask, _ => { }));
+            var heartbeat = AsyncHeartbeat.Start(TimeSpan.FromDays(365), () => Task.CompletedTask, _ => { });
+
+            heartbeat.Stop();
         }
 
         [Fact]
@@ -107,7 +122,7 @@ namespace Hangfire.Mongo.Tests
 
             try
             {
-                Assert.True(await WaitUntil(() => Volatile.Read(ref beats) >= 3), "Expected at least 3 beats");
+                Assert.True(Wait.Until(() => Volatile.Read(ref beats) >= 3), "Expected at least 3 beats");
             }
             finally
             {
@@ -132,7 +147,7 @@ namespace Hangfire.Mongo.Tests
 
             try
             {
-                Assert.True(await WaitUntil(() => Volatile.Read(ref errors) >= 3), "Expected at least 3 reported errors");
+                Assert.True(Wait.Until(() => Volatile.Read(ref errors) >= 3), "Expected at least 3 reported errors");
                 Assert.True(Volatile.Read(ref beats) >= 3);
             }
             finally
@@ -156,26 +171,10 @@ namespace Hangfire.Mongo.Tests
             }, _ => { });
             started.Set();
 
-            Assert.True(await WaitUntil(() => Volatile.Read(ref beats) == 1), "Expected one beat");
+            Assert.True(Wait.Until(() => Volatile.Read(ref beats) == 1), "Expected one beat");
             await Task.Delay(Interval * 4);
 
             Assert.Equal(1, Volatile.Read(ref beats));
-        }
-
-        private static async Task<bool> WaitUntil(Func<bool> condition)
-        {
-            var deadline = DateTime.UtcNow.AddSeconds(5);
-            while (DateTime.UtcNow < deadline)
-            {
-                if (condition())
-                {
-                    return true;
-                }
-
-                await Task.Delay(10);
-            }
-
-            return condition();
         }
     }
 #pragma warning restore 1591

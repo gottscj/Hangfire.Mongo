@@ -93,7 +93,7 @@ namespace Hangfire.Mongo.Tests
             {
                 jobId = client.Enqueue<AsyncFactoryTestJob>(j => j.Run());
                 Assert.True(AsyncFactoryTestJob.Signal.Wait(TimeSpan.FromSeconds(20)), "Expected job to run");
-                Assert.True(WaitUntil(() => GetJob(jobId).StateName == SucceededState.StateName),
+                Assert.True(Wait.Until(() => GetJob(jobId).StateName == SucceededState.StateName),
                     "Expected job to succeed");
             }
 
@@ -122,22 +122,6 @@ namespace Hangfire.Mongo.Tests
         {
             var filter = new BsonDocument("_id", ObjectId.Parse(jobId));
             return new JobDto(_fixture.CreateDbContext(DatabaseName).JobGraph.Find(filter).Single());
-        }
-
-        private static bool WaitUntil(Func<bool> condition)
-        {
-            var deadline = DateTime.UtcNow.AddSeconds(10);
-            while (DateTime.UtcNow < deadline)
-            {
-                if (condition())
-                {
-                    return true;
-                }
-
-                Thread.Sleep(50);
-            }
-
-            return condition();
         }
     }
 #pragma warning restore 1591

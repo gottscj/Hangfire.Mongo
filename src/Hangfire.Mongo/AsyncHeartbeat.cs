@@ -11,6 +11,9 @@ namespace Hangfire.Mongo
     /// </summary>
     internal sealed class AsyncHeartbeat
     {
+        private static readonly TimeSpan MinInterval = TimeSpan.FromMilliseconds(1);
+        private static readonly TimeSpan MaxInterval = TimeSpan.FromMilliseconds(int.MaxValue);
+
         private readonly CancellationTokenSource _cancellation = new CancellationTokenSource();
         private int _stopped;
 
@@ -26,19 +29,17 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Starts the heartbeat. The first beat happens after <paramref name="interval"/>.
         /// </summary>
-        /// <param name="interval">Delay between beats</param>
+        /// <param name="interval">Delay between beats, clamped to the range <see cref="Task.Delay(TimeSpan)"/> supports</param>
         /// <param name="beat">Callback invoked on every beat</param>
         /// <param name="onError">Invoked when <paramref name="beat"/> throws; the heartbeat keeps running</param>
         public static AsyncHeartbeat Start(TimeSpan interval, Func<Task> beat, Action<Exception> onError)
         {
-            if (interval <= TimeSpan.Zero || interval.TotalMilliseconds > int.MaxValue)
-            {
-                throw new ArgumentOutOfRangeException(nameof(interval), interval,
-                    $"Interval must be positive and at most {int.MaxValue} milliseconds");
-            }
-
             if (beat == null) throw new ArgumentNullException(nameof(beat));
             if (onError == null) throw new ArgumentNullException(nameof(onError));
+
+            // Callers start the heartbeat after taking a lease, so an extreme interval must not throw here.
+            if (interval < MinInterval) interval = MinInterval;
+            if (interval > MaxInterval) interval = MaxInterval;
 
             var heartbeat = new AsyncHeartbeat();
             _ = RunAsync(interval, beat, onError, heartbeat._cancellation.Token);

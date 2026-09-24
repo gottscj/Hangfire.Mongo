@@ -39,7 +39,7 @@ namespace Hangfire.Mongo.Tests
             using var job = CreateFetchedJob(id, _options);
 
             Assert.True(
-                WaitUntil(() => GetFetchedAt(id) > _initialFetchedAt.AddMinutes(5)),
+                Wait.Until(() => GetFetchedAt(id) > _initialFetchedAt.AddMinutes(5)),
                 "Expected heartbeat to update FetchedAt");
         }
 
@@ -79,7 +79,7 @@ namespace Hangfire.Mongo.Tests
         {
             var id = CreateFetchedJobRecord(ProcessingState.StateName);
             var job = CreateFetchedJob(id, _options);
-            Assert.True(WaitUntil(() => GetFetchedAt(id) > _initialFetchedAt.AddMinutes(5)), "Expected heartbeat to run");
+            Assert.True(Wait.Until(() => GetFetchedAt(id) > _initialFetchedAt.AddMinutes(5)), "Expected heartbeat to run");
 
             job.Dispose();
             // put the job back into the state the heartbeat looks for, as if it was fetched again
@@ -166,22 +166,6 @@ namespace Hangfire.Mongo.Tests
         private DateTime GetFetchedAt(ObjectId id)
         {
             return GetJob(id)[nameof(JobDto.FetchedAt)].ToUniversalTime();
-        }
-
-        private static bool WaitUntil(Func<bool> condition)
-        {
-            var deadline = DateTime.UtcNow.AddSeconds(10);
-            while (DateTime.UtcNow < deadline)
-            {
-                if (condition())
-                {
-                    return true;
-                }
-
-                Thread.Sleep(50);
-            }
-
-            return condition();
         }
     }
 #pragma warning restore 1591

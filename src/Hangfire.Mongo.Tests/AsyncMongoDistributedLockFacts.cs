@@ -162,7 +162,7 @@ namespace Hangfire.Mongo.Tests
             {
                 var initialExpireAt = GetLock().ExpireAt;
 
-                Assert.True(WaitUntil(() => GetLock().ExpireAt > initialExpireAt), "Expected heartbeat to extend the lock");
+                Assert.True(Wait.Until(() => GetLock().ExpireAt > initialExpireAt), "Expected heartbeat to extend the lock");
                 // lock outlives its lifetime while held
                 Thread.Sleep(LockLifetime * 2);
                 Assert.Equal(1, _database.DistributedLock.CountDocuments(_filter));
@@ -238,22 +238,6 @@ namespace Hangfire.Mongo.Tests
                 [nameof(DistributedLockDto.OwnerToken)] = ownerToken,
                 [nameof(DistributedLockDto.ExpireAt)] = expireAt
             }));
-        }
-
-        private static bool WaitUntil(Func<bool> condition)
-        {
-            var deadline = DateTime.UtcNow.AddSeconds(10);
-            while (DateTime.UtcNow < deadline)
-            {
-                if (condition())
-                {
-                    return true;
-                }
-
-                Thread.Sleep(50);
-            }
-
-            return condition();
         }
     }
 #pragma warning restore 1591
