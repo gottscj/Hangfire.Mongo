@@ -55,6 +55,7 @@ namespace Hangfire.Mongo
                 {JobStorageFeatures.Transaction.CreateJob, true},
                 {JobStorageFeatures.Transaction.SetJobParameter, true},
                 {JobStorageFeatures.Transaction.RemoveFromQueue(typeof(MongoFetchedJob)), true},
+                {JobStorageFeatures.Transaction.RemoveFromQueue(typeof(AsyncMongoFetchedJob)), true},
                 {JobStorageFeatures.Monitoring.DeletedStateGraphs, true},
                 {JobStorageFeatures.Monitoring.AwaitingJobs, true}
             });

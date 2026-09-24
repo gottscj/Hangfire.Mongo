@@ -158,11 +158,7 @@ namespace Hangfire.Mongo.DistributedLock
 
                     var update = new BsonDocument
                     {
-                        ["$setOnInsert"] = new BsonDocument
-                        {
-                            [nameof(DistributedLockDto.ExpireAt)] =
-                                DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime)
-                        }
+                        ["$setOnInsert"] = CreateLockFields()
                     };
                     try
                     {
@@ -207,6 +203,18 @@ namespace Hangfire.Mongo.DistributedLock
             {
                 throw new MongoDistributedLockException($"{_resource} - Could not place a lock", ex);
             }
+        }
+
+        /// <summary>
+        /// Creates the fields written to the lock document when the lock is acquired
+        /// </summary>
+        /// <returns></returns>
+        protected virtual BsonDocument CreateLockFields()
+        {
+            return new BsonDocument
+            {
+                [nameof(DistributedLockDto.ExpireAt)] = DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime)
+            };
         }
 
         /// <summary>
