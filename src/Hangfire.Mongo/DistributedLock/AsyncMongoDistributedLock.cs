@@ -103,10 +103,11 @@ namespace Hangfire.Mongo.DistributedLock
                 .UpdateOneAsync(CreateOwnerFilter(), update, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
-            if (result.MatchedCount == 0)
+            // No match means the lock expired and was removed or taken by another owner. It cannot
+            // come back with our token, so there is nothing left to keep alive. After Stop, no match
+            // is expected because Dispose releases the lock.
+            if (result.MatchedCount == 0 && !cancellationToken.IsCancellationRequested)
             {
-                // The lock expired and was removed or taken by another owner. It cannot come
-                // back with our token, so there is nothing left to keep alive.
                 _heartbeat?.Stop();
                 Logger.Warn($"{_resource} - Lock was lost: it expired or is now held by another owner.");
             }
