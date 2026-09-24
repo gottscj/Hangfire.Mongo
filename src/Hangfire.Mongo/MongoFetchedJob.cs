@@ -182,7 +182,12 @@ namespace Hangfire.Mongo
             }
         }
 
-        private void StartHeartbeat(TimeSpan slidingInvisibilityTimeout)
+        /// <summary>
+        /// Starts periodically updating the job's FetchedAt timestamp so it is not considered abandoned.
+        /// Called from the constructor when <see cref="MongoStorageOptions.SlidingInvisibilityTimeout"/> has a value.
+        /// </summary>
+        /// <param name="slidingInvisibilityTimeout">Time after which a job without heartbeat is considered abandoned</param>
+        protected virtual void StartHeartbeat(TimeSpan slidingInvisibilityTimeout)
         {
             var timerInterval = TimeSpan.FromSeconds(slidingInvisibilityTimeout.TotalSeconds / 5);
             

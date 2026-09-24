@@ -1,6 +1,14 @@
 
 ## Change log
 
+### Unreleased
+- Add opt-in `AsyncMongoFactory`, which keeps fetched jobs and distributed locks alive with asynchronous heartbeats
+  (`AsyncMongoFetchedJob`, `AsyncMongoDistributedLock`) instead of timer callbacks that block thread-pool threads on
+  synchronous MongoDB calls. The heartbeats only update a job or lock still owned by the current instance
+  (`FetchToken` for jobs, new `OwnerToken` for locks), so a stale owner cannot extend or release another owner's lease.
+- `MongoFetchedJob.StartHeartbeat` is now `protected virtual`, and `MongoDistributedLock` has a new
+  `protected virtual CreateLockFields()` hook for the fields written when a lock is acquired.
+
 ### 1.16.3
 - Process StateHistory migration documents in batches to avoid loading all matching jobs into memory
 - Update to Hangfire.Core 1.8.25

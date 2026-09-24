@@ -26,6 +26,10 @@ namespace Hangfire.Mongo.Dto
             {
                 Resource = resource.StringOrNull();
             }
+            if (doc.TryGetValue(nameof(OwnerToken), out var ownerToken))
+            {
+                OwnerToken = ownerToken.StringOrNull();
+            }
             ExpireAt = doc[nameof(ExpireAt)].ToUniversalTime();
         }
         /// <summary>
@@ -37,6 +41,12 @@ namespace Hangfire.Mongo.Dto
         /// The name of the resource being held.
         /// </summary>
         public string Resource { get; set; }
+
+        /// <summary>
+        /// Identifies the lock instance holding the lock.
+        /// Only set by locks that verify ownership, e.g. <see cref="Hangfire.Mongo.DistributedLock.AsyncMongoDistributedLock"/>.
+        /// </summary>
+        public string OwnerToken { get; set; }
 
         /// <summary>
         /// The timestamp for when the lock expires.
@@ -55,6 +65,7 @@ namespace Hangfire.Mongo.Dto
             {
                 ["_id"] = Id,
                 [nameof(Resource)] = Resource.ToBsonValue(),
+                [nameof(OwnerToken)] = OwnerToken.ToBsonValue(),
                 [nameof(ExpireAt)] = ExpireAt.ToUniversalTime(),
             };
         }

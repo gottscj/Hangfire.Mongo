@@ -269,6 +269,17 @@ services.AddHangfire(cfg => cfg.UseMongoStorage(mongoClient, "mydb", options));
 
 If you need to customize other behaviors (job fetching, notifications, expiration manager etc.), inspect the available virtual methods on `MongoFactory` and override the appropriate creation method (for example `CreateMongoJobFetcher`, `CreateMongoNotificationObserver`, `CreateMongoExpirationManager`).
 
+Asynchronous heartbeats (opt-in)
+- Running jobs and held distributed locks are kept alive by heartbeats. By default each heartbeat is a timer callback that runs a synchronous MongoDB update on a thread-pool thread. With many concurrent jobs or a slow database, these calls hold thread-pool threads while they wait for MongoDB.
+- `AsyncMongoFactory` uses `AsyncMongoFetchedJob` and `AsyncMongoDistributedLock`, whose heartbeats use the async MongoDB driver API. They also only update a job or lock while this instance still owns it, so a stale worker never extends a lease or lock that was taken over by another worker.
+
+```csharp
+var options = new MongoStorageOptions
+{
+    Factory = new AsyncMongoFactory(),
+};
+```
+
 2) Custom UTC date/time strategies
 
 Date/time serialization is important for cross-platform correctness and compatibility with various MongoDB servers. The library exposes swappable UTC strategies (look for implementations under `UtcDateTime` or similar namespaces) so you can control how DateTime values are serialized and deserialized.
