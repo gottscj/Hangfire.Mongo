@@ -85,6 +85,19 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
+        public void Dispose_ReleasesLock_WhenReentrantLocksAreDisposedOutOfOrder()
+        {
+            var outer = CreateLock(TimeSpan.Zero).AcquireLock();
+            var inner = CreateLock(TimeSpan.Zero).AcquireLock();
+
+            outer.Dispose();
+            Assert.Equal(1, _database.DistributedLock.CountDocuments(_filter));
+
+            inner.Dispose();
+            Assert.Equal(0, _database.DistributedLock.CountDocuments(_filter));
+        }
+
+        [Fact]
         public void AcquireLock_ThrowsAnException_WhenResourceIsLockedByAnotherThread()
         {
             using (CreateLock(TimeSpan.Zero).AcquireLock())

@@ -6,6 +6,7 @@ using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Hangfire.Mongo.Tests.Utils;
 using Hangfire.States;
+using Hangfire.Storage;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Xunit;
@@ -61,6 +62,14 @@ namespace Hangfire.Mongo.Tests
                 var filter = new BsonDocument(nameof(DistributedLockDto.Resource), "Hangfire:resource1");
                 Assert.Equal(1, dbContext.DistributedLock.CountDocuments(filter));
             }
+        }
+
+        [Fact]
+        public void Storage_SupportsTransactionalAcknowledge_ForAsyncMongoFetchedJob()
+        {
+            var storage = CreateStorage();
+
+            Assert.True(storage.HasFeature(JobStorageFeatures.Transaction.RemoveFromQueue(typeof(AsyncMongoFetchedJob))));
         }
 
         [Fact]

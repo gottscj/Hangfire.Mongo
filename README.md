@@ -272,6 +272,7 @@ If you need to customize other behaviors (job fetching, notifications, expiratio
 Asynchronous heartbeats (opt-in)
 - Running jobs and held distributed locks are kept alive by heartbeats. By default each heartbeat is a timer callback that runs a synchronous MongoDB update on a thread-pool thread. With many concurrent jobs or a slow database, these calls hold thread-pool threads while they wait for MongoDB.
 - `AsyncMongoFactory` uses `AsyncMongoFetchedJob` and `AsyncMongoDistributedLock`, whose heartbeats use the async MongoDB driver API. They also only update a job or lock while this instance still owns it, so a stale worker never extends a lease or lock that was taken over by another worker.
+- Use the same factory on all servers sharing a database: servers using the default `MongoFactory` extend and release locks by resource name only, regardless of owner.
 
 ```csharp
 var options = new MongoStorageOptions

@@ -19,17 +19,22 @@ namespace Hangfire.Mongo
         }
 
         /// <summary>
+        /// True once <see cref="Stop"/> has been called
+        /// </summary>
+        public bool IsStopped => Volatile.Read(ref _stopped) == 1;
+
+        /// <summary>
         /// Starts the heartbeat. The first beat happens after <paramref name="interval"/>.
         /// </summary>
         /// <param name="interval">Delay between beats</param>
         /// <param name="beat">Callback invoked on every beat</param>
         /// <param name="onError">Invoked when <paramref name="beat"/> throws; the heartbeat keeps running</param>
-        public static AsyncHeartbeat Start(TimeSpan interval, Func<CancellationToken, Task> beat,
-            Action<Exception> onError)
+        public static AsyncHeartbeat Start(TimeSpan interval, Func<Task> beat, Action<Exception> onError)
         {
-            if (interval <= TimeSpan.Zero)
+            if (interval <= TimeSpan.Zero || interval.TotalMilliseconds > int.MaxValue)
             {
-                throw new ArgumentOutOfRangeException(nameof(interval), interval, "Interval must be positive");
+                throw new ArgumentOutOfRangeException(nameof(interval), interval,
+                    $"Interval must be positive and at most {int.MaxValue} milliseconds");
             }
 
             if (beat == null) throw new ArgumentNullException(nameof(beat));
@@ -41,9 +46,9 @@ namespace Hangfire.Mongo
         }
 
         /// <summary>
-        /// Stops the heartbeat and cancels a beat in progress. Safe to call more than once.
-        /// A beat that is starting concurrently with this call may still run, so beats must
-        /// be harmless after the owner has moved on.
+        /// Stops further beats. Safe to call more than once. A beat that is already running
+        /// is not interrupted and a beat starting concurrently may still run, so beats must be
+        /// harmless after the owner has moved on.
         /// </summary>
         public void Stop()
         {
@@ -52,30 +57,50 @@ namespace Hangfire.Mongo
                 return;
             }
 
-            // The token is cancelled before the source is disposed, so the loop can still
-            // observe it safely after disposal.
+            // Only Task.Delay observes the token; cancelling before disposing keeps it safe to read afterwards.
             _cancellation.Cancel();
             _cancellation.Dispose();
         }
 
-        private static async Task RunAsync(TimeSpan interval, Func<CancellationToken, Task> beat,
-            Action<Exception> onError, CancellationToken cancellationToken)
+        private static async Task RunAsync(TimeSpan interval, Func<Task> beat, Action<Exception> onError,
+            CancellationToken cancellationToken)
         {
-            while (!cancellationToken.IsCancellationRequested)
+            while (true)
             {
                 try
                 {
                     await Task.Delay(interval, cancellationToken).ConfigureAwait(false);
-                    await beat(cancellationToken).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                catch (OperationCanceledException)
                 {
                     return;
                 }
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                try
+                {
+                    await beat().ConfigureAwait(false);
+                }
                 catch (Exception ex)
                 {
-                    onError(ex);
+                    ReportError(onError, ex);
                 }
+            }
+        }
+
+        private static void ReportError(Action<Exception> onError, Exception exception)
+        {
+            try
+            {
+                onError(exception);
+            }
+            catch
+            {
+                // a failing error handler (e.g. logging) must not stop the heartbeat
             }
         }
     }

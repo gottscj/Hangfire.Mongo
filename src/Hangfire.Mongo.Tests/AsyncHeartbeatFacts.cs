@@ -14,14 +14,14 @@ namespace Hangfire.Mongo.Tests
         public void Start_ThrowsAnException_WhenIntervalIsNotPositive()
         {
             Assert.Throws<ArgumentOutOfRangeException>(
-                () => AsyncHeartbeat.Start(TimeSpan.Zero, _ => Task.CompletedTask, _ => { }));
+                () => AsyncHeartbeat.Start(TimeSpan.Zero, () => Task.CompletedTask, _ => { }));
         }
 
         [Fact]
         public async Task Start_BeatsRepeatedly_UntilStopped()
         {
             var beats = 0;
-            var heartbeat = AsyncHeartbeat.Start(Interval, _ =>
+            var heartbeat = AsyncHeartbeat.Start(Interval, () =>
             {
                 Interlocked.Increment(ref beats);
                 return Task.CompletedTask;
@@ -31,7 +31,7 @@ namespace Hangfire.Mongo.Tests
 
             heartbeat.Stop();
             // a beat racing with Stop may still complete
-            await Task.Delay(Interval);
+            await Task.Delay(TimeSpan.FromMilliseconds(500));
             var beatsAfterStop = Volatile.Read(ref beats);
             await Task.Delay(Interval * 4);
 
@@ -43,7 +43,7 @@ namespace Hangfire.Mongo.Tests
         {
             var interval = TimeSpan.FromMilliseconds(500);
             var beats = 0;
-            var heartbeat = AsyncHeartbeat.Start(interval, _ =>
+            var heartbeat = AsyncHeartbeat.Start(interval, () =>
             {
                 Interlocked.Increment(ref beats);
                 return Task.CompletedTask;
@@ -58,38 +58,61 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Stop_CanBeCalledMoreThanOnce()
         {
-            var heartbeat = AsyncHeartbeat.Start(Interval, _ => Task.CompletedTask, _ => { });
+            var heartbeat = AsyncHeartbeat.Start(Interval, () => Task.CompletedTask, _ => { });
 
             heartbeat.Stop();
             heartbeat.Stop();
         }
 
         [Fact]
-        public async Task Stop_CancelsBeatInProgress_WithoutReportingAnError()
+        public async Task Stop_DoesNotInterruptBeatInProgress_AndPreventsFurtherBeats()
         {
-            var beatStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var beatCancelled = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var beats = 0;
             var errors = 0;
-            var heartbeat = AsyncHeartbeat.Start(Interval, async ct =>
+            var beatStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var releaseBeat = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var heartbeat = AsyncHeartbeat.Start(Interval, async () =>
             {
+                Interlocked.Increment(ref beats);
                 beatStarted.TrySetResult(true);
-                try
-                {
-                    await Task.Delay(Timeout.Infinite, ct);
-                }
-                catch (OperationCanceledException)
-                {
-                    beatCancelled.TrySetResult(true);
-                    throw;
-                }
+                await releaseBeat.Task;
             }, _ => Interlocked.Increment(ref errors));
 
             await beatStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
             heartbeat.Stop();
+            Assert.True(heartbeat.IsStopped);
+            releaseBeat.SetResult(true);
+            await Task.Delay(Interval * 4);
 
-            await beatCancelled.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            await Task.Delay(Interval * 2);
+            Assert.Equal(1, Volatile.Read(ref beats));
             Assert.Equal(0, Volatile.Read(ref errors));
+        }
+
+        [Fact]
+        public void Start_ThrowsAnException_WhenIntervalIsTooLarge()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => AsyncHeartbeat.Start(TimeSpan.FromMilliseconds(int.MaxValue + 1L), () => Task.CompletedTask, _ => { }));
+        }
+
+        [Fact]
+        public async Task Beat_KeepsRunning_WhenErrorHandlerThrows()
+        {
+            var beats = 0;
+            var heartbeat = AsyncHeartbeat.Start(Interval, () =>
+            {
+                Interlocked.Increment(ref beats);
+                throw new InvalidOperationException("boom");
+            }, _ => throw new InvalidOperationException("logging failed"));
+
+            try
+            {
+                Assert.True(await WaitUntil(() => Volatile.Read(ref beats) >= 3), "Expected at least 3 beats");
+            }
+            finally
+            {
+                heartbeat.Stop();
+            }
         }
 
         [Fact]
@@ -97,7 +120,7 @@ namespace Hangfire.Mongo.Tests
         {
             var beats = 0;
             var errors = 0;
-            var heartbeat = AsyncHeartbeat.Start(Interval, _ =>
+            var heartbeat = AsyncHeartbeat.Start(Interval, () =>
             {
                 Interlocked.Increment(ref beats);
                 throw new InvalidOperationException("boom");
@@ -124,7 +147,7 @@ namespace Hangfire.Mongo.Tests
             var beats = 0;
             AsyncHeartbeat heartbeat = null;
             var started = new ManualResetEventSlim();
-            heartbeat = AsyncHeartbeat.Start(Interval, _ =>
+            heartbeat = AsyncHeartbeat.Start(Interval, () =>
             {
                 started.Wait();
                 Interlocked.Increment(ref beats);

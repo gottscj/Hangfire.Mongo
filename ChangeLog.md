@@ -6,7 +6,8 @@
   (`AsyncMongoFetchedJob`, `AsyncMongoDistributedLock`) instead of timer callbacks that block thread-pool threads on
   synchronous MongoDB calls. The heartbeats only update a job or lock still owned by the current instance
   (`FetchToken` for jobs, new `OwnerToken` for locks), so a stale owner cannot extend another owner's lease.
-  `AsyncMongoDistributedLock` also only releases a lock it still owns.
+  `AsyncMongoDistributedLock` also only releases a lock it still owns. `AsyncMongoFetchedJob` supports
+  `JobStorageFeatures.Transaction.RemoveFromQueue`, so its acknowledgement is committed with the final state change.
 - `MongoFetchedJob.StartHeartbeat` is now `protected virtual`, and `MongoDistributedLock` has a new
   `protected virtual CreateLockFields()` hook for the fields written when a lock is acquired.
 

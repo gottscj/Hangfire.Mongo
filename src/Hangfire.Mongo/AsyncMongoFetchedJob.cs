@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
@@ -72,7 +71,7 @@ namespace Hangfire.Mongo
         {
         }
 
-        private async Task UpdateFetchedAtAsync(CancellationToken cancellationToken)
+        private async Task UpdateFetchedAtAsync()
         {
             var filter = new BsonDocument
             {
@@ -87,8 +86,7 @@ namespace Hangfire.Mongo
                     [nameof(JobDto.FetchedAt)] = DateTime.UtcNow
                 }
             };
-            await _db.JobGraph.UpdateOneAsync(filter, update, cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
+            await _db.JobGraph.UpdateOneAsync(filter, update).ConfigureAwait(false);
         }
     }
 }
