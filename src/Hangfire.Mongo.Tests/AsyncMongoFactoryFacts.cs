@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Mongo.DistributedLock;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Migration.Strategies;
@@ -73,7 +74,7 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void BackgroundJobServer_ProcessesJob_WithAsyncMongoFactory()
+        public async Task BackgroundJobServer_ProcessesJob_WithAsyncMongoFactory()
         {
             var storage = CreateStorage();
             using var connection = storage.GetConnection();
@@ -93,7 +94,7 @@ namespace Hangfire.Mongo.Tests
             {
                 jobId = client.Enqueue<AsyncFactoryTestJob>(j => j.Run());
                 Assert.True(AsyncFactoryTestJob.Signal.Wait(TimeSpan.FromSeconds(20)), "Expected job to run");
-                Assert.True(Wait.Until(() => GetJob(jobId).StateName == SucceededState.StateName),
+                Assert.True(await Wait.UntilAsync(() => GetJob(jobId).StateName == SucceededState.StateName),
                     "Expected job to succeed");
             }
 

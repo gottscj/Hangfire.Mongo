@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Tests.Utils;
@@ -32,14 +33,14 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void Heartbeat_UpdatesFetchedAt_WhileJobIsProcessing()
+        public async Task Heartbeat_UpdatesFetchedAt_WhileJobIsProcessing()
         {
             var id = CreateFetchedJobRecord(ProcessingState.StateName);
 
             using var job = CreateFetchedJob(id, _options);
 
             Assert.True(
-                Wait.Until(() => GetFetchedAt(id) > _initialFetchedAt.AddMinutes(5)),
+                await Wait.UntilAsync(() => GetFetchedAt(id) > _initialFetchedAt.AddMinutes(5)),
                 "Expected heartbeat to update FetchedAt");
         }
 
@@ -75,11 +76,11 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void Dispose_StopsHeartbeat()
+        public async Task Dispose_StopsHeartbeat()
         {
             var id = CreateFetchedJobRecord(ProcessingState.StateName);
             var job = CreateFetchedJob(id, _options);
-            Assert.True(Wait.Until(() => GetFetchedAt(id) > _initialFetchedAt.AddMinutes(5)), "Expected heartbeat to run");
+            Assert.True(await Wait.UntilAsync(() => GetFetchedAt(id) > _initialFetchedAt.AddMinutes(5)), "Expected heartbeat to run");
 
             job.Dispose();
             // put the job back into the state the heartbeat looks for, as if it was fetched again
@@ -88,7 +89,7 @@ namespace Hangfire.Mongo.Tests
                 [nameof(JobDto.FetchedAt)] = _initialFetchedAt,
                 [nameof(JobDto.FetchToken)] = _fetchToken
             }));
-            Thread.Sleep(HeartbeatTimeout * 2);
+            await Task.Delay(HeartbeatTimeout * 2);
 
             Assert.Equal(_initialFetchedAt, GetFetchedAt(id), TimeSpan.FromSeconds(1));
         }

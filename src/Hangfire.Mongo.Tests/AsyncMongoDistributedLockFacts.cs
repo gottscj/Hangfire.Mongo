@@ -162,6 +162,8 @@ namespace Hangfire.Mongo.Tests
             {
                 var initialExpireAt = GetLock().ExpireAt;
 
+                // Blocking wait on purpose: the lock is thread-affine (ThreadLocal owner tokens),
+                // so an await here could release it on a different thread
                 Assert.True(Wait.Until(() => GetLock().ExpireAt > initialExpireAt), "Expected heartbeat to extend the lock");
                 // lock outlives its lifetime while held
                 Thread.Sleep(LockLifetime * 2);

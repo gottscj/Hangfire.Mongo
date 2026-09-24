@@ -12,7 +12,7 @@ namespace Hangfire.Mongo.Tests
         private static readonly TimeSpan Interval = TimeSpan.FromMilliseconds(50);
 
         [Fact]
-        public void Start_ClampsInterval_WhenItIsNotPositive()
+        public async Task Start_ClampsInterval_WhenItIsNotPositive()
         {
             var beats = 0;
             var heartbeat = AsyncHeartbeat.Start(TimeSpan.Zero, () =>
@@ -23,7 +23,7 @@ namespace Hangfire.Mongo.Tests
 
             try
             {
-                Assert.True(Wait.Until(() => Volatile.Read(ref beats) >= 3), "Expected at least 3 beats");
+                Assert.True(await Wait.UntilAsync(() => Volatile.Read(ref beats) >= 3), "Expected at least 3 beats");
             }
             finally
             {
@@ -41,7 +41,7 @@ namespace Hangfire.Mongo.Tests
                 return Task.CompletedTask;
             }, _ => { });
 
-            Assert.True(Wait.Until(() => Volatile.Read(ref beats) >= 3), "Expected at least 3 beats");
+            Assert.True(await Wait.UntilAsync(() => Volatile.Read(ref beats) >= 3), "Expected at least 3 beats");
 
             heartbeat.Stop();
             // a beat racing with Stop may still complete
@@ -122,7 +122,7 @@ namespace Hangfire.Mongo.Tests
 
             try
             {
-                Assert.True(Wait.Until(() => Volatile.Read(ref beats) >= 3), "Expected at least 3 beats");
+                Assert.True(await Wait.UntilAsync(() => Volatile.Read(ref beats) >= 3), "Expected at least 3 beats");
             }
             finally
             {
@@ -147,7 +147,7 @@ namespace Hangfire.Mongo.Tests
 
             try
             {
-                Assert.True(Wait.Until(() => Volatile.Read(ref errors) >= 3), "Expected at least 3 reported errors");
+                Assert.True(await Wait.UntilAsync(() => Volatile.Read(ref errors) >= 3), "Expected at least 3 reported errors");
                 Assert.True(Volatile.Read(ref beats) >= 3);
             }
             finally
@@ -171,7 +171,7 @@ namespace Hangfire.Mongo.Tests
             }, _ => { });
             started.Set();
 
-            Assert.True(Wait.Until(() => Volatile.Read(ref beats) == 1), "Expected one beat");
+            Assert.True(await Wait.UntilAsync(() => Volatile.Read(ref beats) == 1), "Expected one beat");
             await Task.Delay(Interval * 4);
 
             Assert.Equal(1, Volatile.Read(ref beats));
