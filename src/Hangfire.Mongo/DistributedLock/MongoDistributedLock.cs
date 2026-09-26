@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
@@ -27,8 +28,10 @@ namespace Hangfire.Mongo.DistributedLock
         private readonly TimeSpan _timeout;
         private readonly HangfireDbContext _dbContext;
         private readonly MongoStorageOptions _storageOptions;
+        private readonly string _ownerToken = Guid.NewGuid().ToString("N");
 
-        private Timer _heartbeatTimer;
+        private CancellationTokenSource _heartbeatCancellation;
+        private Task _heartbeatTask;
 
         private bool _completed;
 
@@ -112,14 +115,11 @@ namespace Hangfire.Mongo.DistributedLock
                 return;
             }
 
-            // Timer callback may be invoked after the Dispose method call,
-            // so we are using lock to avoid un synchronized calls.
+            StopHeartbeat();
+
             lock (_lockObject)
             {
                 AcquiredLocks.Value.Remove(_resource);
-
-                _heartbeatTimer?.Dispose();
-                _heartbeatTimer = null;
 
                 Release();
 
@@ -160,6 +160,7 @@ namespace Hangfire.Mongo.DistributedLock
                     {
                         ["$setOnInsert"] = new BsonDocument
                         {
+                            [nameof(DistributedLockDto.OwnerToken)] = _ownerToken,
                             [nameof(DistributedLockDto.ExpireAt)] =
                                 DateTime.UtcNow.Add(_storageOptions.DistributedLockLifetime)
                         }
@@ -233,7 +234,11 @@ namespace Hangfire.Mongo.DistributedLock
                 }
 
                 // Remove resource lock
-                _dbContext.DistributedLock.DeleteOne(new BsonDocument(nameof(DistributedLockDto.Resource), _resource));
+                _dbContext.DistributedLock.DeleteOne(new BsonDocument
+                {
+                    [nameof(DistributedLockDto.Resource)] = _resource,
+                    [nameof(DistributedLockDto.OwnerToken)] = _ownerToken
+                });
             }
             catch (Exception ex)
             {
@@ -272,58 +277,89 @@ namespace Hangfire.Mongo.DistributedLock
         {
             var timerInterval =
                 TimeSpan.FromMilliseconds(_storageOptions.DistributedLockLifetime.TotalMilliseconds / 5);
-            _heartbeatTimer = new Timer(_ =>
+            _heartbeatCancellation = new CancellationTokenSource();
+            _heartbeatTask = RunHeartbeatAsync(timerInterval, _heartbeatCancellation.Token);
+        }
+
+        private async Task RunHeartbeatAsync(TimeSpan timerInterval, CancellationToken cancellationToken)
+        {
+            while (true)
             {
-                // Timer callback may be invoked after the Dispose method call,
-                // so we are using lock to avoid un synchronized calls.
-                lock (_lockObject)
+                try
                 {
-                    if (_completed) return;
+                    await Task.Delay(timerInterval, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
 
-                    try
+                if (Volatile.Read(ref _completed))
+                {
+                    return;
+                }
+
+                try
+                {
+                    var filter = new BsonDocument
                     {
-                        var filter = new BsonDocument
+                        [nameof(DistributedLockDto.Resource)] = _resource,
+                        [nameof(DistributedLockDto.OwnerToken)] = _ownerToken
+                    };
+                    var update = new BsonDocument
+                    {
+                        ["$set"] = new BsonDocument
                         {
-                            [nameof(DistributedLockDto.Resource)] = _resource
-                        };
-                        var update = new BsonDocument
-                        {
-                            ["$set"] = new BsonDocument
-                            {
-                                [nameof(DistributedLockDto.ExpireAt)] = DateTime
-                                    .UtcNow.Add(_storageOptions.DistributedLockLifetime)
-                            }
-                        };
-                        
-                        Stopwatch sw = null;
-                        if (Logger.IsTraceEnabled())
-                        {
-                            sw = Stopwatch.StartNew();
+                            [nameof(DistributedLockDto.ExpireAt)] = DateTime
+                                .UtcNow.Add(_storageOptions.DistributedLockLifetime)
                         }
+                    };
 
-                        _dbContext.DistributedLock.UpdateOne(filter, update);
-
-                        if (Logger.IsTraceEnabled() && sw != null)
-                        {
-                            var serializedModel = new Dictionary<string, BsonDocument>
-                            {
-                                ["Filter"] = filter,
-                                ["Update"] = update
-                            };
-                            sw.Stop();
-                            var builder = new StringBuilder();
-                            builder.AppendLine($"Lock heartbeat");
-                            builder.AppendLine($"{serializedModel.ToJson()}");
-                            builder.AppendLine($"Executed in {sw.ElapsedMilliseconds} ms");
-                            Logger.Trace($"{builder}");
-                        }
+                    Stopwatch sw = null;
+                    if (Logger.IsTraceEnabled())
+                    {
+                        sw = Stopwatch.StartNew();
                     }
-                    catch (Exception ex)
+
+                    await _dbContext.DistributedLock
+                        .UpdateOneAsync(filter, update, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (Logger.IsTraceEnabled() && sw != null)
                     {
-                        Logger.Error($"{_resource} - Unable to update heartbeat on the resource. Details:\r\n{ex}");
+                        var serializedModel = new Dictionary<string, BsonDocument>
+                        {
+                            ["Filter"] = filter,
+                            ["Update"] = update
+                        };
+                        sw.Stop();
+                        var builder = new StringBuilder();
+                        builder.AppendLine($"Lock heartbeat");
+                        builder.AppendLine($"{serializedModel.ToJson()}");
+                        builder.AppendLine($"Executed in {sw.ElapsedMilliseconds} ms");
+                        Logger.Trace($"{builder}");
                     }
                 }
-            }, null, timerInterval, timerInterval);
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"{_resource} - Unable to update heartbeat on the resource. Details:\r\n{ex}");
+                }
+            }
+        }
+
+        private void StopHeartbeat()
+        {
+            var cancellation = _heartbeatCancellation;
+            var heartbeat = _heartbeatTask;
+            _heartbeatCancellation = null;
+            _heartbeatTask = null;
+            cancellation?.Cancel();
+            heartbeat?.GetAwaiter().GetResult();
+            cancellation?.Dispose();
         }
 
         /// <summary>

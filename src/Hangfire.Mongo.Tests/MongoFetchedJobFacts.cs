@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.Mongo.Tests.Utils;
@@ -19,7 +20,7 @@ namespace Hangfire.Mongo.Tests
         private const string Queue = "queue";
         private readonly MongoStorageOptions _mongoStorageOptions = new MongoStorageOptions();
         private readonly DateTime _fetchedAt = DateTime.UtcNow;
-        private readonly string _fetchToken = Guid.NewGuid().ToString("N");
+        private readonly string _ownerToken = Guid.NewGuid().ToString("N");
         private readonly HangfireDbContext _dbContext;
 
         public MongoFetchedJobFacts(MongoIntegrationTestFixture fixture)
@@ -32,7 +33,7 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_ThrowsAnException_WhenConnectionIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoFetchedJob(null, _mongoStorageOptions, _fetchedAt, _fetchToken, ObjectId.GenerateNewId(), JobId, Queue));
+                () => new MongoFetchedJob(null, _mongoStorageOptions, _fetchedAt, _ownerToken, ObjectId.GenerateNewId(), JobId, Queue));
 
             Assert.Equal("db", exception.ParamName);
         }
@@ -41,7 +42,7 @@ namespace Hangfire.Mongo.Tests
         public void Ctor_ThrowsAnException_WhenQueueIsNull()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _fetchToken, ObjectId.GenerateNewId(), JobId, null));
+                () => new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _ownerToken, ObjectId.GenerateNewId(), JobId, null));
 
             Assert.Equal("queue", exception.ParamName);
         }
@@ -49,7 +50,7 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void Ctor_CorrectlySets_AllInstanceProperties()
         {
-            var fetchedJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _fetchToken, ObjectId.GenerateNewId(), JobId, Queue);
+            var fetchedJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _ownerToken, ObjectId.GenerateNewId(), JobId, Queue);
 
             Assert.Equal(JobId.ToString(), fetchedJob.JobId);
             Assert.Equal(Queue, fetchedJob.Queue);
@@ -62,7 +63,7 @@ namespace Hangfire.Mongo.Tests
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
             var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt);
-            var processingJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _fetchToken, id, jobId, queue);
+            var processingJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _ownerToken, id, jobId, queue);
 
             // Act
             processingJob.RemoveFromQueue();
@@ -85,9 +86,9 @@ namespace Hangfire.Mongo.Tests
             CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(2), "critical", _fetchedAt);
             CreateJobQueueRecord(_dbContext, ObjectId.GenerateNewId(3), "default", _fetchedAt);
 
-            var fetchedJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _fetchToken, ObjectId.GenerateNewId(), ObjectId.GenerateNewId(999), "default");
+            var fetchedJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _ownerToken, ObjectId.GenerateNewId(), ObjectId.GenerateNewId(999), "default");
 
-            // Act — CAS on (_id, FetchToken) never matches a random id, so the ack silently logs
+            // Act — CAS on (_id, OwnerToken) never matches a random id, so the ack silently logs
             // a warning and leaves the three unrelated documents intact.
             fetchedJob.RemoveFromQueue();
 
@@ -108,7 +109,7 @@ namespace Hangfire.Mongo.Tests
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
             var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt);
-            var processingJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _fetchToken, id, jobId, queue);
+            var processingJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _ownerToken, id, jobId, queue);
 
             // Act
             processingJob.Requeue();
@@ -126,7 +127,7 @@ namespace Hangfire.Mongo.Tests
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
             var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt);
-            var processingJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _fetchToken, id, jobId, queue);
+            var processingJob = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _ownerToken, id, jobId, queue);
 
             // Act
             processingJob.Dispose();
@@ -136,20 +137,20 @@ namespace Hangfire.Mongo.Tests
                 _dbContext.JobGraph.Find(new BsonDocument("_t", nameof(JobDto))).ToList().Single());
             Assert.Null(record.FetchedAt);
         }
-        
+
         [Fact]
         public void Heartbeat_LonRunningJob_UpdatesFetchedAt()
         {
             // Arrange
             // time out job after 1s
-            var options = new MongoStorageOptions() {SlidingInvisibilityTimeout = TimeSpan.FromSeconds(1)};
+            var options = new MongoStorageOptions() { SlidingInvisibilityTimeout = TimeSpan.FromSeconds(1) };
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
             var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt, ProcessingState.StateName);
             var initialFetchedAt = DateTime.UtcNow;
 
             // Act
-            var job = new MongoFetchedJob(_dbContext, options, initialFetchedAt, _fetchToken, id, jobId, queue);
+            var job = new MongoFetchedJob(_dbContext, options, initialFetchedAt, _ownerToken, id, jobId, queue);
             // job runs for 2s, Heartbeat updates job
             Thread.Sleep(TimeSpan.FromSeconds(2));
             job.Dispose();
@@ -159,19 +160,41 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
+        public async Task Heartbeat_DoesNotUpdateJob_WhenLeaseWasStolen()
+        {
+            var options = new MongoStorageOptions { SlidingInvisibilityTimeout = TimeSpan.FromSeconds(1) };
+            var queue = "default";
+            var jobId = ObjectId.GenerateNewId();
+            var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt, ProcessingState.StateName);
+            var initialFetchedAt = _dbContext.JobGraph
+                .Find(new BsonDocument("_id", id))
+                .Single()[nameof(JobDto.FetchedAt)];
+            var job = new MongoFetchedJob(_dbContext, options, _fetchedAt, _ownerToken, id, jobId, queue);
+
+            _dbContext.JobGraph.UpdateOne(
+                new BsonDocument("_id", id),
+                new BsonDocument("$set", new BsonDocument(nameof(JobDto.OwnerToken), "new-owner")));
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            job.SetRemoved();
+
+            var document = _dbContext.JobGraph.Find(new BsonDocument("_id", id)).Single();
+            Assert.Equal(initialFetchedAt, document[nameof(JobDto.FetchedAt)]);
+        }
+
+        [Fact]
         public void RemoveFromQueue_LeavesDocumentIntact_WhenLeaseWasStolen()
         {
-            // Arrange — worker A fetches the job (token = _fetchToken).
+            // Arrange — worker A fetches the job (token = _ownerToken).
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
             var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt);
-            var workerA = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _fetchToken, id, jobId, queue);
+            var workerA = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _ownerToken, id, jobId, queue);
 
             // Worker B takes over after invisibility timeout — DB token is replaced.
             var thiefToken = Guid.NewGuid().ToString("N");
             _dbContext.JobGraph.UpdateOne(
                 new BsonDocument("_id", id),
-                new BsonDocument("$set", new BsonDocument(nameof(JobDto.FetchToken), thiefToken)));
+                new BsonDocument("$set", new BsonDocument(nameof(JobDto.OwnerToken), thiefToken)));
 
             // Act — ack is a no-op because the CAS does not match; a warning is logged (not asserted here).
             workerA.RemoveFromQueue();
@@ -179,7 +202,7 @@ namespace Hangfire.Mongo.Tests
             // Assert — new owner's lease is preserved in the document.
             var doc = _dbContext.JobGraph.Find(new BsonDocument("_id", id)).Single();
             Assert.Equal(queue, doc[nameof(JobDto.Queue)].AsString);
-            Assert.Equal(thiefToken, doc[nameof(JobDto.FetchToken)].AsString);
+            Assert.Equal(thiefToken, doc[nameof(JobDto.OwnerToken)].AsString);
         }
 
         [Fact]
@@ -189,7 +212,7 @@ namespace Hangfire.Mongo.Tests
             var queue = "default";
             var jobId = ObjectId.GenerateNewId();
             var id = CreateJobQueueRecord(_dbContext, jobId, queue, _fetchedAt);
-            var fetched = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _fetchToken, id, jobId, queue);
+            var fetched = new MongoFetchedJob(_dbContext, _mongoStorageOptions, _fetchedAt, _ownerToken, id, jobId, queue);
 
             // Act — bundled ack path used by Hangfire.Core when Transaction.RemoveFromQueue feature is advertised.
             using (var tx = new MongoWriteOnlyTransaction(_dbContext, _mongoStorageOptions))
@@ -201,7 +224,7 @@ namespace Hangfire.Mongo.Tests
             // Assert — queue, fetched-at and fetch-token are all nulled.
             var doc = _dbContext.JobGraph.Find(new BsonDocument("_id", id)).Single();
             Assert.Equal(BsonNull.Value, doc[nameof(JobDto.Queue)]);
-            Assert.Equal(BsonNull.Value, doc[nameof(JobDto.FetchToken)]);
+            Assert.Equal(BsonNull.Value, doc[nameof(JobDto.OwnerToken)]);
             Assert.Equal(BsonNull.Value, doc[nameof(JobDto.FetchedAt)]);
         }
 
@@ -217,7 +240,7 @@ namespace Hangfire.Mongo.Tests
                 Id = jobId,
                 Queue = queue,
                 FetchedAt = fetchedAt,
-                FetchToken = _fetchToken,
+                OwnerToken = _ownerToken,
                 StateName = stateName
             };
 

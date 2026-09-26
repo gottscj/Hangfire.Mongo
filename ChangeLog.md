@@ -1,6 +1,12 @@
 
 ## Change log
 
+### 1.17.0
+- Use asynchronous MongoDB operations for fetched-job, distributed-lock, and migration-lock heartbeats
+- Protect distributed and migration lock heartbeats and releases with immutable owner tokens
+- BREAKING: Rename job `FetchToken` to `OwnerToken` in public APIs and stored documents
+- Add schema `Version26` with migrations for job and lock owner-token fields
+
 ### 1.16.3
 - Process StateHistory migration documents in batches to avoid loading all matching jobs into memory
 - Update to Hangfire.Core 1.8.25
