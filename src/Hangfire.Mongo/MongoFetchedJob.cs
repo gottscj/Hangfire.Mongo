@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire.Logging;
 using Hangfire.Mongo.Database;
 using Hangfire.Mongo.Dto;
 using Hangfire.States;
 using Hangfire.Storage;
 using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace Hangfire.Mongo
 {
@@ -23,14 +23,15 @@ namespace Hangfire.Mongo
         private readonly HangfireDbContext _db;
         private readonly MongoStorageOptions _storageOptions;
         private DateTime _fetchedAt;
-        private readonly string _fetchToken;
+        private readonly string _ownerToken;
         private readonly ObjectId _id;
         private readonly object _syncRoot;
 
         private bool _disposed;
         private bool _removedFromQueue;
         private bool _requeued;
-        private Timer _heartbeatTimer;
+        private CancellationTokenSource _heartbeatCancellation;
+        private Task _heartbeatTask;
 
 
         /// <summary>
@@ -39,7 +40,7 @@ namespace Hangfire.Mongo
         /// <param name="db">Database connection</param>
         /// <param name="storageOptions">storage options</param>
         /// <param name="fetchedAt"></param>
-        /// <param name="fetchToken"></param>
+        /// <param name="ownerToken"></param>
         /// <param name="id">Identifier</param>
         /// <param name="jobId">Job ID</param>
         /// <param name="queue">Queue name</param>
@@ -47,7 +48,7 @@ namespace Hangfire.Mongo
             HangfireDbContext db,
             MongoStorageOptions storageOptions,
             DateTime fetchedAt,
-            string fetchToken,
+            string ownerToken,
             ObjectId id,
             ObjectId jobId,
             string queue)
@@ -56,7 +57,7 @@ namespace Hangfire.Mongo
             _syncRoot = new object();
             _storageOptions = storageOptions;
             _fetchedAt = fetchedAt;
-            _fetchToken = fetchToken ?? throw new ArgumentNullException(nameof(fetchToken));
+            _ownerToken = ownerToken ?? throw new ArgumentNullException(nameof(ownerToken));
             _id = id;
             JobId = jobId.ToString();
             Queue = queue ?? throw new ArgumentNullException(nameof(queue));
@@ -69,7 +70,7 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Immutable ownership token issued at fetch
         /// </summary>
-        public string FetchToken => _fetchToken;
+        public string OwnerToken => _ownerToken;
 
         /// <summary>
         /// Timestamp job is fetched
@@ -96,6 +97,8 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void RemoveFromQueue()
         {
+            StopHeartbeat();
+
             lock (_syncRoot)
             {
                 if (_removedFromQueue || _requeued)
@@ -106,7 +109,7 @@ namespace Hangfire.Mongo
                 var filter = new BsonDocument
                 {
                     ["_id"] = _id,
-                    [nameof(JobDto.FetchToken)] = _fetchToken,
+                    [nameof(JobDto.OwnerToken)] = _ownerToken,
                     [nameof(JobDto.Queue)] = Queue
                 };
                 var update = new BsonDocument
@@ -114,7 +117,7 @@ namespace Hangfire.Mongo
                     ["$set"] = new BsonDocument
                     {
                         [nameof(JobDto.FetchedAt)] = BsonNull.Value,
-                        [nameof(JobDto.FetchToken)] = BsonNull.Value,
+                        [nameof(JobDto.OwnerToken)] = BsonNull.Value,
                         [nameof(JobDto.Queue)] = BsonNull.Value
                     }
                 };
@@ -138,7 +141,12 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void SetRemoved()
         {
-            _removedFromQueue = true;
+            StopHeartbeat();
+
+            lock (_syncRoot)
+            {
+                _removedFromQueue = true;
+            }
         }
 
         /// <summary>
@@ -146,6 +154,8 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void Requeue()
         {
+            StopHeartbeat();
+
             lock (_syncRoot)
             {
                 if (_removedFromQueue || _requeued)
@@ -165,12 +175,11 @@ namespace Hangfire.Mongo
         /// </summary>
         public virtual void Dispose()
         {
+            StopHeartbeat();
+
             lock (_syncRoot)
             {
                 if (_disposed) return;
-
-                _heartbeatTimer?.Dispose();
-                _heartbeatTimer = null;
 
                 _disposed = true;
             }
@@ -185,68 +194,114 @@ namespace Hangfire.Mongo
         private void StartHeartbeat(TimeSpan slidingInvisibilityTimeout)
         {
             var timerInterval = TimeSpan.FromSeconds(slidingInvisibilityTimeout.TotalSeconds / 5);
-            
+            _heartbeatCancellation = new CancellationTokenSource();
+            _heartbeatTask = RunHeartbeatAsync(timerInterval, _heartbeatCancellation.Token);
+        }
+
+        private async Task RunHeartbeatAsync(TimeSpan timerInterval, CancellationToken cancellationToken)
+        {
             var filter = new BsonDocument
             {
                 ["_id"] = _id,
+                [nameof(JobDto.OwnerToken)] = _ownerToken,
                 [nameof(JobDto.StateName)] = ProcessingState.StateName
             };
-            _heartbeatTimer = new Timer(_ =>
+
+            while (true)
             {
-                // Timer callback may be invoked after the Dispose method call,
-                // so we are using lock to avoid un synchronized calls.
+                try
+                {
+                    await Task.Delay(timerInterval, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 lock (_syncRoot)
                 {
-                    if (_disposed)
+                    if (_disposed || _requeued || _removedFromQueue)
                     {
                         return;
-                    }
-
-                    if (_requeued || _removedFromQueue)
-                    {
-                        return;
-                    }
-
-                    Stopwatch sw = null;
-                    if (Logger.IsTraceEnabled())
-                    {
-                        sw = Stopwatch.StartNew();
-                    }
-
-                    try
-                    {
-                        var now = DateTime.UtcNow;
-                        var update = new BsonDocument
-                        {
-                            ["$set"] = new BsonDocument
-                            {
-                                [nameof(JobDto.FetchedAt)] = now
-                            }
-                        };
-                        _db.JobGraph.UpdateOne(filter, update);
-                        _fetchedAt = now;
-                        
-                        if (Logger.IsTraceEnabled() && sw != null)
-                        {
-                            var serializedModel = new Dictionary<string, BsonDocument>
-                            {
-                                ["Filter"] = filter,
-                                ["Update"] = update
-                            };
-                            sw.Stop();
-                            var builder = new StringBuilder();
-                            builder.AppendLine($"Job heartbeat");
-                            builder.AppendLine($"{serializedModel.ToJson()}");
-                            builder.AppendLine($"Executed in {sw.ElapsedMilliseconds} ms");
-                            Logger.Trace($"{builder}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error($"Job: {Id} - Unable to update heartbeat. Details:\r\n{ex}");
                     }
                 }
-            }, null, timerInterval, timerInterval);
+
+                Stopwatch sw = null;
+                if (Logger.IsTraceEnabled())
+                {
+                    sw = Stopwatch.StartNew();
+                }
+
+                try
+                {
+                    var now = DateTime.UtcNow;
+                    var update = new BsonDocument
+                    {
+                        ["$set"] = new BsonDocument
+                        {
+                            [nameof(JobDto.FetchedAt)] = now
+                        }
+                    };
+                    await _db.JobGraph
+                        .UpdateOneAsync(filter, update, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+
+                    lock (_syncRoot)
+                    {
+                        if (!_disposed && !_requeued && !_removedFromQueue)
+                        {
+                            _fetchedAt = now;
+                        }
+                    }
+
+                    if (Logger.IsTraceEnabled() && sw != null)
+                    {
+                        var serializedModel = new Dictionary<string, BsonDocument>
+                        {
+                            ["Filter"] = filter,
+                            ["Update"] = update
+                        };
+                        sw.Stop();
+                        var builder = new StringBuilder();
+                        builder.AppendLine($"Job heartbeat");
+                        builder.AppendLine($"{serializedModel.ToJson()}");
+                        builder.AppendLine($"Executed in {sw.ElapsedMilliseconds} ms");
+                        Logger.Trace($"{builder}");
+                    }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Job: {Id} - Unable to update heartbeat. Details:\r\n{ex}");
+                }
+            }
+        }
+
+        private void StopHeartbeat()
+        {
+            CancellationTokenSource cancellation;
+            Task heartbeat;
+            lock (_syncRoot)
+            {
+                cancellation = _heartbeatCancellation;
+                heartbeat = _heartbeatTask;
+                cancellation?.Cancel();
+            }
+
+            heartbeat?.GetAwaiter().GetResult();
+
+            lock (_syncRoot)
+            {
+                if (ReferenceEquals(_heartbeatTask, heartbeat))
+                {
+                    _heartbeatCancellation = null;
+                    _heartbeatTask = null;
+                    cancellation?.Dispose();
+                }
+            }
         }
     }
 }

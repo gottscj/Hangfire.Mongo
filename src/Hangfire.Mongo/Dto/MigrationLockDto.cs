@@ -13,10 +13,16 @@ namespace Hangfire.Mongo.Dto
         public MigrationLockDto(BsonDocument doc)
         {
             Id = doc["_id"].AsObjectId;
+            if (doc.TryGetValue(nameof(OwnerToken), out var ownerToken))
+            {
+                OwnerToken = ownerToken.StringOrNull();
+            }
             ExpireAt = doc[nameof(ExpireAt)].ToUniversalTime();
         }
         public ObjectId Id { get; set; }
-        
+
+        public string OwnerToken { get; set; }
+
         public DateTime ExpireAt { get; set; }
 
         public BsonDocument Serialize()
@@ -24,6 +30,7 @@ namespace Hangfire.Mongo.Dto
             return new BsonDocument
             {
                 ["_id"] = Id,
+                [nameof(OwnerToken)] = OwnerToken.ToBsonValue(),
                 [nameof(ExpireAt)] = ExpireAt.ToUniversalTime(),
             };
         }

@@ -58,11 +58,11 @@ namespace Hangfire.Mongo.Tests
 
             JobStorage.Current = fixture.CreateStorage(storageOptions, databaseName);
 
-            var conventionPack = new ConventionPack {new CamelCaseElementNameConvention()};
+            var conventionPack = new ConventionPack { new CamelCaseElementNameConvention() };
             ConventionRegistry.Register("CamelCase", conventionPack, t => true);
 
             _server = new BackgroundJobServer(new BackgroundJobServerOptions
-                {SchedulePollingInterval = TimeSpan.FromMilliseconds(100)});
+            { SchedulePollingInterval = TimeSpan.FromMilliseconds(100) });
         }
 
         public void Dispose()
@@ -128,7 +128,7 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void Enqueue_SuccessfulJob_ClearsQueueAndFetchTokenViaTransactionalAck()
+        public void Enqueue_SuccessfulJob_ClearsQueueAndOwnerTokenViaTransactionalAck()
         {
             // ARRANGE
             var jobGraphCollectionName = _fixture.DbContext.JobGraph.CollectionNamespace.CollectionName;
@@ -157,7 +157,7 @@ namespace Hangfire.Mongo.Tests
             Assert.True(signalled, "job did not run");
             Assert.NotNull(persisted);
             Assert.Equal(BsonNull.Value, persisted[nameof(JobDto.Queue)]);
-            Assert.Equal(BsonNull.Value, persisted[nameof(JobDto.FetchToken)]);
+            Assert.Equal(BsonNull.Value, persisted[nameof(JobDto.OwnerToken)]);
             Assert.Equal(BsonNull.Value, persisted[nameof(JobDto.FetchedAt)]);
         }
     }

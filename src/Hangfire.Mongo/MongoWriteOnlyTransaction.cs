@@ -48,7 +48,7 @@ namespace Hangfire.Mongo
 
             return updates;
         }
-        
+
         public override void Dispose()
         {
             _distributedLock?.Dispose();
@@ -71,7 +71,7 @@ namespace Hangfire.Mongo
         {
             if (fetchedJob is MongoFetchedJob mongoFetchedJob)
             {
-                RemoveFromQueue(mongoFetchedJob.Id, mongoFetchedJob.FetchToken, mongoFetchedJob.Queue);
+                RemoveFromQueue(mongoFetchedJob.Id, mongoFetchedJob.OwnerToken, mongoFetchedJob.Queue);
                 _removedJobs.Add(mongoFetchedJob);
             }
             else
@@ -86,17 +86,17 @@ namespace Hangfire.Mongo
             updates.Set[nameof(KeyJobDto.ExpireAt)] = DateTime.UtcNow.Add(expireIn);
         }
 
-        public virtual void RemoveFromQueue(ObjectId id, string fetchToken, string queue)
+        public virtual void RemoveFromQueue(ObjectId id, string ownerToken, string queue)
         {
-            if (fetchToken == null)
+            if (ownerToken == null)
             {
-                throw new ArgumentNullException(nameof(fetchToken));
+                throw new ArgumentNullException(nameof(ownerToken));
             }
 
             var filter = new BsonDocument
             {
                 ["_id"] = id,
-                [nameof(JobDto.FetchToken)] = fetchToken,
+                [nameof(JobDto.OwnerToken)] = ownerToken,
                 [nameof(JobDto.Queue)] = queue
             };
             var update = new BsonDocument
@@ -104,7 +104,7 @@ namespace Hangfire.Mongo
                 ["$set"] = new BsonDocument
                 {
                     [nameof(JobDto.FetchedAt)] = BsonNull.Value,
-                    [nameof(JobDto.FetchToken)] = BsonNull.Value,
+                    [nameof(JobDto.OwnerToken)] = BsonNull.Value,
                     [nameof(JobDto.Queue)] = BsonNull.Value
                 }
             };
@@ -116,7 +116,7 @@ namespace Hangfire.Mongo
         {
             var updates = GetOrAddJobUpdates(id.ToString());
             updates.Set[nameof(JobDto.FetchedAt)] = BsonNull.Value;
-            updates.Set[nameof(JobDto.FetchToken)] = BsonNull.Value;
+            updates.Set[nameof(JobDto.OwnerToken)] = BsonNull.Value;
             updates.Set[nameof(JobDto.Queue)] = queue.ToBsonValue();
             JobsAddedToQueue.Add(queue);
         }
@@ -226,7 +226,7 @@ namespace Hangfire.Mongo
             var updates = GetOrAddJobUpdates(jobId);
             updates.Set[nameof(JobDto.Queue)] = queue;
             updates.Set[nameof(JobDto.FetchedAt)] = BsonNull.Value;
-            updates.Set[nameof(JobDto.FetchToken)] = BsonNull.Value;
+            updates.Set[nameof(JobDto.OwnerToken)] = BsonNull.Value;
 
             JobsAddedToQueue.Add(queue);
         }
@@ -277,7 +277,7 @@ namespace Hangfire.Mongo
                 }
             };
 
-            var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
+            var writeModel = new UpdateOneModel<BsonDocument>(filter, update) { IsUpsert = true };
             _writeModels.Add(writeModel);
         }
 
@@ -288,7 +288,7 @@ namespace Hangfire.Mongo
 
         public override void AddToSet(string key, string value, double score)
         {
-            AddRangeToSet(key, new List<string> {value}, score);
+            AddRangeToSet(key, new List<string> { value }, score);
         }
 
         public override void RemoveFromSet(string key, string value)
@@ -373,7 +373,7 @@ namespace Hangfire.Mongo
 
             var toTrim = allIds
                 .OrderByDescending(id => id.Timestamp)
-                .Select((id, i) => new {Index = i + 1, Id = id})
+                .Select((id, i) => new { Index = i + 1, Id = id })
                 .Where(x => (x.Index >= start && x.Index <= end) == false)
                 .Select(x => x.Id)
                 .ToList();
@@ -423,7 +423,7 @@ namespace Hangfire.Mongo
 
             var filter = new BsonDocument(nameof(HashDto.Key), key);
 
-            var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
+            var writeModel = new UpdateOneModel<BsonDocument>(filter, update) { IsUpsert = true };
             _writeModels.Add(writeModel);
         }
 
@@ -463,20 +463,20 @@ namespace Hangfire.Mongo
                 IsOrdered = true,
                 BypassDocumentValidation = false
             };
-            
+
             Stopwatch sw = null;
             if (Logger.IsTraceEnabled())
             {
                 sw = Stopwatch.StartNew();
             }
-            
+
             ExecuteCommit(jobGraph, _writeModels, bulkWriteOptions);
 
             if (Logger.IsTraceEnabled() && sw != null)
             {
                 Log(_writeModels, sw.ElapsedMilliseconds);
             }
-            
+
             _removedJobs.ForEach(j => j.SetRemoved());
             _distributedLock?.Dispose();
 
@@ -506,11 +506,11 @@ namespace Hangfire.Mongo
         {
             var builder = new StringBuilder();
             builder.AppendLine($"Commit (bulk write)");
-            
+
             foreach (var writeModel in writeModels)
             {
                 var serializedModel = SerializeWriteModel(writeModel);
-                
+
                 builder.AppendLine($"{writeModel.ModelType}:");
                 builder.AppendLine($"{serializedModel}");
             }
@@ -548,37 +548,37 @@ namespace Hangfire.Mongo
             switch (writeModel.ModelType)
             {
                 case WriteModelType.InsertOne:
-                    serializedDoc = ((InsertOneModel<BsonDocument>) writeModel).Document.ToJson();
+                    serializedDoc = ((InsertOneModel<BsonDocument>)writeModel).Document.ToJson();
                     break;
                 case WriteModelType.DeleteOne:
-                    serializedDoc = ((DeleteOneModel<BsonDocument>) writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry))
+                    serializedDoc = ((DeleteOneModel<BsonDocument>)writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry))
                         .ToJson();
                     break;
                 case WriteModelType.DeleteMany:
-                    serializedDoc = ((DeleteManyModel<BsonDocument>) writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry))
+                    serializedDoc = ((DeleteManyModel<BsonDocument>)writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry))
                         .ToJson();
                     break;
                 case WriteModelType.ReplaceOne:
 
                     serializedDoc = new Dictionary<string, BsonDocument>
                     {
-                        ["Filter"] = ((ReplaceOneModel<BsonDocument>) writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry)),
-                        ["Replacement"] = ((ReplaceOneModel<BsonDocument>) writeModel).Replacement
+                        ["Filter"] = ((ReplaceOneModel<BsonDocument>)writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry)),
+                        ["Replacement"] = ((ReplaceOneModel<BsonDocument>)writeModel).Replacement
                     }.ToJson();
                     break;
                 case WriteModelType.UpdateOne:
                     serializedDoc = new Dictionary<string, BsonDocument>
                     {
-                        ["Filter"] = ((UpdateOneModel<BsonDocument>) writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry)),
-                        ["Update"] = ((UpdateOneModel<BsonDocument>) writeModel).Update.Render(new RenderArgs<BsonDocument>(serializer, registry))
+                        ["Filter"] = ((UpdateOneModel<BsonDocument>)writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry)),
+                        ["Update"] = ((UpdateOneModel<BsonDocument>)writeModel).Update.Render(new RenderArgs<BsonDocument>(serializer, registry))
                             .AsBsonDocument
                     }.ToJson();
                     break;
                 case WriteModelType.UpdateMany:
                     serializedDoc = new Dictionary<string, BsonDocument>
                     {
-                        ["Filter"] = ((UpdateManyModel<BsonDocument>) writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry)),
-                        ["Update"] = ((UpdateManyModel<BsonDocument>) writeModel).Update.Render(new RenderArgs<BsonDocument>(serializer, registry))
+                        ["Filter"] = ((UpdateManyModel<BsonDocument>)writeModel).Filter.Render(new RenderArgs<BsonDocument>(serializer, registry)),
+                        ["Update"] = ((UpdateManyModel<BsonDocument>)writeModel).Update.Render(new RenderArgs<BsonDocument>(serializer, registry))
                             .AsBsonDocument
                     }.ToJson();
                     break;
@@ -715,7 +715,7 @@ namespace Hangfire.Mongo
                 var filter = CreateSetFilter(key, item);
                 var update = CreateSetUpdate(key, item, score);
 
-                var writeModel = new UpdateOneModel<BsonDocument>(filter, update) {IsUpsert = true};
+                var writeModel = new UpdateOneModel<BsonDocument>(filter, update) { IsUpsert = true };
                 _writeModels.Add(writeModel);
             }
         }
