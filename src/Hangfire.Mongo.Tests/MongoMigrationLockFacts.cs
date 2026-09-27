@@ -24,6 +24,7 @@ namespace Hangfire.Mongo.Tests
             _database = fixture.CreateDbContext();
             _options = new MongoStorageOptions();
             _locks = _database.Database.GetCollection<BsonDocument>(_options.Prefix + ".migrationLock");
+            _locks.DeleteMany(new BsonDocument());
         }
 
         [Fact]
@@ -45,22 +46,27 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void AcquireLock_NoLock_LockAcquired()
         {
-            using var migrationLock = new MigrationLock(_database.Database, _options);
+            var options = new MongoStorageOptions { MigrationLockTimeout = TimeSpan.FromSeconds(3) };
+            using var migrationLock = new MigrationLock(_database.Database, options);
             migrationLock.AcquireLock();
             var locksCount = _locks.CountDocuments(new BsonDocument());
             Assert.Equal(1, locksCount);
-            
+
             // Verify heartbeat is working by checking that ExpireAt gets updated
             var lockBefore = _locks.Find(new BsonDocument()).Single();
             var expireAtBefore = lockBefore[nameof(MigrationLockDto.ExpireAt)].ToUniversalTime();
-            
-            Thread.Sleep(TimeSpan.FromMilliseconds(500));
-            
-            var lockAfter = _locks.Find(new BsonDocument()).Single();
-            var expireAtAfter = lockAfter[nameof(MigrationLockDto.ExpireAt)].ToUniversalTime();
-            
+
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            var expireAtAfter = expireAtBefore;
+            while (expireAtAfter <= expireAtBefore && DateTime.UtcNow < deadline)
+            {
+                Thread.Sleep(TimeSpan.FromMilliseconds(100));
+                var lockAfter = _locks.Find(new BsonDocument()).Single();
+                expireAtAfter = lockAfter[nameof(MigrationLockDto.ExpireAt)].ToUniversalTime();
+            }
+
             // ExpireAt should be updated by heartbeat
-            Assert.True(expireAtAfter >= expireAtBefore);
+            Assert.True(expireAtAfter > expireAtBefore);
         }
 
         [Fact]
@@ -82,10 +88,44 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
+        public void HeartbeatAndDispose_DoNotModifyLock_WhenOwnershipWasLost()
+        {
+            var options = new MongoStorageOptions { MigrationLockTimeout = TimeSpan.FromSeconds(3) };
+            var migrationLock = new MigrationLock(_database.Database, options);
+            var filter = new BsonDocument("_id", MigrationLock.LockId);
+            try
+            {
+                migrationLock.AcquireLock();
+                var replacementOwner = Guid.NewGuid().ToString("N");
+
+                _locks.UpdateOne(
+                    filter,
+                    new BsonDocument("$set", new BsonDocument
+                    {
+                        [nameof(MigrationLockDto.OwnerToken)] = replacementOwner,
+                        [nameof(MigrationLockDto.ExpireAt)] = DateTime.UtcNow.AddSeconds(10)
+                    }));
+                var replacementExpireAt = _locks.Find(filter).Single()[nameof(MigrationLockDto.ExpireAt)];
+
+                Thread.Sleep(TimeSpan.FromSeconds(2));
+                migrationLock.Dispose();
+
+                var document = _locks.Find(filter).Single();
+                Assert.Equal(replacementOwner, document[nameof(MigrationLockDto.OwnerToken)].AsString);
+                Assert.Equal(replacementExpireAt, document[nameof(MigrationLockDto.ExpireAt)]);
+            }
+            finally
+            {
+                _locks.DeleteOne(filter);
+                migrationLock.Dispose();
+            }
+        }
+
+        [Fact]
         public void AcquireLock_TimesOut_ThrowsAnException()
         {
             // Use a longer timeout for the first lock so heartbeat can update it
-            var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromSeconds(5)};
+            var options = new MongoStorageOptions { MigrationLockTimeout = TimeSpan.FromSeconds(5) };
 
             using var migrationLock = new MigrationLock(_database.Database, options);
             migrationLock.AcquireLock();
@@ -97,7 +137,7 @@ namespace Hangfire.Mongo.Tests
                 // Second lock has very short timeout and can't acquire the lock held by first lock
                 Assert.Throws<TimeoutException>(() =>
                     {
-                        var options2 = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(50)};
+                        var options2 = new MongoStorageOptions { MigrationLockTimeout = TimeSpan.FromMilliseconds(50) };
                         using var migrationLock2 = new MigrationLock(_database.Database, options2);
                         migrationLock2.AcquireLock();
                     }
@@ -106,12 +146,12 @@ namespace Hangfire.Mongo.Tests
             t.Start();
             Assert.True(t.Join(5000), "Thread is hanging unexpected");
         }
-        
+
         [Fact]
         public void AcquireLock_DoesNotAcquire_DoesNotDeleteLockInDb()
         {
             // Use longer timeout so heartbeat can keep the lock alive
-            var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromSeconds(5)};
+            var options = new MongoStorageOptions { MigrationLockTimeout = TimeSpan.FromSeconds(5) };
 
             var migrationLock = new MigrationLock(_database.Database, options);
             migrationLock.AcquireLock();
@@ -123,7 +163,7 @@ namespace Hangfire.Mongo.Tests
                 // Second lock has very short timeout so it will fail to acquire
                 Assert.Throws<TimeoutException>(() =>
                     {
-                        var options2 = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromMilliseconds(50)};
+                        var options2 = new MongoStorageOptions { MigrationLockTimeout = TimeSpan.FromMilliseconds(50) };
                         using var migrationLock2 = new MigrationLock(_database.Database, options2);
                         migrationLock2.AcquireLock();
                     }
@@ -134,7 +174,7 @@ namespace Hangfire.Mongo.Tests
             });
             t.Start();
             Assert.True(t.Join(5000), "Thread is hanging unexpected");
-            
+
             migrationLock.Dispose();
         }
 
@@ -144,7 +184,7 @@ namespace Hangfire.Mongo.Tests
             var t = new Thread(() =>
             {
                 // Use longer timeout so the heartbeat can keep the lock alive
-                var options = new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromSeconds(5)};
+                var options = new MongoStorageOptions { MigrationLockTimeout = TimeSpan.FromSeconds(5) };
 
                 using var migrationLock = new MigrationLock(_database.Database, options);
                 migrationLock.AcquireLock();
@@ -154,14 +194,14 @@ namespace Hangfire.Mongo.Tests
 
             // Wait just a bit to make sure the above lock is acquired
             Thread.Sleep(TimeSpan.FromSeconds(1));
-            
+
             // Record when we try to acquire the lock
             var startTime = DateTime.UtcNow;
             using var migrationLock2 = new MigrationLock(_database.Database, _options);
             migrationLock2.AcquireLock();
             Assert.InRange(DateTime.UtcNow - startTime, TimeSpan.FromMilliseconds(1), TimeSpan.FromSeconds(5));
         }
-        
+
         [Fact]
         public void AcquireLock_LockExpired_LockAcquired()
         {
@@ -174,7 +214,7 @@ namespace Hangfire.Mongo.Tests
                     [nameof(MigrationLockDto.ExpireAt)] = initialExpireAt
                 });
 
-            using var migrationLock = new MigrationLock(_database.Database, new MongoStorageOptions{MigrationLockTimeout = TimeSpan.FromSeconds(5)});
+            using var migrationLock = new MigrationLock(_database.Database, new MongoStorageOptions { MigrationLockTimeout = TimeSpan.FromSeconds(5) });
             migrationLock.AcquireLock();
             var lockEntry = new MigrationLockDto(_locks.Find(new BsonDocument()).Single());
             Assert.True(lockEntry.ExpireAt > initialExpireAt);

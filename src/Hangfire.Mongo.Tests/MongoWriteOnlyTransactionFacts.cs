@@ -71,39 +71,39 @@ namespace Hangfire.Mongo.Tests
         {
             // Arrange
             using var transaction = new MongoWriteOnlyTransaction(_database, new MongoStorageOptions());
-            
+
             // Act
             transaction.AcquireDistributedLock("test", TimeSpan.FromSeconds(1));
-            
+
             // Assert
             var lockAcquired = _database.DistributedLock.Find("{}").Single();
             transaction.Dispose();
             var lockReleased = _database.DistributedLock.Find("{}").SingleOrDefault();
-            
+
             Assert.True(lockAcquired is not null, "expected lockAcquired to be found");
             Assert.True(lockReleased is null, "expected lockReleased to be null");
         }
-        
+
         [Fact]
         public void AcquireDistributedLock_Commit_LockReleased()
         {
             // Arrange
             using var transaction = new MongoWriteOnlyTransaction(_database, new MongoStorageOptions());
-            
+
             // Act
             transaction.AcquireDistributedLock("test", TimeSpan.FromSeconds(1));
-            
+
             // Assert
             var lockAcquired = _database.DistributedLock.Find("{}").Single();
             transaction.SetJobState(ObjectId.GenerateNewId().ToString(), new DeletedState());
-            
+
             transaction.Commit();
             var lockReleased = _database.DistributedLock.Find("{}").SingleOrDefault();
-            
+
             Assert.True(lockAcquired is not null, "expected lockAcquired to be found");
             Assert.True(lockReleased is null, "expected lockReleased to be null");
         }
-        
+
         [Fact]
         public void SetJobParamater_ValidJob_Success()
         {
@@ -120,10 +120,10 @@ namespace Hangfire.Mongo.Tests
 
             var jobId = job.Id.ToString();
             Commit(x => x.PersistJob(jobId));
-            
+
             // Act
             Commit(x => x.SetJobParameter(jobId, "test", "test"));
-            
+
             // Assert
             var testjob = GetTestJob(_database, jobId);
             Assert.Contains("test", (IDictionary<string, string>)testjob.Parameters);
@@ -188,7 +188,7 @@ namespace Hangfire.Mongo.Tests
 
             var jobId = job.Id.ToString();
             var anotherJobId = anotherJob.Id.ToString();
-            var serializedData = new Dictionary<string, string> {{"Name", "Value"}};
+            var serializedData = new Dictionary<string, string> { { "Name", "Value" } };
 
             var state = Substitute.For<IState>();
             state.Name.Returns("State");
@@ -206,7 +206,7 @@ namespace Hangfire.Mongo.Tests
             var anotherStateHistory = GetTestJobState(_database, anotherJobId);
             Assert.Null(anotherTestJob.StateName);
             Assert.Empty(anotherStateHistory);
-            
+
             var jobState = stateHistory.Single().State;
             Assert.Equal("State", jobState.Name);
             Assert.Equal("Reason", jobState.Reason);
@@ -226,7 +226,7 @@ namespace Hangfire.Mongo.Tests
             _database.JobGraph.InsertOne(job.Serialize());
 
             var jobId = job.Id.ToString();
-            var serializedData = new Dictionary<string, string> {{"Name", "Value"}};
+            var serializedData = new Dictionary<string, string> { { "Name", "Value" } };
 
             var state = Substitute.For<IState>();
             state.Name.Returns("State");
@@ -270,7 +270,7 @@ namespace Hangfire.Mongo.Tests
         }
 
         [Fact]
-        public void AddToQueue_ClearsStaleFetchedAtAndFetchToken()
+        public void AddToQueue_ClearsStaleFetchedAtAndOwnerToken()
         {
             // Arrange — simulate a document that still carries ownership fields from a previous lease.
             var jobId = ObjectId.GenerateNewId();
@@ -279,7 +279,7 @@ namespace Hangfire.Mongo.Tests
                 Id = jobId,
                 Queue = "default",
                 FetchedAt = DateTime.UtcNow,
-                FetchToken = Guid.NewGuid().ToString("N")
+                OwnerToken = Guid.NewGuid().ToString("N")
             }.Serialize());
 
             // Act — re-enqueue the job.
@@ -289,7 +289,7 @@ namespace Hangfire.Mongo.Tests
             var job = new JobDto(_database.JobGraph.Find(new BsonDocument("_id", jobId)).Single());
             Assert.Equal("default", job.Queue);
             Assert.Null(job.FetchedAt);
-            Assert.Null(job.FetchToken);
+            Assert.Null(job.OwnerToken);
         }
 
         [Fact]
@@ -315,7 +315,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(1L, counter.Value);
             Assert.NotNull(counter.ExpireAt);
 
-            var expireAt = (DateTime) counter.ExpireAt;
+            var expireAt = (DateTime)counter.ExpireAt;
 
             Assert.True(DateTime.UtcNow.AddHours(23) < expireAt);
             Assert.True(expireAt < DateTime.UtcNow.AddHours(25));
@@ -363,7 +363,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal(-1L, counter.Value);
             Assert.NotNull(counter.ExpireAt);
 
-            var expireAt = (DateTime) counter.ExpireAt;
+            var expireAt = (DateTime)counter.ExpireAt;
 
             Assert.True(DateTime.UtcNow.AddHours(23) < expireAt);
             Assert.True(expireAt < DateTime.UtcNow.AddHours(25));
@@ -388,7 +388,7 @@ namespace Hangfire.Mongo.Tests
         {
             Commit(x => x.AddToSet("my-key", "my-value"));
 
-            var record = new SetDto(_database.JobGraph.Find(new BsonDocument {["_t"] = nameof(SetDto) }).Single());
+            var record = new SetDto(_database.JobGraph.Find(new BsonDocument { ["_t"] = nameof(SetDto) }).Single());
 
             Assert.Equal("my-key<my-value>", record.Key);
             Assert.Equal(0.0, record.Score, 2);
@@ -568,9 +568,9 @@ namespace Hangfire.Mongo.Tests
             {
                 x.InsertToList("my-key", "0");
                 x.InsertToList("my-key", "1");
-                
+
             });
-            
+
             // ACT
             Commit(x =>
             {
@@ -578,7 +578,7 @@ namespace Hangfire.Mongo.Tests
                 x.InsertToList("my-key", "3");
                 x.TrimList("my-key", 1, 2);
             });
-            
+
             // ASSERT
             var records = _database
                 .JobGraph
@@ -591,7 +591,7 @@ namespace Hangfire.Mongo.Tests
             Assert.Equal("1", records[0].Value);
             Assert.Equal("2", records[1].Value);
         }
-        
+
         [Fact]
         public void TrimList_TrimsAListInSameTransaction_ToASpecifiedRange()
         {
@@ -602,14 +602,14 @@ namespace Hangfire.Mongo.Tests
                 x.InsertToList("my-key", "1");
                 x.InsertToList("my-key", "2");
                 x.InsertToList("my-key", "3");
-                
-                
-                
-                
+
+
+
+
                 // ACT
                 x.TrimList("my-key", 1, 2);
             });
-            
+
             // ASSERT
             var records = _database
                 .JobGraph
@@ -634,7 +634,7 @@ namespace Hangfire.Mongo.Tests
                 x.InsertToList("my-key1", "1");
                 x.InsertToList("my-key1", "2");
             });
-            
+
             Commit(x =>
             {
                 x.TrimList("my-key", 1, 100);
@@ -649,7 +649,7 @@ namespace Hangfire.Mongo.Tests
 
             Assert.Equal(2, recordCount);
         }
-        
+
         [Fact]
         public void TrimList_GreaterThanMaxElementIndexSameTransaction_RemovesRecordsToEndIfKeepEndingAt()
         {
@@ -660,7 +660,7 @@ namespace Hangfire.Mongo.Tests
                 x.InsertToList("my-key1", "1");
                 x.InsertToList("my-key1", "2");
             });
-            
+
             Commit(x =>
             {
                 x.InsertToList("my-key1", "3");
@@ -674,7 +674,7 @@ namespace Hangfire.Mongo.Tests
                 ["_t"] = nameof(ListDto),
                 [nameof(ListDto.Item)] = "my-key"
             };
-            
+
             var recordCount = _database.JobGraph.Count(filter);
 
             Assert.Equal(2, recordCount);
@@ -701,9 +701,9 @@ namespace Hangfire.Mongo.Tests
             Commit(x =>
             {
                 x.InsertToList("my-key", "0");
-                
+
             });
-            
+
             // ACT
             Commit(x =>
             {
@@ -715,7 +715,7 @@ namespace Hangfire.Mongo.Tests
 
             Assert.Equal(0, recordCount);
         }
-        
+
         [Fact]
         public void TrimList_StartFromGreaterThanEndingAtSameTransaction_RemovesAllRecords()
         {
@@ -723,10 +723,10 @@ namespace Hangfire.Mongo.Tests
             Commit(x =>
             {
                 x.InsertToList("my-key", "0");
-                
-                
-                
-                
+
+
+
+
                 // ACT
                 x.TrimList("my-key", 1, 0);
             });
@@ -751,13 +751,13 @@ namespace Hangfire.Mongo.Tests
             {
                 x.TrimList("another-key", 1, 0);
             });
-            
+
             // ASSERT
             var recordCount = _database.JobGraph.Count(new BsonDocument("_t", nameof(ListDto)));
 
             Assert.Equal(1, recordCount);
         }
-        
+
         [Fact]
         public void TrimList_DifferentKeysSameTransaction_RemovesRecordsOnlyOfGivenKey()
         {
@@ -833,10 +833,10 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void ExpireSet_SetsSetExpirationData()
         {
-            var set1 = new SetDto {Key = "Set1<value1>", Value = "value1", SetType = "Set1"};
+            var set1 = new SetDto { Key = "Set1<value1>", Value = "value1", SetType = "Set1" };
             _database.JobGraph.InsertOne(set1.Serialize());
 
-            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2", SetType = "Set2"};
+            var set2 = new SetDto { Key = "Set2<value2>", Value = "value2", SetType = "Set2" };
             _database.JobGraph.InsertOne(set2.Serialize());
 
             Commit(x => x.ExpireSet("Set1", TimeSpan.FromDays(1)));
@@ -858,7 +858,7 @@ namespace Hangfire.Mongo.Tests
             var key = "some+-[regex]?-#set";
 
 
-            var set1 = new SetDto {Key = $"{key}<value1>", Value = "value1", SetType = key};
+            var set1 = new SetDto { Key = $"{key}<value1>", Value = "value1", SetType = key };
             _database.JobGraph.InsertOne(set1.Serialize());
 
             Commit(x => x.ExpireSet(key, TimeSpan.FromDays(1)));
@@ -873,10 +873,10 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void ExpireList_SetsListExpirationData()
         {
-            var list1 = new ListDto {Item = "List1", Value = "value1"};
+            var list1 = new ListDto { Item = "List1", Value = "value1" };
             _database.JobGraph.InsertOne(list1.Serialize());
 
-            var list2 = new ListDto {Item = "List2", Value = "value2"};
+            var list2 = new ListDto { Item = "List2", Value = "value2" };
             _database.JobGraph.InsertOne(list2.Serialize());
 
             Commit(x => x.ExpireList(list1.Item, TimeSpan.FromDays(1)));
@@ -892,10 +892,10 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void ExpireHash_SetsHashExpirationData()
         {
-            var hash1 = new HashDto {Key = "Hash1"};
+            var hash1 = new HashDto { Key = "Hash1" };
             _database.JobGraph.InsertOne(hash1.Serialize());
 
-            var hash2 = new HashDto {Key = "Hash2"};
+            var hash2 = new HashDto { Key = "Hash2" };
             _database.JobGraph.InsertOne(hash2.Serialize());
 
             Commit(x => x.ExpireHash(hash1.Key, TimeSpan.FromDays(1)));
@@ -912,13 +912,13 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void PersistSet_ClearsTheSetExpirationData()
         {
-            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", SetType = "Set1", ExpireAt = DateTime.UtcNow};
+            var set1Val1 = new SetDto { Key = "Set1<value1>", Value = "value1", SetType = "Set1", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(set1Val1.Serialize());
 
-            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", SetType = "Set1", ExpireAt = DateTime.UtcNow};
+            var set1Val2 = new SetDto { Key = "Set1<value2>", Value = "value2", SetType = "Set1", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(set1Val2.Serialize());
 
-            var set2 = new SetDto {Key = "Set2<value1>", SetType = "Set2", ExpireAt = DateTime.UtcNow};
+            var set2 = new SetDto { Key = "Set2<value1>", SetType = "Set2", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(set2.Serialize());
 
             Commit(x => x.PersistSet("Set1"));
@@ -936,7 +936,7 @@ namespace Hangfire.Mongo.Tests
             var key = "some+-[regex]?-#set";
 
 
-            var set1 = new SetDto {Key = $"{key}<value1>", SetType = key, ExpireAt = DateTime.UtcNow};
+            var set1 = new SetDto { Key = $"{key}<value1>", SetType = key, ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(set1.Serialize());
 
             Commit(x => x.PersistSet(key));
@@ -948,10 +948,10 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void PersistList_ClearsTheListExpirationData()
         {
-            var list1 = new ListDto {Item = "List1", Value = "value1", ExpireAt = DateTime.UtcNow};
+            var list1 = new ListDto { Item = "List1", Value = "value1", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(list1.Serialize());
 
-            var list2 = new ListDto {Item = "List2", Value = "value2", ExpireAt = DateTime.UtcNow};
+            var list2 = new ListDto { Item = "List2", Value = "value2", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(list2.Serialize());
 
             Commit(x => x.PersistList(list1.Item));
@@ -966,10 +966,10 @@ namespace Hangfire.Mongo.Tests
         [Fact]
         public void PersistHash_ClearsTheHashExpirationData()
         {
-            var hash1 = new HashDto {Key = "Hash1", ExpireAt = DateTime.UtcNow};
+            var hash1 = new HashDto { Key = "Hash1", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(hash1.Serialize());
 
-            var hash2 = new HashDto {Key = "Hash2", ExpireAt = DateTime.UtcNow};
+            var hash2 = new HashDto { Key = "Hash2", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(hash2.Serialize());
 
             Commit(x => x.PersistHash(hash1.Key));
@@ -985,22 +985,22 @@ namespace Hangfire.Mongo.Tests
         public void AddRangeToSet_AddToExistingSetData()
         {
             // ASSERT
-            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", SetType = "Set1", ExpireAt = DateTime.UtcNow};
+            var set1Val1 = new SetDto { Key = "Set1<value1>", Value = "value1", SetType = "Set1", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(set1Val1.Serialize());
 
-            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", SetType = "Set1",  ExpireAt = DateTime.UtcNow};
+            var set1Val2 = new SetDto { Key = "Set1<value2>", Value = "value2", SetType = "Set1", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(set1Val2.Serialize());
 
-            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2",SetType = "Set2",  ExpireAt = DateTime.UtcNow};
+            var set2 = new SetDto { Key = "Set2<value2>", Value = "value2", SetType = "Set2", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(set2.Serialize());
 
-            var values = new[] {"test1", "test2", "test3"};
+            var values = new[] { "test1", "test2", "test3" };
 
             // ACT
             Commit(x => x.AddRangeToSet("Set1", values));
 
             var testSet1 = GetTestSet(_database, "Set1");
-            var valuesToTest = new List<string>(values) {"value1", "value2"};
+            var valuesToTest = new List<string>(values) { "value1", "value2" };
 
             Assert.NotNull(testSet1);
             // verify all values are present in testSet1
@@ -1009,19 +1009,19 @@ namespace Hangfire.Mongo.Tests
 
             var testSet2 = GetTestSet(_database, "Set2");
             Assert.NotNull(testSet2);
-            Assert.Single( testSet2);
+            Assert.Single(testSet2);
         }
 
         [Fact]
         public void RemoveSet_ClearsTheSetData()
         {
-            var set1Val1 = new SetDto {Key = "Set1<value1>", Value = "value1", SetType = "Set1", ExpireAt = DateTime.UtcNow};
+            var set1Val1 = new SetDto { Key = "Set1<value1>", Value = "value1", SetType = "Set1", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(set1Val1.Serialize());
 
-            var set1Val2 = new SetDto {Key = "Set1<value2>", Value = "value2", SetType = "Set1", ExpireAt = DateTime.UtcNow};
+            var set1Val2 = new SetDto { Key = "Set1<value2>", Value = "value2", SetType = "Set1", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(set1Val2.Serialize());
 
-            var set2 = new SetDto {Key = "Set2<value2>", Value = "value2", SetType = "Set2", ExpireAt = DateTime.UtcNow};
+            var set2 = new SetDto { Key = "Set2<value2>", Value = "value2", SetType = "Set2", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(set2.Serialize());
 
             Commit(x => x.RemoveSet("Set1"));
@@ -1039,10 +1039,10 @@ namespace Hangfire.Mongo.Tests
             var key = "some+-[regex]?-#set";
 
 
-            var set1Val1 = new SetDto {Key = $"{key}<value1>", Value = "value1", ExpireAt = DateTime.UtcNow};
+            var set1Val1 = new SetDto { Key = $"{key}<value1>", Value = "value1", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(set1Val1.Serialize());
 
-            var set1Val2 = new SetDto {Key = $"{key}<value2>", Value = "value2", ExpireAt = DateTime.UtcNow};
+            var set1Val2 = new SetDto { Key = $"{key}<value2>", Value = "value2", ExpireAt = DateTime.UtcNow };
             _database.JobGraph.InsertOne(set1Val2.Serialize());
 
             Commit(x => x.RemoveSet(key));
@@ -1061,7 +1061,7 @@ namespace Hangfire.Mongo.Tests
             var document = database.JobGraph.Find(filter).FirstOrDefault();
             return document == null ? null : new JobDto(document);
         }
-        
+
         private static JobStateHistoryDto[] GetTestJobState(HangfireDbContext database, string jobId)
         {
             var jobDoc = database.JobGraph.Find(new BsonDocument("_id", ObjectId.Parse(jobId))).FirstOrDefault();

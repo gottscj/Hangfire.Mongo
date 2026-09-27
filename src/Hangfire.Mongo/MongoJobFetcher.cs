@@ -16,7 +16,7 @@ namespace Hangfire.Mongo
     public class MongoJobFetcher
     {
         private static readonly ILog Logger = LogProvider.For<MongoJobFetcher>();
-        
+
         private readonly MongoStorageOptions _storageOptions;
         private readonly IJobQueueSemaphore _semaphore;
 
@@ -27,7 +27,7 @@ namespace Hangfire.Mongo
             IsUpsert = false,
             ReturnDocument = ReturnDocument.After
         };
-        
+
         /// <summary>
         /// ctor
         /// </summary>
@@ -73,7 +73,7 @@ namespace Hangfire.Mongo
                 {
                     fetchedJob = TryAllQueues(queues, cancellationToken);
                 }
-                
+
                 if (fetchedJob != null)
                 {
                     // make sure to try to decrement semaphore if we succeed in getting a job from the queue
@@ -87,8 +87,8 @@ namespace Hangfire.Mongo
                 }
                 // at this point only try all queues if semaphore timed out
                 tryAllQueues = timedOut;
-            } 
-            
+            }
+
             return fetchedJob;
         }
 
@@ -122,9 +122,9 @@ namespace Hangfire.Mongo
         public virtual MongoFetchedJob TryGetEnqueuedJob(string queue, CancellationToken cancellationToken)
         {
             var fetchedAtQuery = new BsonDocument(nameof(JobDto.FetchedAt), BsonNull.Value);
-            if(_storageOptions.SlidingInvisibilityTimeout.HasValue)
+            if (_storageOptions.SlidingInvisibilityTimeout.HasValue)
             {
-                var date  =
+                var date =
                     DateTime.UtcNow.AddSeconds(_storageOptions.SlidingInvisibilityTimeout.Value.Negate().TotalSeconds);
                 fetchedAtQuery = new BsonDocument("$or", new BsonArray
                 {
@@ -132,7 +132,7 @@ namespace Hangfire.Mongo
                     new BsonDocument(nameof(JobDto.FetchedAt), new BsonDocument("$lt", date))
                 });
             }
-            
+
             var filter = new BsonDocument("$and", new BsonArray
             {
                 new BsonDocument(nameof(JobDto.Queue), queue),
@@ -140,11 +140,11 @@ namespace Hangfire.Mongo
                 fetchedAtQuery
             });
             var fetchedAt = DateTime.UtcNow;
-            var fetchToken = Guid.NewGuid().ToString("N");
+            var ownerToken = Guid.NewGuid().ToString("N");
             var update = new BsonDocument("$set", new BsonDocument
             {
                 [nameof(JobDto.FetchedAt)] = fetchedAt,
-                [nameof(JobDto.FetchToken)] = fetchToken
+                [nameof(JobDto.OwnerToken)] = ownerToken
             });
 
             var fetchedJobDoc = _dbContext
@@ -161,7 +161,7 @@ namespace Hangfire.Mongo
             {
                 Logger.Trace($"Fetched job {fetchedJob.Id} from '{queue}' Thread[{Thread.CurrentThread.ManagedThreadId}]");
             }
-            return _storageOptions.Factory.CreateFetchedJob(_dbContext, _storageOptions, fetchedAt, fetchToken, fetchedJob.Id, fetchedJob.Id, fetchedJob.Queue);
+            return _storageOptions.Factory.CreateFetchedJob(_dbContext, _storageOptions, fetchedAt, ownerToken, fetchedJob.Id, fetchedJob.Id, fetchedJob.Queue);
         }
     }
 }

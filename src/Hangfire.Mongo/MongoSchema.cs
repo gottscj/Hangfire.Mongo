@@ -55,7 +55,7 @@ namespace Hangfire.Mongo
         /// Schema version 12
         /// </summary>
         Version12 = 12,
-        
+
         /// <summary>
         /// Schema Version 13
         /// </summary>
@@ -80,12 +80,12 @@ namespace Hangfire.Mongo
         /// Schema Version 17
         /// </summary>
         Version17 = 17,
-        
+
         /// <summary>
         /// Schema Version 18
         /// </summary>
         Version18 = 18,
-        
+
         /// <summary>
         /// Schema Version 19
         /// </summary>
@@ -95,12 +95,12 @@ namespace Hangfire.Mongo
         /// Schema Version 20
         /// </summary>
         Version20 = 20,
-        
+
         /// <summary>
         /// Schema Version 21
         /// </summary>
         Version21 = 21,
-        
+
         /// <summary>
         /// Schema Version 22
         /// </summary>
@@ -119,7 +119,12 @@ namespace Hangfire.Mongo
         /// <summary>
         /// Schema Version 25 - Adds FetchToken field to JobDto for lease CAS ack (fixes #452)
         /// </summary>
-        Version25 = 25
+        Version25 = 25,
+
+        /// <summary>
+        /// Schema Version 26 - Adds OwnerToken fields to jobs, distributed locks, and migration locks
+        /// </summary>
+        Version26 = 26
     }
 
 }

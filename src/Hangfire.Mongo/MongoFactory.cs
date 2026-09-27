@@ -39,7 +39,7 @@ namespace Hangfire.Mongo
         {
             return new MigrationLock(database, storageOptions);
         }
-        
+
         /// <summary>
         /// Factory method to create HangfireDbContext instance
         /// </summary>
@@ -95,7 +95,7 @@ namespace Hangfire.Mongo
         /// <returns></returns>
         public virtual MongoDistributedLock CreateMongoDistributedLock(string resource, TimeSpan timeout, HangfireDbContext dbContext, MongoStorageOptions storageOptions)
         {
-            return new MongoDistributedLock($"Hangfire:{resource}", timeout, dbContext, storageOptions); 
+            return new MongoDistributedLock($"Hangfire:{resource}", timeout, dbContext, storageOptions);
         }
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace Hangfire.Mongo
         /// <param name="dbContext"></param>
         /// <param name="storageOptions"></param>
         /// <param name="fetchedAt"></param>
-        /// <param name="fetchToken"></param>
+        /// <param name="ownerToken"></param>
         /// <param name="id"></param>
         /// <param name="jobId"></param>
         /// <param name="queue"></param>
@@ -113,12 +113,12 @@ namespace Hangfire.Mongo
             HangfireDbContext dbContext,
             MongoStorageOptions storageOptions,
             DateTime fetchedAt,
-            string fetchToken,
+            string ownerToken,
             ObjectId id,
             ObjectId jobId,
             string queue)
         {
-            return new MongoFetchedJob(dbContext, storageOptions, fetchedAt, fetchToken, id, jobId, queue);
+            return new MongoFetchedJob(dbContext, storageOptions, fetchedAt, ownerToken, id, jobId, queue);
         }
 
         /// <summary>
