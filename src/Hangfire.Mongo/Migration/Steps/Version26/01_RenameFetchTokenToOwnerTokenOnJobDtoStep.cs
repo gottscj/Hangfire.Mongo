@@ -16,7 +16,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version26
         {
             var jobGraph = database.GetCollection<BsonDocument>(storageOptions.Prefix + ".jobGraph");
             var jobFilter = Builders<BsonDocument>.Filter.Eq(
-                "_t", new BsonArray { "BaseJobDto", "ExpiringJobDto", nameof(JobDto) });
+                "_t", new BsonArray { "BaseJobDto", "ExpiringJobDto", "JobDto" });
             var hasFetchTokenWithoutOwnerToken = Builders<BsonDocument>.Filter.And(
                 jobFilter,
                 Builders<BsonDocument>.Filter.Exists("FetchToken"),
