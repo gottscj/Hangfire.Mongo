@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using System.Collections.Generic;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hangfire.Mongo.Migration.Steps.Version24
@@ -27,6 +28,7 @@ namespace Hangfire.Mongo.Migration.Steps.Version24
                 .ToCursor();
             while (jobs.MoveNext())
             {
+                var updates = new List<WriteModel<BsonDocument>>();
                 foreach (var job in jobs.Current)
                 {
                     var jobFilter = new BsonDocument("_id", job["_id"]);
@@ -58,8 +60,13 @@ namespace Hangfire.Mongo.Migration.Steps.Version24
                     {
                         continue;
                     }
-                    var setUpdate = Builders<BsonDocument>.Update.Set("StateHistory", stateHistory);
-                    jobGraphCollection.UpdateOne(jobFilter, setUpdate);
+                    var update = Builders<BsonDocument>.Update.Set("StateHistory", stateHistory);
+                    updates.Add(new UpdateOneModel<BsonDocument>(jobFilter, update));
+                }
+
+                if (updates.Count > 0)
+                {
+                    jobGraphCollection.BulkWrite(updates);
                 }
             }
 
