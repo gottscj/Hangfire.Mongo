@@ -1,4 +1,4 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -19,63 +19,58 @@ namespace Hangfire.Mongo.Migration.Steps.Version24
             var jobGraphCollection = database.GetCollection<BsonDocument>(storageOptions.Prefix + ".jobGraph");
             var stateHistoryCollection = database.GetCollection<BsonDocument>(storageOptions.Prefix + ".stateHistory");
 
-            // Get all state history documents, grouped by JobId
-            var allStateHistory = stateHistoryCollection.Find(new BsonDocument()).ToList();
-            
-            if (!allStateHistory.Any())
+            var jobDtoFilter = Builders<BsonDocument>.Filter.Eq(
+                "_t", new BsonArray { "BaseJobDto", "ExpiringJobDto", "JobDto" });
+            using var jobs = jobGraphCollection
+                .Find(jobDtoFilter, new FindOptions { BatchSize = 100 })
+                .Project(Builders<BsonDocument>.Projection.Include("_id").Include("StateHistory"))
+                .Sort(Builders<BsonDocument>.Sort.Ascending("_id"))
+                .ToCursor();
+            while (jobs.MoveNext())
             {
-                return true;
-            }
-
-            // Group by JobId
-            var groupedByJobId = allStateHistory
-                .GroupBy(doc => doc["JobId"].AsObjectId)
-                .ToList();
-
-            foreach (var group in groupedByJobId)
-            {
-                var jobId = group.Key;
-
-                // Find the job
-                var jobFilter = new BsonDocument("_id", jobId);
-                var jobDoc = jobGraphCollection.Find(jobFilter).FirstOrDefault();
-
-                if (jobDoc == null)
+                var updates = new List<WriteModel<BsonDocument>>();
+                foreach (var job in jobs.Current)
                 {
-                    continue;
+                    var jobFilter = new BsonDocument("_id", job["_id"]);
+                    var stateHistory = new BsonArray();
+                    if (job.TryGetValue("StateHistory", out var existingHistory) && existingHistory.IsBsonArray)
+                    {
+                        stateHistory = existingHistory.AsBsonArray;
+                    }
+
+                    // Version23 creates IX_JobId for these per-job history lookups.
+                    using var history = stateHistoryCollection
+                        .Find(new BsonDocument("JobId", job["_id"]), new FindOptions { BatchSize = 100 })
+                        .ToCursor();
+                    var hasNewStates = false;
+                    while (history.MoveNext())
+                    {
+                        foreach (var document in history.Current)
+                        {
+                            if (!document.TryGetValue("State", out var state) || !state.IsBsonDocument)
+                            {
+                                continue;
+                            }
+                            stateHistory.Add(state.AsBsonDocument);
+                            hasNewStates = true;
+                        }
+                    }
+
+                    if (!hasNewStates)
+                    {
+                        continue;
+                    }
+                    var update = Builders<BsonDocument>.Update.Set("StateHistory", stateHistory);
+                    updates.Add(new UpdateOneModel<BsonDocument>(jobFilter, update));
                 }
 
-                // Get states from stateHistory documents, sorted by creation order
-                var states = group
-                    .Where(h => h.TryGetValue("State", out var stateVal) && stateVal.IsBsonDocument)
-                    .Select(h => h["State"].AsBsonDocument)
-                    .ToList();
-
-                if (!states.Any())
+                if (updates.Count > 0)
                 {
-                    continue;
+                    jobGraphCollection.BulkWrite(updates);
                 }
-
-                // Get existing StateHistory from JobDto
-                var existingStateHistory = new BsonArray();
-                if (jobDoc.TryGetValue("StateHistory", out var existingHistory) && existingHistory.IsBsonArray)
-                {
-                    existingStateHistory = existingHistory.AsBsonArray;
-                }
-
-                // Append new states to existing ones
-                foreach (var state in states)
-                {
-                    existingStateHistory.Add(state);
-                }
-
-                // Set the complete StateHistory array atomically
-                var setUpdate = Builders<BsonDocument>.Update.Set("StateHistory", existingStateHistory);
-                jobGraphCollection.UpdateOne(jobFilter, setUpdate);
             }
 
             return true;
         }
     }
 }
-
