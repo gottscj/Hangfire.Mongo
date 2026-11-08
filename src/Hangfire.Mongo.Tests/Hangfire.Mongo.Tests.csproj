@@ -24,13 +24,13 @@
     <ProjectReference Include="../Hangfire.Mongo/Hangfire.Mongo.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageReference Include="NSubstitute" Version="6.2.0" />
-    <PackageReference Include="SharpCompress" Version="0.50.4" />
+    <PackageReference Include="SharpCompress" Version="0.50.8" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="Testcontainers.MongoDb" Version="4.15.0" />
-    <PackageReference Include="Testcontainers.Xunit" Version="4.15.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" PrivateAssets="all" />
+    <PackageReference Include="Testcontainers.MongoDb" Version="4.16.0" />
+    <PackageReference Include="Testcontainers.Xunit" Version="4.16.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" PrivateAssets="all" />
     <PackageReference Include="xunit" Version="2.9.3" />
   </ItemGroup>
   <ItemGroup>
