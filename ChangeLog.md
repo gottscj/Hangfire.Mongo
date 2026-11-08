@@ -1,6 +1,10 @@
 
 ## Change log
 
+### 1.17.1
+- Update to MongoDB.Driver 3.13.0
+- Fix OutOfMemoryException in Version24 migration (#467) (thanks @jorge-moreira)
+
 ### 1.17.0
 - Use asynchronous MongoDB operations for fetched-job, distributed-lock, and migration-lock heartbeats
 - Protect distributed and migration lock heartbeats and releases with immutable owner tokens
