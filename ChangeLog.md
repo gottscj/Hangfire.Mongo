@@ -1,6 +1,9 @@
 
 ## Change log
 
+### 1.17.2
+- Update to MongoDB.Driver 3.14.1
+
 ### 1.17.1
 - Update to MongoDB.Driver 3.13.0
 - Fix OutOfMemoryException in Version24 migration (#467) (thanks @jorge-moreira)
