@@ -27,7 +27,7 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Hangfire.Core" Version="1.8.25" />
-        <PackageReference Include="MongoDB.Driver" Version="3.13.0" />
+        <PackageReference Include="MongoDB.Driver" Version="3.14.1" />
     </ItemGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
